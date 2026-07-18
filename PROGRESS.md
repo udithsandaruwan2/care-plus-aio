@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 13 live transcript done. Next: Step 14 (Gemini intent)._
+_Last updated: 2026-07-18 — Step 14 voice→intent done. Next: Step 15 (chips + Goal Ring end-to-end)._
 
 ---
 
@@ -79,8 +79,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 ### M3 · Voice → Intent
 
 - ✅ **Step 13** — Web Speech mic capture + live streaming transcript; lang toggle (si/ta/en); silence → THINKING. Branch `feat/step13-web-speech`.
-- 🔜 Step 14 — Gemini structured-output intent extraction (backend)
-- ⬜ Step 15 — Entity chips + Goal Ring fill (end-to-end)
+- ✅ **Step 14** — Backend `voice/intent` extraction (Gemini + deterministic stub), consent-gated (451), persists `VoiceIntent`; audited. Branch `feat/step14-voice-intent`.
+- 🔜 Step 15 — Entity chips + Goal Ring fill (end-to-end)
 
 ### M4 · VEHMF v1 + Match UX
 
@@ -119,6 +119,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 14** — `apps.voice`: `VoiceIntent` model + `POST /api/v1/voice/intent/` (`IsAuthenticated` + `HasAIConsent`, 451 without consent), pluggable extractor (`gemini` Structured Output + deterministic `stub` for dev/tests), Sinhala/Tamil/English detection, writes audit row, read-only admin, history endpoint. 16 tests green. Branch `feat/step14-voice-intent`.
 - **Step 13** — `useSpeechRecognition` (Web Speech API): streaming interim + final transcript into the store, language toggle (si-LK/ta-LK/en-US), silence/stop → THINKING; graceful unsupported-browser note. Branch `feat/step13-web-speech`.
 - **Step 12** — Zustand assistant FSM (`TRANSITIONS`/`STATE_COPY`/`nextMissingField` in core); segmented Goal Ring per intent field; color-coded entity chips; live transcript component; `prefers-reduced-motion` static Neural Core; dev state stepper. Branch `feat/step12-assistant-fsm`.
 - **Step 11** — Neural Core on home: `useMicAmplitude` (AnalyserNode), R3F mesh + synapse lines + Bloom, `frameloop="demand"` (idle static), Tap to speak toggles LISTENING. Lazy-loaded Three.js chunk. Branch `feat/step11-neural-core`.
