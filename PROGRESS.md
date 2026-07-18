@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 14 voice→intent done. Next: Step 15 (chips + Goal Ring end-to-end)._
+_Last updated: 2026-07-18 — Step 15 chips + Goal Ring end-to-end done. **M3 complete.** Next: Step 16 (domain models + seed data)._
 
 ---
 
@@ -80,7 +80,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 - ✅ **Step 13** — Web Speech mic capture + live streaming transcript; lang toggle (si/ta/en); silence → THINKING. Branch `feat/step13-web-speech`.
 - ✅ **Step 14** — Backend `voice/intent` extraction (Gemini + deterministic stub), consent-gated (451), persists `VoiceIntent`; audited. Branch `feat/step14-voice-intent`.
-- 🔜 Step 15 — Entity chips + Goal Ring fill (end-to-end)
+- ✅ **Step 15** — End-to-end: transcript → `POST /voice/intent/` → chips pop + Goal Ring fills; missing field → CLARIFYING re-prompt; 451 → one-tap "Enable AI processing" consent + retry. Branch `feat/step15-intent-ui`. **M3 complete.**
 
 ### M4 · VEHMF v1 + Match UX
 
@@ -119,6 +119,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 15** — Web voice loop end-to-end: `api-client` gains `voiceIntent` + `getConsent`/`setConsent` (+ Zod `VoiceIntent`/`ConsentState` schemas); `useIntentExtraction` hook posts the finalized transcript, merges the structured draft into the assistant store (`setIntent`), and drives FSM → SPEAKING (complete) or CLARIFYING (`nextMissingField` re-prompt). HomePage lights entity chips + Goal Ring, shows the clarify prompt, and renders a consent banner (one-tap "Enable AI processing" → retry) when the gate returns 451. Typecheck + web build green. Branch `feat/step15-intent-ui`.
 - **Step 14** — `apps.voice`: `VoiceIntent` model + `POST /api/v1/voice/intent/` (`IsAuthenticated` + `HasAIConsent`, 451 without consent), pluggable extractor (`gemini` Structured Output + deterministic `stub` for dev/tests), Sinhala/Tamil/English detection, writes audit row, read-only admin, history endpoint. 16 tests green. Branch `feat/step14-voice-intent`.
 - **Step 13** — `useSpeechRecognition` (Web Speech API): streaming interim + final transcript into the store, language toggle (si-LK/ta-LK/en-US), silence/stop → THINKING; graceful unsupported-browser note. Branch `feat/step13-web-speech`.
 - **Step 12** — Zustand assistant FSM (`TRANSITIONS`/`STATE_COPY`/`nextMissingField` in core); segmented Goal Ring per intent field; color-coded entity chips; live transcript component; `prefers-reduced-motion` static Neural Core; dev state stepper. Branch `feat/step12-assistant-fsm`.

@@ -1,9 +1,13 @@
 import {
+  ConsentRow,
+  ConsentState,
   HealthResponse,
   RegisterResponse,
   TokenPair,
   User,
+  VoiceIntent,
   type RegisterInput,
+  type VoiceIntentInput,
 } from './schemas';
 
 export type ApiClientOptions = {
@@ -60,10 +64,8 @@ export function createApiClient(options: ApiClientOptions) {
     health: () => request('/health/', {}, (d) => HealthResponse.parse(d)),
     me: () => request('/auth/me/', {}, (d) => User.parse(d)),
     login: (email: string, password: string) =>
-      request(
-        '/auth/token/',
-        { method: 'POST', body: JSON.stringify({ email, password }) },
-        (d) => TokenPair.parse(d),
+      request('/auth/token/', { method: 'POST', body: JSON.stringify({ email, password }) }, (d) =>
+        TokenPair.parse(d),
       ),
     register: (input: RegisterInput) =>
       request(
@@ -79,6 +81,23 @@ export function createApiClient(options: ApiClientOptions) {
           }),
         },
         (d) => RegisterResponse.parse(d),
+      ),
+    voiceIntent: (input: VoiceIntentInput) =>
+      request(
+        '/voice/intent/',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            text: input.text,
+            ...(input.language ? { language: input.language } : {}),
+          }),
+        },
+        (d) => VoiceIntent.parse(d),
+      ),
+    getConsent: () => request('/consent/', {}, (d) => ConsentState.parse(d)),
+    setConsent: (scope: string, granted: boolean) =>
+      request('/consent/', { method: 'POST', body: JSON.stringify({ scope, granted }) }, (d) =>
+        ConsentRow.parse(d),
       ),
   };
 }

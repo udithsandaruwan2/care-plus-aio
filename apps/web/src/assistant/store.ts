@@ -11,6 +11,8 @@ type AssistantStore = {
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
+  /** Merge a (partial) extracted draft over the current intent. */
+  setIntent: (draft: Partial<IntentDraft>) => void;
   setTranscript: (text: string) => void;
   appendTranscript: (text: string) => void;
   setInterim: (text: string) => void;
@@ -37,8 +39,9 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
     }
   },
 
-  setIntentField: (field, value) =>
-    set((s) => ({ intent: { ...s.intent, [field]: value } })),
+  setIntentField: (field, value) => set((s) => ({ intent: { ...s.intent, [field]: value } })),
+
+  setIntent: (draft) => set((s) => ({ intent: { ...s.intent, ...draft } })),
 
   setTranscript: (text) => set({ transcript: text }),
   appendTranscript: (text) =>

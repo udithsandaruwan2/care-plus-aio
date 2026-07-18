@@ -39,3 +39,41 @@ export const RegisterInput = z.object({
   last_name: z.string().optional(),
 });
 export type RegisterInput = z.infer<typeof RegisterInput>;
+
+export const VoiceLanguage = z.enum(['Sinhala', 'Tamil', 'English']);
+export type VoiceLanguage = z.infer<typeof VoiceLanguage>;
+
+export const VoiceIntentInput = z.object({
+  text: z.string().min(1).max(2000),
+  language: VoiceLanguage.optional(),
+});
+export type VoiceIntentInput = z.infer<typeof VoiceIntentInput>;
+
+export const VoiceIntent = z.object({
+  id: z.number(),
+  raw_text: z.string(),
+  condition: z.string(),
+  language: VoiceLanguage,
+  care_level: z.enum(['basic', 'intermediate', 'advanced']),
+  urgency: z.enum(['routine', 'urgent', 'critical']),
+  source: z.string(),
+  ts: z.string(),
+});
+export type VoiceIntent = z.infer<typeof VoiceIntent>;
+
+/** The AI-consent scope that gates the voice → intent pipeline. */
+export const AI_CONSENT_SCOPE = 'ai_processing' as const;
+
+export const ConsentState = z.object({
+  scopes: z.record(z.string()),
+  current: z.record(z.boolean()),
+});
+export type ConsentState = z.infer<typeof ConsentState>;
+
+export const ConsentRow = z.object({
+  id: z.number(),
+  scope: z.string(),
+  granted: z.boolean(),
+  ts: z.string(),
+});
+export type ConsentRow = z.infer<typeof ConsentRow>;

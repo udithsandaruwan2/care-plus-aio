@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { brand } from '@care-plus/ui-tokens';
-import { AssistantState, STATE_COPY, goalRingProgress } from '@care-plus/core';
+import { AssistantState, STATE_COPY, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../auth/api';
@@ -12,6 +12,13 @@ import { EntityChips } from '../assistant/EntityChips';
 import { Transcript } from '../assistant/Transcript';
 import { StateStepper } from '../assistant/StateStepper';
 import { useSpeechRecognition, type RecognitionLang } from '../assistant/useSpeechRecognition';
+import { useIntentExtraction } from '../assistant/useIntentExtraction';
+
+const CLARIFY_PROMPTS: Record<string, string> = {
+  condition: 'What condition or symptom should I focus on?',
+  language: 'Which language do you prefer for care?',
+  care_level: 'How much support do you need — basic, intermediate, or advanced?',
+};
 
 const NeuralCoreCanvas = lazy(() =>
   import('../neural-core/NeuralCoreCanvas').then((m) => ({ default: m.NeuralCoreCanvas })),
@@ -31,6 +38,13 @@ export function HomePage() {
   const reducedMotion = useReducedMotion();
   const { state, intent, transcript, interim, setState, setInterim, appendTranscript, reset } =
     useAssistant();
+  const {
+    extract,
+    extracting,
+    error: intentError,
+    consentNeeded,
+    grantConsent,
+  } = useIntentExtraction();
 
   const speech = useSpeechRecognition({
     lang,
@@ -38,8 +52,8 @@ export function HomePage() {
     onFinal: (text) => appendTranscript(text),
     onEnd: () => {
       mic.stop();
-      // Silence / stop → move to THINKING (intent extraction lands in Step 14).
-      useAssistant.getState().setState(AssistantState.THINKING, { force: true });
+      // Silence / stop → understand what was said, filling the ring & chips.
+      void extract(useAssistant.getState().transcript, lang);
     },
   });
 
@@ -54,9 +68,9 @@ export function HomePage() {
 
   async function toggleMic() {
     if (listening) {
+      // Stopping the recognizer fires `onEnd`, which runs intent extraction.
       speech.stop();
       mic.stop();
-      setState(AssistantState.THINKING, { force: true });
     } else {
       reset();
       await mic.start();
@@ -65,7 +79,15 @@ export function HomePage() {
     }
   }
 
+  async function onGrantConsent() {
+    const ok = await grantConsent();
+    if (ok) void extract(useAssistant.getState().transcript, lang);
+  }
+
   const progress = Math.round(goalRingProgress(intent) * 100);
+  const missingField = nextMissingField(intent);
+  const clarifyPrompt =
+    state === AssistantState.CLARIFYING && missingField ? CLARIFY_PROMPTS[missingField] : null;
 
   return (
     <AtmosphereShell>
@@ -135,10 +157,31 @@ export function HomePage() {
           </button>
 
           <p className="mt-2 font-display text-sm tracking-wide text-cyan" aria-live="polite">
-            {state} · {STATE_COPY[state]}
+            {state} · {extracting ? 'Understanding…' : STATE_COPY[state]}
           </p>
+          {clarifyPrompt && (
+            <p className="mt-1 text-sm text-amber" aria-live="polite">
+              {clarifyPrompt}
+            </p>
+          )}
           {(mic.error || speech.error) && (
             <p className="mt-1 text-sm text-rose">{mic.error ?? speech.error}</p>
+          )}
+          {intentError && !consentNeeded && <p className="mt-1 text-sm text-rose">{intentError}</p>}
+          {consentNeeded && (
+            <div className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center">
+              <p className="text-sm text-amber">{intentError}</p>
+              <button
+                type="button"
+                onClick={onGrantConsent}
+                className="mt-3 rounded-full bg-amber/90 px-5 py-2 text-sm font-medium text-void transition hover:bg-amber"
+              >
+                Enable AI processing
+              </button>
+              <p className="mt-2 text-xs text-muted">
+                You can revoke this anytime in your privacy settings.
+              </p>
+            </div>
           )}
           {!speech.supported && (
             <p className="mt-1 text-xs text-amber">
@@ -181,7 +224,8 @@ export function HomePage() {
             <span className="font-mono text-sm text-mint">{health}</span>
           </div>
           <p className="mt-4 text-sm text-muted">
-            Live transcript (Step 13). Intent extraction wires in Step 14–15.
+            Speak, and the Neural Core fills the Goal Ring with the condition, language, and care
+            level it understands. Missing a detail? It asks.
           </p>
         </div>
       </main>
