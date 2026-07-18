@@ -9,6 +9,7 @@ from drf_spectacular.views import (
 
 api_v1 = [
     path("", include("apps.common.urls")),
+    path("", include("apps.accounts.urls")),
 ]
 
 urlpatterns = [
