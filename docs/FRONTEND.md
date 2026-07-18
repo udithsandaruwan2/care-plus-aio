@@ -1,9 +1,11 @@
 # Care Plus — Frontend & Mobile Blueprint
 
-> **Status:** Pre-development design (v0.1) — companion to [ARCHITECTURE.md](ARCHITECTURE.md).
+> **Status:** Living frontend design (v0.2) — companion to [ARCHITECTURE.md](ARCHITECTURE.md),
+> [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md), and [PRODUCT_VISION.md](PRODUCT_VISION.md).
 > **Scope:** The **web app**, the **cross-platform mobile app (Android + iOS)**, the shared
 > **design system**, and the signature **"Neural Core" realtime AI voice-assistant interface**.
 > **Priorities:** immersive sci-fi UX → realtime responsiveness → resource efficiency (must stay smooth on mid-range phones and integrated GPUs).
+> **Product completeness** (marketplace, hire, records, Serah, admin) follows the Old→New matrix in PRODUCT_VISION — screens expand beyond the Neural Core as milestones M4b–M13 land.
 
 ---
 
