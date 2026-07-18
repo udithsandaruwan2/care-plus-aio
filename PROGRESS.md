@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 15 chips + Goal Ring end-to-end done. **M3 complete.** Next: Step 16 (domain models + seed data)._
+_Last updated: 2026-07-18 — Neural Core glow fixed (neuron cloud, no square fill). Next: Step 16 (domain models + seed data)._
 
 ---
 
@@ -119,6 +119,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Fix** — Neural Core no longer lights up as a solid square: removed opaque icosahedron fill + full-frame Bloom (they painted the canvas rect). Replaced with a volume-filled neuron/synapse cloud (additive points + links), circular clip on the Goal Ring child slot, transparent GL clear. Branch `fix/neural-core-natural-glow`.
 - **Step 15** — Web voice loop end-to-end: `api-client` gains `voiceIntent` + `getConsent`/`setConsent` (+ Zod `VoiceIntent`/`ConsentState` schemas); `useIntentExtraction` hook posts the finalized transcript, merges the structured draft into the assistant store (`setIntent`), and drives FSM → SPEAKING (complete) or CLARIFYING (`nextMissingField` re-prompt). HomePage lights entity chips + Goal Ring, shows the clarify prompt, and renders a consent banner (one-tap "Enable AI processing" → retry) when the gate returns 451. Typecheck + web build green. Branch `feat/step15-intent-ui`.
 - **Step 14** — `apps.voice`: `VoiceIntent` model + `POST /api/v1/voice/intent/` (`IsAuthenticated` + `HasAIConsent`, 451 without consent), pluggable extractor (`gemini` Structured Output + deterministic `stub` for dev/tests), Sinhala/Tamil/English detection, writes audit row, read-only admin, history endpoint. 16 tests green. Branch `feat/step14-voice-intent`.
 - **Step 13** — `useSpeechRecognition` (Web Speech API): streaming interim + final transcript into the store, language toggle (si-LK/ta-LK/en-US), silence/stop → THINKING; graceful unsupported-browser note. Branch `feat/step13-web-speech`.
