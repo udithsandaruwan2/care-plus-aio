@@ -5,11 +5,15 @@ alwaysApply: true
 
 # Git Workflow
 
+- **One branch per feature.** Before starting a distinct feature/step, create a new
+  branch off up-to-date `main`. Do all of that feature's commits on its branch.
+  Naming: `feat/<slug>` (or `fix/<slug>`, `chore/<slug>`). For plan steps use
+  `feat/stepN-<slug>` (e.g. `feat/step6-auth-jwt-rbac`).
 - **Commit feature by feature.** After each self-contained feature/step passes its
   acceptance check, make one focused commit for it. Do not batch several unrelated
   features into a single commit.
-- **Never push.** The user pushes. Do not run `git push` (or `git push --force`, etc.);
-  leave commits local for the user to push.
+- **Never push.** The user pushes and merges branches. Do not run `git push`
+  (or `git push --force`) unless the user explicitly asks in that message.
 - Use clear, conventional commit messages (e.g. `feat(backend): ...`, `fix(web): ...`,
   `chore: ...`) with a short body describing what changed and why when useful.
-- Branch is `main`, tracking `origin/main`.
+- Trunk is `main`, tracking `origin/main`; feature branches merge back into `main`.
