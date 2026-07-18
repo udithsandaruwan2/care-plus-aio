@@ -1,0 +1,21 @@
+/**
+ * Aurora Neural CSS custom properties.
+ * Import via `@care-plus/ui-tokens/css` or Tailwind theme extension.
+ */
+:root {
+  --cp-bg-void: #05060a;
+  --cp-bg-panel: rgba(18, 22, 34, 0.6);
+  --cp-border-hair: rgba(148, 163, 184, 0.14);
+  --cp-accent-cyan: #22d3ee;
+  --cp-accent-violet: #8b5cf6;
+  --cp-accent-mint: #34d399;
+  --cp-accent-amber: #f59e0b;
+  --cp-accent-rose: #fb7185;
+  --cp-text-primary: #e5edff;
+  --cp-text-muted: #8a94ad;
+  --cp-font-display: 'Space Grotesk', 'Sora', system-ui, sans-serif;
+  --cp-font-body: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, sans-serif;
+  --cp-duration-fast: 150ms;
+  --cp-duration-base: 260ms;
+  --cp-duration-slow: 420ms;
+}
