@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Git workflow: branch → many commits → push → merge. Next: Step 8._
+_Last updated: 2026-07-18 — Step 8 audit trail done. **M1 complete.** Next: Step 9 (web shell)._
 
 ---
 
@@ -66,11 +66,11 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 - ✅ **Step 6** — Custom `User` (email login + role) + JWT + RBAC. Branch `feat/step6-auth-jwt-rbac`.
 - ✅ **Step 7** — Consent engine: append-only `ConsentLog` + `/api/v1/consent` + `HasAIConsent` gate (451). Branch `feat/step7-consent-engine`.
-- 🔜 Step 8 — Immutable audit trail
+- ✅ **Step 8** — Immutable audit trail: `AuditLog` + Celery writer + Postgres trigger; demo `view_health`. Branch `feat/step8-audit-trail`. **M1 complete.**
 
 ### M2 · Web shell + Neural Core
 
-- ⬜ Step 9 — Shared packages + Vite React app bootstrap
+- 🔜 Step 9 — Shared packages + Vite React app bootstrap
 - ⬜ Step 10 — Auth screens + API client
 - ⬜ Step 11 — Neural Core audio-reactive brain (R3F + Bloom)
 - ⬜ Step 12 — Assistant FSM + Goal Ring + realtime feedback shell
@@ -118,6 +118,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 8** — Append-only `AuditLog` (`actor`, `action`, `ts`, `ip`, target, metadata); Celery `write_audit_log` + `record_audit`; Postgres BEFORE UPDATE/DELETE trigger; `GET /audit/demo-view-health/` writes one `view_health` row; `GET /audit/` for admin/auditor; read-only admin. Tests green. Branch `feat/step8-audit-trail`. **M1 complete.**
 - **Fix** — WhiteNoise + `collectstatic` entrypoint so Django admin / DRF Browsable API CSS works under uvicorn. Branch `fix/backend-static-whitenoise`.
 - **Workflow** — Branch → many commits → **always push** after development → PR/merge when complete. Documented in `.cursor/rules/git-workflow.mdc`, `PROGRESS.md`, `DEVELOPMENT_PLAN.md`.
 - **Chore** — Dropped Swagger/`drf-spectacular`; API exploration/testing now uses DRF's built-in **Browsable API** (dev) with `api-auth/` login. Removed `/api/schema` + `/api/docs`. Branch `chore/drf-browsable-api`.
