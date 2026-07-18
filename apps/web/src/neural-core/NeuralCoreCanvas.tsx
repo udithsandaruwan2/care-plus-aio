@@ -9,6 +9,8 @@ type Props = {
   amplitude: number;
   state: AssistantState;
   className?: string;
+  /** Force a static frame (accessibility). */
+  reducedMotion?: boolean;
 };
 
 function DemandController({ animate }: { animate: boolean }) {
@@ -25,8 +27,14 @@ function DemandController({ animate }: { animate: boolean }) {
  * `frameloop="demand"` — idle stays on a single static frame (~0% GPU);
  * while listening/animating, the mesh calls `invalidate()` each frame.
  */
-export function NeuralCoreCanvas({ amplitude, state, className }: Props) {
-  const animate = state === S.LISTENING || state === S.THINKING || state === S.EMERGENCY || amplitude > 0.02;
+export function NeuralCoreCanvas({ amplitude, state, className, reducedMotion }: Props) {
+  const animate =
+    !reducedMotion &&
+    (state === S.LISTENING ||
+      state === S.THINKING ||
+      state === S.MATCHING ||
+      state === S.EMERGENCY ||
+      amplitude > 0.02);
 
   return (
     <div className={className} style={{ width: '100%', height: '100%' }}>
