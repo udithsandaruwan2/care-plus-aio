@@ -166,20 +166,15 @@ Steps **15b–15e** (vocab/Serah) can run **in parallel after 17** or immediatel
 
 ### Step 16 — Domain models + Sri Lanka seed ✅
 
-### Step 17 — Embeddings + FAISS index build 🔜 **NEXT**
+### Step 17 — Embeddings + FAISS index build ✅ **DONE**
 
-**Goal:** caregiver text → 768-d vectors → in-memory `IndexFlatIP`.  
-**Tasks:**
-- `ml/build_index.py` with `multilingual-e5-base`
-- Embed: specialties + certifications + languages + bio + care_levels
-- L2-normalize; store into `CaregiverProfile.embedding`; write `ml/artifacts/caregivers.faiss` + id map
-- Django matching module loads index at startup (or lazy)
+**Done:** pluggable embedders (`hash` lean default, optional `e5`); `build_caregiver_index`
+writes L2-normalized vectors to DB + `ml/artifacts/caregivers.faiss`; lazy load +
+`POST /api/v1/match/cbf/` preview; query “diabetes Sinhala intermediate Colombo”
+ranks diabetes specialists highest on seed data.
+**✅ Acceptance:** rebuild reproducible with seed; nearest-neighbor query returns sensible caregivers.
 
-**✅ Acceptance:** rebuild reproducible with seed; query “diabetes Sinhala intermediate Colombo” returns caregivers with diabetes specialty ranked high.
-
-**Depends on:** 16.
-
-### Step 18 — AHP weights
+### Step 18 — AHP weights 🔜 **NEXT**
 
 **Goal:** fusion weights `[α,β,γ,δ]` from pairwise survey matrix.  
 **Tasks:** `ml/ahp.py` eigenvector + CR check; `config/ahp_weights.json`; load in engine.  
@@ -549,4 +544,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 17 — Embeddings + FAISS index build** (`feat/step17-embeddings-faiss`).
+**Step 18 — AHP weights** (`feat/step18-ahp-weights`).
