@@ -34,6 +34,7 @@ _CONDITION_MAP: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"ඇදුම|ஆஸ்துமா|asthma", re.I), "Asthma"),
     (re.compile(r"ආඝාත|stroke|paralys", re.I), "Stroke"),
     (re.compile(r"පිළිකා|புற்றுநோய்|cancer", re.I), "Cancer"),
+    (re.compile(r"ඩෙංගු|டெங்கு|dengue", re.I), "Dengue"),
     (re.compile(r"වයෝවෘද්ධ|elderly|geriatric|වැඩිහිටි", re.I), "Elderly care"),
 ]
 
@@ -46,7 +47,13 @@ _LEVEL_MAP: list[tuple[re.Pattern[str], str]] = [
 ]
 
 _URGENCY_MAP: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"හදිසි|අනතුර|emergency|urgent|critical|දැන්ම|immediately", re.I), Urgency.URGENT),
+    (
+        re.compile(
+            r"හදිසි|අනතුර|ඉක්මනින්|දැන්ම|emergency|urgent|critical|immediately|asap|soon",
+            re.I,
+        ),
+        Urgency.URGENT,
+    ),
 ]
 
 

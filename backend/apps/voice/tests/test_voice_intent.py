@@ -75,3 +75,9 @@ class ExtractorUnitTests(APITestCase):
         self.assertEqual(out["care_level"], "advanced")
         self.assertEqual(out["urgency"], "urgent")
         self.assertEqual(out["language"], "English")
+
+    def test_sinhala_dengue_and_soon_urgency(self):
+        out = extract_intent("මට ඩෙංගු තියෙනවා මට ඉක්මනින් එයා එක ඕනේ")
+        self.assertEqual(out["condition"], "Dengue")
+        self.assertEqual(out["language"], "Sinhala")
+        self.assertEqual(out["urgency"], "urgent")
