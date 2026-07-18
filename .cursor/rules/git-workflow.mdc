@@ -1,0 +1,15 @@
+---
+description: Git commit & push workflow for Care Plus
+alwaysApply: true
+---
+
+# Git Workflow
+
+- **Commit feature by feature.** After each self-contained feature/step passes its
+  acceptance check, make one focused commit for it. Do not batch several unrelated
+  features into a single commit.
+- **Never push.** The user pushes. Do not run `git push` (or `git push --force`, etc.);
+  leave commits local for the user to push.
+- Use clear, conventional commit messages (e.g. `feat(backend): ...`, `fix(web): ...`,
+  `chore: ...`) with a short body describing what changed and why when useful.
+- Branch is `main`, tracking `origin/main`.
