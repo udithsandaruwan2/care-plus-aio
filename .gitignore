@@ -1,0 +1,41 @@
+# ── Node / JS ──────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+dist/
+build/
+.next/
+.expo/
+*.tsbuildinfo
+.turbo/
+
+# ── Python ─────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ── Env / secrets ──────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── ML artifacts ───────────────────────────────────────────
+ml/artifacts/
+*.faiss
+*.npy
+*.pkl
+
+# ── Editors / OS ───────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Logs / coverage ────────────────────────────────────────
+*.log
+coverage/
+htmlcov/

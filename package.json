@@ -1,0 +1,24 @@
+{
+  "name": "care-plus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Care Plus — multilingual voice-driven AI caregiver matching platform (VEHMF).",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0"
+  }
+}
