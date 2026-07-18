@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import User
+from .models import ConsentLog, User
 
 
 @admin.register(User)
@@ -31,3 +31,22 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "role", "password1", "password2")}),
     )
+
+
+@admin.register(ConsentLog)
+class ConsentLogAdmin(admin.ModelAdmin):
+    """Read-only view of the append-only consent ledger."""
+
+    list_display = ("user", "scope", "granted", "ts")
+    list_filter = ("scope", "granted")
+    search_fields = ("user__email",)
+    readonly_fields = ("user", "scope", "granted", "ts")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

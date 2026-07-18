@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 6 done (M1 in progress). Feature-branch workflow adopted._
+_Last updated: 2026-07-18 — Step 7 done (M1 in progress). Feature-branch workflow adopted._
 
 ---
 
@@ -51,8 +51,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 ### M1 · Auth & Consent
 
 - ✅ **Step 6** — Custom `User` (email login + role) + JWT + RBAC. Branch `feat/step6-auth-jwt-rbac`.
-- 🔜 Step 7 — Consent engine (PDPA/GDPR gate)
-- ⬜ Step 8 — Immutable audit trail
+- ✅ **Step 7** — Consent engine: append-only `ConsentLog` + `/api/v1/consent` + `HasAIConsent` gate (451). Branch `feat/step7-consent-engine`.
+- 🔜 Step 8 — Immutable audit trail
 
 ### M2 · Web shell + Neural Core
 
@@ -104,6 +104,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 7** — `accounts` consent engine: append-only `ConsentLog` (`user`, `scope`, `granted`, `ts`) with `is_granted`/`current_state` helpers; `ConsentScope` = `ai_processing`/`health_monitoring`/`data_sharing`; `POST/GET /api/v1/consent/`; `HasAIConsent` DRF permission raising **451** when consent is missing; `/api/v1/consent/gate-check/` demo endpoint (401→451→200). Read-only admin. Tests cover ledger append-only + gate. Branch `feat/step7-consent-engine`.
 - **Step 6** — `accounts` app: custom email User + `role` (patient/caregiver/admin/auditor), SimpleJWT (`/auth/token`, `/refresh`), `/auth/register`, `/auth/me`, RBAC `RolePermission` + `/auth/admin-only`. DB recreated for custom user. Verified: 201/200/403/200/401.
 - **Workflow** — adopted one-branch-per-feature (`feat/stepN-<slug>`).
 - **Step 5** — Ruff+Black (`backend/pyproject.toml`), Prettier + flat ESLint config, `.pre-commit-config.yaml`, GitHub Actions CI (backend lint · prettier · docker build). Lint/format verified clean.
