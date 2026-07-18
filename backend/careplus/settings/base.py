@@ -122,6 +122,13 @@ VOICE_INTENT_BACKEND = env(
     "VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
 )
 
+# ── Matching / embeddings (Step 17) ──────────────────────────────
+# "hash" = deterministic feature hashing (lean/CI). "e5" = multilingual-e5-base.
+EMBEDDING_BACKEND = env("EMBEDDING_BACKEND", default="hash")
+EMBEDDING_MODEL = env("EMBEDDING_MODEL", default="intfloat/multilingual-e5-base")
+# Empty → ``<repo>/ml/artifacts`` when present, else ``backend/var/faiss``.
+FAISS_ARTIFACT_DIR = env("FAISS_ARTIFACT_DIR", default="")
+
 # ── Password validation ──────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
