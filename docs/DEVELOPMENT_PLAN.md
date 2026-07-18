@@ -179,8 +179,12 @@ pnpm install && pnpm --filter web dev
 **Tasks:** `voice` app, `/api/v1/voice/intent`, Gemini 1.5 Flash client with `response_mime_type=application/json` + schema; server-side Zod-equivalent validation; consent-gated; persist intent.
 **✅ Acceptance:** `"මට දියවැඩියාව තියෙනවා…"` → validated `{condition, language, care_level}` stored.
 
-### Step 15 — Entity chips + Goal Ring fill (end-to-end)
+### Step 15 — Entity chips + Goal Ring fill (end-to-end) ✅ **DONE**
 
+**Done:** `useIntentExtraction` posts the transcript to `/voice/intent/`, merges the
+structured draft into the store, and drives SPEAKING (complete) vs CLARIFYING
+(`nextMissingField` re-prompt). Chips + Goal Ring react to captured fields; the
+consent gate (451) shows a one-tap "Enable AI processing" opt-in that retries.
 **✅ Acceptance:** captured fields pop chips + fill the ring; missing field → CLARIFYING re-prompt.
 
 ---
