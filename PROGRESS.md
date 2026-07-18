@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Milestone M0 complete (Steps 1–5)._
+_Last updated: 2026-07-18 — Step 6 done (M1 in progress). Feature-branch workflow adopted._
 
 ---
 
@@ -50,8 +50,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ### M1 · Auth & Consent
 
-- ⬜ Step 6 — Custom user + JWT + RBAC roles
-- ⬜ Step 7 — Consent engine (PDPA/GDPR gate)
+- ✅ **Step 6** — Custom `User` (email login + role) + JWT + RBAC. Branch `feat/step6-auth-jwt-rbac`.
+- 🔜 Step 7 — Consent engine (PDPA/GDPR gate)
 - ⬜ Step 8 — Immutable audit trail
 
 ### M2 · Web shell + Neural Core
@@ -104,6 +104,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 6** — `accounts` app: custom email User + `role` (patient/caregiver/admin/auditor), SimpleJWT (`/auth/token`, `/refresh`), `/auth/register`, `/auth/me`, RBAC `RolePermission` + `/auth/admin-only`. DB recreated for custom user. Verified: 201/200/403/200/401.
+- **Workflow** — adopted one-branch-per-feature (`feat/stepN-<slug>`).
 - **Step 5** — Ruff+Black (`backend/pyproject.toml`), Prettier + flat ESLint config, `.pre-commit-config.yaml`, GitHub Actions CI (backend lint · prettier · docker build). Lint/format verified clean.
 - **Step 4** — ASGI `ProtocolTypeRouter` (HTTP+WebSocket); `ws/ping` echo consumer; Celery app on Redis + `debug_task`; `worker` service in Compose.
 - **Step 3** — Django 4.2 + DRF + GeoDjango skeleton, split settings, health endpoint (DB+Redis), Swagger; backend service in Compose. `322f99a`
