@@ -1,7 +1,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .views import AdminOnlyView, MeView, RegisterView
+from .views import (
+    AdminOnlyView,
+    ConsentGateCheckView,
+    ConsentView,
+    MeView,
+    RegisterView,
+)
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
@@ -9,4 +15,6 @@ urlpatterns = [
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", MeView.as_view(), name="me"),
     path("auth/admin-only/", AdminOnlyView.as_view(), name="admin_only"),
+    path("consent/", ConsentView.as_view(), name="consent"),
+    path("consent/gate-check/", ConsentGateCheckView.as_view(), name="consent_gate_check"),
 ]
