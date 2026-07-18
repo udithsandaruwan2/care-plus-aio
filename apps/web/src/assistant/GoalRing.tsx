@@ -25,14 +25,13 @@ export function GoalRing({ intent, size = 288, children }: Props) {
   const gap = 0.06 * c; // gap between segments
   const seg = c / n - gap;
 
+  // Keep the Neural Core inside a circular mask so any canvas clear/glow
+  // can't read as a square when the brain lights up.
+  const inset = stroke + 4;
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg
-        width={size}
-        height={size}
-        className="absolute inset-0 -rotate-90"
-        aria-hidden
-      >
+      <svg width={size} height={size} className="absolute inset-0 -rotate-90" aria-hidden>
         {GOAL_FIELDS.map((field, i) => {
           const filled = Boolean(intent[field]);
           const offset = -(i * (seg + gap));
@@ -56,7 +55,12 @@ export function GoalRing({ intent, size = 288, children }: Props) {
           );
         })}
       </svg>
-      <div className="absolute inset-0">{children}</div>
+      <div
+        className="absolute overflow-hidden rounded-full"
+        style={{ inset, background: 'transparent' }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
