@@ -108,6 +108,9 @@ CHANNEL_LAYERS = {
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
+# Tests / sync callers set ALWAYS_EAGER so audit writes happen in-process.
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_EAGER_PROPAGATES = True
 
 # ── Password validation ──────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [

@@ -1,10 +1,16 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import ConsentLog, ConsentScope
+from .audit import record_audit
+from .models import AuditAction, AuditLog, ConsentLog, ConsentScope
 from .permissions import HasAIConsent, RolePermission
-from .serializers import ConsentLogSerializer, RegisterSerializer, UserSerializer
+from .serializers import (
+    AuditLogSerializer,
+    ConsentLogSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -68,3 +74,46 @@ class ConsentGateCheckView(APIView):
 
     def get(self, request):
         return Response({"ok": True, "scope": ConsentScope.AI_PROCESSING.value})
+
+
+class AuditLogListView(generics.ListAPIView):
+    """GET /api/v1/audit/ — list audit rows (admin + auditor only)."""
+
+    serializer_class = AuditLogSerializer
+    permission_classes = [RolePermission]
+    allowed_roles = ("admin", "auditor")
+    queryset = AuditLog.objects.select_related("actor").all()
+
+
+class DemoViewHealthView(APIView):
+    """GET /api/v1/audit/demo-view-health/?patient_id=<id>
+
+    Stand-in for viewing a patient's health record. Writes exactly one
+    immutable ``view_health`` audit row (via Celery / eager). Real health
+    views (M6) will call the same ``record_audit`` helper.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        patient_id = request.query_params.get("patient_id")
+        if not patient_id:
+            return Response(
+                {"detail": "patient_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        record_audit(
+            actor=request.user,
+            action=AuditAction.VIEW_HEALTH,
+            request=request,
+            target_type="patient",
+            target_id=patient_id,
+            metadata={"source": "demo_view_health"},
+        )
+        return Response(
+            {
+                "ok": True,
+                "action": AuditAction.VIEW_HEALTH.value,
+                "target_id": str(patient_id),
+            }
+        )

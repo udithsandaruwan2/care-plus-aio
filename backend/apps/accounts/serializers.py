@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import ConsentLog, Role
+from .models import AuditLog, ConsentLog, Role
 
 User = get_user_model()
 
@@ -41,3 +41,22 @@ class ConsentLogSerializer(serializers.ModelSerializer):
         # The user is never client-supplied; it comes from the authenticated request.
         validated_data["user"] = self.context["request"].user
         return super().create(validated_data)
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    actor_email = serializers.EmailField(source="actor.email", read_only=True, allow_null=True)
+
+    class Meta:
+        model = AuditLog
+        fields = (
+            "id",
+            "actor",
+            "actor_email",
+            "action",
+            "ts",
+            "ip",
+            "target_type",
+            "target_id",
+            "metadata",
+        )
+        read_only_fields = fields

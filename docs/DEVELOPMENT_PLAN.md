@@ -313,4 +313,4 @@ pnpm install && pnpm --filter web dev
 
 Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
 
-> **Next up: Step 8** — immutable audit trail (`feat/step8-audit-trail`).
+> **Next up: Step 9** — web shell + shared packages (`feat/step9-web-shell`).

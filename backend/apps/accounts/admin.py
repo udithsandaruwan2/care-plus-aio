@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import ConsentLog, User
+from .models import AuditLog, ConsentLog, User
 
 
 @admin.register(User)
@@ -41,6 +41,33 @@ class ConsentLogAdmin(admin.ModelAdmin):
     list_filter = ("scope", "granted")
     search_fields = ("user__email",)
     readonly_fields = ("user", "scope", "granted", "ts")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    """Read-only view of the immutable audit trail."""
+
+    list_display = ("ts", "action", "actor", "ip", "target_type", "target_id")
+    list_filter = ("action",)
+    search_fields = ("actor__email", "target_id", "ip")
+    readonly_fields = (
+        "actor",
+        "action",
+        "ts",
+        "ip",
+        "target_type",
+        "target_id",
+        "metadata",
+    )
 
     def has_add_permission(self, request):
         return False
