@@ -313,4 +313,4 @@ pnpm install && pnpm --filter web dev
 
 Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
 
-> **Next up: Step 11** — Neural Core audio-reactive brain (`feat/step11-neural-core`).
+> **Next up: Step 12** — Assistant FSM + Goal Ring (`feat/step12-assistant-fsm`).
