@@ -1,4 +1,10 @@
-import { HealthResponse, type TokenPair, User } from './schemas';
+import {
+  HealthResponse,
+  RegisterResponse,
+  TokenPair,
+  User,
+  type RegisterInput,
+} from './schemas';
 
 export type ApiClientOptions = {
   baseUrl: string;
@@ -36,7 +42,14 @@ export function createApiClient(options: ApiClientOptions) {
       headers,
     });
     const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    let data: unknown = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+    }
     if (!res.ok) {
       throw new ApiError(`HTTP ${res.status}`, res.status, data);
     }
@@ -50,7 +63,22 @@ export function createApiClient(options: ApiClientOptions) {
       request(
         '/auth/token/',
         { method: 'POST', body: JSON.stringify({ email, password }) },
-        (d) => d as TokenPair,
+        (d) => TokenPair.parse(d),
+      ),
+    register: (input: RegisterInput) =>
+      request(
+        '/auth/register/',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            email: input.email,
+            password: input.password,
+            role: input.role ?? 'patient',
+            first_name: input.first_name ?? '',
+            last_name: input.last_name ?? '',
+          }),
+        },
+        (d) => RegisterResponse.parse(d),
       ),
   };
 }

@@ -313,4 +313,4 @@ pnpm install && pnpm --filter web dev
 
 Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
 
-> **Next up: Step 10** — auth screens + API client wiring (`feat/step10-web-auth`).
+> **Next up: Step 11** — Neural Core audio-reactive brain (`feat/step11-neural-core`).
