@@ -1,322 +1,552 @@
-# Care Plus — Step-by-Step Development Plan
+# Care Plus — Full Product Development Plan
 
-> **Status:** Active build plan (v0.1) — the execution companion to
-> [ARCHITECTURE.md](ARCHITECTURE.md) and [FRONTEND.md](FRONTEND.md).
-> **How to use:** we build **one numbered step at a time**. Each step has a **Goal**,
-> concrete **Tasks**, **Commands**, and an **✅ Acceptance criterion**. We do not start a step
-> until the previous one's acceptance passes. This keeps momentum, working software, and
-> reviewable diffs at every point.
+> **Status:** Active build plan **v0.2** (full-platform precision edition)  
+> Companions: [ARCHITECTURE.md](ARCHITECTURE.md) · [FRONTEND.md](FRONTEND.md) · [PRODUCT_VISION.md](PRODUCT_VISION.md) · [PROGRESS.md](../PROGRESS.md)  
+> **Reference product:** `Old Care Plus/care-plus-main` (Lumora / Care Plus HND platform) — product completeness target, **not** the tech stack to copy.
 
 ---
 
-## 0. Decisions Locked (lean profile defaults)
+## How to use this plan
 
-We start on the **Lean profile** ([ARCHITECTURE.md §4](ARCHITECTURE.md#4-technology-stack--two-profiles-lean-vs-full)). All are reversible.
-
-| #   | Decision        | Locked default                                                                                    | Note                          |
-| --- | --------------- | ------------------------------------------------------------------------------------------------- | ----------------------------- |
-| 1   | ASR             | Client **Web Speech API** (web) / on-device voice (mobile) **+ server `faster-whisper` fallback** | No GPU at runtime.            |
-| 2   | CF library      | Pluggable `CFModel` interface; MVP = **`implicit` (ALS)**, upgrade path = LightFM                 | Easier to install, swappable. |
-| 3   | Time-series     | **TimescaleDB** (Postgres extension)                                                              | One DB to run/secure.         |
-| 4   | Embeddings      | **`intfloat/multilingual-e5-base`** (768-d, multilingual incl. Sinhala/Tamil)                     | Feeds FAISS.                  |
-| 5   | Hosting         | **Single VM + Docker Compose**, region **ap-south (Mumbai)** for PDPA proximity                   | Provider TBD.                 |
-| —   | Backend runtime | **Docker, Python 3.11** (host is 3.14 → too new for some ML wheels)                               | Host Python irrelevant.       |
-| —   | Node/JS         | **Node 22 + pnpm via Corepack** (monorepo)                                                        | `corepack enable`.            |
-
-> Change any of these anytime; the plan and scaffold adapt.
+1. Build **one numbered step at a time** on branch `feat/stepN-<slug>`.
+2. Each step has **Goal · Tasks · Acceptance · Depends on**.
+3. Do not start a step until the previous step’s acceptance passes (unless marked parallel-safe).
+4. Push after development; PR → merge when the step is complete.
+5. Update [PROGRESS.md](../PROGRESS.md) every step.
 
 ---
 
-## Environment prerequisites (already verified on this machine)
+## 0. Decisions locked (lean profile)
 
-Docker 29 + Compose v5 · Node 22 · npm 11 · git 2.53 · psql 14. `pnpm` enabled via `corepack enable`.
-
----
-
-## Milestone map
-
-| Milestone                        | Steps | Outcome                                                            |
-| -------------------------------- | ----- | ------------------------------------------------------------------ |
-| **M0 · Foundations**             | 1–5   | Monorepo + Django API + DB + Docker all boot; health check green.  |
-| **M1 · Auth & Consent**          | 6–8   | JWT auth, RBAC roles, consent gate, audit log.                     |
-| **M2 · Web shell + Neural Core** | 9–12  | React app, Aurora Neural theme, audio-reactive brain, FSM.         |
-| **M3 · Voice → Intent**          | 13–15 | Mic capture, Gemini structured JSON, entity chips + Goal Ring.     |
-| **M4 · VEHMF v1 + Match UX**     | 16–20 | FAISS CBF + AHP fusion + geo + XAI; ranked results over WebSocket. |
-| **M5 · Personalization (CF)**    | 21–22 | Offline-trained CF blended into fusion.                            |
-| **M6 · Health monitoring**       | 23–26 | Timescale ingest, anomaly daemon, dynamic re-match, alerts.        |
-| **M7 · Scheduling**              | 27–29 | Redlock booking, conflict fallback.                                |
-| **M8 · Mobile app**              | 30–34 | Expo RN app reaching feature parity for patient flow.              |
-| **M9 · Compliance & hardening**  | 35–37 | Encryption, full audit, erasure, TLS, load tests.                  |
-| **M10 · Ship**                   | 38–40 | CI/CD, deploy to VM, store submissions.                            |
+| # | Decision | Locked default | Note |
+|---|----------|----------------|------|
+| 1 | ASR | Web Speech (web) / on-device (mobile) + server `faster-whisper` fallback | No GPU at runtime |
+| 2 | CF | `implicit` ALS → LightFM upgrade path | Pluggable `CFModel` |
+| 3 | Time-series | TimescaleDB | One DB |
+| 4 | Embeddings | `intfloat/multilingual-e5-base` (768-d) | FAISS CBF |
+| 5 | Hosting | Single VM + Docker Compose, `ap-south` | PDPA proximity |
+| 6 | Brand | **Care Plus** product name; **Aurora Neural** design system | Drop dual “Lumora” brand in UI |
+| 7 | Matching | **VEHMF** (CBF+CF+Geo+Trust+AHP+XAI) replaces old RF+ad-hoc Gemini rank | Research core |
+| 8 | Medical labels | Versioned **canonical vocab** + stub synonyms + Gemini normalize-to-vocab | See M3b / Step 15b |
+| 9 | Payments | Real LKR rails later; MVP = verified mock → PayHere/Stripe | Never fake “success” without a PaymentIntent |
+| 10 | Comms | In-app messaging + email notifications (not SMTP-as-hire-workflow) | Old `Email` model becomes `CareRequest` + `Message` |
 
 ---
 
-## M0 · Foundations
+## 1. Product north star (from Old Care Plus)
 
-### Step 1 — Repository & monorepo skeleton
+The finished Care Plus platform must deliver **everything the old app aimed for**, rebuilt with the new architecture:
 
-**Goal:** one repo, workspace tooling, no app code yet.
-**Tasks:** `git init`; create `pnpm-workspace.yaml`, `turbo.json`, root `package.json`, `.gitignore`, `.editorconfig`, `.env.example`; create empty `apps/`, `packages/`, `backend/`, `ml/`, `infra/`.
-**Commands:**
+| Old capability | New delivery |
+|----------------|--------------|
+| Patient ↔ caregiver Sri Lanka marketplace | Profiles + browse/search + map + VEHMF match |
+| ML + Gemini (“Serah”) recommendations | VEHMF + XAI; Serah = grounded chat assistant |
+| Voice assistant (browser STT/TTS) | Neural Core voice → intent → match |
+| Hire request → accept/reject → pay → active link | First-class `CareRequest` + `CareRelationship` + payments |
+| Medical records + health profile | Encrypted records + Timescale vitals (upgrade) |
+| Admin analytics + KnownCondition catalog | Admin console + medical vocab admin |
+| OTP auth, role dashboards | JWT + optional email OTP; role home shells |
+| Care packages (LKR), hospital/food add-ons | Catalog models + checkout (real persistence) |
+| Reviews | Moderated reviews with real ratings |
+| Static marketing site | React marketing + app (Aurora Neural) |
+| *(missing in old)* Mobile | Expo RN patient + caregiver apps |
+| *(missing in old)* Realtime health / emergency re-match | Timescale + anomaly + dynamic VEHMF weights |
+| *(missing in old)* Scheduling / Redlock | Shift calendar + conflict fallback |
 
-```bash
-corepack enable
-git init && git add -A && git commit -m "chore: repo skeleton"
-```
+**Do not copy from old:** mock card payment, Windows tray launcher, unused SpeechRecognition deps, RandomForest on postal-code “distance”, hire-via-Email overload, lorem marketing copy, `DEBUG=True` / secrets in repo.
 
-**✅ Acceptance:** `git status` clean; folder tree matches [ARCHITECTURE.md §14](ARCHITECTURE.md#14-repository-layout).
-
-### Step 2 — Docker Compose infra (Postgres+PostGIS+Timescale, Redis)
-
-**Goal:** databases and cache boot locally.
-**Tasks:** `infra/docker-compose.yml` with services `db` (image `timescale/timescaledb-ha:pg16` which bundles PostGIS+Timescale) and `redis`; named volumes; healthchecks; `.env` wiring.
-**Commands:**
-
-```bash
-docker compose -f infra/docker-compose.yml up -d db redis
-docker compose -f infra/docker-compose.yml exec db psql -U careplus -c "CREATE EXTENSION IF NOT EXISTS postgis; CREATE EXTENSION IF NOT EXISTS timescaledb;"
-```
-
-**✅ Acceptance:** both extensions report installed; `redis-cli ping` → `PONG`.
-
-### Step 3 — Django backend skeleton (Dockerized, Python 3.11)
-
-**Goal:** Django + DRF project builds and runs in Docker.
-**Tasks:** `backend/Dockerfile` (python:3.11-slim + GDAL for GeoDjango), `backend/requirements.txt` (Django 4.2, DRF, channels, daphne/uvicorn, psycopg, redis, celery, django-environ, djangorestframework-simplejwt, drf-spectacular), `django-admin startproject careplus`, settings split (`base/dev/prod`), `apps/` package.
-**Commands:**
-
-```bash
-docker compose -f infra/docker-compose.yml up -d --build backend
-docker compose -f infra/docker-compose.yml exec backend python manage.py migrate
-```
-
-**✅ Acceptance:** `GET /api/v1/health/` → `{"status":"ok","db":"ok","redis":"ok"}`.
-
-### Step 4 — ASGI + Channels + Celery wiring
-
-**Goal:** realtime + async task rails in place (no features yet).
-**Tasks:** `asgi.py` with `ProtocolTypeRouter`, Redis channel layer, a `ping` WebSocket consumer; Celery app + Redis broker; a `debug_task`.
-**Commands:**
-
-```bash
-docker compose -f infra/docker-compose.yml up -d worker
-```
-
-**✅ Acceptance:** WS `ws/ping` echoes; Celery `debug_task` runs and logs.
-
-### Step 5 — API docs + CI + code quality
-
-**Goal:** contracts visible, quality gates on.
-**Tasks:** drf-spectacular schema at `/api/schema` + Swagger UI; `ruff` + `black` (Python), `eslint` + `prettier` (JS); pre-commit; GitHub Actions running lint + tests + `docker build`.
-**✅ Acceptance:** CI green on a PR; `/api/docs` renders.
+Full mapping: [PRODUCT_VISION.md](PRODUCT_VISION.md).
 
 ---
 
-## M1 · Auth & Consent
+## 2. Milestone map (v0.2 — 75 steps)
 
-### Step 6 — Custom user + JWT auth
+| Milestone | Steps | Outcome |
+|-----------|-------|---------|
+| **M0 · Foundations** | 1–5 ✅ | Monorepo + Django + DB + Docker + CI |
+| **M1 · Auth & Consent** | 6–8 ✅ | JWT, RBAC, consent, audit |
+| **M2 · Web shell + Neural Core** | 9–12 ✅ | Aurora Neural + brain + FSM |
+| **M3 · Voice → Intent** | 13–15 ✅ | Mic → Gemini/stub → chips + Goal Ring |
+| **M3b · Medical vocab & Serah chat** | 15b–15e | Canonical conditions, normalize, grounded Serah |
+| **M4 · VEHMF v1 + Match UX** | 16–20 | Ranked, explained matches (voice → results) |
+| **M4b · Marketplace browse** | 20b–20e | Search/filter/map/caregiver detail (old `/caregivers`) |
+| **M5 · Personalization (CF)** | 21–22 | ALS blended into fusion |
+| **M5b · Profiles & onboarding** | 22b–22f | Rich patient/caregiver profiles (old Profile fields) |
+| **M6 · Hire lifecycle** | 23–28 | Request → accept/reject → relationship (old hire flow) |
+| **M7 · Catalog, checkout & payments** | 29–33 | Care packages, LKR checkout, payment intents |
+| **M8 · Medical records** | 34–37 | Docs, attachments, caregiver access, audit |
+| **M9 · Messaging & notifications** | 38–41 | Threads, email/push notifications |
+| **M10 · Reviews & trust** | 42–44 | Ratings feed `trust_score` |
+| **M11 · Health monitoring** | 45–49 | Timescale, anomalies, emergency re-match, alerts |
+| **M12 · Scheduling** | 50–53 | Calendar, Redlock, conflict fallback |
+| **M13 · Admin console** | 54–58 | Users, vocab, analytics, appointments/leads |
+| **M14 · i18n & accessibility** | 59–61 | si/ta/en UI, a11y, reduced-motion |
+| **M15 · Mobile (Expo)** | 62–67 | Patient + caregiver parity |
+| **M16 · Compliance & hardening** | 68–71 | Encryption, erasure, TLS, load tests |
+| **M17 · Ship** | 72–75 | CI/CD, deploy, stores, launch checklist |
 
-**Goal:** register/login with roles.
-**Tasks:** `accounts` app, custom `User` (email login, `role` = patient/caregiver/admin/auditor), SimpleJWT endpoints, RBAC permission classes.
-**✅ Acceptance:** register → obtain JWT → access role-guarded endpoint; wrong role → 403.
-
-### Step 7 — Consent engine (PDPA/GDPR gate)
-
-**Goal:** block AI processing without consent.
-**Tasks:** `ConsentLog` model + `/api/v1/consent`; DRF permission `HasAIConsent` used by the voice pipeline.
-**✅ Acceptance:** voice endpoint returns 451/403 until consent granted, then passes.
-
-### Step 8 — Immutable audit trail
-
-**Goal:** HIPAA/PDPA access logging.
-**Tasks:** append-only `AuditLog`; Celery task to write `{actor, action, ts, ip}`; DB role lacks UPDATE/DELETE on the table.
-**✅ Acceptance:** viewing patient health data writes exactly one immutable audit row.
-
----
-
-## M2 · Web shell + Neural Core
-
-### Step 9 — Shared packages + web app bootstrap
-
-**Goal:** monorepo packages + Vite React app run.
-**Tasks:** `packages/ui-tokens` (Aurora Neural tokens), `packages/core` (i18n, FSM types), `packages/api-client` (typed fetch + Zod), `apps/web` (Vite + React + TS + Tailwind + router).
-**Commands:**
-
-```bash
-pnpm install && pnpm --filter web dev
-```
-
-**✅ Acceptance:** themed blank app loads; tokens imported from `ui-tokens`.
-
-### Step 10 — Auth screens + API client wiring
-
-**Goal:** login/register on web against Django.
-**✅ Acceptance:** login stores JWT, authed route reachable, logout clears session.
-
-### Step 11 — Neural Core visual (audio-reactive brain)
-
-**Goal:** the signature visual on web.
-**Tasks:** `neural-core/` R3F scene — neural mesh + synapse lines, emissive shader, Bloom postprocessing, `frameloop="demand"`; Web Audio `AnalyserNode` → amplitude drives scale/glow.
-**✅ Acceptance:** brain pulses to mic input at ~60 fps; idle uses ~0% GPU (render-on-demand).
-
-### Step 12 — Assistant FSM + Goal Ring + realtime feedback shell
-
-**Goal:** the state machine and UI scaffolding.
-**Tasks:** Zustand FSM (IDLE→…→EMERGENCY), Goal Ring component, transcript + entity-chip components (wired to mock data), color-per-state.
-**✅ Acceptance:** manually stepping states drives brain color + Goal Ring; reduced-motion respected.
+**Current position:** Steps **1–16 done**. **Next executable step: 17** (embeddings + FAISS).  
+Steps **15b–15e** (vocab/Serah) can run **in parallel after 17** or immediately after 16 if matching is paused — prefer **17 → 20 first** so voice→match closes the research loop, then 15b polish.
 
 ---
 
-## M3 · Voice → Intent
+## M0 · Foundations ✅
 
-### Step 13 — Mic capture + live transcript (Web Speech)
+### Step 1 — Repo & monorepo skeleton ✅
+### Step 2 — Docker Compose (Timescale+PostGIS+Redis) ✅
+### Step 3 — Django+DRF skeleton + health ✅
+### Step 4 — Channels + Celery ✅
+### Step 5 — Quality gates (Ruff/Black/Prettier/CI) ✅  
+*(Browsable API instead of Swagger — intentional)*
 
-**✅ Acceptance:** speaking shows streaming interim transcript; silence → THINKING.
+---
 
-### Step 14 — Gemini structured-output intent extraction (backend)
+## M1 · Auth & Consent ✅
 
-**Goal:** text → strict JSON.
-**Tasks:** `voice` app, `/api/v1/voice/intent`, Gemini 1.5 Flash client with `response_mime_type=application/json` + schema; server-side Zod-equivalent validation; consent-gated; persist intent.
-**✅ Acceptance:** `"මට දියවැඩියාව තියෙනවා…"` → validated `{condition, language, care_level}` stored.
+### Step 6 — Custom User + JWT + RBAC ✅
+### Step 7 — Consent engine (451 gate) ✅
+### Step 8 — Immutable audit trail ✅
 
-### Step 15 — Entity chips + Goal Ring fill (end-to-end) ✅ **DONE**
+---
 
-**Done:** `useIntentExtraction` posts the transcript to `/voice/intent/`, merges the
-structured draft into the store, and drives SPEAKING (complete) vs CLARIFYING
-(`nextMissingField` re-prompt). Chips + Goal Ring react to captured fields; the
-consent gate (451) shows a one-tap "Enable AI processing" opt-in that retries.
-**✅ Acceptance:** captured fields pop chips + fill the ring; missing field → CLARIFYING re-prompt.
+## M2 · Web shell + Neural Core ✅
+
+### Step 9 — Shared packages + Vite web ✅
+### Step 10 — Auth screens ✅
+### Step 11 — Neural Core (neuron cloud) ✅
+### Step 12 — Assistant FSM + Goal Ring shell ✅
+
+---
+
+## M3 · Voice → Intent ✅
+
+### Step 13 — Web Speech mic + live transcript ✅
+### Step 14 — Backend voice/intent (Gemini + stub) ✅
+### Step 15 — Chips + Goal Ring end-to-end ✅  
+*(Clarify loop + dengue vocab fix shipped)*
+
+---
+
+## M3b · Medical vocabulary & Serah (from old KnownCondition + Serah)
+
+### Step 15b — Canonical medical vocabulary service
+
+**Goal:** one source of truth for condition labels used by stub, Gemini, matching, and admin.  
+**Tasks:**
+- `apps.vocab` (or `matching.vocab`): `ConditionTerm` model — `slug`, `canonical_en`, synonyms `[si, ta, en]`, `active`, `version`
+- Seed from old `KnownCondition` + common Sri Lanka conditions (diabetes, dengue, hypertension, …)
+- Export JSON used by stub extractor + Gemini system prompt (“condition MUST be a canonical slug or empty”)
+- Admin CRUD (auditor/admin)
+
+**✅ Acceptance:** `GET /api/v1/vocab/conditions/` returns ≥30 active terms; stub maps ඩෙංගු → `dengue`; unknown phrase → empty condition + CLARIFYING.
+
+**Depends on:** Step 14. **Feeds:** 15c, 17–19, 54.
+
+### Step 15c — Extractor wired to vocab (normalize)
+
+**Goal:** Gemini/stub always emit canonical slugs.  
+**Tasks:** post-process extractor output through vocab resolver; fuzzy match English synonyms; reject free-text labels outside vocab (or map via Gemini constrained enum).  
+**✅ Acceptance:** free text “sugar problem” → `diabetes`; gibberish → `""` + clarify.
+
+### Step 15d — Serah grounded chat API (advice mode)
+
+**Goal:** recreate old `/dashboard/ai` with safety.  
+**Tasks:** `POST /api/v1/serah/chat` — Gemini with patient profile + recent intents + disclaimer; no diagnosis claims; consent-gated; audit.  
+**✅ Acceptance:** authenticated patient gets contextual reply; unauthenticated/no consent → 401/451; response includes disclaimer footer.
+
+### Step 15e — Serah chat UI + TTS
+
+**Goal:** web chat panel (old `ai.html` voice UX) beside Neural Core.  
+**Tasks:** chat transcript UI; optional `speechSynthesis` readback; link “Ask Serah about this match”.  
+**✅ Acceptance:** patient can chat + hear reply; mic still drives match pipeline separately.
 
 ---
 
 ## M4 · VEHMF v1 + Match UX
 
-### Step 16 — Domain models + seed data ✅ **DONE**
+### Step 16 — Domain models + Sri Lanka seed ✅
 
-**Done:** `apps.matching` with `CaregiverProfile` (PostGIS geography point, certifications,
-languages, specialties, care_levels, trust_score, embedding slot) and `PatientProfile`;
-`seed_profiles` management command with Sri Lanka city geodata; `GET /api/v1/caregivers/`.
-**✅ Acceptance:** seed loads N caregivers with valid geometries.
+### Step 17 — Embeddings + FAISS index build 🔜 **NEXT**
 
-### Step 17 — Embeddings + FAISS index build
+**Goal:** caregiver text → 768-d vectors → in-memory `IndexFlatIP`.  
+**Tasks:**
+- `ml/build_index.py` with `multilingual-e5-base`
+- Embed: specialties + certifications + languages + bio + care_levels
+- L2-normalize; store into `CaregiverProfile.embedding`; write `ml/artifacts/caregivers.faiss` + id map
+- Django matching module loads index at startup (or lazy)
 
-**Tasks:** `ml/build_index.py` using `multilingual-e5-base`; L2-normalized vectors; `IndexFlatIP`; load into memory in the matching module.
-**✅ Acceptance:** index build reproducible; nearest-neighbor query returns sensible caregivers.
+**✅ Acceptance:** rebuild reproducible with seed; query “diabetes Sinhala intermediate Colombo” returns caregivers with diabetes specialty ranked high.
+
+**Depends on:** 16.
 
 ### Step 18 — AHP weights
 
-**Tasks:** `ml/ahp.py` principal-eigenvector solver from a survey matrix; export `[α, β, γ, δ]`; consistency-ratio check.
-**✅ Acceptance:** weights sum to 1, CR < 0.1, loaded at startup.
+**Goal:** fusion weights `[α,β,γ,δ]` from pairwise survey matrix.  
+**Tasks:** `ml/ahp.py` eigenvector + CR check; `config/ahp_weights.json`; load in engine.  
+**✅ Acceptance:** weights sum to 1; CR < 0.1; overrideable via env for emergencies.
 
-### Step 19 — VEHMF engine (CBF + Geo + Trust + fusion + XAI)
+### Step 19 — VEHMF engine + `/api/v1/match`
 
-**Tasks:** implement `VEHMFEngine.predict` per [ARCHITECTURE.md §7](ARCHITECTURE.md#7-the-vehmf-engine-code-level-design); PostGIS travel-time scoring; trust scoring; normalization; XAI text.
-**✅ Acceptance:** `/api/v1/match` returns ranked list + breakdown + explanation; unit tests on fusion math.
+**Goal:** full fusion + XAI.  
+**Tasks:** `VEHMFEngine.predict` (CBF, geo PostGIS distance→score, trust, normalize, fuse); persist `MatchRun` + `MatchResult` rows; consent-gated.  
+**✅ Acceptance:** POST match returns ranked list + breakdown + explanation; unit tests on fusion math; p95 < 800 ms on 25 seed caregivers.
 
-### Step 20 — Match over WebSocket + result UX
+### Step 20 — Match WebSocket + result UX
 
-**Tasks:** `ws/match/{patient}` push; result cards with score breakdown + XAI + `latency_ms` badge.
-**✅ Acceptance:** voice → ranked, explained results in UI, **p95 < 800 ms** on seed data.
-
----
-
-## M5 · Personalization
-
-### Step 21 — CF training (offline)
-
-**Tasks:** interaction/ratings model; `ml/train_cf.py` (`implicit` ALS) as nightly Celery beat; artifact versioning.
-**✅ Acceptance:** model trains on seed interactions; produces per-user scores.
-
-### Step 22 — Blend CF into fusion
-
-**✅ Acceptance:** fusion uses all four factors; A/B toggle; offline ranking metric improves vs CBF-only.
+**Goal:** voice → SPEAKING → MATCHING → RESULTS with cards.  
+**Tasks:** `ws/match/{patient_id}`; result cards (score, breakdown bars, XAI, distance, languages); latency badge; “Request this caregiver” CTA (wires to M6).  
+**✅ Acceptance:** end-to-end voice phrase yields explained cards in UI; FSM reaches RESULTS.
 
 ---
 
-## M6 · Health monitoring
+## M4b · Marketplace browse (old `/caregivers` + profile pages)
 
-### Step 23 — Timescale hypertable + ingest API/MQTT
+### Step 20b — Caregiver search & filter API
 
-**✅ Acceptance:** `HEALTH_METRIC` hypertable ingests simulated stream; time-window aggregate query fast.
+**Goal:** non-AI discovery.  
+**Tasks:** `GET /caregivers/?q=&language=&specialty=&city=&care_level=&available=` with PostGIS optional `near=lon,lat&radius_km=`.  
+**✅ Acceptance:** filters combine; pagination; only `is_active` caregivers.
 
-### Step 24 — Anomaly daemon (threshold → rules → optional LSTM)
+### Step 20c — Browse UI (web)
 
-**✅ Acceptance:** simulated hypoglycemia trend raises `health_critical`.
+**Goal:** searchable caregiver directory.  
+**Tasks:** list + filter chips; map pins (Leaflet/MapLibre); empty/error states.  
+**✅ Acceptance:** seed caregivers visible; filter by Sinhala + diabetes works.
 
-### Step 25 — Dynamic re-weight + emergency re-match
+### Step 20d — Caregiver public detail page
 
-**✅ Acceptance:** emergency shifts weights (α↑, γ↓), bypasses normal ranking, picks nearest certified nurse.
+**Goal:** old `profile/<uuid>` rebuilt.  
+**Tasks:** bio, certs, languages, specialties, trust, approximate area, reviews teaser, Request CTA.  
+**✅ Acceptance:** deep-linkable `/caregivers/:id`; audited view if health-adjacent fields shown.
 
-### Step 26 — Alerts UX + push
+### Step 20e — Availability flag + soft presence
 
-**✅ Acceptance:** EMERGENCY state (rose brain) + FCM/web push fires on anomaly.
-
----
-
-## M7 · Scheduling
-
-### Step 27 — Shift model + calendar UX
-
-### Step 28 — Redlock booking + overlap check
-
-**✅ Acceptance:** concurrent booking test → exactly one success, no double-book.
-
-### Step 29 — Conflict fallback re-match
-
-**✅ Acceptance:** loser gets next-best caregiver automatically.
+**Goal:** old `is_available`.  
+**Tasks:** caregiver toggles availability; match/browse honor it.  
+**✅ Acceptance:** unavailable caregivers hidden from match top-N (or ranked last with badge).
 
 ---
 
-## M8 · Mobile app (Expo RN)
+## M5 · Personalization (CF)
 
-### Step 30 — Expo app bootstrap + shared packages
+### Step 21 — Interaction log + CF training offline
 
-### Step 31 — Auth + navigation (expo-router)
+**Tasks:** `Interaction` (view/request/accept/complete/rate); `ml/train_cf.py` (`implicit` ALS); Celery beat nightly; artifact versioning.  
+**✅ Acceptance:** trains on seed interactions; produces per-user scores.
 
-### Step 32 — Neural Core on Skia + Reanimated (audio-reactive)
+### Step 22 — Blend CF into VEHMF fusion
 
-### Step 33 — Voice → intent → match parity (patient flow)
-
-### Step 34 — Push notifications (FCM/APNs) + health alerts
-
-**✅ Acceptance (M8):** Android + iOS builds run the full patient voice-to-match + alerts flow at 60 fps.
+**✅ Acceptance:** four-factor fusion; offline NDCG/MAP improves vs CBF-only; feature flag to disable CF.
 
 ---
 
-## M9 · Compliance & hardening
+## M5b · Profiles & onboarding (old Profile richness)
 
-### Step 35 — `pgcrypto` AES-256 on health/intent columns
+### Step 22b — Patient onboarding wizard
 
-### Step 36 — Right-to-erasure (DB purge + FAISS eviction) + data export
+**Goal:** height, weight, blood type, city, languages, known conditions, medications, allergies, emergency contact.  
+**Tasks:** multi-step web form; validates against vocab; writes `PatientProfile` + health snapshot.  
+**✅ Acceptance:** new patient cannot request care until profile ≥80% complete (configurable).
 
-### Step 37 — TLS 1.3, security headers, rate limits, load & concurrency tests
+### Step 22c — Caregiver onboarding wizard
 
-**✅ Acceptance:** compliance checklist passes; load test meets latency targets.
+**Goal:** NIC/ID verify placeholder, city, languages, certifications upload metadata, specialties, years experience, bio, service radius.  
+**✅ Acceptance:** caregiver inactive in match until onboarding complete + admin/auto approve flag.
+
+### Step 22d — Profile photo & document metadata
+
+**Tasks:** media storage (S3 or local volume); virus scan stub; size/type limits.  
+**✅ Acceptance:** upload + serve authenticated; no public open bucket.
+
+### Step 22e — Profile completion % API
+
+**✅ Acceptance:** both roles see completion meter; matches old dashboard UX intent.
+
+### Step 22f — Email OTP optional second factor
+
+**Goal:** old OTP flow, correctly ordered (OTP before session elevation).  
+**Tasks:** issue OTP, verify, elevate JWT claims `otp_verified`.  
+**✅ Acceptance:** sensitive actions (hire, pay, records) require OTP when enabled.
 
 ---
 
-## M10 · Ship
+## M6 · Hire lifecycle (old checkout → accept → link)
 
-### Step 38 — CI/CD pipeline (build, test, push images)
+### Step 23 — `CareRequest` model + API
 
-### Step 39 — Deploy to VM (Compose/prod) + observability (logs, metrics, Sentry)
+**Goal:** replace overloaded Email-as-hire.  
+**Tasks:** states `draft|pending|accepted|rejected|cancelled|expired`; patient→caregiver; snapshot of intent/match scores; expiry job.  
+**✅ Acceptance:** patient creates request from match card; caregiver sees inbox; duplicate active request blocked.
 
-### Step 40 — Mobile store submissions (Play Store + App Store)
+### Step 24 — Caregiver inbox accept/reject
 
-**✅ Acceptance:** production URL live, monitored; apps in review.
+**Tasks:** list/detail actions; notifications; on accept → provisional `CareRelationship` pending payment.  
+**✅ Acceptance:** accept/reject audited; patient notified.
+
+### Step 25 — `CareRelationship` (active care link)
+
+**Goal:** old `PatientCaregiverLink`.  
+**Tasks:** active/inactive; start/end; one active primary caregiver rule (configurable).  
+**✅ Acceptance:** end agreement frees caregiver availability; history retained.
+
+### Step 26 — Patient “current caregiver” + caregiver “current patient” views
+
+**✅ Acceptance:** role home dashboards show active link + quick actions (message, records, end).
+
+### Step 27 — Lead appointments (marketing form)
+
+**Goal:** old `Appointment` leads.  
+**Tasks:** public form → admin queue; optional auto-email ack.  
+**✅ Acceptance:** submission stored; admin can mark contacted.
+
+### Step 28 — Request expiry + reminder Celery tasks
+
+**✅ Acceptance:** pending > N hours auto-expires; reminder email/push at N/2.
 
 ---
 
-## Working agreement (how we run each step)
+## M7 · Catalog, checkout & payments (old CareType/Food/Hospital + mock pay)
 
-1. **Branch** off up-to-date `main` as `feat/stepN-<slug>` (or `fix/` / `chore/`).
-2. State the step goal + what will change.
-3. Implement in focused chunks; a branch may have **many commits**.
-4. Run the step's acceptance check and show the result.
-5. **Push** the branch after development (and at other necessary times).
-6. When the branch is complete (or when needed): open a PR → **merge** into `main`.
-7. Pull `main`, start the next step on a **new** branch.
+### Step 29 — Catalog models
 
-Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
+**Tasks:** `CarePackage` (basic/intermediate/advanced, LKR), `AddOn` (hospital/food/etc.), admin-managed.  
+**✅ Acceptance:** seeded LKR packages; API list.
 
-> **Next up: Step 15** — entity chips + Goal Ring fill end-to-end (`feat/step15-intent-ui`).
+### Step 30 — Checkout session
+
+**Tasks:** select package + add-ons + days; bind to `CareRequest`; persist line items (no hardcoded radios lost).  
+**✅ Acceptance:** checkout creates priced `Order` in `awaiting_payment`.
+
+### Step 31 — PaymentIntent abstraction
+
+**Tasks:** interface `MockProvider` (dev) + `PayHereProvider` stub; never mark paid without provider confirm webhook.  
+**✅ Acceptance:** mock pay succeeds only via explicit confirm endpoint; webhook signature verified in stub tests.
+
+### Step 32 — Payment UI (web)
+
+**Tasks:** order summary, pay CTA, success/failure pages; no fake card numbers required in mock mode.  
+**✅ Acceptance:** paid order activates `CareRelationship`; caregiver `is_available` updates per policy.
+
+### Step 33 — Invoices / receipts PDF or email
+
+**✅ Acceptance:** patient receives receipt with LKR breakdown; audit row written.
+
+---
+
+## M8 · Medical records (old MedicalRecord)
+
+### Step 34 — MedicalRecord model + encrypted fields
+
+**Tasks:** description, disease/condition FK to vocab, attachments; pgcrypto or app-level AES for sensitive text.  
+**✅ Acceptance:** only patient + linked caregiver + admin/auditor can read; access audited.
+
+### Step 35 — Upload / list / download APIs
+
+**✅ Acceptance:** multipart upload; MIME allowlist; max size; signed download URLs.
+
+### Step 36 — Caregiver medical records UI for current patient
+
+**✅ Acceptance:** caregiver sees records only while relationship active.
+
+### Step 37 — Patient records vault UI
+
+**✅ Acceptance:** patient CRUD own records; soft-delete with audit.
+
+---
+
+## M9 · Messaging & notifications
+
+### Step 38 — MessageThread between patient ↔ caregiver
+
+**Goal:** replace static `chat.html` + Email-as-comms.  
+**Tasks:** thread per relationship; text messages; read receipts.  
+**✅ Acceptance:** both parties exchange messages in realtime (WS) or polling fallback.
+
+### Step 39 — Notification preferences
+
+**Tasks:** email/push toggles per event type.  
+**✅ Acceptance:** user can disable marketing but not security alerts.
+
+### Step 40 — Email notification templates
+
+**Tasks:** request received, accepted, payment due, anomaly alert.  
+**✅ Acceptance:** templates render si/ta/en; Celery sends in staging.
+
+### Step 41 — Web push (VAPID) for web app
+
+**✅ Acceptance:** browser push on care request when granted.
+
+---
+
+## M10 · Reviews & trust
+
+### Step 42 — Review model + moderation
+
+**Goal:** old Review with real ratings.  
+**Tasks:** 1–5 stars + text; status pending/approved/rejected; only after completed relationship.  
+**✅ Acceptance:** pending hidden from public; admin approve publishes.
+
+### Step 43 — Trust score recompute job
+
+**Tasks:** blend ratings, completion rate, response time → `trust_score`.  
+**✅ Acceptance:** new approved review updates caregiver trust within job SLA.
+
+### Step 44 — Reviews on caregiver detail UI
+
+**✅ Acceptance:** average + recent reviews visible; empty state polite.
+
+---
+
+## M11 · Health monitoring (upgrade beyond old static profile)
+
+### Step 45 — Timescale `HEALTH_METRIC` hypertable + ingest API
+
+**✅ Acceptance:** simulated stream ingests; window aggregates fast.
+
+### Step 46 — Anomaly daemon (rules first)
+
+**✅ Acceptance:** hypo/hyperglycemia trend → `health_critical` event.
+
+### Step 47 — Emergency dynamic VEHMF re-weight + re-match
+
+**✅ Acceptance:** emergency weights α↑; nearest certified advanced caregiver pushed over WS.
+
+### Step 48 — Alerts UX (EMERGENCY Neural Core state)
+
+**✅ Acceptance:** rose brain + alert banner + link to emergency match.
+
+### Step 49 — FCM/APNs mobile push for alerts
+
+**✅ Acceptance:** device receives push in staging.
+
+---
+
+## M12 · Scheduling
+
+### Step 50 — Shift / availability calendar models
+
+**✅ Acceptance:** caregiver publishes weekly slots; patient sees free slots.
+
+### Step 51 — Booking API with Redlock
+
+**✅ Acceptance:** concurrent book → exactly one success.
+
+### Step 52 — Calendar UX (web)
+
+**✅ Acceptance:** book/cancel flows; timezone Asia/Colombo.
+
+### Step 53 — Conflict fallback re-match
+
+**✅ Acceptance:** loser auto-offered next-best caregiver (VEHMF).
+
+---
+
+## M13 · Admin console (old analytical dashboard)
+
+### Step 54 — Admin app shell (web, role=admin|auditor)
+
+**Tasks:** users table, role filters, disable account.  
+**✅ Acceptance:** admin-only routes; auditor read-only where required.
+
+### Step 55 — Vocab & catalog admin UI
+
+**✅ Acceptance:** CRUD conditions, packages, add-ons.
+
+### Step 56 — Analytics charts API
+
+**Goal:** old email_status / role distribution charts.  
+**Tasks:** requests by status, role counts, match latency p95, active relationships.  
+**✅ Acceptance:** Chart.js/Recharts dashboard matches API.
+
+### Step 57 — Leads / subscribers / appointments queue
+
+**✅ Acceptance:** admin processes marketing leads.
+
+### Step 58 — Audit log browser
+
+**✅ Acceptance:** filter by actor/action/date; export CSV.
+
+---
+
+## M14 · i18n & accessibility
+
+### Step 59 — UI i18n (Sinhala / Tamil / English)
+
+**Tasks:** `packages/core` message catalogs; language switcher persists.  
+**✅ Acceptance:** key screens fully translated; RTL not required.
+
+### Step 60 — Accessibility pass
+
+**Tasks:** focus traps, ARIA live regions (already partial), contrast, keyboard Neural Core controls.  
+**✅ Acceptance:** axe clean on auth + home + results; reduced-motion OK.
+
+### Step 61 — Content & empty-state copy polish
+
+**✅ Acceptance:** no lorem; Sri Lanka–appropriate microcopy.
+
+---
+
+## M15 · Mobile (Expo RN)
+
+### Step 62 — Expo bootstrap + shared packages
+### Step 63 — Auth + role navigation
+### Step 64 — Neural Core (Skia) + voice → intent
+### Step 65 — Match results + request caregiver
+### Step 66 — Caregiver inbox + messaging
+### Step 67 — Push alerts + store build profiles  
+
+**✅ Acceptance (M15):** Android + iOS patient voice→match→request; caregiver accept; alert push.
+
+---
+
+## M16 · Compliance & hardening
+
+### Step 68 — pgcrypto / field encryption on health + intent
+### Step 69 — Right-to-erasure + FAISS eviction + data export (JSON/PDF)
+### Step 70 — TLS 1.3, security headers, rate limits, CORS lockdown
+### Step 71 — Load & concurrency tests (match p95, booking Redlock)
+
+**✅ Acceptance:** compliance checklist signed; load targets met.
+
+---
+
+## M17 · Ship
+
+### Step 72 — CI/CD (build, test, push images, migrate)
+### Step 73 — Deploy VM + observability (logs, metrics, Sentry)
+### Step 74 — Play Store + App Store submissions
+### Step 75 — Launch checklist (PDPA notices, support email, backups, runbooks)
+
+**✅ Acceptance:** production URL live; apps in review/live; runbooks in `docs/ops/`.
+
+---
+
+## Parallel tracks (optional acceleration)
+
+| Track | Steps | When |
+|-------|-------|------|
+| A · Research core | 17→20 | **Primary now** |
+| B · Vocab/Serah | 15b→15e | After 16; can overlap 18–19 |
+| C · Marketplace UI | 20b→20e | After 16; before or after 20 |
+| D · Hire/pay | 23→33 | After 20 (needs Request CTA) |
+| E · Mobile | 62→67 | After web patient flow stable (≈ after 33) |
+
+---
+
+## Working agreement
+
+1. Branch `feat/stepN-<slug>` off updated `main`.
+2. State goal + files touched.
+3. Many focused commits OK.
+4. Prove acceptance.
+5. **Push**; PR → **merge**.
+6. Update `PROGRESS.md`.
+7. Next step = new branch.
+
+Rules: `.cursor/rules/git-workflow.mdc`.
+
+---
+
+## Next up
+
+**Step 17 — Embeddings + FAISS index build** (`feat/step17-embeddings-faiss`).
