@@ -51,6 +51,9 @@ services:
       - ../.env
     volumes:
       - ../backend:/app
+      - ../ml:/ml
+    environment:
+      FAISS_ARTIFACT_DIR: /ml/artifacts
     ports:
       - '8000:8000'
     depends_on:
@@ -74,6 +77,9 @@ services:
       - ../.env
     volumes:
       - ../backend:/app
+      - ../ml:/ml
+    environment:
+      FAISS_ARTIFACT_DIR: /ml/artifacts
     depends_on:
       db:
         condition: service_healthy

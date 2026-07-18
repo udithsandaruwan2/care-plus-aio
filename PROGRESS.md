@@ -7,7 +7,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Full product plan v0.2 from Old Care Plus reference. Steps 1–16 done. **Next: Step 17** (embeddings + FAISS)._
+_Last updated: 2026-07-18 — Step 17 embeddings + FAISS done. Next: Step 18 (AHP weights)._
 
 ---
 
@@ -67,8 +67,9 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ### Active track — research match loop
 
-- 🔜 **Step 17** — Embeddings + FAISS index  
-- ⬜ **18** AHP weights · **19** VEHMF + `/match` · **20** WS + result UX  
+- ✅ **Step 17** — Embeddings + FAISS `IndexFlatIP` (hash embedder default; e5 optional); `build_caregiver_index` / `query_caregiver_index`; `POST /match/cbf/`. Branch `feat/step17-embeddings-faiss`.
+- 🔜 **Step 18** — AHP weights
+- ⬜ **19** VEHMF + `/match` · **20** WS + result UX 
 
 ### Expanded product tracks (from Old Care Plus)
 
@@ -91,7 +92,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M16** Compliance | 68–71 | ⬜ |
 | **M17** Ship | 72–75 | ⬜ |
 
-**Progress:** ~16 / 75 steps (~21%). Voice understanding works; matching marketplace hire/pay/records/mobile still ahead.
+**Progress:** ~17 / 75 steps (~23%). Voice understanding + caregiver CBF index work; full VEHMF fusion + marketplace hire/pay still ahead.
 
 ---
 
@@ -99,12 +100,14 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 - Register / login (JWT), consent gate, Neural Core voice UI  
 - Speak (si/ta/en) → structured intent → chips + Goal Ring; clarify loop  
-- Seeded caregivers in DB (API list); no ranked match UI yet  
+- Seeded caregivers + **CBF nearest-neighbour** (`POST /match/cbf/` / management query)  
+- Full VEHMF fusion + result cards not yet (Steps 18–20)  
 
 ---
 
 ## Changelog (newest first)
 
+- **Step 17** — Pluggable embedders (`hash` default / optional `e5`); FAISS `IndexFlatIP`; persist vectors on `CaregiverProfile` + `ml/artifacts/`; management commands `build_caregiver_index` + `query_caregiver_index`; consent-gated `POST /api/v1/match/cbf/`. Query “diabetes Sinhala intermediate Colombo” ranks diabetes caregivers first. 6 FAISS tests green. Branch `feat/step17-embeddings-faiss`.
 - **Docs v0.2** — Expanded plan to **75 steps** across M0–M17 using Old Care Plus/Lumora as product completeness reference; added `PRODUCT_VISION.md` (Old→New matrix). Branch `docs/full-product-plan`.
 - **Fix** — Dengue vocab + CLARIFYING continue loop (PR #14).
 - **Step 16** — `apps.matching` profiles + Sri Lanka `seed_profiles`; `GET /caregivers/`.
