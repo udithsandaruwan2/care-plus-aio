@@ -112,3 +112,54 @@ class ConsentLog(models.Model):
         for scope, granted in cls.objects.filter(user=user).values_list("scope", "granted"):
             state.setdefault(scope, granted)
         return state
+
+
+class AuditAction(models.TextChoices):
+    """Well-known audit action codes (HIPAA/PDPA access trail)."""
+
+    VIEW_HEALTH = "view_health", "View patient health data"
+    GRANT_CONSENT = "grant_consent", "Grant processing consent"
+    REVOKE_CONSENT = "revoke_consent", "Revoke processing consent"
+    LOGIN = "login", "User login"
+
+
+class AuditLog(models.Model):
+    """Immutable append-only access / action log.
+
+    Rows are never updated or deleted (enforced in the ORM and by a Postgres
+    trigger). Writers should use :func:`apps.accounts.audit.record_audit`.
+    """
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="audit_actions",
+        null=True,
+        blank=True,
+        help_text="User who performed the action (null for system).",
+    )
+    action = models.CharField(max_length=64, choices=AuditAction.choices)
+    ts = models.DateTimeField(auto_now_add=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    # Optional target of the action (e.g. patient whose health was viewed).
+    target_type = models.CharField(max_length=64, blank=True, default="")
+    target_id = models.CharField(max_length=64, blank=True, default="")
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ("-ts",)
+        indexes = [
+            models.Index(fields=["action", "-ts"], name="audit_action_ts_idx"),
+            models.Index(fields=["actor", "-ts"], name="audit_actor_ts_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.action} by {self.actor_id} @ {self.ts:%Y-%m-%d %H:%M:%S}"
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise ValueError("AuditLog is append-only; updates are forbidden.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("AuditLog is append-only; deletes are forbidden.")
