@@ -39,6 +39,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.accounts",
     "apps.common",
+    "apps.voice",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -111,6 +112,14 @@ CELERY_RESULT_BACKEND = REDIS_URL
 # Tests / sync callers set ALWAYS_EAGER so audit writes happen in-process.
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = True
+
+# ── Cognitive layer (voice → intent) ─────────────────────────────
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-1.5-flash")
+# "gemini" when a key is present, else deterministic "stub" (dev/tests/offline).
+VOICE_INTENT_BACKEND = env(
+    "VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
+)
 
 # ── Password validation ──────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
