@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 9 web shell done. Next: Step 10 (auth screens)._
+_Last updated: 2026-07-18 — Step 10 web auth done. Next: Step 11 (Neural Core)._
 
 ---
 
@@ -71,8 +71,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 ### M2 · Web shell + Neural Core
 
 - ✅ **Step 9** — Shared packages (`ui-tokens`, `core`, `api-client`) + Vite React web shell (Aurora Neural). Branch `feat/step9-web-shell`.
-- 🔜 Step 10 — Auth screens + API client
-- ⬜ Step 11 — Neural Core audio-reactive brain (R3F + Bloom)
+- ✅ **Step 10** — Login/register screens, JWT session, protected home + logout. Branch `feat/step10-web-auth`.
+- 🔜 Step 11 — Neural Core audio-reactive brain (R3F + Bloom)
 - ⬜ Step 12 — Assistant FSM + Goal Ring + realtime feedback shell
 
 ### M3 · Voice → Intent
@@ -118,6 +118,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 10** — Web auth: `/login` + `/register`, JWT in localStorage, `AuthProvider` + `RequireAuth`, protected `/` shows `/me`, logout clears session. `api-client` gains `register` + Zod `TokenPair` parse. CORS verified for `:5173`. Branch `feat/step10-web-auth`.
 - **Step 9** — Monorepo frontend: `@care-plus/ui-tokens` (Aurora Neural), `@care-plus/core` (FSM + i18n stub), `@care-plus/api-client` (Zod + fetch), `apps/web` Vite/React/Tailwind themed shell with live health probe. `pnpm` install + typecheck + build green. Branch `feat/step9-web-shell`.
 - **Step 8** — Append-only `AuditLog` (`actor`, `action`, `ts`, `ip`, target, metadata); Celery `write_audit_log` + `record_audit`; Postgres BEFORE UPDATE/DELETE trigger; `GET /audit/demo-view-health/` writes one `view_health` row; `GET /audit/` for admin/auditor; read-only admin. Tests green. Branch `feat/step8-audit-trail`. **M1 complete.**
 - **Fix** — WhiteNoise + `collectstatic` entrypoint so Django admin / DRF Browsable API CSS works under uvicorn. Branch `fix/backend-static-whitenoise`.

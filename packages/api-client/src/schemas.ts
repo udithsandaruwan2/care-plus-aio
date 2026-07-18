@@ -21,3 +21,21 @@ export const TokenPair = z.object({
   refresh: z.string(),
 });
 export type TokenPair = z.infer<typeof TokenPair>;
+
+export const RegisterResponse = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  role: z.enum(['patient', 'caregiver', 'admin', 'auditor']),
+  first_name: z.string(),
+  last_name: z.string(),
+});
+export type RegisterResponse = z.infer<typeof RegisterResponse>;
+
+export const RegisterInput = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(['patient', 'caregiver']).default('patient'),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+});
+export type RegisterInput = z.infer<typeof RegisterInput>;
