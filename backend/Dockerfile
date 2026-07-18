@@ -26,8 +26,10 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 # Dev default: ASGI server with autoreload. Overridden per-service in compose.
 CMD ["uvicorn", "careplus.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]
