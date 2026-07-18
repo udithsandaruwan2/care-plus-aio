@@ -1,11 +1,16 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
-import { AssistantState, t, type Locale } from '@care-plus/core';
+import { AssistantState, STATE_COPY, goalRingProgress } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../auth/api';
 import { useMicAmplitude } from '../neural-core/useMicAmplitude';
+import { useAssistant } from '../assistant/store';
+import { useReducedMotion } from '../assistant/useReducedMotion';
+import { GoalRing } from '../assistant/GoalRing';
+import { EntityChips } from '../assistant/EntityChips';
+import { Transcript } from '../assistant/Transcript';
+import { StateStepper } from '../assistant/StateStepper';
 
 const NeuralCoreCanvas = lazy(() =>
   import('../neural-core/NeuralCoreCanvas').then((m) => ({ default: m.NeuralCoreCanvas })),
@@ -13,10 +18,10 @@ const NeuralCoreCanvas = lazy(() =>
 
 export function HomePage() {
   const { user, logout } = useAuth();
-  const locale: Locale = 'en';
   const [health, setHealth] = useState<string>('…');
   const mic = useMicAmplitude();
-  const state = mic.active ? AssistantState.LISTENING : AssistantState.IDLE;
+  const reducedMotion = useReducedMotion();
+  const { state, intent, transcript, interim, setState } = useAssistant();
 
   useEffect(() => {
     api
@@ -26,9 +31,16 @@ export function HomePage() {
   }, []);
 
   async function toggleMic() {
-    if (mic.active) mic.stop();
-    else await mic.start();
+    if (mic.active) {
+      mic.stop();
+      setState(AssistantState.THINKING, { force: true });
+    } else {
+      await mic.start();
+      setState(AssistantState.LISTENING, { force: true });
+    }
   }
+
+  const progress = Math.round(goalRingProgress(intent) * 100);
 
   return (
     <AtmosphereShell>
@@ -51,37 +63,45 @@ export function HomePage() {
           </button>
         </div>
 
-        {/* Neural Core — tap / click the orb or the button to speak */}
+        {/* Neural Core inside the Goal Ring */}
         <section className="relative mx-auto mt-6 flex w-full max-w-lg flex-col items-center">
           <button
             type="button"
             onClick={toggleMic}
             aria-pressed={mic.active}
             aria-label={mic.active ? 'Stop listening' : 'Tap to speak'}
-            className="group relative h-72 w-full cursor-pointer rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+            className="cursor-pointer rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
           >
-            <Suspense
-              fallback={
-                <div className="flex h-full items-center justify-center text-sm text-muted">
-                  Loading Neural Core…
-                </div>
-              }
-            >
-              <NeuralCoreCanvas
-                amplitude={mic.amplitude}
-                state={state}
-                className="pointer-events-none h-full w-full"
-              />
-            </Suspense>
+            <GoalRing intent={intent} size={288}>
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-sm text-muted">
+                    Loading Neural Core…
+                  </div>
+                }
+              >
+                <NeuralCoreCanvas
+                  amplitude={mic.amplitude}
+                  state={state}
+                  reducedMotion={reducedMotion}
+                  className="pointer-events-none h-full w-full"
+                />
+              </Suspense>
+            </GoalRing>
           </button>
 
           <p className="mt-2 font-display text-sm tracking-wide text-cyan">
-            {state} · {mic.active ? t(locale, 'assistant.listening') : t(locale, 'assistant.idle')}
+            {state} · {STATE_COPY[state]}
           </p>
           {mic.error && <p className="mt-1 text-sm text-rose">{mic.error}</p>}
           <p className="mt-1 text-xs text-muted">
-            Level {(mic.amplitude * 100).toFixed(0)}% · idle uses on-demand render
+            Goal {progress}% · level {(mic.amplitude * 100).toFixed(0)}%
           </p>
+
+          <Transcript transcript={transcript} interim={interim} />
+          <div className="mt-3">
+            <EntityChips intent={intent} />
+          </div>
 
           <button
             type="button"
@@ -96,6 +116,8 @@ export function HomePage() {
           </button>
         </section>
 
+        {import.meta.env.DEV && <StateStepper />}
+
         <div className="mt-8 rounded-2xl border border-hair bg-panel p-5 backdrop-blur-md">
           <div className="flex items-center justify-between gap-4">
             <span className="text-sm text-muted">Signed in as</span>
@@ -108,11 +130,7 @@ export function HomePage() {
             <span className="font-mono text-sm text-mint">{health}</span>
           </div>
           <p className="mt-4 text-sm text-muted">
-            Neural Core (Step 11). FSM + Goal Ring in{' '}
-            <Link to="/" className="text-cyan">
-              Step 12
-            </Link>
-            ; live transcript in Step 13.
+            Assistant FSM + Goal Ring (Step 12). Live transcript wires in Step 13.
           </p>
         </div>
       </main>
