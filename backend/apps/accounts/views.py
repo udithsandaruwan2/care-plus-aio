@@ -1,4 +1,3 @@
-from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,7 +30,6 @@ class AdminOnlyView(APIView):
     permission_classes = [RolePermission]
     allowed_roles = ("admin",)
 
-    @extend_schema(responses={200: None, 403: None})
     def get(self, request):
         return Response({"ok": True, "role": request.user.role})
 
@@ -49,10 +47,6 @@ class ConsentView(generics.ListCreateAPIView):
     def get_queryset(self):
         return ConsentLog.objects.filter(user=self.request.user)
 
-    @extend_schema(
-        summary="Current consent state",
-        responses={200: None},
-    )
     def get(self, request, *args, **kwargs):
         return Response(
             {
@@ -72,6 +66,5 @@ class ConsentGateCheckView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, HasAIConsent]
 
-    @extend_schema(responses={200: None, 401: None, 451: None})
     def get(self, request):
         return Response({"ok": True, "scope": ConsentScope.AI_PROCESSING.value})

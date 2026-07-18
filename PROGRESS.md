@@ -44,7 +44,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 - ✅ **Step 1** — Repo & monorepo skeleton (pnpm/turbo, dirs, `.env.example`). commit `ced6d2d`
 - ✅ **Step 2** — Docker infra: TimescaleDB+PostGIS+pgcrypto + Redis; extensions verified.
-- ✅ **Step 3** — Dockerized Django+DRF skeleton; `/api/v1/health/` green; Swagger at `/api/docs/`. commit `322f99a`
+- ✅ **Step 3** — Dockerized Django+DRF skeleton; `/api/v1/health/` green; DRF Browsable API for exploration. commit `322f99a`
 - ✅ **Step 4** — Channels `ws/ping` echo consumer + Celery worker + `debug_task` (both verified).
 - ✅ **Step 5** — Quality gates: Ruff+Black (py), Prettier+ESLint (js), pre-commit, GitHub Actions CI. **M0 complete.**
 
@@ -104,12 +104,13 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Chore** — Dropped Swagger/`drf-spectacular`; API exploration/testing now uses DRF's built-in **Browsable API** (dev) with `api-auth/` login. Removed `/api/schema` + `/api/docs`. Branch `chore/drf-browsable-api`.
 - **Step 7** — `accounts` consent engine: append-only `ConsentLog` (`user`, `scope`, `granted`, `ts`) with `is_granted`/`current_state` helpers; `ConsentScope` = `ai_processing`/`health_monitoring`/`data_sharing`; `POST/GET /api/v1/consent/`; `HasAIConsent` DRF permission raising **451** when consent is missing; `/api/v1/consent/gate-check/` demo endpoint (401→451→200). Read-only admin. Tests cover ledger append-only + gate. Branch `feat/step7-consent-engine`.
 - **Step 6** — `accounts` app: custom email User + `role` (patient/caregiver/admin/auditor), SimpleJWT (`/auth/token`, `/refresh`), `/auth/register`, `/auth/me`, RBAC `RolePermission` + `/auth/admin-only`. DB recreated for custom user. Verified: 201/200/403/200/401.
 - **Workflow** — adopted one-branch-per-feature (`feat/stepN-<slug>`).
 - **Step 5** — Ruff+Black (`backend/pyproject.toml`), Prettier + flat ESLint config, `.pre-commit-config.yaml`, GitHub Actions CI (backend lint · prettier · docker build). Lint/format verified clean.
 - **Step 4** — ASGI `ProtocolTypeRouter` (HTTP+WebSocket); `ws/ping` echo consumer; Celery app on Redis + `debug_task`; `worker` service in Compose.
-- **Step 3** — Django 4.2 + DRF + GeoDjango skeleton, split settings, health endpoint (DB+Redis), Swagger; backend service in Compose. `322f99a`
+- **Step 3** — Django 4.2 + DRF + GeoDjango skeleton, split settings, health endpoint (DB+Redis), DRF Browsable API; backend service in Compose. `322f99a`
 - **Step 2** — `infra/docker-compose.yml` (TimescaleDB-HA + Redis) + init SQL (postgis/timescaledb/pgcrypto); host DB port → 5433.
 - **Step 1** — Monorepo skeleton, workspace config, `.env.example`. `ced6d2d`
 - **Docs** — ARCHITECTURE.md, FRONTEND.md, DEVELOPMENT_PLAN.md; connected `origin/main`.
