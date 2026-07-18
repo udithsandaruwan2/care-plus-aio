@@ -1,10 +1,15 @@
-"""RBAC permission classes.
+"""RBAC + consent permission classes.
 
-Views declare `allowed_roles = ("admin", ...)`. RolePermission enforces it.
-Convenience subclasses cover the common single-role cases.
+RBAC: views declare `allowed_roles = ("admin", ...)`; RolePermission enforces it.
+Consent: `HasAIConsent` gates AI processing behind a recorded PDPA/GDPR consent,
+raising HTTP 451 (Unavailable For Legal Reasons) when consent is missing.
 """
 
+from rest_framework import status
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import BasePermission
+
+from .models import ConsentLog, ConsentScope
 
 
 class RolePermission(BasePermission):
@@ -39,3 +44,30 @@ IsPatient = role_required("patient")
 IsCaregiver = role_required("caregiver")
 IsAdmin = role_required("admin")
 IsAuditor = role_required("auditor")
+
+
+class ConsentRequired(APIException):
+    """Raised when a required processing consent has not been granted."""
+
+    status_code = status.HTTP_451_UNAVAILABLE_FOR_LEGAL_REASONS
+    default_detail = "Processing consent is required before this action."
+    default_code = "consent_required"
+
+
+class HasAIConsent(BasePermission):
+    """Require a current ``ai_processing`` consent for the authenticated user.
+
+    Used to gate the voice → intent pipeline (Step 14) so no external AI call is
+    ever made without recorded consent. Unauthenticated → 401; authenticated but
+    without consent → 451.
+    """
+
+    required_scope = ConsentScope.AI_PROCESSING
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if not ConsentLog.is_granted(user, self.required_scope):
+            raise ConsentRequired()
+        return True
