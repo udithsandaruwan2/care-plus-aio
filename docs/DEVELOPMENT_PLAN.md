@@ -313,4 +313,4 @@ pnpm install && pnpm --filter web dev
 
 Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
 
-> **Next up: Step 14** — Gemini structured intent extraction (`feat/step14-voice-intent`).
+> **Next up: Step 15** — entity chips + Goal Ring fill end-to-end (`feat/step15-intent-ui`).
