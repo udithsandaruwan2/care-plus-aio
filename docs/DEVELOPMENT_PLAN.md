@@ -313,4 +313,4 @@ pnpm install && pnpm --filter web dev
 
 Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
 
-> **Next up: Step 12** — Assistant FSM + Goal Ring (`feat/step12-assistant-fsm`).
+> **Next up: Step 13** — mic capture + live transcript (`feat/step13-web-speech`).

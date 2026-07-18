@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 11 Neural Core done. Next: Step 12 (FSM + Goal Ring)._
+_Last updated: 2026-07-18 — Step 12 FSM + Goal Ring done. Next: Step 13 (live transcript)._
 
 ---
 
@@ -73,7 +73,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 - ✅ **Step 9** — Shared packages (`ui-tokens`, `core`, `api-client`) + Vite React web shell (Aurora Neural). Branch `feat/step9-web-shell`.
 - ✅ **Step 10** — Login/register screens, JWT session, protected home + logout. Branch `feat/step10-web-auth`.
 - ✅ **Step 11** — Neural Core: R3F icosahedron mesh + synapses + Bloom; mic amplitude; `frameloop=demand`. Branch `feat/step11-neural-core`.
-- 🔜 Step 12 — Assistant FSM + Goal Ring + realtime feedback shell
+- ✅ **Step 12** — Assistant FSM (Zustand) + Goal Ring + entity chips + transcript + reduced-motion; dev state stepper. Branch `feat/step12-assistant-fsm`.
+- 🔜 Step 13 — Mic capture + live transcript (Web Speech)
 
 ### M3 · Voice → Intent
 
@@ -118,6 +119,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 12** — Zustand assistant FSM (`TRANSITIONS`/`STATE_COPY`/`nextMissingField` in core); segmented Goal Ring per intent field; color-coded entity chips; live transcript component; `prefers-reduced-motion` static Neural Core; dev state stepper. Branch `feat/step12-assistant-fsm`.
 - **Step 11** — Neural Core on home: `useMicAmplitude` (AnalyserNode), R3F mesh + synapse lines + Bloom, `frameloop="demand"` (idle static), Tap to speak toggles LISTENING. Lazy-loaded Three.js chunk. Branch `feat/step11-neural-core`.
 - **Step 10** — Web auth: `/login` + `/register`, JWT in localStorage, `AuthProvider` + `RequireAuth`, protected `/` shows `/me`, logout clears session. `api-client` gains `register` + Zod `TokenPair` parse. CORS verified for `:5173`. Branch `feat/step10-web-auth`.
 - **Step 9** — Monorepo frontend: `@care-plus/ui-tokens` (Aurora Neural), `@care-plus/core` (FSM + i18n stub), `@care-plus/api-client` (Zod + fetch), `apps/web` Vite/React/Tailwind themed shell with live health probe. `pnpm` install + typecheck + build green. Branch `feat/step9-web-shell`.
