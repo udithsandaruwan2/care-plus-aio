@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 12 FSM + Goal Ring done. Next: Step 13 (live transcript)._
+_Last updated: 2026-07-18 — Step 13 live transcript done. Next: Step 14 (Gemini intent)._
 
 ---
 
@@ -78,8 +78,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ### M3 · Voice → Intent
 
-- ⬜ Step 13 — Mic capture + live transcript (Web Speech)
-- ⬜ Step 14 — Gemini structured-output intent extraction (backend)
+- ✅ **Step 13** — Web Speech mic capture + live streaming transcript; lang toggle (si/ta/en); silence → THINKING. Branch `feat/step13-web-speech`.
+- 🔜 Step 14 — Gemini structured-output intent extraction (backend)
 - ⬜ Step 15 — Entity chips + Goal Ring fill (end-to-end)
 
 ### M4 · VEHMF v1 + Match UX
@@ -119,6 +119,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 13** — `useSpeechRecognition` (Web Speech API): streaming interim + final transcript into the store, language toggle (si-LK/ta-LK/en-US), silence/stop → THINKING; graceful unsupported-browser note. Branch `feat/step13-web-speech`.
 - **Step 12** — Zustand assistant FSM (`TRANSITIONS`/`STATE_COPY`/`nextMissingField` in core); segmented Goal Ring per intent field; color-coded entity chips; live transcript component; `prefers-reduced-motion` static Neural Core; dev state stepper. Branch `feat/step12-assistant-fsm`.
 - **Step 11** — Neural Core on home: `useMicAmplitude` (AnalyserNode), R3F mesh + synapse lines + Bloom, `frameloop="demand"` (idle static), Tap to speak toggles LISTENING. Lazy-loaded Three.js chunk. Branch `feat/step11-neural-core`.
 - **Step 10** — Web auth: `/login` + `/register`, JWT in localStorage, `AuthProvider` + `RequireAuth`, protected `/` shows `/me`, logout clears session. `api-client` gains `register` + Zod `TokenPair` parse. CORS verified for `:5173`. Branch `feat/step10-web-auth`.
