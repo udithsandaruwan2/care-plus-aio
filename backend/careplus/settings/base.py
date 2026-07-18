@@ -33,7 +33,6 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "corsheaders",
-    "drf_spectacular",
     "channels",
 ]
 
@@ -129,9 +128,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
 
-# ── DRF + API schema ─────────────────────────────────────────────
+# ── DRF ───────────────────────────────────────────────────────────
+# API exploration/testing uses DRF's built-in Browsable API (enabled in dev),
+# not Swagger. Session auth lets you log in via the browsable UI; JWT stays the
+# primary auth for API clients.
 REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
@@ -144,13 +145,6 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-}
-
-SPECTACULAR_SETTINGS = {
-    "TITLE": "Care Plus API",
-    "DESCRIPTION": "Multilingual voice-driven AI caregiver matching (VEHMF).",
-    "VERSION": "0.1.0",
-    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
