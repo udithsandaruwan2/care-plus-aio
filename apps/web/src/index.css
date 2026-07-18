@@ -1,0 +1,19 @@
+@import '@care-plus/ui-tokens/css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--cp-font-body);
+  color: var(--cp-text-primary);
+  background: var(--cp-bg-void);
+  -webkit-font-smoothing: antialiased;
+}

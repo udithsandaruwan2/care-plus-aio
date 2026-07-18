@@ -313,4 +313,4 @@ pnpm install && pnpm --filter web dev
 
 Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
 
-> **Next up: Step 9** — web shell + shared packages (`feat/step9-web-shell`).
+> **Next up: Step 10** — auth screens + API client wiring (`feat/step10-web-auth`).
