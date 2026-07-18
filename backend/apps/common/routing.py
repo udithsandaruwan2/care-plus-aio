@@ -1,4 +1,5 @@
 """WebSocket URL routes for the common app."""
+
 from django.urls import path
 
 from .consumers import PingConsumer

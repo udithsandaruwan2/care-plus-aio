@@ -3,6 +3,7 @@
 Lean profile: one PostgreSQL instance (PostGIS + TimescaleDB), one Redis
 (cache + Redlock + Celery broker + Channels layer). See docs/ARCHITECTURE.md.
 """
+
 from pathlib import Path
 
 import environ

@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Lint / format / hooks (dev + CI only)
+ruff==0.7.1
+black==24.10.0
+pre-commit==4.0.1

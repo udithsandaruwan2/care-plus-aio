@@ -16,12 +16,12 @@ services:
     ports:
       # Host port is decoupled from the internal port to avoid clashing with a
       # local PostgreSQL on 5432. Backend containers still connect to db:5432.
-      - "${POSTGRES_HOST_PORT:-5433}:5432"
+      - '${POSTGRES_HOST_PORT:-5433}:5432'
     volumes:
       - db_data:/home/postgres/pgdata/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-careplus} -d ${POSTGRES_DB:-careplus}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-careplus} -d ${POSTGRES_DB:-careplus}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -30,13 +30,13 @@ services:
     image: redis:7-alpine
     container_name: careplus-redis
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -45,20 +45,21 @@ services:
     build: ../backend
     container_name: careplus-backend
     restart: unless-stopped
-    command: ["uvicorn", "careplus.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command:
+      ['uvicorn', 'careplus.asgi:application', '--host', '0.0.0.0', '--port', '8000', '--reload']
     env_file:
       - ../.env
     volumes:
       - ../backend:/app
     ports:
-      - "8000:8000"
+      - '8000:8000'
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/health/"]
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8000/api/v1/health/']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -68,7 +69,7 @@ services:
     build: ../backend
     container_name: careplus-worker
     restart: unless-stopped
-    command: ["celery", "-A", "careplus", "worker", "-l", "info"]
+    command: ['celery', '-A', 'careplus', 'worker', '-l', 'info']
     env_file:
       - ../.env
     volumes:

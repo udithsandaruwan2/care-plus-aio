@@ -1,8 +1,8 @@
 # Care Plus — System Architecture & Technical Blueprint
 
 > **Status:** Pre-development design document (v0.1)
-> **Purpose:** The single source of truth for *what* Care Plus is, *how* the layers
-> interact at the memory/network level, and the *exact data flows* that connect the
+> **Purpose:** The single source of truth for _what_ Care Plus is, _how_ the layers
+> interact at the memory/network level, and the _exact data flows_ that connect the
 > Hybrid Voice NLP, the VEHMF matching engine, and the real-time health monitors.
 > **Design priorities (in order):** correctness → **latency (speed)** → **resource efficiency** → research completeness.
 
@@ -37,27 +37,27 @@ matches dynamically during medical anomalies.
 
 Three capabilities define the research contribution:
 
-| # | Capability | One-line description |
-|---|------------|----------------------|
-| 1 | **Hybrid Voice → Match** | A spoken Sinhala sentence becomes a mathematically ranked, *explainable* list of caregivers. |
-| 2 | **Health Anomaly → Re-Match** | Wearable time-series triggers dynamic weight shifts so medical fit overrides logistics in emergencies. |
-| 3 | **Concurrency-safe Scheduling** | Distributed locking guarantees no double-booking under simultaneous requests. |
+| #   | Capability                      | One-line description                                                                                   |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 1   | **Hybrid Voice → Match**        | A spoken Sinhala sentence becomes a mathematically ranked, _explainable_ list of caregivers.           |
+| 2   | **Health Anomaly → Re-Match**   | Wearable time-series triggers dynamic weight shifts so medical fit overrides logistics in emergencies. |
+| 3   | **Concurrency-safe Scheduling** | Distributed locking guarantees no double-booking under simultaneous requests.                          |
 
 ---
 
 ## 2. Design Principles & Non-Functional Targets
 
-| Principle | Rationale | Concrete target |
-|-----------|-----------|-----------------|
-| **Latency first** | It is a live voice/health product. | Voice→ranked list **< 800 ms p95**; health alert fan-out **< 1 s**. |
-| **Resource efficiency** | Runs on a single modest node during research; cost matters. | Whole lean stack fits in **≤ 4 GB RAM + 2 vCPU**; no GPU required at runtime. |
-| **Modular, not prematurely distributed** | Microservices add ops + memory overhead that a research project rarely needs. | Start as a **modular monolith**; split *only* the VEHMF engine when it becomes CPU-bound. |
-| **Explainability (XAI)** | Health decisions must be justifiable and auditable. | Every match ships a human-readable "why". |
-| **Compliance by design** | GDPR / HIPAA / Sri Lanka PDPA. | Consent gate + encryption-at-rest + immutable audit trail. |
-| **Reproducibility** | It is research. | Deterministic seeds, pinned deps, versioned model artifacts. |
+| Principle                                | Rationale                                                                     | Concrete target                                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Latency first**                        | It is a live voice/health product.                                            | Voice→ranked list **< 800 ms p95**; health alert fan-out **< 1 s**.                       |
+| **Resource efficiency**                  | Runs on a single modest node during research; cost matters.                   | Whole lean stack fits in **≤ 4 GB RAM + 2 vCPU**; no GPU required at runtime.             |
+| **Modular, not prematurely distributed** | Microservices add ops + memory overhead that a research project rarely needs. | Start as a **modular monolith**; split _only_ the VEHMF engine when it becomes CPU-bound. |
+| **Explainability (XAI)**                 | Health decisions must be justifiable and auditable.                           | Every match ships a human-readable "why".                                                 |
+| **Compliance by design**                 | GDPR / HIPAA / Sri Lanka PDPA.                                                | Consent gate + encryption-at-rest + immutable audit trail.                                |
+| **Reproducibility**                      | It is research.                                                               | Deterministic seeds, pinned deps, versioned model artifacts.                              |
 
 > **Architect's note on "speed + efficiency":** The original blueprint (FAISS-HNSW +
-> InfluxDB + RabbitMQ + Redis + PostGIS + LightFM + microservices) is the *textbook full*
+> InfluxDB + RabbitMQ + Redis + PostGIS + LightFM + microservices) is the _textbook full_
 > design. It is powerful but heavy for a research MVP. This document therefore defines a
 > **Lean profile** (recommended to start) and a **Full profile** (the north-star), and
 > makes the trade-off explicit at every layer. See [§4](#4-technology-stack--two-profiles-lean-vs-full).
@@ -104,12 +104,12 @@ flowchart TB
     F3 --- F4
 ```
 
-| Layer | Domain of computation | Why it exists |
-|-------|-----------------------|---------------|
-| **Perception** | Capture unstructured audio at the edge + stream biometrics from wearables. | Keep raw data ingestion off the critical path. |
-| **Cognitive** | Turn speech → structured vectors; route requests; manage realtime channels. | Convert messy human input into typed, DB-shaped data. |
-| **Decision (VEHMF)** | Fuse vectors via similarity search, matrix factorization, and geo math. | The research heart: compute *explainable compatibility*. |
-| **State & Execution** | WebSocket state, time-series logs, distributed locks, async dispatch. | Durable memory + safe side effects. |
+| Layer                 | Domain of computation                                                       | Why it exists                                            |
+| --------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Perception**        | Capture unstructured audio at the edge + stream biometrics from wearables.  | Keep raw data ingestion off the critical path.           |
+| **Cognitive**         | Turn speech → structured vectors; route requests; manage realtime channels. | Convert messy human input into typed, DB-shaped data.    |
+| **Decision (VEHMF)**  | Fuse vectors via similarity search, matrix factorization, and geo math.     | The research heart: compute _explainable compatibility_. |
+| **State & Execution** | WebSocket state, time-series logs, distributed locks, async dispatch.       | Durable memory + safe side effects.                      |
 
 ---
 
@@ -119,40 +119,42 @@ The **Lean profile** is what we build first: fewer moving parts, one primary dat
 no GPU, everything on one box. The **Full profile** is the research north-star you scale
 into once the concept is proven.
 
-| Concern | **Lean profile (start here)** | **Full profile (north-star)** | Why the lean choice is cheaper/faster |
-|--------|------------------------------|------------------------------|----------------------------------------|
-| Web / API | Django 4.2 + DRF + Channels | same | — |
-| ASR (voice→text) | **Client Web Speech API**, fallback **faster-whisper (CTranslate2, int8)** | Fine-tuned Whisper-small Sinhala on GPU | Web Speech is free & instant; faster-whisper is ~4× faster and lower-RAM than raw `transformers` Whisper. |
-| NLP extraction | Gemini 1.5 Flash (structured JSON) | same + local fallback | Flash is low-latency and removes regex parsing. |
-| Vector search (CBF) | **FAISS `IndexFlatIP`** (or NumPy) in-process | FAISS **HNSW** in a dedicated service | For <100k profiles, flat exact search is sub-ms and needs no tuning. |
-| Collaborative filtering | **implicit ALS** or LightFM (retrained offline) | LightFM online + warm cache | Small models; retrain as a nightly Celery job, not per-request. |
-| Weights | AHP eigenvector via NumPy at startup | same, periodically re-surveyed | — |
-| Relational + Geo | **PostgreSQL + PostGIS** | same | — |
-| Time-series | **TimescaleDB (Postgres extension)** | InfluxDB (separate cluster) | TimescaleDB reuses the *same* Postgres instance → one DB to run, back up, secure. |
-| Cache / Lock / Broker | **Redis** (does all three) | Redis (cache/lock) **+ RabbitMQ** (broker) | One Redis replaces Redis+RabbitMQ → saves a whole service + RAM. |
-| Async tasks | Celery (Redis broker) | Celery (RabbitMQ broker) | — |
-| Push | Firebase Cloud Messaging | same | — |
-| Topology | **Modular monolith** (VEHMF = in-process module) | Independent Python microservices | No inter-service network hops, no serialization overhead, one deploy. |
+| Concern                 | **Lean profile (start here)**                                              | **Full profile (north-star)**              | Why the lean choice is cheaper/faster                                                                     |
+| ----------------------- | -------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Web / API               | Django 4.2 + DRF + Channels                                                | same                                       | —                                                                                                         |
+| ASR (voice→text)        | **Client Web Speech API**, fallback **faster-whisper (CTranslate2, int8)** | Fine-tuned Whisper-small Sinhala on GPU    | Web Speech is free & instant; faster-whisper is ~4× faster and lower-RAM than raw `transformers` Whisper. |
+| NLP extraction          | Gemini 1.5 Flash (structured JSON)                                         | same + local fallback                      | Flash is low-latency and removes regex parsing.                                                           |
+| Vector search (CBF)     | **FAISS `IndexFlatIP`** (or NumPy) in-process                              | FAISS **HNSW** in a dedicated service      | For <100k profiles, flat exact search is sub-ms and needs no tuning.                                      |
+| Collaborative filtering | **implicit ALS** or LightFM (retrained offline)                            | LightFM online + warm cache                | Small models; retrain as a nightly Celery job, not per-request.                                           |
+| Weights                 | AHP eigenvector via NumPy at startup                                       | same, periodically re-surveyed             | —                                                                                                         |
+| Relational + Geo        | **PostgreSQL + PostGIS**                                                   | same                                       | —                                                                                                         |
+| Time-series             | **TimescaleDB (Postgres extension)**                                       | InfluxDB (separate cluster)                | TimescaleDB reuses the _same_ Postgres instance → one DB to run, back up, secure.                         |
+| Cache / Lock / Broker   | **Redis** (does all three)                                                 | Redis (cache/lock) **+ RabbitMQ** (broker) | One Redis replaces Redis+RabbitMQ → saves a whole service + RAM.                                          |
+| Async tasks             | Celery (Redis broker)                                                      | Celery (RabbitMQ broker)                   | —                                                                                                         |
+| Push                    | Firebase Cloud Messaging                                                   | same                                       | —                                                                                                         |
+| Topology                | **Modular monolith** (VEHMF = in-process module)                           | Independent Python microservices           | No inter-service network hops, no serialization overhead, one deploy.                                     |
 
-> **Rule of thumb applied throughout:** *add a service only when a measured bottleneck
-> demands it.* Every process you run costs RAM, ops time, and a network hop of latency.
+> **Rule of thumb applied throughout:** _add a service only when a measured bottleneck
+> demands it._ Every process you run costs RAM, ops time, and a network hop of latency.
 
 ---
 
 ## 5. Deep-Dive: Technology & Framework Mapping
 
 ### A. Backend Orchestrator — Django + DRF + Channels
+
 - **Role:** API Gateway, State Manager, ORM. Handles JWT auth, RBAC, request routing.
 - **Network level:** Django Channels upgrades HTTP → WebSocket over an **ASGI** server
-  (Uvicorn/Daphne). Enables *server push* of health alerts & match updates — no HTTP polling.
+  (Uvicorn/Daphne). Enables _server push_ of health alerts & match updates — no HTTP polling.
 - **Efficiency note:** Run one ASGI process with multiple workers; Channels layer backed by Redis pub/sub.
 
 ### B. Cognitive Layer — Hybrid Gemini Pipeline ⭐
+
 - **Hearing (ASR):** client `Web Speech API` (or mobile SDK) streams audio → instant text.
   Server-side fallback = `faster-whisper` for uploaded files / unsupported browsers.
 - **Understanding (NLP):** transcribed text → **Gemini 1.5 Flash** with
   `response_mime_type="application/json"` + a strict JSON schema in the system prompt.
-  Gemini is *forced* to return valid JSON that maps 1:1 to Django models.
+  Gemini is _forced_ to return valid JSON that maps 1:1 to Django models.
 - **Advantage:** no fragile regex; handles Sinhala/Tamil medical slang natively; NLP latency drops from seconds → ms.
 
 **Contract example**
@@ -169,14 +171,16 @@ into once the concept is proven.
 ```
 
 ### C. Decision Engine — VEHMF (research core)
+
 - **Vector DB (CBF):** FAISS. Profiles → high-dim vectors (e.g. 768-d). Loaded into RAM;
-  nearest neighbors in sub-ms. *Lean:* `IndexFlatIP` (exact cosine). *Full:* HNSW graph index.
+  nearest neighbors in sub-ms. _Lean:_ `IndexFlatIP` (exact cosine). _Full:_ HNSW graph index.
 - **Matrix Factorization (CF):** LightFM / implicit-ALS. Latent User-Item matrix learns hidden
   patterns ("patients with X rate caregivers with Y highly") without manual feature engineering.
 - **AHP Weight Optimizer:** NumPy/SciPy computes the **principal eigenvector** of the stakeholder
   survey matrix at startup → injects empirical weights `[α, β, γ, δ]` into the scoring function.
 
 ### D. State & Execution — Geospatial & Time-Series
+
 - **Geospatial:** PostGIS stores `POINT(lat, lng)`, uses R-Tree (GiST) indexing to compute real
   travel distance/time, not straight-line Euclidean.
 - **Time-series:** TimescaleDB (or InfluxDB) uses append-optimized storage (hypertables / LSM)
@@ -225,7 +229,7 @@ flowchart LR
     M --> UI[WebSocket UI update]
 ```
 
-**Key idea:** in an emergency the engine *dynamically re-weights* AHP factors so medical
+**Key idea:** in an emergency the engine _dynamically re-weights_ AHP factors so medical
 expertise dominates and logistics is de-prioritized, then bypasses normal ranking.
 
 ### FLOW 3 — Async Scheduling & Race-Condition Prevention
@@ -312,6 +316,7 @@ class VEHMFEngine:
 Weights are validated to be non-negative and sum-normalized before use.
 
 **Efficiency notes**
+
 - Keep vectors **L2-normalized** so inner product == cosine → `IndexFlatIP` is exact & fast.
 - **Retrain CF offline** (nightly Celery beat), never in the request path.
 - Cache `geo`/`trust` scores in Redis with short TTLs; they change slowly.
@@ -356,14 +361,14 @@ erDiagram
     }
 ```
 
-| Store | Holds | Index | Profile |
-|-------|-------|-------|---------|
-| PostgreSQL | users, profiles, shifts, match results | B-tree | both |
-| PostGIS (ext) | caregiver/patient `POINT` locations | GiST (R-Tree) | both |
-| TimescaleDB (ext) | `HEALTH_METRIC` hypertable | time + patient | Lean |
-| InfluxDB | same, separated | TSM | Full only |
-| FAISS (RAM) | profile embeddings | Flat / HNSW | both |
-| Redis | cache, Redlock, Celery broker, Channels layer | — | both |
+| Store             | Holds                                         | Index          | Profile   |
+| ----------------- | --------------------------------------------- | -------------- | --------- |
+| PostgreSQL        | users, profiles, shifts, match results        | B-tree         | both      |
+| PostGIS (ext)     | caregiver/patient `POINT` locations           | GiST (R-Tree)  | both      |
+| TimescaleDB (ext) | `HEALTH_METRIC` hypertable                    | time + patient | Lean      |
+| InfluxDB          | same, separated                               | TSM            | Full only |
+| FAISS (RAM)       | profile embeddings                            | Flat / HNSW    | both      |
+| Redis             | cache, Redlock, Celery broker, Channels layer | —              | both      |
 
 - **Encryption at rest:** `pgcrypto` AES-256 on health-condition and transcribed-intent columns.
 - **Audit table:** append-only, no `UPDATE`/`DELETE` grants for app role.
@@ -374,18 +379,18 @@ erDiagram
 
 REST (DRF) for CRUD + command; **WebSocket** (Channels) for realtime push.
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/api/v1/auth/token` | JWT obtain/refresh |
-| `POST` | `/api/v1/voice/intent` | text → Gemini → structured intent (consent-gated) |
-| `POST` | `/api/v1/match` | run VEHMF → ranked caregivers + XAI |
-| `POST` | `/api/v1/shifts` | book (Redlock-protected) |
-| `GET`  | `/api/v1/health/{patient}/summary` | time-window aggregates |
-| `POST` | `/api/v1/consent` | grant/revoke processing scopes |
+| Method | Path                               | Purpose                                           |
+| ------ | ---------------------------------- | ------------------------------------------------- |
+| `POST` | `/api/v1/auth/token`               | JWT obtain/refresh                                |
+| `POST` | `/api/v1/voice/intent`             | text → Gemini → structured intent (consent-gated) |
+| `POST` | `/api/v1/match`                    | run VEHMF → ranked caregivers + XAI               |
+| `POST` | `/api/v1/shifts`                   | book (Redlock-protected)                          |
+| `GET`  | `/api/v1/health/{patient}/summary` | time-window aggregates                            |
+| `POST` | `/api/v1/consent`                  | grant/revoke processing scopes                    |
 
-| WS channel | Direction | Payload |
-|------------|-----------|---------|
-| `ws/match/{patient}` | server→client | ranked list + explanation |
+| WS channel            | Direction     | Payload                     |
+| --------------------- | ------------- | --------------------------- |
+| `ws/match/{patient}`  | server→client | ranked list + explanation   |
 | `ws/alerts/{patient}` | server→client | `health_critical`, re-match |
 
 **Standard match response**
@@ -395,9 +400,12 @@ REST (DRF) for CRUD + command; **WebSocket** (Channels) for realtime push.
   "request_id": "…",
   "latency_ms": 612,
   "results": [
-    {"caregiver_id": "…", "score": 0.91,
-     "breakdown": {"cbf": 0.88, "cf": 0.74, "geo": 0.95, "trust": 0.90},
-     "explanation": "Certified in Diabetes · Speaks Sinhala · 12 min away"}
+    {
+      "caregiver_id": "…",
+      "score": 0.91,
+      "breakdown": { "cbf": 0.88, "cf": 0.74, "geo": 0.95, "trust": 0.9 },
+      "explanation": "Certified in Diabetes · Speaks Sinhala · 12 min away"
+    }
   ]
 }
 ```
@@ -406,15 +414,15 @@ REST (DRF) for CRUD + command; **WebSocket** (Channels) for realtime push.
 
 ## 10. Security, Compliance & Governance
 
-| Control | Mechanism |
-|--------|-----------|
-| **Data at rest** | `pgcrypto` AES-256 on health/intent columns. |
-| **Data in transit** | TLS 1.3 on all REST + WebSocket. |
-| **Consent gate (PDPA/GDPR)** | Before Gemini processes a voice note, Django checks `ConsentLog`. No consent → pipeline blocked *before* any external API call. |
-| **AuthZ** | JWT + RBAC (patient / caregiver / admin / auditor). |
-| **Audit trail (HIPAA/PDPA)** | Every health-data view → Celery task writes immutable row `{actor, action, ts(UTC), ip}`. |
-| **PII minimization** | Send only the minimal text to Gemini; strip identifiers; region-pin the API where possible. |
-| **Right to erasure** | Soft-delete + scheduled purge job; embeddings evicted from FAISS on erasure. |
+| Control                      | Mechanism                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Data at rest**             | `pgcrypto` AES-256 on health/intent columns.                                                                                    |
+| **Data in transit**          | TLS 1.3 on all REST + WebSocket.                                                                                                |
+| **Consent gate (PDPA/GDPR)** | Before Gemini processes a voice note, Django checks `ConsentLog`. No consent → pipeline blocked _before_ any external API call. |
+| **AuthZ**                    | JWT + RBAC (patient / caregiver / admin / auditor).                                                                             |
+| **Audit trail (HIPAA/PDPA)** | Every health-data view → Celery task writes immutable row `{actor, action, ts(UTC), ip}`.                                       |
+| **PII minimization**         | Send only the minimal text to Gemini; strip identifiers; region-pin the API where possible.                                     |
+| **Right to erasure**         | Soft-delete + scheduled purge job; embeddings evicted from FAISS on erasure.                                                    |
 
 ---
 
@@ -422,29 +430,29 @@ REST (DRF) for CRUD + command; **WebSocket** (Channels) for realtime push.
 
 **Latency budget for Flow 1 (target p95 < 800 ms):**
 
-| Stage | Budget |
-|-------|--------|
-| Client ASR (Web Speech) | ~0 ms server (edge) |
-| Network → Django | 30 ms |
-| Gemini 1.5 Flash | 250–400 ms |
-| FAISS CBF (flat, <100k) | < 5 ms |
-| CF predict (cached model) | < 10 ms |
-| PostGIS geo | 20–60 ms |
-| Fusion + XAI (NumPy) | < 5 ms |
-| WS push | 20 ms |
-| **Total** | **≈ 350–520 ms** (headroom to 800) |
+| Stage                     | Budget                             |
+| ------------------------- | ---------------------------------- |
+| Client ASR (Web Speech)   | ~0 ms server (edge)                |
+| Network → Django          | 30 ms                              |
+| Gemini 1.5 Flash          | 250–400 ms                         |
+| FAISS CBF (flat, <100k)   | < 5 ms                             |
+| CF predict (cached model) | < 10 ms                            |
+| PostGIS geo               | 20–60 ms                           |
+| Fusion + XAI (NumPy)      | < 5 ms                             |
+| WS push                   | 20 ms                              |
+| **Total**                 | **≈ 350–520 ms** (headroom to 800) |
 
 **Lean resource footprint (single node):**
 
-| Component | RAM (approx) |
-|-----------|--------------|
-| Django ASGI + workers | 300–500 MB |
-| PostgreSQL (+PostGIS+Timescale) | 500 MB–1 GB |
-| Redis | 100–300 MB |
-| FAISS flat (50k × 768 f32) | ~150 MB |
-| Celery worker | 200–400 MB |
-| faster-whisper (int8, on demand) | 400–700 MB |
-| **Total** | **≈ 2–3.5 GB** → fits 4 GB / 2 vCPU |
+| Component                        | RAM (approx)                        |
+| -------------------------------- | ----------------------------------- |
+| Django ASGI + workers            | 300–500 MB                          |
+| PostgreSQL (+PostGIS+Timescale)  | 500 MB–1 GB                         |
+| Redis                            | 100–300 MB                          |
+| FAISS flat (50k × 768 f32)       | ~150 MB                             |
+| Celery worker                    | 200–400 MB                          |
+| faster-whisper (int8, on demand) | 400–700 MB                          |
+| **Total**                        | **≈ 2–3.5 GB** → fits 4 GB / 2 vCPU |
 
 ---
 
@@ -474,16 +482,16 @@ flowchart TB
 
 ## 13. Phased Delivery Roadmap
 
-| Phase | Goal | Ships | Exit criteria |
-|-------|------|-------|---------------|
-| **0 · Foundations** | Repo + skeleton | Django+DRF+Channels scaffold, Docker Compose, PostGIS/Timescale, auth, CI, this doc | `docker compose up` works, health check green |
-| **1 · Voice→Intent** | Cognitive layer | Web Speech client, `/voice/intent`, Gemini structured output, consent gate | Sinhala sentence → validated JSON in DB |
-| **2 · VEHMF v1** | Core research flow | FAISS flat CBF + AHP fusion + geo + XAI, `/match`, WS push | Ranked+explained list < 800 ms |
-| **3 · CF + tuning** | Personalization | LightFM/implicit offline training, blend into fusion | CF improves offline ranking metric |
-| **4 · Health monitoring** | Flow 2 | Timescale ingest, anomaly daemon, dynamic re-weight, FCM | Simulated anomaly → emergency re-match |
-| **5 · Scheduling** | Flow 3 | Redlock booking, shift overlap, fallback re-match | No double-book under concurrent load test |
-| **6 · Compliance & hardening** | Governance | pgcrypto, audit trail, erasure, TLS, RBAC review | Compliance checklist passes |
-| **7 · Scale (optional)** | Full profile | Extract VEHMF service, HNSW, RabbitMQ/Influx | Meets scaled load targets |
+| Phase                          | Goal               | Ships                                                                               | Exit criteria                                 |
+| ------------------------------ | ------------------ | ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| **0 · Foundations**            | Repo + skeleton    | Django+DRF+Channels scaffold, Docker Compose, PostGIS/Timescale, auth, CI, this doc | `docker compose up` works, health check green |
+| **1 · Voice→Intent**           | Cognitive layer    | Web Speech client, `/voice/intent`, Gemini structured output, consent gate          | Sinhala sentence → validated JSON in DB       |
+| **2 · VEHMF v1**               | Core research flow | FAISS flat CBF + AHP fusion + geo + XAI, `/match`, WS push                          | Ranked+explained list < 800 ms                |
+| **3 · CF + tuning**            | Personalization    | LightFM/implicit offline training, blend into fusion                                | CF improves offline ranking metric            |
+| **4 · Health monitoring**      | Flow 2             | Timescale ingest, anomaly daemon, dynamic re-weight, FCM                            | Simulated anomaly → emergency re-match        |
+| **5 · Scheduling**             | Flow 3             | Redlock booking, shift overlap, fallback re-match                                   | No double-book under concurrent load test     |
+| **6 · Compliance & hardening** | Governance         | pgcrypto, audit trail, erasure, TLS, RBAC review                                    | Compliance checklist passes                   |
+| **7 · Scale (optional)**       | Full profile       | Extract VEHMF service, HNSW, RabbitMQ/Influx                                        | Meets scaled load targets                     |
 
 ---
 

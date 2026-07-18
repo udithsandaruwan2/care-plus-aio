@@ -1,4 +1,5 @@
 """Celery application (Redis broker + result backend — lean profile)."""
+
 import os
 
 from celery import Celery

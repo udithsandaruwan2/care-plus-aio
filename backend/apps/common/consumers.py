@@ -3,6 +3,7 @@
 PingConsumer is a connectivity smoke test for the Channels/ASGI stack. Feature
 channels (ws/match, ws/alerts) are added in later milestones.
 """
+
 import json
 
 from channels.generic.websocket import AsyncWebsocketConsumer

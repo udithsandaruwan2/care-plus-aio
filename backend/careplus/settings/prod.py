@@ -1,4 +1,5 @@
 """Production settings (hardened in Milestone M9)."""
+
 from .base import *  # noqa: F401,F403
 
 DEBUG = False

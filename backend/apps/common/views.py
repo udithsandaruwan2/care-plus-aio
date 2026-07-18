@@ -1,13 +1,12 @@
 """Health check: confirms the API, PostgreSQL, and Redis are reachable."""
+
+import redis
+from django.conf import settings
 from django.db import connection
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-import redis
-
-from django.conf import settings
 
 
 def _check_db() -> str:

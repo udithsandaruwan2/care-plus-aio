@@ -27,16 +27,16 @@
 
 ## 1. Platform Decisions (and why)
 
-| Question | Decision | Rationale |
-|----------|----------|-----------|
-| **Web: Django templates vs React?** | **React 18 + TypeScript (Vite)**. Django stays a pure JSON/WebSocket API. | The signature interface needs 3D/WebGL, audio-reactive shaders, spring physics and streaming state. Django templates + server-rendered HTML cannot drive a 60 fps audio-reactive brain or fine-grained realtime UI. A SPA + WebSocket is the right tool. |
-| **Mobile: framework?** | **React Native + TypeScript via Expo (managed workflow)**. | One TS codebase → Android **and** iOS. Expo gives OTA updates, push (FCM/APNs), audio, and native builds without heavy native tooling. Confirms your instinct (TS/JS + RN). |
-| **Web ↔ Mobile code sharing?** | **Monorepo (pnpm workspaces + Turborepo)**. Share design tokens, typed API client, Zod schemas, state stores. | Write the API/validation/theme once; only the *rendering* layer differs (DOM vs native). |
-| **3D on web** | `react-three-fiber` + `drei` + `@react-three/postprocessing` (Bloom). | Declarative Three.js in React; GPU bloom gives the "glow" cheaply. |
-| **3D/glow on mobile** | `@shopify/react-native-skia` + `react-native-reanimated`. | Skia runs shaders/particles on the GPU on-device without a full 3D engine → battery-friendly. |
-| **State** | **Zustand** (UI/assistant state) + **TanStack Query** (server state). | Tiny, fast, no boilerplate; Query handles caching/retries for REST. |
-| **Styling (web)** | **Tailwind CSS** driven by shared design tokens. | Fast to build a consistent themed UI; purged CSS keeps bundle small. |
-| **Animation (web UI)** | **Framer Motion**. | Physics-based transitions for the "living" feel. |
+| Question                            | Decision                                                                                                      | Rationale                                                                                                                                                                                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Web: Django templates vs React?** | **React 18 + TypeScript (Vite)**. Django stays a pure JSON/WebSocket API.                                     | The signature interface needs 3D/WebGL, audio-reactive shaders, spring physics and streaming state. Django templates + server-rendered HTML cannot drive a 60 fps audio-reactive brain or fine-grained realtime UI. A SPA + WebSocket is the right tool. |
+| **Mobile: framework?**              | **React Native + TypeScript via Expo (managed workflow)**.                                                    | One TS codebase → Android **and** iOS. Expo gives OTA updates, push (FCM/APNs), audio, and native builds without heavy native tooling. Confirms your instinct (TS/JS + RN).                                                                              |
+| **Web ↔ Mobile code sharing?**     | **Monorepo (pnpm workspaces + Turborepo)**. Share design tokens, typed API client, Zod schemas, state stores. | Write the API/validation/theme once; only the _rendering_ layer differs (DOM vs native).                                                                                                                                                                 |
+| **3D on web**                       | `react-three-fiber` + `drei` + `@react-three/postprocessing` (Bloom).                                         | Declarative Three.js in React; GPU bloom gives the "glow" cheaply.                                                                                                                                                                                       |
+| **3D/glow on mobile**               | `@shopify/react-native-skia` + `react-native-reanimated`.                                                     | Skia runs shaders/particles on the GPU on-device without a full 3D engine → battery-friendly.                                                                                                                                                            |
+| **State**                           | **Zustand** (UI/assistant state) + **TanStack Query** (server state).                                         | Tiny, fast, no boilerplate; Query handles caching/retries for REST.                                                                                                                                                                                      |
+| **Styling (web)**                   | **Tailwind CSS** driven by shared design tokens.                                                              | Fast to build a consistent themed UI; purged CSS keeps bundle small.                                                                                                                                                                                     |
+| **Animation (web UI)**              | **Framer Motion**.                                                                                            | Physics-based transitions for the "living" feel.                                                                                                                                                                                                         |
 
 > **Net:** Django = brain-stem (API, auth, VEHMF, data). React/React-Native = the face and senses.
 
@@ -48,24 +48,25 @@ A dark, holographic, sci-fi medical theme — calm and trustworthy, not gamer-lo
 
 ### Palette (design tokens)
 
-| Token | Hex | Use |
-|-------|-----|-----|
-| `bg/void` | `#05060A` | App background (deep space) |
-| `bg/panel` | `rgba(18,22,34,0.6)` | Glassmorphic cards (blur + border) |
-| `border/hair` | `rgba(148,163,184,0.14)` | 1px panel edges |
-| `accent/cyan` | `#22D3EE` | Primary — listening, links, focus |
-| `accent/violet` | `#8B5CF6` | Cognition — thinking / AI |
-| `accent/mint` | `#34D399` | Success / positive match |
-| `accent/amber` | `#F59E0B` | Warning |
-| `accent/rose` | `#FB7185` | Emergency / health-critical |
-| `text/primary` | `#E5EDFF` | Body text |
-| `text/muted` | `#8A94AD` | Secondary text |
+| Token           | Hex                      | Use                                |
+| --------------- | ------------------------ | ---------------------------------- |
+| `bg/void`       | `#05060A`                | App background (deep space)        |
+| `bg/panel`      | `rgba(18,22,34,0.6)`     | Glassmorphic cards (blur + border) |
+| `border/hair`   | `rgba(148,163,184,0.14)` | 1px panel edges                    |
+| `accent/cyan`   | `#22D3EE`                | Primary — listening, links, focus  |
+| `accent/violet` | `#8B5CF6`                | Cognition — thinking / AI          |
+| `accent/mint`   | `#34D399`                | Success / positive match           |
+| `accent/amber`  | `#F59E0B`                | Warning                            |
+| `accent/rose`   | `#FB7185`                | Emergency / health-critical        |
+| `text/primary`  | `#E5EDFF`                | Body text                          |
+| `text/muted`    | `#8A94AD`                | Secondary text                     |
 
 ### Language
+
 - **Glassmorphism** panels floating over a subtle animated star/nebula gradient.
 - **Neon rim-light** + soft **bloom** on interactive elements.
 - **Micro-motion everywhere:** nothing snaps; everything eases (spring, 200–400 ms).
-- **Typography:** display = *Space Grotesk* / *Sora*; body = *Inter*; Sinhala/Tamil = *Noto Sans Sinhala/Tamil* (co-registered so mixed-script text never breaks).
+- **Typography:** display = _Space Grotesk_ / _Sora_; body = _Inter_; Sinhala/Tamil = _Noto Sans Sinhala/Tamil_ (co-registered so mixed-script text never breaks).
 - **Iconography:** thin-line, rounded (Lucide).
 - **Motion tokens:** `spring.soft = {stiffness:180, damping:22}`, durations `fast 150 / base 260 / slow 420`.
 
@@ -93,19 +94,21 @@ flowchart TB
 ```
 
 ### Anatomy
+
 1. **Neural Core (the brain):** a low-poly icosphere/point-cloud "neural mesh" of nodes + synapse
    lines. Its **scale, emissive intensity, and color pulse** are driven live by microphone
    amplitude (Web Audio `AnalyserNode` on web; audio metering on mobile). Idle = slow breathing;
    speech = reactive pulsing.
 2. **Goal Ring:** a circular progress arc around the brain. The assistant needs a few fields to
    match (`condition`, `language`, `care_level`, optional `urgency`). Each captured field fills a
-   segment of the ring → the user *sees the goal being reached*. Full ring = "ready to match".
+   segment of the ring → the user _sees the goal being reached_. Full ring = "ready to match".
 3. **Live transcript:** streamed words appear as you speak (from Web Speech interim results).
 4. **Entity chips:** as Gemini extracts structured intent, chips pop in with a spring + glow,
    color-coded (medical = cyan, language = violet, level = mint).
 5. **Ambient synapse particles:** subtle background firing that intensifies during "thinking".
 
 ### Color = state (instant legibility)
+
 - Cyan pulse = **listening**, violet swirl = **thinking**, mint glow = **results ready**,
   rose flash = **emergency** (wired to the health-anomaly flow so the brain literally "alarms").
 
@@ -133,18 +136,19 @@ stateDiagram-v2
     EMERGENCY --> RESULTS: emergency re-match
 ```
 
-| State | Brain visual | UI feedback | Copy example |
-|-------|--------------|-------------|--------------|
-| `IDLE` | dim slow breathing | "Tap to speak" hint | — |
-| `LISTENING` | cyan, amplitude-reactive | live transcript, mic ring | "Listening…" |
-| `THINKING` | violet swirl, particles fire | shimmer skeleton | "Understanding…" |
-| `CLARIFYING` | soft violet pulse | highlight empty Goal-Ring segment | "Which language do you prefer?" |
-| `SPEAKING` | warm glow + waveform | TTS plays; caption shown | reads extracted intent back |
-| `MATCHING` | fast orbit | Goal Ring 100%, spinner | "Finding your best match…" |
-| `RESULTS` | recedes to corner, mint | result cards slide in with XAI | "3 matches. Top: 12 min away." |
-| `EMERGENCY` | rose flash + fast pulse | full-screen alert, call button | "Health alert — dispatching nurse." |
+| State        | Brain visual                 | UI feedback                       | Copy example                        |
+| ------------ | ---------------------------- | --------------------------------- | ----------------------------------- |
+| `IDLE`       | dim slow breathing           | "Tap to speak" hint               | —                                   |
+| `LISTENING`  | cyan, amplitude-reactive     | live transcript, mic ring         | "Listening…"                        |
+| `THINKING`   | violet swirl, particles fire | shimmer skeleton                  | "Understanding…"                    |
+| `CLARIFYING` | soft violet pulse            | highlight empty Goal-Ring segment | "Which language do you prefer?"     |
+| `SPEAKING`   | warm glow + waveform         | TTS plays; caption shown          | reads extracted intent back         |
+| `MATCHING`   | fast orbit                   | Goal Ring 100%, spinner           | "Finding your best match…"          |
+| `RESULTS`    | recedes to corner, mint      | result cards slide in with XAI    | "3 matches. Top: 12 min away."      |
+| `EMERGENCY`  | rose flash + fast pulse      | full-screen alert, call button    | "Health alert — dispatching nurse." |
 
 **Realtime feedback channels**
+
 - **Transcript:** Web Speech interim results → transcript component (no server round-trip).
 - **Entities:** `/voice/intent` response → chips + Goal-Ring fill.
 - **Match:** WebSocket `ws/match/{patient}` → result cards + `latency_ms` badge (shows the "< 800 ms" promise).
@@ -176,6 +180,7 @@ flowchart LR
 **Stack:** Vite · React 18 · TypeScript · Tailwind · Framer Motion · react-three-fiber + drei + postprocessing · Zustand · TanStack Query · `reconnecting-websocket` · Zod (shared schemas) · react-hook-form.
 
 **Key modules**
+
 - `neural-core/` — R3F scene, audio-reactive shader material, bloom, `frameloop="demand"` when idle.
 - `assistant/` — FSM store, mic controller, transcript, entity chips, Goal Ring.
 - `realtime/` — WS client + typed event handlers (match, alerts).
@@ -206,6 +211,7 @@ flowchart LR
 **Stack:** Expo (managed) · React Native · TypeScript · expo-router · `@shopify/react-native-skia` · react-native-reanimated + gesture-handler · react-native-voice (ASR) · expo-speech (TTS) · expo-notifications (push) · Zustand + TanStack Query (shared).
 
 **Native concerns**
+
 - **Voice:** `react-native-voice` for on-device ASR incl. Sinhala/Tamil where supported; fallback = record + upload to server `faster-whisper`.
 - **Neural Core:** Skia particle/shader canvas driven by audio meter values + Reanimated shared values → runs on the UI thread for 60 fps without JS-bridge jank.
 - **Push:** FCM (Android) + APNs (iOS) via `expo-notifications`, wired to Flow 2 health alerts.
@@ -221,11 +227,11 @@ apps/        web (Vite React)   ·   mobile (Expo RN)
 packages/    ui-tokens          ·   api-client          ·   core
 ```
 
-| Package | Contents | Shared by |
-|---------|----------|-----------|
-| `packages/ui-tokens` | colors, spacing, motion, typography tokens | web + mobile |
+| Package               | Contents                                                                                               | Shared by    |
+| --------------------- | ------------------------------------------------------------------------------------------------------ | ------------ |
+| `packages/ui-tokens`  | colors, spacing, motion, typography tokens                                                             | web + mobile |
 | `packages/api-client` | typed REST client, WebSocket client, **Zod** request/response schemas (mirror Django/Gemini contracts) | web + mobile |
-| `packages/core` | assistant FSM logic, intent/Goal-Ring rules, formatting, i18n strings | web + mobile |
+| `packages/core`       | assistant FSM logic, intent/Goal-Ring rules, formatting, i18n strings                                  | web + mobile |
 
 Only rendering differs (DOM/Three.js vs RN/Skia). Business logic, validation, and theme are written once.
 
@@ -234,6 +240,7 @@ Only rendering differs (DOM/Three.js vs RN/Skia). Business logic, validation, an
 ## 8. Screen Inventory (by role)
 
 ### Patient (web + mobile)
+
 1. **Onboarding & Consent** — PDPA/GDPR consent toggles gate AI voice processing (ties to `ConsentLog`).
 2. **Voice Assistant (Home)** — the Neural Core experience.
 3. **Match Results** — ranked cards with score breakdown + XAI ("why matched").
@@ -244,6 +251,7 @@ Only rendering differs (DOM/Three.js vs RN/Skia). Business logic, validation, an
 8. **Profile & Settings** — language, privacy, data export/erasure.
 
 ### Caregiver (web + mobile)
+
 1. **Dashboard** — today's shifts, incoming requests.
 2. **Incoming Requests** — accept/decline matched patients.
 3. **Schedule** — shift calendar, availability.
@@ -251,6 +259,7 @@ Only rendering differs (DOM/Three.js vs RN/Skia). Business logic, validation, an
 5. **Profile & Certifications** — verifiable credentials, languages, service area (map/PostGIS).
 
 ### Admin / Auditor (web only)
+
 1. **Audit Log Explorer** — immutable access trail.
 2. **AHP Weight Console** — view/re-run `[α, β, γ, δ]` eigenvector weights.
 3. **System Monitoring** — match latency, anomaly events, model health.
@@ -265,28 +274,30 @@ Mirrors [ARCHITECTURE.md §9](ARCHITECTURE.md#9-api--realtime-contract); Zod sch
 // packages/api-client/schemas.ts (conceptual)
 export const Intent = z.object({
   condition: z.string(),
-  language: z.enum(["Sinhala", "Tamil", "English"]),
-  care_level: z.enum(["basic", "intermediate", "advanced"]),
-  urgency: z.enum(["routine", "urgent", "critical"]).default("routine"),
+  language: z.enum(['Sinhala', 'Tamil', 'English']),
+  care_level: z.enum(['basic', 'intermediate', 'advanced']),
+  urgency: z.enum(['routine', 'urgent', 'critical']).default('routine'),
   raw_text: z.string(),
 });
 
 export const MatchResult = z.object({
   request_id: z.string(),
   latency_ms: z.number(),
-  results: z.array(z.object({
-    caregiver_id: z.string(),
-    score: z.number(),
-    breakdown: z.object({ cbf: z.number(), cf: z.number(), geo: z.number(), trust: z.number() }),
-    explanation: z.string(),
-  })),
+  results: z.array(
+    z.object({
+      caregiver_id: z.string(),
+      score: z.number(),
+      breakdown: z.object({ cbf: z.number(), cf: z.number(), geo: z.number(), trust: z.number() }),
+      explanation: z.string(),
+    }),
+  ),
 });
 
 // WebSocket events the assistant reacts to
 type WsEvent =
-  | { type: "match.result"; data: MatchResult }
-  | { type: "health_critical"; patient_id: string; metric: string; value: number }
-  | { type: "rematch"; data: MatchResult };
+  | { type: 'match.result'; data: MatchResult }
+  | { type: 'health_critical'; patient_id: string; metric: string; value: number }
+  | { type: 'rematch'; data: MatchResult };
 ```
 
 The **Goal Ring** completion is computed client-side from how many required `Intent` fields are non-empty → instant visual feedback while the user is still talking.
@@ -297,15 +308,15 @@ The **Goal Ring** completion is computed client-side from how many required `Int
 
 Efficiency is a first-class goal (per ARCHITECTURE.md), and 3D/animation is where it's easily lost.
 
-| Rule | Web | Mobile |
-|------|-----|--------|
-| Render only when needed | R3F `frameloop="demand"`; render on audio/state change, pause in IDLE | Skia redraws driven by Reanimated shared values only |
-| Cap resolution | `dpr={[1, 1.75]}` | reduce particle count on low RAM |
-| Cheap glow | single Bloom pass, low samples | precomputed radial-gradient glow sprite |
-| Geometry budget | ≤ ~2–4k points in the neural mesh | ≤ ~800 particles |
-| Bundle size | route-based code splitting; Three.js lazy-loaded on the assistant route only | Hermes engine + tree-shaking |
-| Battery/thermal | pause visualization when tab hidden | pause on background / low-power mode |
-| Graceful degrade | if WebGL unavailable → CSS/canvas 2D pulsing orb | if Skia heavy → Reanimated-only orb |
+| Rule                    | Web                                                                          | Mobile                                               |
+| ----------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Render only when needed | R3F `frameloop="demand"`; render on audio/state change, pause in IDLE        | Skia redraws driven by Reanimated shared values only |
+| Cap resolution          | `dpr={[1, 1.75]}`                                                            | reduce particle count on low RAM                     |
+| Cheap glow              | single Bloom pass, low samples                                               | precomputed radial-gradient glow sprite              |
+| Geometry budget         | ≤ ~2–4k points in the neural mesh                                            | ≤ ~800 particles                                     |
+| Bundle size             | route-based code splitting; Three.js lazy-loaded on the assistant route only | Hermes engine + tree-shaking                         |
+| Battery/thermal         | pause visualization when tab hidden                                          | pause on background / low-power mode                 |
+| Graceful degrade        | if WebGL unavailable → CSS/canvas 2D pulsing orb                             | if Skia heavy → Reanimated-only orb                  |
 
 Target: **60 fps** on a mid-range Android and an integrated-GPU laptop; the fancy visuals must never delay the actual match result.
 
@@ -325,16 +336,16 @@ Target: **60 fps** on a mid-range Android and an integrated-GPU laptop; the fanc
 
 Runs alongside the backend phases in [ARCHITECTURE.md §13](ARCHITECTURE.md#13-phased-delivery-roadmap).
 
-| Phase | Ships |
-|-------|-------|
-| **F0 · Foundation** | Monorepo, design tokens, Tailwind theme, auth screens, API/WS client, Storybook |
-| **F1 · Neural Core MVP** | Audio-reactive brain (web R3F + mobile Skia), FSM, mic capture, live transcript |
-| **F2 · Voice→Intent UX** | Entity chips, Goal Ring, consent gate, `/voice/intent` integration |
-| **F3 · Match experience** | Result cards + XAI, WebSocket match push, latency badge |
-| **F4 · Scheduling** | Calendar, booking, conflict/fallback UX |
-| **F5 · Health & alerts** | Charts, EMERGENCY state, push notifications |
-| **F6 · Caregiver + Admin** | Caregiver app flows, admin/audit console (web) |
-| **F7 · Polish** | Motion pass, a11y, low-end degrade, store submission (Play/App Store) |
+| Phase                      | Ships                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| **F0 · Foundation**        | Monorepo, design tokens, Tailwind theme, auth screens, API/WS client, Storybook |
+| **F1 · Neural Core MVP**   | Audio-reactive brain (web R3F + mobile Skia), FSM, mic capture, live transcript |
+| **F2 · Voice→Intent UX**   | Entity chips, Goal Ring, consent gate, `/voice/intent` integration              |
+| **F3 · Match experience**  | Result cards + XAI, WebSocket match push, latency badge                         |
+| **F4 · Scheduling**        | Calendar, booking, conflict/fallback UX                                         |
+| **F5 · Health & alerts**   | Charts, EMERGENCY state, push notifications                                     |
+| **F6 · Caregiver + Admin** | Caregiver app flows, admin/audit console (web)                                  |
+| **F7 · Polish**            | Motion pass, a11y, low-end degrade, store submission (Play/App Store)           |
 
 ---
 

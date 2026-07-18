@@ -12,11 +12,11 @@ Built for **speed** (voice → ranked list in **< 800 ms**) and **resource effic
 
 ## The three research capabilities
 
-| # | Capability | What it does |
-|---|------------|--------------|
-| 1 | **Hybrid Voice → Match** | A spoken Sinhala sentence becomes a mathematically ranked, *explainable* caregiver list. |
-| 2 | **Health Anomaly → Re-Match** | Wearable time-series triggers dynamic weight shifts so medical fit overrides logistics in emergencies. |
-| 3 | **Concurrency-safe Scheduling** | Distributed locking guarantees no double-booking. |
+| #   | Capability                      | What it does                                                                                           |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 1   | **Hybrid Voice → Match**        | A spoken Sinhala sentence becomes a mathematically ranked, _explainable_ caregiver list.               |
+| 2   | **Health Anomaly → Re-Match**   | Wearable time-series triggers dynamic weight shifts so medical fit overrides logistics in emergencies. |
+| 3   | **Concurrency-safe Scheduling** | Distributed locking guarantees no double-booking.                                                      |
 
 ## Architecture at a glance
 
@@ -27,6 +27,7 @@ Perception (edge voice + IoT)  →  Cognitive (Django + Gemini 1.5 Flash)
 ```
 
 The stack ships in **two profiles**:
+
 - **Lean profile** (build first): modular monolith, one Postgres, Redis-for-everything, no GPU.
 - **Full profile** (north-star): microservices, FAISS-HNSW, RabbitMQ, InfluxDB.
 

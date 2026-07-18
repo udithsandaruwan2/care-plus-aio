@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-lint:
+    name: Backend lint (ruff + black)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install lint tools
+        run: pip install ruff==0.7.1 black==24.10.0
+      - name: Ruff
+        run: ruff check backend
+      - name: Black
+        run: black --check backend
+
+  frontend-format:
+    name: Frontend format (prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prettier check
+        run: npx --yes prettier@3.3.3 --check .
+
+  docker-build:
+    name: Docker build (backend image)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -t care-plus-backend:ci ./backend
