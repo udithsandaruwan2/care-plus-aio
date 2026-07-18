@@ -71,12 +71,20 @@ export function HomePage() {
       // Stopping the recognizer fires `onEnd`, which runs intent extraction.
       speech.stop();
       mic.stop();
-    } else {
-      reset();
-      await mic.start();
-      speech.start();
-      setState(AssistantState.LISTENING, { force: true });
+      return;
     }
+
+    const current = useAssistant.getState().state;
+    // Keep chips/transcript when answering a CLARIFYING follow-up; only wipe
+    // for a brand-new session.
+    if (current !== AssistantState.CLARIFYING) {
+      reset();
+    } else {
+      setInterim('');
+    }
+    await mic.start();
+    speech.start();
+    setState(AssistantState.LISTENING, { force: true });
   }
 
   async function onGrantConsent() {
@@ -161,7 +169,12 @@ export function HomePage() {
           </p>
           {clarifyPrompt && (
             <p className="mt-1 text-sm text-amber" aria-live="polite">
-              {clarifyPrompt}
+              {clarifyPrompt} Tap below to answer — your other details stay.
+            </p>
+          )}
+          {state === AssistantState.SPEAKING && (
+            <p className="mt-1 text-sm text-mint" aria-live="polite">
+              Got it. Caregiver matching lands in the next build steps.
             </p>
           )}
           {(mic.error || speech.error) && (
@@ -200,13 +213,18 @@ export function HomePage() {
           <button
             type="button"
             onClick={toggleMic}
-            className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition ${
+            disabled={extracting}
+            className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition disabled:opacity-50 ${
               listening
                 ? 'bg-rose/20 text-rose ring-1 ring-rose/50'
                 : 'bg-cyan/90 text-void hover:bg-cyan'
             }`}
           >
-            {listening ? 'Stop' : 'Tap to speak'}
+            {listening
+              ? 'Stop'
+              : state === AssistantState.CLARIFYING
+                ? 'Tap to answer'
+                : 'Tap to speak'}
           </button>
         </section>
 

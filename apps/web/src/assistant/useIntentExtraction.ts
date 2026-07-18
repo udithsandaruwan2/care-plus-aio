@@ -43,13 +43,13 @@ export function useIntentExtraction() {
       const result = await api.voiceIntent({ text: trimmed, language: LANG_HINT[lang] });
       setConsentNeeded(false);
 
-      const draft: Partial<IntentDraft> = {
-        condition: result.condition || undefined,
-        language: result.language,
-        care_level: result.care_level,
-        urgency: result.urgency,
-        raw_text: result.raw_text,
-      };
+      // Only overwrite fields the extractor actually filled — keeps prior chips
+      // when the user answers a CLARIFYING follow-up with a short phrase.
+      const draft: Partial<IntentDraft> = { raw_text: result.raw_text };
+      if (result.condition) draft.condition = result.condition;
+      if (result.language) draft.language = result.language;
+      if (result.care_level) draft.care_level = result.care_level;
+      if (result.urgency) draft.urgency = result.urgency;
       store.setIntent(draft);
 
       const missing = nextMissingField({ ...store.intent, ...draft });
