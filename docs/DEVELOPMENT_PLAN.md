@@ -303,9 +303,14 @@ pnpm install && pnpm --filter web dev
 
 ## Working agreement (how we run each step)
 
-1. I state the step goal + what I'll change.
-2. I implement it (small, focused diff).
-3. I run the step's acceptance check and show the result.
-4. You review; we adjust or move to the next step.
+1. **Branch** off up-to-date `main` as `feat/stepN-<slug>` (or `fix/` / `chore/`).
+2. State the step goal + what will change.
+3. Implement in focused chunks; a branch may have **many commits**.
+4. Run the step's acceptance check and show the result.
+5. **Push** the branch after development (and at other necessary times).
+6. When the branch is complete (or when needed): open a PR → **merge** into `main`.
+7. Pull `main`, start the next step on a **new** branch.
 
-> **Next up: Step 1** — repo & monorepo skeleton. Say "go" and I'll scaffold it.
+Canonical rules: `.cursor/rules/git-workflow.mdc` (always applied).
+
+> **Next up: Step 8** — immutable audit trail (`feat/step8-audit-trail`).

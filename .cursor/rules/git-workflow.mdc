@@ -1,19 +1,43 @@
 ---
-description: Git commit & push workflow for Care Plus
+description: Git commit, branch, push & merge workflow for Care Plus
 alwaysApply: true
 ---
 
 # Git Workflow
 
-- **One branch per feature.** Before starting a distinct feature/step, create a new
-  branch off up-to-date `main`. Do all of that feature's commits on its branch.
-  Naming: `feat/<slug>` (or `fix/<slug>`, `chore/<slug>`). For plan steps use
-  `feat/stepN-<slug>` (e.g. `feat/step6-auth-jwt-rbac`).
-- **Commit feature by feature.** After each self-contained feature/step passes its
-  acceptance check, make one focused commit for it. Do not batch several unrelated
-  features into a single commit.
-- **Never push.** The user pushes and merges branches. Do not run `git push`
-  (or `git push --force`) unless the user explicitly asks in that message.
-- Use clear, conventional commit messages (e.g. `feat(backend): ...`, `fix(web): ...`,
-  `chore: ...`) with a short body describing what changed and why when useful.
-- Trunk is `main`, tracking `origin/main`; feature branches merge back into `main`.
+## Branching
+
+- **One branch per feature / step.** Before starting work, create a branch off
+  up-to-date `main`. Naming: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`.
+  Plan steps: `feat/stepN-<slug>` (e.g. `feat/step8-audit-trail`).
+- A branch may contain **many focused commits** (model → API → tests → docs).
+  Do not squash unrelated features into one commit; do not mix features on one branch.
+
+## Commits
+
+- Commit as you go after each meaningful chunk passes its check.
+- Use conventional messages: `feat(backend): …`, `fix(web): …`, `chore: …`,
+  with a short body when useful.
+- Never commit secrets (`.env`, credentials).
+
+## Push (required)
+
+- **After development on a branch, always push** (`git push -u origin HEAD` on
+  first push, then `git push`). Do not leave finished work only local.
+- Push after completing a step/feature, and at other necessary times (device
+  switch, end of session, before asking the user to review).
+
+## Merge
+
+- When the branch is **complete** (acceptance checks pass) **or** at another
+  necessary time, open a PR into `main` and **merge** it (`gh pr create` then
+  `gh pr merge`), unless the user says they will merge themselves.
+- Prefer merge commits or squash as the repo already uses; default to
+  `gh pr merge --merge` unless the user prefers squash.
+- After merge: switch to `main`, `git pull`, delete the local feature branch if done,
+  then start the next feature on a **new** branch from updated `main`.
+
+## Trunk
+
+- Trunk is `main` → `origin/main`. Never force-push `main`.
+- Never use `git push --force` on shared branches unless the user explicitly asks.

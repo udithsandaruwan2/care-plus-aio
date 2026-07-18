@@ -6,7 +6,21 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Step 7 done (M1 in progress). Feature-branch workflow adopted._
+_Last updated: 2026-07-18 — Git workflow: branch → many commits → push → merge. Next: Step 8._
+
+---
+
+## Git workflow (cross-device)
+
+| Rule | Detail |
+|------|--------|
+| **Branch** | One branch per feature/step (`feat/stepN-<slug>`, `fix/…`, `chore/…`) off `main` |
+| **Commits** | Many focused commits per branch OK |
+| **Push** | Always push after development (and when switching devices / end of session) |
+| **Merge** | When the branch is complete (or when necessary): PR → merge into `main` |
+| **Next feature** | New branch from updated `main` — never pile features on one branch |
+
+Rules file: `.cursor/rules/git-workflow.mdc`.
 
 ---
 
@@ -104,6 +118,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Fix** — WhiteNoise + `collectstatic` entrypoint so Django admin / DRF Browsable API CSS works under uvicorn. Branch `fix/backend-static-whitenoise`.
+- **Workflow** — Branch → many commits → **always push** after development → PR/merge when complete. Documented in `.cursor/rules/git-workflow.mdc`, `PROGRESS.md`, `DEVELOPMENT_PLAN.md`.
 - **Chore** — Dropped Swagger/`drf-spectacular`; API exploration/testing now uses DRF's built-in **Browsable API** (dev) with `api-auth/` login. Removed `/api/schema` + `/api/docs`. Branch `chore/drf-browsable-api`.
 - **Step 7** — `accounts` consent engine: append-only `ConsentLog` (`user`, `scope`, `granted`, `ts`) with `is_granted`/`current_state` helpers; `ConsentScope` = `ai_processing`/`health_monitoring`/`data_sharing`; `POST/GET /api/v1/consent/`; `HasAIConsent` DRF permission raising **451** when consent is missing; `/api/v1/consent/gate-check/` demo endpoint (401→451→200). Read-only admin. Tests cover ledger append-only + gate. Branch `feat/step7-consent-engine`.
 - **Step 6** — `accounts` app: custom email User + `role` (patient/caregiver/admin/auditor), SimpleJWT (`/auth/token`, `/refresh`), `/auth/register`, `/auth/me`, RBAC `RolePermission` + `/auth/admin-only`. DB recreated for custom user. Verified: 201/200/403/200/401.
