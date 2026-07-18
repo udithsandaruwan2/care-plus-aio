@@ -6,7 +6,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-18 — Neural Core glow fixed (neuron cloud, no square fill). Next: Step 16 (domain models + seed data)._
+_Last updated: 2026-07-18 — Step 16 domain models + Sri Lanka seed done. Next: Step 17 (embeddings + FAISS)._
 
 ---
 
@@ -74,7 +74,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 - ✅ **Step 10** — Login/register screens, JWT session, protected home + logout. Branch `feat/step10-web-auth`.
 - ✅ **Step 11** — Neural Core: R3F icosahedron mesh + synapses + Bloom; mic amplitude; `frameloop=demand`. Branch `feat/step11-neural-core`.
 - ✅ **Step 12** — Assistant FSM (Zustand) + Goal Ring + entity chips + transcript + reduced-motion; dev state stepper. Branch `feat/step12-assistant-fsm`.
-- 🔜 Step 13 — Mic capture + live transcript (Web Speech)
+- ✅ **Step 13** — (see M3) Web Speech mic capture + live transcript.
 
 ### M3 · Voice → Intent
 
@@ -84,8 +84,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ### M4 · VEHMF v1 + Match UX
 
-- ⬜ Step 16 — Domain models + seed data
-- ⬜ Step 17 — Embeddings + FAISS index build
+- ✅ **Step 16** — `CaregiverProfile` + `PatientProfile` (PostGIS geography points, certifications, languages, specialties, trust, embedding slot); `seed_profiles` with Sri Lanka cities; `GET /caregivers/`. Branch `feat/step16-domain-models`.
+- 🔜 Step 17 — Embeddings + FAISS index build
 - ⬜ Step 18 — AHP weights
 - ⬜ Step 19 — VEHMF engine (CBF+Geo+Trust+fusion+XAI)
 - ⬜ Step 20 — Match over WebSocket + result UX
@@ -119,6 +119,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · 🚫 blocked
 
 ## Changelog (newest first)
 
+- **Step 16** — `apps.matching`: `CaregiverProfile` (PostGIS `geography(Point,4326)`, certifications, languages, specialties, care_levels, trust_score, embedding slot) + `PatientProfile`; GIS admin; `python manage.py seed_profiles` loads 25 caregivers / 6 patients across Sri Lanka cities with valid geometries (idempotent); `GET /api/v1/caregivers/`. 6 tests green. Branch `feat/step16-domain-models`.
 - **Fix** — Neural Core no longer lights up as a solid square: removed opaque icosahedron fill + full-frame Bloom (they painted the canvas rect). Replaced with a volume-filled neuron/synapse cloud (additive points + links), circular clip on the Goal Ring child slot, transparent GL clear. Branch `fix/neural-core-natural-glow`.
 - **Step 15** — Web voice loop end-to-end: `api-client` gains `voiceIntent` + `getConsent`/`setConsent` (+ Zod `VoiceIntent`/`ConsentState` schemas); `useIntentExtraction` hook posts the finalized transcript, merges the structured draft into the assistant store (`setIntent`), and drives FSM → SPEAKING (complete) or CLARIFYING (`nextMissingField` re-prompt). HomePage lights entity chips + Goal Ring, shows the clarify prompt, and renders a consent banner (one-tap "Enable AI processing" → retry) when the gate returns 451. Typecheck + web build green. Branch `feat/step15-intent-ui`.
 - **Step 14** — `apps.voice`: `VoiceIntent` model + `POST /api/v1/voice/intent/` (`IsAuthenticated` + `HasAIConsent`, 451 without consent), pluggable extractor (`gemini` Structured Output + deterministic `stub` for dev/tests), Sinhala/Tamil/English detection, writes audit row, read-only admin, history endpoint. 16 tests green. Branch `feat/step14-voice-intent`.

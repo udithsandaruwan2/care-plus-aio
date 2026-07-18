@@ -191,9 +191,11 @@ consent gate (451) shows a one-tap "Enable AI processing" opt-in that retries.
 
 ## M4 · VEHMF v1 + Match UX
 
-### Step 16 — Domain models + seed data
+### Step 16 — Domain models + seed data ✅ **DONE**
 
-**Tasks:** `CaregiverProfile` (PostGIS `POINT`, certifications, languages, `trust_score`, `embedding`), `PatientProfile`; seed script with realistic Sri Lanka geodata.
+**Done:** `apps.matching` with `CaregiverProfile` (PostGIS geography point, certifications,
+languages, specialties, care_levels, trust_score, embedding slot) and `PatientProfile`;
+`seed_profiles` management command with Sri Lanka city geodata; `GET /api/v1/caregivers/`.
 **✅ Acceptance:** seed loads N caregivers with valid geometries.
 
 ### Step 17 — Embeddings + FAISS index build
