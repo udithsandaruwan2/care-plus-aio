@@ -40,3 +40,6 @@ Thumbs.db
 coverage/
 htmlcov/
 staticfiles/
+
+# ── Local reference only (old HND Lumora/Care Plus dump) ──
+Old Care Plus/
