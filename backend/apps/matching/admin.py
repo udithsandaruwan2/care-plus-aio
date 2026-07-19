@@ -9,13 +9,15 @@ class CaregiverProfileAdmin(GISModelAdmin):
     list_display = (
         "display_name",
         "user",
+        "city",
         "trust_score",
         "is_active",
+        "is_available",
         "languages_display",
         "created_at",
     )
-    list_filter = ("is_active",)
-    search_fields = ("display_name", "user__email", "specialties", "certifications")
+    list_filter = ("is_active", "is_available", "city")
+    search_fields = ("display_name", "user__email", "specialties", "certifications", "city")
     readonly_fields = ("created_at", "updated_at")
 
     @admin.display(description="Languages")

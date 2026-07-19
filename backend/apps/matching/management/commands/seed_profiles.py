@@ -73,12 +73,14 @@ class Command(BaseCommand):
 
         created_cg = self._seed_caregivers(rng, n_cg)
         created_pt = self._seed_patients(rng, n_pt)
+        backfilled = self._backfill_cities()
 
         total_cg = CaregiverProfile.objects.filter(is_active=True).count()
         with_geom = CaregiverProfile.objects.exclude(location__isnull=True).count()
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded +{created_cg} caregivers, +{created_pt} patients. "
+                f"Seeded +{created_cg} caregivers, +{created_pt} patients "
+                f"(city backfill {backfilled}). "
                 f"Active caregivers with geometry: {with_geom}/{total_cg}."
             )
         )
@@ -107,6 +109,7 @@ class Command(BaseCommand):
                 user=user,
                 display_name=name,
                 location=Point(lon, lat, srid=4326),
+                city=city_name,
                 certifications=rng.sample(CERTIFICATIONS, k=rng.randint(2, 4)),
                 languages=langs,
                 specialties=rng.sample(SPECIALTIES, k=rng.randint(2, 5)),
@@ -118,9 +121,26 @@ class Command(BaseCommand):
                 embedding=[],
                 bio=f"Community caregiver based near {city_name}.",
                 is_active=True,
+                is_available=True,
             )
             created += 1
         return created
+
+    def _backfill_cities(self) -> int:
+        """Fill city on older seed rows that predate the city field."""
+        updated = 0
+        for i, cg in enumerate(
+            CaregiverProfile.objects.filter(user__email__startswith="seed.cg.", city="")
+        ):
+            city_name, _, _ = SRI_LANKA_CITIES[i % len(SRI_LANKA_CITIES)]
+            # Prefer city from bio "near X." when present.
+            bio = cg.bio or ""
+            if "near " in bio:
+                city_name = bio.split("near ", 1)[-1].rstrip(".").strip() or city_name
+            cg.city = city_name
+            cg.save(update_fields=["city", "updated_at"])
+            updated += 1
+        return updated
 
     def _seed_patients(self, rng: random.Random, n: int) -> int:
         created = 0

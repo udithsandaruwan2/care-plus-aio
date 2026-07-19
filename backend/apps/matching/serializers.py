@@ -17,6 +17,7 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
             "display_name",
             "longitude",
             "latitude",
+            "city",
             "certifications",
             "languages",
             "specialties",
@@ -24,6 +25,7 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
             "trust_score",
             "bio",
             "is_active",
+            "is_available",
             "created_at",
         )
         read_only_fields = fields

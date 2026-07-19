@@ -50,7 +50,10 @@ class CaregiverProfile(models.Model):
     # L2-normalized embedding (len == EMBEDDING_DIM once Step 17 fills it).
     embedding = ArrayField(models.FloatField(), default=list, blank=True)
     bio = models.TextField(blank=True, default="")
+    city = models.CharField(max_length=64, blank=True, default="", db_index=True)
     is_active = models.BooleanField(default=True)
+    # Soft presence — browse/match can filter on this (Step 20b / 20e).
+    is_available = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
