@@ -8,6 +8,7 @@ api_v1 = [
     path("", include("apps.accounts.urls")),
     path("", include("apps.voice.urls")),
     path("", include("apps.matching.urls")),
+    path("", include("apps.vocab.urls")),
 ]
 
 urlpatterns = [
