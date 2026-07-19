@@ -1,0 +1,215 @@
+"""Turn router — classify natural conversation into Care Plus routes.
+
+Situations (fine-grained) map to API routes:
+  CHAT | MATCH | CLARIFY | REFINE | ACTION | EMERGENCY
+
+Critical rule: after a successful match, do **not** re-run VEHMF just because
+goal chips are still filled. Only MATCH/REFINE on explicit care-seeking /
+refine language.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class RouteDecision:
+    route: str  # CHAT | MATCH | CLARIFY | REFINE | ACTION | EMERGENCY
+    situation: str
+    clear_match: bool = False  # UI may drop cards (new search / goodbye)
+
+
+# ── Phrase banks (English + Sinhala + Tamil common forms) ─────────────────
+
+_EMERGENCY = re.compile(
+    r"\b(emergency|urgent|asap|immediately|critical|ambulance|911|119)\b|"
+    r"හදිසි|අනතුර|ඉක්මනින්|දැන්ම|அவசரம்|உடனடி",
+    re.I,
+)
+
+_THANKS = re.compile(
+    r"\b(thanks|thank\s*you|thx|ty|appreciate|grateful)\b|"
+    r"ස්තූත|ස්තුත|istuti|bohoma\s*stuti|நன்றி|nanri",
+    re.I,
+)
+
+_GOODBYE = re.compile(
+    r"\b(bye|goodbye|good\s*bye|see\s*you|later|take\s*care|that'?s\s*all|"
+    r"i'?m\s*done|nothing\s*else|no\s*more)\b|"
+    r"ගිහින්|බලමු|හමුවෙමු|போய்ட்டு|போறேன்|சந்திப்போம்",
+    re.I,
+)
+
+_GREETING = re.compile(
+    r"^(hi|hello|hey|good\s*(morning|afternoon|evening)|yo)\b|"
+    r"ආයුබෝවන්|ආයුබෝ|ayubowan|வணக்கம்|vanakkam",
+    re.I,
+)
+
+_AFFIRM = re.compile(
+    r"^(ok|okay|alright|all\s*right|fine|great|perfect|cool|nice|yes|yeah|yep|"
+    r"sure|got\s*it|understood|sounds\s*good|awesome)[\s!.]*$|"
+    r"^(හරි|හොඳයි|ඔව්|ඔව්වා|සුපිරි|சரி|நன்றி|ஆம்|சரிங்க)[\s!.]*$",
+    re.I,
+)
+
+_SMALLTALK = re.compile(
+    r"\b(how\s*are\s*you|who\s*are\s*you|what'?s\s*your\s*name|your\s*name|"
+    r"are\s*you\s*(an\s*)?ai|what\s*can\s*you\s*do|help\s*me)\b|"
+    r"කොහොමද|ඔයා\s*කවුද|නම\s*මොකක්ද|எப்படி\s*இருக்க|யார்\s*நீ|உன்\s*பெயர்",
+    re.I,
+)
+
+_FAQ = re.compile(
+    r"\b(how\s*does\s*(this|care\s*plus|it)\s*work|what\s*is\s*care\s*plus|"
+    r"how\s*do\s*i\s*(find|book|request)|explain\s*(the\s*)?(app|service))\b|"
+    r"කොහොමද\s*වැඩ|මේක\s*මොකක්ද|எப்படி\s*வேலை",
+    re.I,
+)
+
+_ADVICE = re.compile(
+    r"\b(tip|advice|suggest|recommend|should\s*i|what\s*(do|can)\s*i\s*do|"
+    r"tell\s*me\s*about|information\s*about|symptom)\b|"
+    r"උපදෙස්|කියන්න\s*කොහොමද|ஆலோசனை|சொல்லுங்கள்",
+    re.I,
+)
+
+_ABOUT_MATCH = re.compile(
+    r"\b(why\s*(is\s*)?(#?\s*1|number\s*one|the\s*first|top)|"
+    r"explain\s*(the\s*)?(match|score|rank|result)|"
+    r"tell\s*me\s*about\s*(the\s*)?(first|top|#?\s*1|her|him|them)|"
+    r"who\s*is\s*(#?\s*1|first|top)|more\s*(about|detail)s?\s*(on|about)?\s*(#?\s*\d)?)\b|"
+    r"ඇයි\s*(එක|පළවෙනි)|විස්තර|ஏன்\s*முதல்|விவரம்",
+    re.I,
+)
+
+_REFINE = re.compile(
+    r"\b(closer|nearer|nearby|another|different|else|other|"
+    r"only\s*(tamil|sinhala|english)|"
+    r"(tamil|sinhala|english)\s*only|"
+    r"female|male|woman|man|"
+    r"within\s*\d+|less\s*than\s*\d+\s*km|"
+    r"cheaper|more\s*experienced|advanced|basic\s*only)\b|"
+    r"කිට්ටු|ලංකට|වෙනත්|අනෙක්|வேறு|மற்றொரு|அருகில்|பெண்|ஆண்",
+    re.I,
+)
+
+_MATCH_SEEK = re.compile(
+    r"\b(caregiver|care\s*giver|nurse|carer|attendant|"
+    r"find\s*(me\s*)?(a\s*)?(someone|caregiver|nurse|help)|"
+    r"need\s*(a\s*)?(caregiver|nurse|help|care)|"
+    r"looking\s*for|search\s*for|match\s*me|show\s*(me\s*)?(caregivers|results)|"
+    r"book\s*care|get\s*me\s*(a\s*)?(caregiver|nurse))\b|"
+    r"කෙනෙක්|කෙනෙකු|ඕන[ේෙ]?|සොය|හොය|பராமரிப்பாளர்|வேண்டும்|தேவை|தேடு",
+    re.I,
+)
+
+_NEW_SEARCH = re.compile(
+    r"\b(new\s*(search|request|match)|start\s*over|start\s*again|reset|"
+    r"different\s*(condition|problem|disease)|change\s*(the\s*)?(condition|search))\b|"
+    r"අලුත්|නැවත\s*පටන්|புதிய\s*தேடல்|மீண்டும்\s*தொடங்கு",
+    re.I,
+)
+
+_ACTION = re.compile(
+    r"\b(request\s*(the\s*)?(first|top|#?\s*1|this|her|him)|"
+    r"book\s*(the\s*)?(first|top|#?\s*1|them)|"
+    r"hire|choose\s*(the\s*)?(first|top|#?\s*1)|"
+    r"i\s*want\s*(the\s*)?(first|top|#?\s*1|this\s*one)|"
+    r"select\s*(#?\s*)?\d+)\b|"
+    r"ඉල්ලීම|තෝර|முதல்\s*நபர்|முன்பதிவு",
+    re.I,
+)
+
+_CANCEL = re.compile(
+    r"\b(never\s*mind|cancel|forget\s*it|stop\s*(searching|matching)|"
+    r"don'?t\s*(need|want)\s*(a\s*)?caregiver)\b|"
+    r"එපා|නවත්ත|வேண்டாம்|நிறுத்து",
+    re.I,
+)
+
+
+def _complete(intent: dict) -> bool:
+    return bool(intent.get("condition") and intent.get("language") and intent.get("care_level"))
+
+
+def classify_turn(
+    text: str,
+    intent: dict,
+    *,
+    has_prior_match: bool = False,
+) -> RouteDecision:
+    """Return route + situation for this utterance."""
+    raw = (text or "").strip()
+    if not raw:
+        return RouteDecision("CHAT", "empty")
+
+    # 1) Safety first
+    if _EMERGENCY.search(raw):
+        return RouteDecision("EMERGENCY", "emergency")
+
+    # 2) Social closings / acknowledgements (esp. after match)
+    if _THANKS.search(raw) and not _MATCH_SEEK.search(raw):
+        return RouteDecision("CHAT", "thanks")
+    if _GOODBYE.search(raw) and not _MATCH_SEEK.search(raw):
+        return RouteDecision("CHAT", "goodbye", clear_match=True)
+    if _CANCEL.search(raw):
+        return RouteDecision("CHAT", "cancel", clear_match=True)
+    if _AFFIRM.match(raw.strip()) and not _MATCH_SEEK.search(raw):
+        return RouteDecision("CHAT", "affirm")
+
+    # 3) Greetings / identity / FAQ (unless also seeking care)
+    if _GREETING.search(raw) and not _MATCH_SEEK.search(raw):
+        return RouteDecision("CHAT", "greeting")
+    if _SMALLTALK.search(raw) and not _MATCH_SEEK.search(raw):
+        return RouteDecision("CHAT", "smalltalk")
+    if _FAQ.search(raw) and not _MATCH_SEEK.search(raw):
+        return RouteDecision("CHAT", "faq")
+
+    # 4) Post-match conversation about results
+    if has_prior_match:
+        if _ABOUT_MATCH.search(raw):
+            return RouteDecision("CHAT", "about_match")
+        if _ACTION.search(raw):
+            return RouteDecision("ACTION", "request")
+        if _REFINE.search(raw):
+            return RouteDecision("REFINE", "refine")
+        if _NEW_SEARCH.search(raw):
+            return RouteDecision("MATCH", "new_search", clear_match=True)
+        if _MATCH_SEEK.search(raw):
+            # New caregiver ask while cards visible — re-match with current/new chips
+            if _complete(intent):
+                return RouteDecision("MATCH", "rematch")
+            return RouteDecision("CLARIFY", "clarify_after_match")
+        if _ADVICE.search(raw):
+            return RouteDecision("CHAT", "advice")
+        # Default after match: stay in conversation, do NOT re-run VEHMF
+        return RouteDecision("CHAT", "post_match_chat")
+
+    # 5) Pre-match / open dialogue
+    if _NEW_SEARCH.search(raw):
+        if _complete(intent):
+            return RouteDecision("MATCH", "new_search")
+        return RouteDecision("CLARIFY", "clarify")
+
+    if _MATCH_SEEK.search(raw):
+        if _complete(intent):
+            return RouteDecision("MATCH", "match")
+        return RouteDecision("CLARIFY", "clarify")
+
+    if _ADVICE.search(raw):
+        return RouteDecision("CHAT", "advice")
+
+    # Filling slots without saying "caregiver" (e.g. "diabetes", "basic")
+    if not _complete(intent) and (
+        intent.get("condition") or intent.get("language") or intent.get("care_level")
+    ):
+        return RouteDecision("CLARIFY", "clarify")
+
+    # Complete chips leftover from earlier — without explicit seek, just chat
+    if _complete(intent):
+        return RouteDecision("CHAT", "general")
+
+    return RouteDecision("CHAT", "general")
