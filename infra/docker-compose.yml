@@ -52,8 +52,10 @@ services:
     volumes:
       - ../backend:/app
       - ../ml:/ml
+      - ../config:/config
     environment:
       FAISS_ARTIFACT_DIR: /ml/artifacts
+      AHP_WEIGHTS_PATH: /config/ahp_weights.json
     ports:
       - '8000:8000'
     depends_on:
@@ -78,8 +80,10 @@ services:
     volumes:
       - ../backend:/app
       - ../ml:/ml
+      - ../config:/config
     environment:
       FAISS_ARTIFACT_DIR: /ml/artifacts
+      AHP_WEIGHTS_PATH: /config/ahp_weights.json
     depends_on:
       db:
         condition: service_healthy

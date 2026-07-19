@@ -174,13 +174,15 @@ writes L2-normalized vectors to DB + `ml/artifacts/caregivers.faiss`; lazy load 
 ranks diabetes specialists highest on seed data.
 **✅ Acceptance:** rebuild reproducible with seed; nearest-neighbor query returns sensible caregivers.
 
-### Step 18 — AHP weights 🔜 **NEXT**
+### Step 18 — AHP weights ✅ **DONE**
 
-**Goal:** fusion weights `[α,β,γ,δ]` from pairwise survey matrix.  
-**Tasks:** `ml/ahp.py` eigenvector + CR check; `config/ahp_weights.json`; load in engine.  
-**✅ Acceptance:** weights sum to 1; CR < 0.1; overrideable via env for emergencies.
+**Done:** NumPy principal-eigenvector AHP solver; CR check (< 0.1);
+`config/ahp_weights.json` (α≈0.48 CBF, β≈0.07 CF, γ≈0.20 Geo, δ≈0.24 Trust);
+emergency override `[0.80,0.05,0.05,0.10]`; env comma overrides; `build_ahp_weights`;
+`GET /api/v1/match/weights/`.
+**✅ Acceptance:** weights sum to 1, CR < 0.1, overrideable via env for emergencies.
 
-### Step 19 — VEHMF engine + `/api/v1/match`
+### Step 19 — VEHMF engine + `/api/v1/match` 🔜 **NEXT**
 
 **Goal:** full fusion + XAI.  
 **Tasks:** `VEHMFEngine.predict` (CBF, geo PostGIS distance→score, trust, normalize, fuse); persist `MatchRun` + `MatchResult` rows; consent-gated.  
@@ -544,4 +546,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 18 — AHP weights** (`feat/step18-ahp-weights`).
+**Step 19 — VEHMF engine + `/api/v1/match`** (`feat/step19-vehmf-engine`).
