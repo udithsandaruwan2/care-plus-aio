@@ -218,19 +218,20 @@ class MatchView(APIView):
                 }
             )
 
-        return Response(
-            {
-                "request_id": run.pk,
-                "latency_ms": latency_ms,
-                "query": out.query,
-                "emergency": out.emergency,
-                "weights": {
-                    "cbf": round(out.weights[0], 6),
-                    "cf": round(out.weights[1], 6),
-                    "geo": round(out.weights[2], 6),
-                    "trust": round(out.weights[3], 6),
-                },
-                "results": result_rows,
+        payload = {
+            "request_id": run.pk,
+            "latency_ms": latency_ms,
+            "query": out.query,
+            "emergency": out.emergency,
+            "weights": {
+                "cbf": round(out.weights[0], 6),
+                "cf": round(out.weights[1], 6),
+                "geo": round(out.weights[2], 6),
+                "trust": round(out.weights[3], 6),
             },
-            status=status.HTTP_201_CREATED,
-        )
+            "results": result_rows,
+        }
+        from .push import push_match_results
+
+        push_match_results(request.user.pk, payload)
+        return Response(payload, status=status.HTTP_201_CREATED)
