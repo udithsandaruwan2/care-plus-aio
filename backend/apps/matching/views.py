@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.permissions import HasAIConsent, RolePermission
 
+from .ahp import build_config, get_ahp_weights
 from .embeddings import get_embedder, intent_to_text
 from .faiss_index import load_index
 from .models import CaregiverProfile, PatientProfile
@@ -93,3 +94,29 @@ class CbfPreviewView(APIView):
                 "results": results,
             }
         )
+
+
+class AhpWeightsView(APIView):
+    """GET /api/v1/match/weights/ — current AHP fusion weights (Step 18)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        import json
+
+        from .ahp import default_config_path
+
+        path = default_config_path()
+        if path.exists():
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        else:
+            doc = build_config()
+        doc["vector"] = list(get_ahp_weights())
+        doc["emergency_vector"] = list(get_ahp_weights(emergency=True))
+        factors = doc.get("factors") or ["cbf", "cf", "geo", "trust"]
+        doc["factors"] = factors
+        doc["weights"] = {name: round(w, 6) for name, w in zip(factors, doc["vector"], strict=True)}
+        doc["emergency_weights"] = {
+            name: round(w, 6) for name, w in zip(factors, doc["emergency_vector"], strict=True)
+        }
+        return Response(doc)

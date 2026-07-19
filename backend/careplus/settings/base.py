@@ -129,6 +129,12 @@ EMBEDDING_MODEL = env("EMBEDDING_MODEL", default="intfloat/multilingual-e5-base"
 # Empty → ``<repo>/ml/artifacts`` when present, else ``backend/var/faiss``.
 FAISS_ARTIFACT_DIR = env("FAISS_ARTIFACT_DIR", default="")
 
+# ── AHP fusion weights (Step 18) ─────────────────────────────────
+# JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"
+AHP_WEIGHTS_PATH = env("AHP_WEIGHTS_PATH", default="")
+AHP_WEIGHTS = env("AHP_WEIGHTS", default="")
+AHP_EMERGENCY_WEIGHTS = env("AHP_EMERGENCY_WEIGHTS", default="")
+
 # ── Password validation ──────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
