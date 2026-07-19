@@ -14,7 +14,7 @@ type Handlers = {
   lang: RecognitionLang;
   onInterim: (text: string) => void;
   onFinal: (text: string) => void;
-  /** Fired when recognition ends (e.g. detected silence / stopped). */
+  /** Fired when recognition ends (pause after speech, or manual stop). */
   onEnd: () => void;
 };
 
@@ -23,9 +23,11 @@ function getCtor(): SpeechRecognitionConstructor | null {
 }
 
 /**
- * Web Speech API wrapper. Streams interim results and commits final segments.
- * On `end` (silence or manual stop) it calls `onEnd` so the FSM can move to
- * THINKING. Language is switchable for Sinhala / Tamil / English.
+ * Web Speech captions. Uses non-continuous mode so a natural pause ends the
+ * utterance and triggers ``onEnd`` → conversational turn (THINKING / Serah).
+ *
+ * ``continuous: true`` was stranding users in LISTENING forever because Chrome
+ * rarely auto-ends; the turn never reached the server.
  */
 export function useSpeechRecognition(handlers: Handlers): SpeechControls {
   const supported = useMemo(() => getCtor() !== null, []);
@@ -33,13 +35,19 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
   const [error, setError] = useState<string | null>(null);
 
   const recRef = useRef<SpeechRecognition | null>(null);
-  const manualStop = useRef(false);
-  // Keep latest handlers without re-creating the recognizer.
+  const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hRef = useRef(handlers);
   hRef.current = handlers;
 
+  const clearSilence = () => {
+    if (silenceTimer.current) {
+      clearTimeout(silenceTimer.current);
+      silenceTimer.current = null;
+    }
+  };
+
   const stop = useCallback(() => {
-    manualStop.current = true;
+    clearSilence();
     recRef.current?.stop();
   }, []);
 
@@ -50,23 +58,41 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
       return;
     }
     setError(null);
-    manualStop.current = false;
+    clearSilence();
 
     const rec = new Ctor();
     rec.lang = hRef.current.lang;
-    rec.continuous = true;
+    // One utterance per turn — pause ends recognition and fires onEnd.
+    rec.continuous = false;
     rec.interimResults = true;
     rec.maxAlternatives = 1;
 
     rec.onresult = (event) => {
       let interim = '';
+      let sawFinal = false;
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const text = result[0]?.transcript ?? '';
-        if (result.isFinal) hRef.current.onFinal(text.trim());
-        else interim += text;
+        if (result.isFinal) {
+          sawFinal = true;
+          hRef.current.onFinal(text.trim());
+        } else {
+          interim += text;
+        }
       }
       if (interim) hRef.current.onInterim(interim.trim());
+
+      // Some browsers linger after a final result; force-end after a short pause.
+      if (sawFinal) {
+        clearSilence();
+        silenceTimer.current = setTimeout(() => {
+          try {
+            rec.stop();
+          } catch {
+            /* already stopped */
+          }
+        }, 900);
+      }
     };
 
     rec.onerror = (event) => {
@@ -76,6 +102,7 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
     };
 
     rec.onend = () => {
+      clearSilence();
       setListening(false);
       recRef.current = null;
       hRef.current.onEnd();
@@ -92,7 +119,7 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
 
   useEffect(
     () => () => {
-      manualStop.current = true;
+      clearSilence();
       recRef.current?.abort();
     },
     [],

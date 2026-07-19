@@ -120,11 +120,14 @@ export function HomePage() {
 
   async function toggleMic() {
     if (listening || busy) {
-      setConversationOn(false);
-      stopSpeaking();
+      // End this utterance so onEnd → Serah turn. Keep conversation alive
+      // unless Serah is mid-reply (busy) — then cancel speaking + loop.
+      if (busy) {
+        setConversationOn(false);
+        stopSpeaking();
+      }
+      // Do NOT stop the recorder here — onEnd owns stop + upload (avoids empty audio race).
       speech.stop();
-      mic.stop();
-      await recorder.stop();
       return;
     }
 
@@ -187,6 +190,7 @@ export function HomePage() {
             : ''}
           <br />
           Audio goes to the server for Sinhala / Tamil / English (browser STT is captions only).
+          Pause after speaking — Serah replies automatically.
         </p>
 
         <section className="relative mx-auto mt-4 flex w-full max-w-lg flex-col items-center">
@@ -276,7 +280,7 @@ export function HomePage() {
             }`}
           >
             {listening
-              ? 'Stop'
+              ? 'Stop / send'
               : busy
                 ? 'Serah is speaking…'
                 : state === AssistantState.CLARIFYING || state === AssistantState.RESULTS
