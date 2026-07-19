@@ -99,3 +99,32 @@ class WhisperRouteTests(SimpleTestCase):
 
         self.assertEqual(out.language_hint, "Tamil")
         self.assertEqual(tr.call_args.kwargs.get("language"), "ta")
+
+    @override_settings(
+        ASR_BACKEND="faster_whisper",
+        WHISPER_MODEL="tiny",
+        WHISPER_SINHALA_MODEL="fake-si",
+        WHISPER_DEVICE="cpu",
+        WHISPER_COMPUTE_TYPE="int8",
+    )
+    def test_ui_language_skips_detect_and_forces_si(self):
+        wav = MagicMock()
+        wav.unlink = MagicMock()
+        si_model = MagicMock()
+
+        with (
+            patch("apps.voice.asr._ffmpeg_to_wav", return_value=wav),
+            patch("apps.voice.asr._detect_language") as detect,
+            patch("apps.voice.asr._get_sinhala_model", return_value=si_model),
+            patch(
+                "apps.voice.asr._transcribe",
+                return_value=("මට දියවැඩියා තියෙනවා", "si", -0.2),
+            ) as tr,
+        ):
+            out = transcribe_faster_whisper(
+                b"audio", "audio/webm", ui_language="Sinhala"
+            )
+
+        detect.assert_not_called()
+        self.assertEqual(out.language_hint, "Sinhala")
+        self.assertEqual(tr.call_args.kwargs.get("language"), "si")

@@ -118,10 +118,11 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Voice lang picker + STT/TTS framework** — Explicit සිංහල|தமிழ்|English locks captions, Whisper ASR, and Serah replies; `apps.voice.tts` (Piper → Gemini TTS → browser); `/voice/turn/` returns `reply_audio_*` + `tts_source`. Branch `feat/voice-lang-picker-tts`.
 - **Step 20c** — `/caregivers` browse: search, language/specialty chips, Leaflet dark map, list + empty/error; api-client `caregivers()`. Branch `feat/step20c-browse-ui`.
 - **Step 20b** — Expand `GET /caregivers/` with combinable `q/language/specialty/city/care_level/available` + PostGIS `near/radius_km`, pagination, `city`/`is_available` fields. Branch `feat/step20b-caregiver-search`.
 - **Step 15b** — `apps.vocab`: `ConditionTerm` + `seed_vocab` (37 Sri Lanka terms with si/ta/en synonyms); `GET /api/v1/vocab/conditions/`; voice stub/Gemini resolve to slugs (`ඩෙංගු`→`dengue`, “sugar problem”→`diabetes`). Branch `feat/step15b-medical-vocab`.
-- **Conversational voice** — `POST /voice/turn/` (audio+text); **local faster-whisper** ASR (SPEAK-ASR Sinhala specialist + multilingual for Tamil/English); Gemini ASR optional via `ASR_BACKEND=gemini_audio`; Serah TTS + VEHMF; captions are browser-only.
+- **Conversational voice** — `POST /voice/turn/` (audio+text); **language picker** locks ASR+TTS; **local faster-whisper** ASR; pluggable TTS (`auto`/`piper`/`gemini_tts`/`browser`); Gemini ASR optional.
 - **Auto + mixed language** — Removed manual lang picker; ASR auto-picks si/ta/en; intent returns `languages[]` for Singlish/Tanglish; primary `language` still drives match. Gemini key loaded after `docker compose up --force-recreate backend`. Branch `feat/auto-multilang-voice`.
 - **Docs v0.3** — Added **M3c (15f–15j)** conversational dialogue: turn router (CHAT|MATCH|REFINE|ACTION|EMERGENCY), session memory, unified mic loop, post-match refine, Gemini/local policy. Locked: Gemini never ranks caregivers. Branch `docs/conversational-serah-loop`.
 - **Step 20** — JWT match WebSocket + push from `POST /match/`; api-client `match()`; HomePage SPEAKING→MATCHING→RESULTS; `MatchResultCards` (breakdown bars, XAI, latency, Request CTA stub). Branch `feat/step20-match-ux`.

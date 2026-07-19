@@ -86,6 +86,10 @@ class VoiceTurnView(APIView):
             except (TypeError, json.JSONDecodeError):
                 prior_intent = None
 
+        ui_language = (request.data.get("ui_language") or "").strip() or None
+        if ui_language not in ("Sinhala", "Tamil", "English"):
+            ui_language = None
+
         result = process_turn(
             user=request.user,
             client_text=client_text,
@@ -93,6 +97,7 @@ class VoiceTurnView(APIView):
             content_type=content_type,
             has_prior_match=has_prior,
             prior_intent=prior_intent,
+            ui_language=ui_language,
         )
 
         record_audit(
@@ -104,6 +109,8 @@ class VoiceTurnView(APIView):
             metadata={
                 "route": result["route"],
                 "asr_source": result["asr_source"],
+                "tts_source": result.get("tts_source"),
+                "ui_language": ui_language,
                 "has_match": bool(result.get("match")),
             },
         )

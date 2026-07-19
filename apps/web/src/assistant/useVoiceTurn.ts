@@ -17,6 +17,7 @@ export function useVoiceTurn() {
   const [serahReply, setSerahReply] = useState<string | null>(null);
   const [asrSource, setAsrSource] = useState<string | null>(null);
   const [asrHeardLang, setAsrHeardLang] = useState<string | null>(null);
+  const [ttsSource, setTtsSource] = useState<string | null>(null);
 
   const runTurn = useCallback(
     async (opts: { text: string; audio: Blob | null; continueListening?: () => void }) => {
@@ -32,6 +33,7 @@ export function useVoiceTurn() {
           audio: opts.audio,
           hasPriorMatch: Boolean(store.match),
           priorIntent: store.intent as Record<string, unknown>,
+          uiLanguage: store.uiLanguage,
         });
         setConsentNeeded(false);
         setAsrSource(result.asr_source);
@@ -39,6 +41,7 @@ export function useVoiceTurn() {
           result.asr_language ||
             (result.intent?.language ? String(result.intent.language) : null),
         );
+        setTtsSource(result.tts_source || null);
         setSerahReply(result.reply);
 
         if (result.transcript) {
@@ -75,8 +78,10 @@ export function useVoiceTurn() {
           store.setState(AssistantState.IDLE, { force: true });
         }
 
-        await speakSerah(result.reply, result.reply_lang);
-        // Keep the conversation going after Serah finishes speaking.
+        await speakSerah(result.reply, result.reply_lang, {
+          audioBase64: result.reply_audio_base64,
+          audioMime: result.reply_audio_mime,
+        });
         opts.continueListening?.();
       } catch (err) {
         if (err instanceof ApiError && err.status === CONSENT_STATUS) {
@@ -114,6 +119,7 @@ export function useVoiceTurn() {
     serahReply,
     asrSource,
     asrHeardLang,
+    ttsSource,
     setError,
     stopSpeaking,
   };

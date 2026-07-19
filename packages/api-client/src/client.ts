@@ -101,19 +101,22 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     /**
      * Conversational turn: optional Web Speech text + recorded audio.
-     * Audio is preferred for Sinhala/Tamil (server Gemini ASR).
+     * Audio is preferred for Sinhala/Tamil (server Whisper ASR).
+     * ``uiLanguage`` locks ASR + Serah reply language.
      */
     voiceTurn: (input: {
       text?: string;
       audio?: Blob | null;
       hasPriorMatch?: boolean;
       priorIntent?: Record<string, unknown> | null;
+      uiLanguage?: 'Sinhala' | 'Tamil' | 'English';
     }) => {
       const form = new FormData();
       if (input.text) form.append('text', input.text);
       if (input.audio) form.append('audio', input.audio, 'turn.webm');
       form.append('has_prior_match', input.hasPriorMatch ? 'true' : 'false');
       if (input.priorIntent) form.append('prior_intent', JSON.stringify(input.priorIntent));
+      if (input.uiLanguage) form.append('ui_language', input.uiLanguage);
       return request(
         '/voice/turn/',
         {

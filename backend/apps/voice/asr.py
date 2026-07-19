@@ -232,42 +232,67 @@ def _route_language(detected: str | None, prob: float) -> tuple[str, str | None]
     return "multi", code or None
 
 
-def transcribe_faster_whisper(audio: bytes, content_type: str) -> AsrResult:
-    """Local multilingual ASR with Sinhala specialist routing."""
+_UI_TO_ISO = {
+    "Sinhala": "si",
+    "Tamil": "ta",
+    "English": "en",
+}
+
+
+def _ui_to_iso(ui_language: str | None) -> str | None:
+    if not ui_language:
+        return None
+    return _UI_TO_ISO.get(ui_language.strip())
+
+
+def transcribe_faster_whisper(
+    audio: bytes,
+    content_type: str,
+    *,
+    ui_language: str | None = None,
+) -> AsrResult:
+    """Local multilingual ASR; ``ui_language`` forces si/ta/en (skips detect)."""
     if not audio:
         return AsrResult(text="", source="faster_whisper")
 
     wav: Path | None = None
     try:
         wav = _ffmpeg_to_wav(audio, content_type)
-        detected, prob = _detect_language(wav)
-        route, forced = _route_language(detected, prob)
-        logger.info(
-            "ASR route=%s detected=%s (%.2f) forced=%s",
-            route,
-            detected,
-            prob,
-            forced,
-        )
+        forced_ui = _ui_to_iso(ui_language)
+        if forced_ui:
+            route = "si" if forced_ui == "si" else ("ta" if forced_ui == "ta" else "multi")
+            forced = forced_ui
+            detected, prob = forced_ui, 1.0
+            logger.info("ASR ui_language=%s route=%s forced=%s", ui_language, route, forced)
+        else:
+            detected, prob = _detect_language(wav)
+            route, forced = _route_language(detected, prob)
+            logger.info(
+                "ASR route=%s detected=%s (%.2f) forced=%s",
+                route,
+                detected,
+                prob,
+                forced,
+            )
 
         if route == "si":
             text, code, score = _transcribe(_get_sinhala_model(), wav, language="si")
-            # If specialist returns empty / no Sinhala script and Tamil was close, try ta.
-            if (not text or not _SINHALA_RE.search(text)) and detected == "ta":
-                text, code, score = _transcribe(_get_multi_model(), wav, language="ta")
-            elif not text:
-                text, code, score = _transcribe(_get_multi_model(), wav, language=None)
+            if not text:
+                text, code, score = _transcribe(_get_multi_model(), wav, language="si")
         elif route == "ta":
             text, code, score = _transcribe(_get_multi_model(), wav, language="ta")
         else:
-            text, code, score = _transcribe(_get_multi_model(), wav, language=forced)
+            text, code, score = _transcribe(_get_multi_model(), wav, language=forced or "en")
 
         if not text:
             return AsrResult(text="", source="faster_whisper")
 
-        # Code-switch: if Sinhala specialist missed Latin-only English request, keep text.
         langs = _script_languages(text)
-        hint = _label_from_code(code) or _label_from_code(forced) or _label_from_code(detected)
+        hint = (
+            ui_language
+            if ui_language in ("Sinhala", "Tamil", "English")
+            else (_label_from_code(code) or _label_from_code(forced) or _label_from_code(detected))
+        )
         if route == "si" and "Sinhala" not in langs and _SINHALA_RE.search(text):
             langs.insert(0, "Sinhala")
         if hint and hint not in langs:
@@ -361,6 +386,7 @@ def resolve_transcript(
     client_text: str,
     audio: bytes | None,
     content_type: str | None,
+    ui_language: str | None = None,
 ) -> AsrResult:
     """Pick the best transcript for this turn — local Whisper first."""
     from apps.common.envutil import refresh_env
@@ -370,21 +396,48 @@ def resolve_transcript(
     if not backend or backend == "auto":
         backend = "faster_whisper"
     client = (client_text or "").strip()
+    ui = ui_language if ui_language in ("Sinhala", "Tamil", "English") else None
 
     if backend == "client":
-        return AsrResult(text=client, source="client" if client else "none")
+        hint = ui
+        langs = [ui] if ui else []
+        return AsrResult(
+            text=client,
+            source="client" if client else "none",
+            language_hint=hint,
+            language_code=_ui_to_iso(ui),
+            languages=langs,
+        )
 
     if backend == "gemini_audio":
         if audio:
             result = transcribe_gemini_audio(audio, content_type or "audio/webm")
             if result.text:
+                if ui:
+                    result.language_hint = ui
+                    if ui not in result.languages:
+                        result.languages = [ui, *result.languages]
                 return result
-        return AsrResult(text=client, source="client" if client else "none")
+        return AsrResult(
+            text=client,
+            source="client" if client else "none",
+            language_hint=ui,
+            language_code=_ui_to_iso(ui),
+            languages=[ui] if ui else [],
+        )
 
     # faster_whisper (default) — never prefer English browser captions over audio.
     if audio:
-        result = transcribe_faster_whisper(audio, content_type or "audio/webm")
+        result = transcribe_faster_whisper(
+            audio, content_type or "audio/webm", ui_language=ui
+        )
         if result.text:
             return result
         logger.warning("faster_whisper returned empty; falling back to client captions")
-    return AsrResult(text=client, source="client" if client else "none")
+    return AsrResult(
+        text=client,
+        source="client" if client else "none",
+        language_hint=ui,
+        language_code=_ui_to_iso(ui),
+        languages=[ui] if ui else [],
+    )

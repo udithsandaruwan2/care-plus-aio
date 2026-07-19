@@ -23,6 +23,8 @@ djangorestframework-simplejwt==5.3.1
 # Cognitive layer (voice → intent). Optional at runtime: the stub extractor
 # works without it; installed for the Gemini backend when a key is present.
 google-generativeai==0.8.3
+# Gemini TTS (speech generation) — used by apps.voice.tts
+google-genai==1.14.0
 
 # Matching / CBF (Step 17) — FAISS IndexFlatIP + numpy. Default embedder is
 # deterministic hashing; install sentence-transformers separately for e5.

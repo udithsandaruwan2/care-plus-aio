@@ -146,6 +146,13 @@ WHISPER_SINHALA_MODEL = env(
 )
 WHISPER_SINHALA_COMPUTE_TYPE = env("WHISPER_SINHALA_COMPUTE_TYPE", default="")
 WHISPER_PRELOAD = env.bool("WHISPER_PRELOAD", default=False)
+# auto | piper | gemini_tts | browser — server TTS for Serah (si/ta/en)
+TTS_BACKEND = env("TTS_BACKEND", default="auto")
+TTS_GEMINI_MODEL = env("TTS_GEMINI_MODEL", default="gemini-2.5-flash-preview-tts")
+TTS_GEMINI_VOICE = env("TTS_GEMINI_VOICE", default="Kore")
+PIPER_BIN = env("PIPER_BIN", default="")
+PIPER_MODEL_DIR = env("PIPER_MODEL_DIR", default="/ml/tts/piper")
+PIPER_EN_MODEL = env("PIPER_EN_MODEL", default="en_US-lessac-medium.onnx")
 DIALOGUE_CHAT_BACKEND = env(
     "DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
 )
