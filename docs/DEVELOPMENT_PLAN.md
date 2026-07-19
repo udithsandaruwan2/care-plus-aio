@@ -20,7 +20,7 @@
 
 | # | Decision | Locked default | Note |
 |---|----------|----------------|------|
-| 1 | ASR | Web Speech **captions** + server ASR (`ASR_BACKEND=auto` → Gemini audio; `faster_whisper` slot empty) | Browser STT alone is English-biased for si/ta |
+| 1 | ASR | Web Speech **captions** + local **faster-whisper** (`ASR_BACKEND=faster_whisper`; SPEAK-ASR Sinhala specialist; Gemini audio optional) | Browser STT alone is English-biased for si/ta |
 | 2 | CF | `implicit` ALS → LightFM upgrade path | Pluggable `CFModel` |
 | 3 | Time-series | TimescaleDB | One DB |
 | 4 | Embeddings | `intfloat/multilingual-e5-base` (768-d) | FAISS CBF |

@@ -238,6 +238,8 @@ def process_turn(
             "route": "CHAT",
             "transcript": "",
             "asr_source": asr.source,
+            "asr_language": asr.language_hint or "",
+            "asr_language_code": asr.language_code or "",
             "reply": "I didn’t catch that — tap the mic and try again.",
             "reply_lang": "en-US",
             "intent": None,
@@ -246,12 +248,27 @@ def process_turn(
 
     # Merge with prior intent chips (clarify / refine continuity).
     base = dict(prior_intent or {})
+    # ASR language_hint wins over Latin-only mis-hears (en/hi tagged as English).
     extracted = extract_intent(text, asr.language_hint)
     for key in ("condition", "language", "languages", "care_level", "urgency", "raw_text", "source"):
         val = extracted.get(key)
         if val not in (None, "", []):
             base[key] = val
     base.setdefault("raw_text", text)
+
+    # Prefer server ASR language when Whisper/Gemini detected si/ta (or listed them).
+    asr_langs = [x for x in (asr.languages or []) if x in ("Sinhala", "Tamil", "English")]
+    if asr.language_hint in ("Sinhala", "Tamil", "English"):
+        if asr.language_hint not in asr_langs:
+            asr_langs = [asr.language_hint, *asr_langs]
+    if asr_langs:
+        merged = list(dict.fromkeys([*asr_langs, *(base.get("languages") or [])]))
+        base["languages"] = merged
+        # Don't keep a stale English chip when ASR heard Sinhala/Tamil.
+        if asr.language_hint in ("Sinhala", "Tamil"):
+            base["language"] = asr.language_hint
+        elif not base.get("language"):
+            base["language"] = asr_langs[0]
 
     route = _route(text, base, has_prior_match)
     reply_lang = _tts_lang(base.get("language"), base.get("languages"))
@@ -287,6 +304,8 @@ def process_turn(
         "route": route,
         "transcript": text,
         "asr_source": asr.source,
+        "asr_language": asr.language_hint or "",
+        "asr_language_code": asr.language_code or "",
         "reply": reply,
         "reply_lang": reply_lang,
         "intent": {

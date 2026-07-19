@@ -133,12 +133,23 @@ GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
 VOICE_INTENT_BACKEND = env(
     "VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
 )
-# auto | client | gemini_audio | faster_whisper (whisper slot empty for now)
-ASR_BACKEND = env("ASR_BACKEND", default="auto")
+# auto | client | gemini_audio | faster_whisper — default is local Whisper (own ASR)
+ASR_BACKEND = env("ASR_BACKEND", default="faster_whisper")
+WHISPER_MODEL = env("WHISPER_MODEL", default="small")
+WHISPER_DEVICE = env("WHISPER_DEVICE", default="cpu")
+WHISPER_COMPUTE_TYPE = env("WHISPER_COMPUTE_TYPE", default="int8")
+WHISPER_DOWNLOAD_ROOT = env("WHISPER_DOWNLOAD_ROOT", default="/ml/whisper")
+# Sinhala specialist (SPEAK-ASR). Empty → multilingual only.
+WHISPER_SINHALA_MODEL = env(
+    "WHISPER_SINHALA_MODEL",
+    default="SPEAK-ASR/faster-whisper-medium-si-exp10-fp16",
+)
+WHISPER_SINHALA_COMPUTE_TYPE = env("WHISPER_SINHALA_COMPUTE_TYPE", default="")
+WHISPER_PRELOAD = env.bool("WHISPER_PRELOAD", default=False)
 DIALOGUE_CHAT_BACKEND = env(
     "DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
 )
-# Future local LLM / local ASR endpoint (leave blank)
+# Future local LLM endpoint (leave blank)
 LOCAL_LLM_URL = env("LOCAL_LLM_URL", default="")
 
 # ── Matching / embeddings (Step 17) ──────────────────────────────

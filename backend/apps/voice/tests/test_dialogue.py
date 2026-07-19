@@ -1,5 +1,7 @@
 """Dialogue turn routing (text-only; no live Gemini in unit tests)."""
 
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -52,3 +54,36 @@ class VoiceTurnApiTests(APITestCase):
         out = process_turn(user=self.user, client_text="")
         self.assertEqual(out["route"], "CHAT")
         self.assertIn("catch", out["reply"].lower())
+
+    def test_asr_language_fields_present(self):
+        self.client.force_authenticate(self.user)
+        resp = self.client.post(self.url, {"text": "hello"}, format="multipart")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("asr_language", resp.data)
+        self.assertIn("asr_language_code", resp.data)
+
+
+@override_settings(VOICE_INTENT_BACKEND="stub", ASR_BACKEND="client", DIALOGUE_CHAT_BACKEND="stub")
+class ProcessTurnLanguageMergeTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="lang@example.com", password="pw-strong-123")
+
+    def test_asr_hint_overrides_latin_english_chip(self):
+        from apps.voice.asr import AsrResult
+
+        fake = AsrResult(
+            text="mata diabetes thiyenawa",
+            source="faster_whisper",
+            language_hint="Sinhala",
+            language_code="si",
+            languages=["Sinhala", "English"],
+        )
+        with patch("apps.voice.dialogue.resolve_transcript", return_value=fake):
+            out = process_turn(
+                user=self.user,
+                client_text="mata diabetes thiyenawa",
+                prior_intent={"language": "English", "languages": ["English"]},
+            )
+        self.assertEqual(out["intent"]["language"], "Sinhala")
+        self.assertIn("Sinhala", out["intent"]["languages"])
+        self.assertEqual(out["asr_language"], "Sinhala")

@@ -128,6 +128,8 @@ export const VoiceTurnResponse = z.object({
   route: z.enum(['CHAT', 'MATCH', 'CLARIFY', 'REFINE']),
   transcript: z.string(),
   asr_source: z.string(),
+  asr_language: z.string().optional().default(''),
+  asr_language_code: z.string().optional().default(''),
   reply: z.string(),
   reply_lang: z.string(),
   intent: VoiceTurnIntent.nullable(),

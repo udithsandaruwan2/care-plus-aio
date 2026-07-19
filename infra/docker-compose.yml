@@ -58,6 +58,13 @@ services:
     environment:
       FAISS_ARTIFACT_DIR: /ml/artifacts
       AHP_WEIGHTS_PATH: /config/ahp_weights.json
+      WHISPER_DOWNLOAD_ROOT: /ml/whisper
+      ASR_BACKEND: faster_whisper
+      WHISPER_MODEL: small
+      WHISPER_DEVICE: cpu
+      WHISPER_COMPUTE_TYPE: int8
+      WHISPER_SINHALA_MODEL: SPEAK-ASR/faster-whisper-medium-si-exp10-fp16
+      WHISPER_SINHALA_COMPUTE_TYPE: int8
     ports:
       - '8000:8000'
     depends_on:

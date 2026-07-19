@@ -16,6 +16,7 @@ export function useVoiceTurn() {
   const [consentNeeded, setConsentNeeded] = useState(false);
   const [serahReply, setSerahReply] = useState<string | null>(null);
   const [asrSource, setAsrSource] = useState<string | null>(null);
+  const [asrHeardLang, setAsrHeardLang] = useState<string | null>(null);
 
   const runTurn = useCallback(
     async (opts: { text: string; audio: Blob | null; continueListening?: () => void }) => {
@@ -34,6 +35,10 @@ export function useVoiceTurn() {
         });
         setConsentNeeded(false);
         setAsrSource(result.asr_source);
+        setAsrHeardLang(
+          result.asr_language ||
+            (result.intent?.language ? String(result.intent.language) : null),
+        );
         setSerahReply(result.reply);
 
         if (result.transcript) {
@@ -108,6 +113,7 @@ export function useVoiceTurn() {
     grantConsent,
     serahReply,
     asrSource,
+    asrHeardLang,
     setError,
     stopSpeaking,
   };

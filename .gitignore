@@ -25,6 +25,7 @@ venv/
 
 # ── ML artifacts ───────────────────────────────────────────
 ml/artifacts/
+ml/whisper/
 *.faiss
 *.npy
 *.pkl
