@@ -28,3 +28,7 @@ google-generativeai==0.8.3
 # deterministic hashing; install sentence-transformers separately for e5.
 numpy==2.1.3
 faiss-cpu==1.9.0.post1
+
+# Local multilingual ASR (Care Plus own framework — not Gemini).
+# Downloads Whisper weights on first use into WHISPER_DOWNLOAD_ROOT.
+faster-whisper==1.1.1

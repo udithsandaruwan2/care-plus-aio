@@ -8,7 +8,7 @@ const TAMIL = /[\u0B80-\u0BFF]/;
  *
  * Important: Chrome's Web Speech for si-LK / ta-LK is unreliable and often
  * returns English-only. Captions are best-effort; real multilingual ASR is
- * server-side (Gemini audio / future faster-whisper) via ``/voice/turn/``.
+ * server-side faster-whisper via ``/voice/turn/``.
  */
 export function guessRecognitionLang(text?: string): RecognitionLang {
   const sample = (text ?? '').trim();
@@ -27,10 +27,10 @@ export function guessRecognitionLang(text?: string): RecognitionLang {
 export function recognitionLangLabel(lang: RecognitionLang): string {
   switch (lang) {
     case 'si-LK':
-      return 'සිංහල auto';
+      return 'සිංහල caps';
     case 'ta-LK':
-      return 'தமிழ் auto';
+      return 'தமிழ் caps';
     default:
-      return 'EN auto';
+      return 'EN caps';
   }
 }

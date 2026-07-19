@@ -61,6 +61,7 @@ export function HomePage() {
     grantConsent,
     serahReply,
     asrSource,
+    asrHeardLang,
     stopSpeaking,
   } = useVoiceTurn();
   useMatchSocket();
@@ -194,11 +195,12 @@ export function HomePage() {
           Conversational Serah · captions{' '}
           <span className="text-cyan">{recognitionLangLabel(asrLang)}</span>
           {asrSource ? ` · ASR ${asrSource}` : ''}
+          {asrHeardLang ? ` · heard ${asrHeardLang}` : ''}
           {intent.languages && intent.languages.length > 1
-            ? ` · heard ${intent.languages.join(' + ')}`
+            ? ` · langs ${intent.languages.join(' + ')}`
             : ''}
           <br />
-          Audio goes to the server for Sinhala / Tamil / English (browser STT is captions only).
+          Audio goes to local Whisper for Sinhala / Tamil / English (browser STT is captions only).
           Pause after speaking — Serah replies automatically.
         </p>
 

@@ -5,10 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# System deps: GEOS/GDAL/PROJ for GeoDjango (PostGIS), plus curl for healthchecks.
-# Use HTTPS apt mirrors: some networks filter/break plaintext port-80 mirror
-# traffic. ca-certificates ships in the slim image, so HTTPS works out of the box.
-# Handles both deb822 (Debian 12+) and classic sources.list layouts.
+# System deps: GEOS/GDAL/PROJ for GeoDjango (PostGIS), curl for healthchecks,
+# ffmpeg for faster-whisper ASR (webm → wav).
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true; \
     sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list 2>/dev/null || true; \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -18,6 +16,7 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
         libgdal-dev \
         libgeos-dev \
         curl \
+        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
