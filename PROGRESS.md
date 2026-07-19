@@ -7,7 +7,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-19 — Step 18 AHP weights done. Next: Step 19 (VEHMF engine + /match)._
+_Last updated: 2026-07-19 — Step 19 VEHMF engine + /match done. Next: Step 20 (WS + result UX)._
 
 ---
 
@@ -71,8 +71,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 - ✅ **Step 17** — Embeddings + FAISS `IndexFlatIP` (hash embedder default; e5 optional); `build_caregiver_index` / `query_caregiver_index`; `POST /match/cbf/`. Branch `feat/step17-embeddings-faiss`.
 - ✅ **Step 18** — AHP principal-eigenvector weights `[α,β,γ,δ]` (CR < 0.1); `config/ahp_weights.json`; env emergency override; `GET /match/weights/`. Branch `feat/step18-ahp-weights`.
-- 🔜 **Step 19** — VEHMF engine + `/match`
-- ⬜ **20** WS + result UX 
+- ✅ **Step 19** — `VEHMFEngine` (CBF+CF-stub+Geo+Trust+XAI); `MatchRun`/`MatchResult`; consent-gated `POST /api/v1/match/`. Branch `feat/step19-vehmf-engine`.
+- 🔜 **Step 20** — Match WebSocket + result UX
 
 ### Expanded product tracks (from Old Care Plus)
 
@@ -95,7 +95,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M16** Compliance | 68–71 | ⬜ |
 | **M17** Ship | 72–75 | ⬜ |
 
-**Progress:** ~18 / 75 steps (~24%). Voice + CBF index + AHP weights ready; full VEHMF fusion next.
+**Progress:** ~19 / 75 steps (~25%). Voice → VEHMF match API works; result UI + WS next.
 
 ---
 
@@ -103,14 +103,15 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 - Register / login (JWT), consent gate, Neural Core voice UI  
 - Speak (si/ta/en) → structured intent → chips + Goal Ring; clarify loop  
-- Seeded caregivers + **CBF nearest-neighbour** (`POST /match/cbf/` / management query)  
-- **AHP fusion weights** loaded (`GET /match/weights/`; emergency override ready)  
-- Full VEHMF fusion + result cards not yet (Steps 19–20)  
+- Seeded caregivers + CBF preview + **full VEHMF `POST /match/`** (ranked + breakdown + XAI)  
+- AHP weights + emergency override  
+- Match result cards / WebSocket UI not yet (Step 20)  
 
 ---
 
 ## Changelog (newest first)
 
+- **Step 19** — `VEHMFEngine.predict`: FAISS CBF + stub CF + PostGIS geo decay + trust; AHP fusion; XAI text; persists `MatchRun`/`MatchResult`; consent-gated `POST /api/v1/match/` returns ranked list + breakdown + `latency_ms`. 6 tests green. Branch `feat/step19-vehmf-engine`.
 - **Step 18** — AHP solver (`apps.matching.ahp`): principal eigenvector of pairwise survey → `[CBF, CF, Geo, Trust]` weights summing to 1 with CR≈0.019; `config/ahp_weights.json`; emergency vector `[0.80,0.05,0.05,0.10]`; env overrides `AHP_WEIGHTS` / `AHP_EMERGENCY_WEIGHTS`; `build_ahp_weights` command; `GET /api/v1/match/weights/`. Branch `feat/step18-ahp-weights`.
 - **Step 17** — Pluggable embedders (`hash` default / optional `e5`); FAISS `IndexFlatIP`; persist vectors on `CaregiverProfile` + `ml/artifacts/`; management commands `build_caregiver_index` + `query_caregiver_index`; consent-gated `POST /api/v1/match/cbf/`. Query “diabetes Sinhala intermediate Colombo” ranks diabetes caregivers first. 6 FAISS tests green. Branch `feat/step17-embeddings-faiss`.
 - **Docs v0.2** — Expanded plan to **75 steps** across M0–M17 using Old Care Plus/Lumora as product completeness reference; added `PRODUCT_VISION.md` (Old→New matrix). Branch `docs/full-product-plan`.
