@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import logging
-import re
 import time
-
-from django.conf import settings
 
 from apps.matching.engine import run_match
 from apps.matching.models import CaregiverProfile, MatchResult, MatchRun
@@ -15,21 +12,10 @@ from apps.matching.push import push_match_results
 from .asr import resolve_transcript
 from .backends import extract_intent
 from .models import VoiceIntent
+from .replies import serah_reply
+from .router import classify_turn
 
 logger = logging.getLogger(__name__)
-
-_MATCH_HINT = re.compile(
-    r"caregiver|care\s*giver|nurse|find|need|match|කෙනෙක්|ඕන|வேண்டும்|தேவை|diabet|දියවැඩ|நீரிழ|dengue|ඩෙංගු",
-    re.I,
-)
-_REFINE_HINT = re.compile(
-    r"closer|nearer|another|different|tamil|sinhala|english|female|male|කිට්ටු|வேறு|மற்றொரு",
-    re.I,
-)
-_CHAT_HINT = re.compile(
-    r"^(hi|hello|hey|thanks|thank you|what is|how does|ආයුබෝවන්|வணக்கம்)\b",
-    re.I,
-)
 
 
 def _tts_lang(primary: str | None, languages: list[str] | None) -> str:
@@ -42,68 +28,8 @@ def _tts_lang(primary: str | None, languages: list[str] | None) -> str:
 
 
 def _route(text: str, intent: dict, has_prior_match: bool) -> str:
-    if has_prior_match and _REFINE_HINT.search(text):
-        return "REFINE"
-    missing = not (intent.get("condition") and intent.get("language") and intent.get("care_level"))
-    if _CHAT_HINT.search(text.strip()) and not _MATCH_HINT.search(text):
-        return "CHAT"
-    if missing and not _MATCH_HINT.search(text):
-        # Short answers during clarify still go CLARIFY.
-        return "CLARIFY" if intent.get("condition") or intent.get("language") else "CHAT"
-    if missing:
-        return "CLARIFY"
-    return "MATCH"
-
-
-def _serah_chat_reply(text: str, lang: str) -> str:
-    from apps.common.envutil import refresh_env
-
-    refresh_env()
-    backend = (getattr(settings, "DIALOGUE_CHAT_BACKEND", "") or "").strip()
-    if not backend:
-        backend = "gemini" if settings.GEMINI_API_KEY else "stub"
-    if backend == "local":
-        return (
-            "Local chat model is not configured yet. "
-            "I can still help you find a caregiver — tell me the condition and language you need."
-        )
-    if backend == "gemini" and settings.GEMINI_API_KEY:
-        try:
-            import google.generativeai as genai
-
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            model = genai.GenerativeModel(settings.GEMINI_MODEL)
-            resp = model.generate_content(
-                (
-                    "You are Serah, Care Plus voice assistant for Sri Lanka. "
-                    "Reply in 1–2 short spoken sentences. Be warm. Do NOT diagnose or prescribe. "
-                    "If they need a caregiver, invite them to describe condition, language, and care level. "
-                    f"Prefer reply language matching BCP-47 {lang}. "
-                    f"Patient said: {text}"
-                ),
-                generation_config={"temperature": 0.4},
-            )
-            return (resp.text or "").strip() or _stub_chat(text, lang)
-        except Exception:
-            logger.exception("Serah chat failed")
-    return _stub_chat(text, lang)
-
-
-def _stub_chat(text: str, lang: str) -> str:
-    if lang.startswith("si"):
-        return (
-            "ආයුබෝවන්, මම Serah. ඔබට අවශ්‍ය care ගැන කියන්න — "
-            "condition, language, සහ care level."
-        )
-    if lang.startswith("ta"):
-        return (
-            "வணக்கம், நான் Serah. உங்களுக்குத் தேவையான பராமரிப்பு பற்றி சொல்லுங்கள் — "
-            "நிலை, மொழி, பராமரிப்பு நிலை."
-        )
-    return (
-        "Hi, I’m Serah. Tell me the care you need — condition, preferred language, "
-        "and whether you want basic, intermediate, or advanced support."
-    )
+    """Backward-compatible wrapper used by unit tests."""
+    return classify_turn(text, intent, has_prior_match=has_prior_match).route
 
 
 def _clarify_reply(intent: dict, lang: str) -> str:
@@ -174,7 +100,7 @@ def _match_reply(results: list[dict], lang: str) -> str:
 
 
 def _run_vehmf(user, intent: dict) -> dict:
-    emergency = intent.get("urgency") in ("urgent", "critical")
+    emergency = intent.get("urgency") in ("urgent", "critical") or intent.get("_emergency")
     lon = lat = None
     profile = getattr(user, "patient_profile", None)
     if profile is not None and profile.location is not None:
@@ -190,7 +116,7 @@ def _run_vehmf(user, intent: dict) -> dict:
         longitude=lon,
         latitude=lat,
         top_k=5,
-        emergency=emergency,
+        emergency=bool(emergency),
     )
     latency_ms = int((time.perf_counter() - t0) * 1000)
 
@@ -263,6 +189,48 @@ def _run_vehmf(user, intent: dict) -> dict:
     return payload
 
 
+def _latest_match_for_user(user) -> dict | None:
+    run = MatchRun.objects.filter(user=user).order_by("-created_at").first()
+    if not run:
+        return None
+    rows = []
+    for mr in run.results.select_related("caregiver", "caregiver__user").all():
+        p = mr.caregiver
+        rows.append(
+            {
+                "caregiver_id": mr.caregiver_id,
+                "rank": mr.rank,
+                "score": round(mr.score, 6),
+                "breakdown": {
+                    "cbf": round(mr.cbf, 6),
+                    "cf": round(mr.cf, 6),
+                    "geo": round(mr.geo, 6),
+                    "trust": round(mr.trust, 6),
+                },
+                "explanation": mr.explanation,
+                "distance_m": None if mr.distance_m is None else round(mr.distance_m, 1),
+                "display_name": p.display_name if p else "",
+                "specialties": p.specialties if p else [],
+                "languages": p.languages if p else [],
+                "care_levels": p.care_levels if p else [],
+                "trust_score": p.trust_score if p else None,
+            }
+        )
+    return {
+        "request_id": run.pk,
+        "latency_ms": run.latency_ms,
+        "query": run.query,
+        "emergency": run.emergency,
+        "weights": {
+            "cbf": round(run.weights[0], 6) if len(run.weights) > 0 else 0,
+            "cf": round(run.weights[1], 6) if len(run.weights) > 1 else 0,
+            "geo": round(run.weights[2], 6) if len(run.weights) > 2 else 0,
+            "trust": round(run.weights[3], 6) if len(run.weights) > 3 else 0,
+        },
+        "results": rows,
+    }
+
+
 def process_turn(
     *,
     user,
@@ -271,6 +239,7 @@ def process_turn(
     content_type: str | None = None,
     has_prior_match: bool = False,
     prior_intent: dict | None = None,
+    prior_match: dict | None = None,
     ui_language: str | None = None,
 ) -> dict:
     """Full conversational turn used by ``POST /voice/turn/``."""
@@ -282,7 +251,6 @@ def process_turn(
         ui_language=ui,
     )
     text = asr.text.strip()
-    # Picker locks reply language even when ASR/transcript is empty.
     reply_lang = _tts_lang(ui, [ui] if ui else None) if ui else "en-US"
     if not text:
         had_audio = bool(audio)
@@ -290,6 +258,7 @@ def process_turn(
         return _attach_tts(
             {
                 "route": "CHAT",
+                "situation": "empty",
                 "transcript": "",
                 "asr_source": asr.source,
                 "asr_language": asr.language_hint or ui or "",
@@ -298,6 +267,7 @@ def process_turn(
                 "reply_lang": reply_lang,
                 "intent": None,
                 "match": None,
+                "clear_match": False,
             },
             reply,
             reply_lang,
@@ -313,7 +283,6 @@ def process_turn(
             base[key] = val
     base.setdefault("raw_text", text)
 
-    # UI language picker wins for care language + reply language.
     if ui:
         base["language"] = ui
         langs = list(dict.fromkeys([ui, *(base.get("languages") or []), *(asr.languages or [])]))
@@ -331,11 +300,45 @@ def process_turn(
             elif not base.get("language"):
                 base["language"] = asr_langs[0]
 
-    route = _route(text, base, has_prior_match)
-    reply_lang = _tts_lang(base.get("language"), base.get("languages"))
+    decision = classify_turn(text, base, has_prior_match=has_prior_match)
+    route = decision.route
+    situation = decision.situation
+    reply_lang = _tts_lang(base.get("language") or ui, base.get("languages"))
+
+    # Context match for about_match / request / affirm replies
+    context_match = prior_match if isinstance(prior_match, dict) else None
+    if has_prior_match and context_match is None:
+        context_match = _latest_match_for_user(user)
 
     match_payload = None
-    if route in ("MATCH", "REFINE"):
+    if route == "EMERGENCY":
+        base["_emergency"] = True
+        base["urgency"] = "urgent"
+        if base.get("condition") and base.get("language") and base.get("care_level"):
+            try:
+                match_payload = _run_vehmf(user, base)
+                reply = _match_reply(match_payload.get("results") or [], reply_lang)
+                route = "MATCH"
+                situation = "emergency_match"
+            except Exception as exc:
+                logger.exception("Emergency VEHMF failed")
+                reply = serah_reply(
+                    text=text,
+                    lang=reply_lang,
+                    situation="emergency",
+                    has_prior_match=has_prior_match,
+                )
+                reply = f"{reply} (Matching briefly unavailable: {exc})"
+                route = "CHAT"
+        else:
+            reply = serah_reply(
+                text=text,
+                lang=reply_lang,
+                situation="emergency",
+                has_prior_match=has_prior_match,
+            )
+            route = "CHAT"
+    elif route in ("MATCH", "REFINE"):
         VoiceIntent.objects.create(
             user=user,
             raw_text=base.get("raw_text", text),
@@ -354,15 +357,34 @@ def process_turn(
             logger.exception("VEHMF in dialogue turn failed")
             reply = f"Matching is briefly unavailable ({exc}). Try again in a moment."
             route = "CHAT"
+            situation = "match_error"
             match_payload = None
     elif route == "CLARIFY":
         reply = _clarify_reply(base, reply_lang)
+    elif route == "ACTION":
+        reply = serah_reply(
+            text=text,
+            lang=reply_lang,
+            situation="request",
+            has_prior_match=True,
+            match=context_match,
+        )
+        # Keep existing cards visible
+        match_payload = None
     else:
-        reply = _serah_chat_reply(text, reply_lang)
+        # CHAT (+ thanks/goodbye/about_match/…)
+        reply = serah_reply(
+            text=text,
+            lang=reply_lang,
+            situation=situation,
+            has_prior_match=has_prior_match,
+            match=context_match,
+        )
 
     return _attach_tts(
         {
             "route": route,
+            "situation": situation,
             "transcript": text,
             "asr_source": asr.source,
             "asr_language": asr.language_hint or ui or "",
@@ -379,6 +401,7 @@ def process_turn(
                 "source": base.get("source") or asr.source,
             },
             "match": match_payload,
+            "clear_match": decision.clear_match,
         },
         reply,
         reply_lang,

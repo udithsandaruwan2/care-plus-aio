@@ -161,22 +161,10 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 
 > **Why:** Today the mic is a one-shot form (“speak need → cards”). The finished product must feel like **talking to Serah**: normal conversation stays in chat; caregiver-finding turns call **VEHMF**; after cards, the patient can keep talking to refine or ask questions.
 
-### Step 15f — Turn router (CHAT | MATCH | REFINE | ACTION | EMERGENCY)
+### Step 15f — Turn router (CHAT | MATCH | REFINE | ACTION | EMERGENCY) ✅ **DONE**
 
-**Goal:** classify each spoken/typed turn before choosing a backend.  
-**Tasks:**
-- `POST /api/v1/dialogue/turn` (or extend voice intent) returns `{ route, intent?, reply_hint? }`
-- Routes:
-  - **CHAT** — general care questions, empathy, how Care Plus works → Serah (Gemini or local stub)
-  - **MATCH** — patient wants caregivers → extract goal fields → VEHMF (`POST /match/`)
-  - **REFINE** — after RESULTS (“closer”, “Tamil”, “female”, “about #2”) → update filters → re-run VEHMF
-  - **ACTION** — “request the first one” / “book” → hire CTA (Step 23+)
-  - **EMERGENCY** — urgent language → emergency weights + alert UX
-- Never let Gemini invent caregiver rankings; ranking stays VEHMF + XAI only
-
+**Done:** `apps.voice.router.classify_turn` with multilingual situations (thanks/goodbye/affirm/greeting/smalltalk/faq/advice/about_match/refine/match/clarify/emergency/action/cancel); post-match never re-runs VEHMF unless explicit seek/refine; `situation` + `clear_match` on `/voice/turn/`.  
 **✅ Acceptance:** fixture phrases map to correct routes (≥90% on a small labeled set); MATCH never returns Gemini-picked IDs.
-
-**Depends on:** 15d, 20. **Feeds:** 15g–15j, 23.
 
 ### Step 15g — Conversation session + memory
 

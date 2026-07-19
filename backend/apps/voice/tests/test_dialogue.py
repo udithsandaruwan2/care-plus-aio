@@ -32,6 +32,14 @@ class RouteUnitTests(TestCase):
         }
         self.assertEqual(_route("find me someone", intent, False), "MATCH")
 
+    def test_thanks_after_match_is_chat(self):
+        intent = {
+            "condition": "Diabetes",
+            "language": "Sinhala",
+            "care_level": "basic",
+        }
+        self.assertEqual(_route("thank you", intent, True), "CHAT")
+
 
 @override_settings(
     VOICE_INTENT_BACKEND="stub",
@@ -138,3 +146,32 @@ class ProcessTurnLanguageMergeTests(TestCase):
             )
         self.assertEqual(out["intent"]["language"], "Tamil")
         self.assertEqual(out["reply_lang"], "ta-LK")
+
+    def test_thanks_after_match_does_not_rematch(self):
+        from apps.voice.asr import AsrResult
+
+        fake = AsrResult(
+            text="thank you so much",
+            source="client",
+            language_hint="English",
+            language_code="en",
+            languages=["English"],
+        )
+        prior = {
+            "condition": "diabetes",
+            "language": "English",
+            "care_level": "basic",
+            "languages": ["English"],
+        }
+        with patch("apps.voice.dialogue.resolve_transcript", return_value=fake):
+            out = process_turn(
+                user=self.user,
+                client_text="thank you so much",
+                has_prior_match=True,
+                prior_intent=prior,
+                ui_language="English",
+            )
+        self.assertEqual(out["route"], "CHAT")
+        self.assertEqual(out["situation"], "thanks")
+        self.assertIsNone(out["match"])
+        self.assertIn("welcome", out["reply"].lower())
