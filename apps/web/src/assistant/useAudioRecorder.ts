@@ -21,7 +21,8 @@ export function useAudioRecorder() {
       if (ev.data.size > 0) chunksRef.current.push(ev.data);
     };
     mediaRef.current = rec;
-    rec.start(250);
+    // Timeslice keeps chunks flowing; critical for short utterances.
+    rec.start(200);
   }, []);
 
   const stop = useCallback(async (): Promise<Blob | null> => {
@@ -29,6 +30,7 @@ export function useAudioRecorder() {
     if (!rec || rec.state === 'inactive') {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      mediaRef.current = null;
       return null;
     }
     const blob = await new Promise<Blob | null>((resolve) => {
@@ -36,6 +38,12 @@ export function useAudioRecorder() {
         const parts = chunksRef.current;
         resolve(parts.length ? new Blob(parts, { type: rec.mimeType || 'audio/webm' }) : null);
       };
+      // Flush the current buffer before stop so short speech isn't lost.
+      try {
+        if (rec.state === 'recording') rec.requestData();
+      } catch {
+        /* ignore */
+      }
       rec.stop();
     });
     streamRef.current?.getTracks().forEach((t) => t.stop());
