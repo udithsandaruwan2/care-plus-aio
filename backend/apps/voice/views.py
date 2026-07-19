@@ -90,6 +90,16 @@ class VoiceTurnView(APIView):
         if ui_language not in ("Sinhala", "Tamil", "English"):
             ui_language = None
 
+        prior_match = None
+        raw_match = request.data.get("prior_match")
+        if raw_match:
+            import json
+
+            try:
+                prior_match = json.loads(raw_match) if isinstance(raw_match, str) else raw_match
+            except (TypeError, json.JSONDecodeError):
+                prior_match = None
+
         result = process_turn(
             user=request.user,
             client_text=client_text,
@@ -97,6 +107,7 @@ class VoiceTurnView(APIView):
             content_type=content_type,
             has_prior_match=has_prior,
             prior_intent=prior_intent,
+            prior_match=prior_match if isinstance(prior_match, dict) else None,
             ui_language=ui_language,
         )
 
