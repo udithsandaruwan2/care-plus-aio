@@ -132,6 +132,9 @@ export const VoiceTurnResponse = z.object({
   asr_language_code: z.string().optional().default(''),
   reply: z.string(),
   reply_lang: z.string(),
+  reply_audio_base64: z.string().optional().default(''),
+  reply_audio_mime: z.string().optional().default(''),
+  tts_source: z.string().optional().default(''),
   intent: VoiceTurnIntent.nullable(),
   match: MatchResponse.nullable().optional(),
 });

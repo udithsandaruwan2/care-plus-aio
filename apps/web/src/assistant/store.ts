@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { AssistantState, canTransition, type GoalField, type IntentDraft } from '@care-plus/core';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
+import {
+  loadUiVoiceLanguage,
+  saveUiVoiceLanguage,
+  type UiVoiceLanguage,
+} from './uiVoiceLanguage';
 
 type AssistantStore = {
   state: AssistantState;
@@ -12,6 +17,8 @@ type AssistantStore = {
   /** Latest VEHMF match payload (Step 20). */
   match: MatchResponse | null;
   matchError: string | null;
+  /** Locks captions, ASR, and Serah reply language. */
+  uiLanguage: UiVoiceLanguage;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -22,6 +29,7 @@ type AssistantStore = {
   setInterim: (text: string) => void;
   setMatch: (match: MatchResponse | null) => void;
   setMatchError: (msg: string | null) => void;
+  setUiLanguage: (lang: UiVoiceLanguage) => void;
   reset: () => void;
 };
 
@@ -32,6 +40,7 @@ const initial = {
   interim: '',
   match: null as MatchResponse | null,
   matchError: null as string | null,
+  uiLanguage: loadUiVoiceLanguage(),
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -59,7 +68,16 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
   setMatch: (match) => set({ match, matchError: null }),
   setMatchError: (msg) => set({ matchError: msg }),
 
-  reset: () => set({ ...initial }),
+  setUiLanguage: (lang) => {
+    saveUiVoiceLanguage(lang);
+    set({ uiLanguage: lang });
+  },
+
+  reset: () =>
+    set({
+      ...initial,
+      uiLanguage: get().uiLanguage,
+    }),
 }));
 
 export type { MatchHit, MatchResponse };

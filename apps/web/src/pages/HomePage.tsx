@@ -17,10 +17,11 @@ import { MatchResultCards } from '../assistant/MatchResultCards';
 import { useMatchSocket } from '../assistant/useMatch';
 import { useAudioRecorder } from '../assistant/useAudioRecorder';
 import { useVoiceTurn } from '../assistant/useVoiceTurn';
+import { LanguagePicker } from '../assistant/LanguagePicker';
 import {
-  guessRecognitionLang,
-  recognitionLangLabel,
-} from '../assistant/guessRecognitionLang';
+  uiLanguageLabel,
+  uiLanguageToRecognition,
+} from '../assistant/uiVoiceLanguage';
 
 const CLARIFY_PROMPTS: Record<string, string> = {
   condition: 'What condition or symptom should I focus on?',
@@ -35,7 +36,6 @@ const NeuralCoreCanvas = lazy(() =>
 export function HomePage() {
   const { user, logout } = useAuth();
   const [health, setHealth] = useState<string>('…');
-  const [asrLang, setAsrLang] = useState(() => guessRecognitionLang());
   const [conversationOn, setConversationOn] = useState(false);
   const conversationOnRef = useRef(false);
   conversationOnRef.current = conversationOn;
@@ -48,11 +48,14 @@ export function HomePage() {
     transcript,
     interim,
     match,
+    uiLanguage,
     setState,
     setInterim,
     appendTranscript,
+    setUiLanguage,
     reset,
   } = useAssistant();
+  const asrLang = uiLanguageToRecognition(uiLanguage);
   const {
     runTurn,
     busy,
@@ -62,6 +65,7 @@ export function HomePage() {
     serahReply,
     asrSource,
     asrHeardLang,
+    ttsSource,
     stopSpeaking,
   } = useVoiceTurn();
   useMatchSocket();
@@ -73,13 +77,9 @@ export function HomePage() {
     lang: asrLang,
     onInterim: (text) => {
       setInterim(text);
-      const next = guessRecognitionLang(`${useAssistant.getState().transcript} ${text}`);
-      setAsrLang((prev) => (prev === next ? prev : next));
     },
     onFinal: (text) => {
       appendTranscript(text);
-      const next = guessRecognitionLang(`${useAssistant.getState().transcript} ${text}`);
-      setAsrLang((prev) => (prev === next ? prev : next));
     },
     onEnd: () => {
       if (endingRef.current) return;
@@ -122,13 +122,10 @@ export function HomePage() {
 
   async function toggleMic() {
     if (listening || busy) {
-      // End this utterance so onEnd → Serah turn. Keep conversation alive
-      // unless Serah is mid-reply (busy) — then cancel speaking + loop.
       if (busy) {
         setConversationOn(false);
         stopSpeaking();
       }
-      // Do NOT stop the recorder here — onEnd owns stop + upload (avoids empty audio race).
       speech.stop();
       return;
     }
@@ -136,7 +133,6 @@ export function HomePage() {
     const current = useAssistant.getState().state;
     if (current !== AssistantState.CLARIFYING && current !== AssistantState.RESULTS) {
       reset();
-      setAsrLang(guessRecognitionLang());
     } else {
       setInterim('');
       useAssistant.getState().setTranscript('');
@@ -152,8 +148,7 @@ export function HomePage() {
   async function onGrantConsent() {
     const ok = await grantConsent();
     if (ok) {
-      const audio = null;
-      await runTurn({ text: useAssistant.getState().transcript, audio });
+      await runTurn({ text: useAssistant.getState().transcript, audio: null });
     }
   }
 
@@ -191,17 +186,20 @@ export function HomePage() {
           </div>
         </div>
 
-        <p className="mx-auto mt-6 max-w-md text-center text-xs text-muted">
-          Conversational Serah · captions{' '}
-          <span className="text-cyan">{recognitionLangLabel(asrLang)}</span>
+        <LanguagePicker
+          value={uiLanguage}
+          onChange={setUiLanguage}
+          disabled={listening || busy}
+        />
+
+        <p className="mx-auto mt-3 max-w-md text-center text-xs text-muted">
+          lang <span className="text-cyan">{uiLanguageLabel(uiLanguage)}</span>
           {asrSource ? ` · ASR ${asrSource}` : ''}
+          {ttsSource ? ` · TTS ${ttsSource}` : ''}
           {asrHeardLang ? ` · heard ${asrHeardLang}` : ''}
-          {intent.languages && intent.languages.length > 1
-            ? ` · langs ${intent.languages.join(' + ')}`
-            : ''}
           <br />
-          Audio goes to local Whisper for Sinhala / Tamil / English (browser STT is captions only).
-          Pause after speaking — Serah replies automatically.
+          Pick a language, then speak. Audio uses local Whisper; Serah replies in the same language.
+          Pause after speaking — she answers automatically.
         </p>
 
         <section className="relative mx-auto mt-4 flex w-full max-w-lg flex-col items-center">
@@ -314,8 +312,8 @@ export function HomePage() {
             <span className="font-mono text-sm text-mint">{health}</span>
           </div>
           <p className="mt-4 text-sm text-muted">
-            Talk with Serah in Sinhala, Tamil, English, or mixed. She replies out loud, and when
-            you need a caregiver VEHMF ranks matches with explanations.
+            Choose Sinhala, Tamil, or English, then talk with Serah. She replies in that language,
+            and when you need a caregiver VEHMF ranks matches with explanations.
           </p>
         </div>
       </main>

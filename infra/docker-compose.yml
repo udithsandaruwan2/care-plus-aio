@@ -65,6 +65,8 @@ services:
       WHISPER_COMPUTE_TYPE: int8
       WHISPER_SINHALA_MODEL: SPEAK-ASR/faster-whisper-medium-si-exp10-fp16
       WHISPER_SINHALA_COMPUTE_TYPE: int8
+      TTS_BACKEND: auto
+      TTS_GEMINI_MODEL: gemini-2.5-flash-preview-tts
     ports:
       - '8000:8000'
     depends_on:

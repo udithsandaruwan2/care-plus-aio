@@ -1,36 +1,20 @@
-import type { RecognitionLang } from './useSpeechRecognition';
-
-const SINHALA = /[\u0D80-\u0DFF]/;
-const TAMIL = /[\u0B80-\u0BFF]/;
+import type { RecognitionLang } from './uiVoiceLanguage';
 
 /**
- * Pick a Web Speech `lang` from transcript script, then browser locale.
- *
- * Important: Chrome's Web Speech for si-LK / ta-LK is unreliable and often
- * returns English-only. Captions are best-effort; real multilingual ASR is
- * server-side faster-whisper via ``/voice/turn/``.
+ * @deprecated Prefer uiLanguageToRecognition from the language picker.
+ * Kept for any legacy call sites.
  */
-export function guessRecognitionLang(text?: string): RecognitionLang {
-  const sample = (text ?? '').trim();
-  if (SINHALA.test(sample)) return 'si-LK';
-  if (TAMIL.test(sample)) return 'ta-LK';
-
-  const nav = (typeof navigator !== 'undefined' ? navigator.language : '') || '';
-  const lower = nav.toLowerCase();
-  if (lower.startsWith('si')) return 'si-LK';
-  if (lower.startsWith('ta')) return 'ta-LK';
-  if (lower.startsWith('en')) return 'en-US';
-  // Sri Lanka–first captions; server ASR still owns correctness.
+export function guessRecognitionLang(_text?: string): RecognitionLang {
   return 'si-LK';
 }
 
 export function recognitionLangLabel(lang: RecognitionLang): string {
   switch (lang) {
     case 'si-LK':
-      return 'සිංහල caps';
+      return 'සිංහල';
     case 'ta-LK':
-      return 'தமிழ் caps';
+      return 'தமிழ்';
     default:
-      return 'EN caps';
+      return 'English';
   }
 }

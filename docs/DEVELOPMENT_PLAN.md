@@ -188,6 +188,7 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 
 **Goal:** one mic, continuous dialogue — not a separate Serah panel forever.  
 **Tasks:** after every turn, Serah speaks/shows a short reply; mic re-arms (or “Tap to continue”); LISTENING ↔ THINKING ↔ (SPEAKING|CHAT_REPLY|MATCHING|RESULTS); Goal Ring still fills on MATCH/REFINE; chat bubbles for Serah lines.  
+**✅ Partial:** `/voice/turn/` loop + language picker (සිංහල|தமிழ்|English) locks ASR + reply language; server TTS (`TTS_BACKEND=auto`: Piper→Gemini→browser) returns `reply_audio_base64`.
 **✅ Acceptance:** user can: greet → ask diabetes tip (CHAT) → “find me a Sinhala caregiver” (MATCH → cards) → “someone closer” (REFINE) without leaving the home screen.
 
 ### Step 15i — Post-match conversational refine

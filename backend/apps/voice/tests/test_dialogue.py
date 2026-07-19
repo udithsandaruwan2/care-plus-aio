@@ -33,7 +33,12 @@ class RouteUnitTests(TestCase):
         self.assertEqual(_route("find me someone", intent, False), "MATCH")
 
 
-@override_settings(VOICE_INTENT_BACKEND="stub", ASR_BACKEND="client", DIALOGUE_CHAT_BACKEND="stub")
+@override_settings(
+    VOICE_INTENT_BACKEND="stub",
+    ASR_BACKEND="client",
+    DIALOGUE_CHAT_BACKEND="stub",
+    TTS_BACKEND="browser",
+)
 class VoiceTurnApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="turn@example.com", password="pw-strong-123")
@@ -49,11 +54,23 @@ class VoiceTurnApiTests(APITestCase):
         self.assertEqual(resp.data["route"], "CHAT")
         self.assertTrue(resp.data["reply"])
         self.assertEqual(resp.data["asr_source"], "client")
+        self.assertIn("tts_source", resp.data)
 
     def test_process_turn_empty(self):
         out = process_turn(user=self.user, client_text="")
         self.assertEqual(out["route"], "CHAT")
         self.assertIn("catch", out["reply"].lower())
+
+    def test_ui_language_locks_reply_lang(self):
+        self.client.force_authenticate(self.user)
+        resp = self.client.post(
+            self.url,
+            {"text": "hello", "ui_language": "Sinhala"},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["reply_lang"], "si-LK")
+        self.assertEqual(resp.data["intent"]["language"], "Sinhala")
 
     def test_asr_language_fields_present(self):
         self.client.force_authenticate(self.user)
@@ -63,7 +80,12 @@ class VoiceTurnApiTests(APITestCase):
         self.assertIn("asr_language_code", resp.data)
 
 
-@override_settings(VOICE_INTENT_BACKEND="stub", ASR_BACKEND="client", DIALOGUE_CHAT_BACKEND="stub")
+@override_settings(
+    VOICE_INTENT_BACKEND="stub",
+    ASR_BACKEND="client",
+    DIALOGUE_CHAT_BACKEND="stub",
+    TTS_BACKEND="browser",
+)
 class ProcessTurnLanguageMergeTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="lang@example.com", password="pw-strong-123")
@@ -87,3 +109,22 @@ class ProcessTurnLanguageMergeTests(TestCase):
         self.assertEqual(out["intent"]["language"], "Sinhala")
         self.assertIn("Sinhala", out["intent"]["languages"])
         self.assertEqual(out["asr_language"], "Sinhala")
+
+    def test_ui_language_wins_over_asr_hint(self):
+        from apps.voice.asr import AsrResult
+
+        fake = AsrResult(
+            text="hello I need care",
+            source="faster_whisper",
+            language_hint="English",
+            language_code="en",
+            languages=["English"],
+        )
+        with patch("apps.voice.dialogue.resolve_transcript", return_value=fake):
+            out = process_turn(
+                user=self.user,
+                client_text="hello I need care",
+                ui_language="Tamil",
+            )
+        self.assertEqual(out["intent"]["language"], "Tamil")
+        self.assertEqual(out["reply_lang"], "ta-LK")

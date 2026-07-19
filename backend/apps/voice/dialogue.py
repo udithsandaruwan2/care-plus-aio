@@ -107,6 +107,22 @@ def _stub_chat(text: str, lang: str) -> str:
 
 
 def _clarify_reply(intent: dict, lang: str) -> str:
+    if lang.startswith("si"):
+        if not intent.get("condition"):
+            return "කුමන රෝගය හෝ රෝග ලක්ෂණය ගැන අවධානය යොමු කරන්නද?"
+        if not intent.get("language"):
+            return "ඔබේ caregiver කතා කළ යුත්තේ සිංහල, දෙමළ, නැත්නම් ඉංග්‍රීසිද?"
+        if not intent.get("care_level"):
+            return "කොපමණ සහාය අවශ්‍යද — basic, intermediate, නැත්නම් advanced?"
+        return "හොඳ caregiver කෙනෙක් සොයන්න තවත් විස්තර කියන්න."
+    if lang.startswith("ta"):
+        if not intent.get("condition"):
+            return "எந்த நிலை அல்லது அறிகுறியில் கவனம் செலுத்த வேண்டும்?"
+        if not intent.get("language"):
+            return "உங்கள் பராமரிப்பாளர் சிங்களம், தமிழ் அல்லது ஆங்கிலம் பேச வேண்டுமா?"
+        if not intent.get("care_level"):
+            return "எவ்வளவு ஆதரவு வேண்டும் — basic, intermediate, அல்லது advanced?"
+        return "சரியான பராமரிப்பாளரைக் கண்டுபிடிக்க மேலும் சொல்லுங்கள்."
     if not intent.get("condition"):
         return "What condition or symptom should I focus on?"
     if not intent.get("language"):
@@ -116,8 +132,28 @@ def _clarify_reply(intent: dict, lang: str) -> str:
     return "Tell me a bit more so I can find the right caregiver."
 
 
+def _empty_catch_reply(lang: str) -> str:
+    if lang.startswith("si"):
+        return "අවබෝධ වුණේ නැහැ — mic එක තියලා නැවත කතා කරන්න."
+    if lang.startswith("ta"):
+        return "புரியவில்லை — மைக்கை அழுத்தி மீண்டும் பேசுங்கள்."
+    return "I didn’t catch that — tap the mic and try again."
+
+
+def _attach_tts(payload: dict, reply: str, reply_lang: str) -> dict:
+    from .tts import pack_for_api, synthesize
+
+    tts = synthesize(reply, reply_lang)
+    payload.update(pack_for_api(tts))
+    return payload
+
+
 def _match_reply(results: list[dict], lang: str) -> str:
     if not results:
+        if lang.startswith("si"):
+            return "තවම caregiver කෙනෙක් හොයාගත්තේ නැහැ. language හෝ care level එකතු කරන්න."
+        if lang.startswith("ta"):
+            return "இன்னும் பராமரிப்பாளர் கிடைக்கவில்லை. மொழி அல்லது பராமரிப்பு நிலையைச் சேர்க்கவும்."
         return "I couldn’t find a caregiver yet. Try adding a language or care level."
     top = results[0]
     name = top.get("display_name") or "a caregiver"
@@ -229,53 +265,70 @@ def process_turn(
     content_type: str | None = None,
     has_prior_match: bool = False,
     prior_intent: dict | None = None,
+    ui_language: str | None = None,
 ) -> dict:
     """Full conversational turn used by ``POST /voice/turn/``."""
-    asr = resolve_transcript(client_text=client_text, audio=audio, content_type=content_type)
+    ui = ui_language if ui_language in ("Sinhala", "Tamil", "English") else None
+    asr = resolve_transcript(
+        client_text=client_text,
+        audio=audio,
+        content_type=content_type,
+        ui_language=ui,
+    )
     text = asr.text.strip()
+    # Picker locks reply language even when ASR/transcript is empty.
+    reply_lang = _tts_lang(ui, [ui] if ui else None) if ui else "en-US"
     if not text:
-        return {
-            "route": "CHAT",
-            "transcript": "",
-            "asr_source": asr.source,
-            "asr_language": asr.language_hint or "",
-            "asr_language_code": asr.language_code or "",
-            "reply": "I didn’t catch that — tap the mic and try again.",
-            "reply_lang": "en-US",
-            "intent": None,
-            "match": None,
-        }
+        reply = _empty_catch_reply(reply_lang)
+        return _attach_tts(
+            {
+                "route": "CHAT",
+                "transcript": "",
+                "asr_source": asr.source,
+                "asr_language": asr.language_hint or ui or "",
+                "asr_language_code": asr.language_code or "",
+                "reply": reply,
+                "reply_lang": reply_lang,
+                "intent": None,
+                "match": None,
+            },
+            reply,
+            reply_lang,
+        )
 
     # Merge with prior intent chips (clarify / refine continuity).
     base = dict(prior_intent or {})
-    # ASR language_hint wins over Latin-only mis-hears (en/hi tagged as English).
-    extracted = extract_intent(text, asr.language_hint)
+    hint = ui or asr.language_hint
+    extracted = extract_intent(text, hint)
     for key in ("condition", "language", "languages", "care_level", "urgency", "raw_text", "source"):
         val = extracted.get(key)
         if val not in (None, "", []):
             base[key] = val
     base.setdefault("raw_text", text)
 
-    # Prefer server ASR language when Whisper/Gemini detected si/ta (or listed them).
-    asr_langs = [x for x in (asr.languages or []) if x in ("Sinhala", "Tamil", "English")]
-    if asr.language_hint in ("Sinhala", "Tamil", "English"):
-        if asr.language_hint not in asr_langs:
-            asr_langs = [asr.language_hint, *asr_langs]
-    if asr_langs:
-        merged = list(dict.fromkeys([*asr_langs, *(base.get("languages") or [])]))
-        base["languages"] = merged
-        # Don't keep a stale English chip when ASR heard Sinhala/Tamil.
-        if asr.language_hint in ("Sinhala", "Tamil"):
-            base["language"] = asr.language_hint
-        elif not base.get("language"):
-            base["language"] = asr_langs[0]
+    # UI language picker wins for care language + reply language.
+    if ui:
+        base["language"] = ui
+        langs = list(dict.fromkeys([ui, *(base.get("languages") or []), *(asr.languages or [])]))
+        base["languages"] = [x for x in langs if x in ("Sinhala", "Tamil", "English")]
+    else:
+        asr_langs = [x for x in (asr.languages or []) if x in ("Sinhala", "Tamil", "English")]
+        if asr.language_hint in ("Sinhala", "Tamil", "English"):
+            if asr.language_hint not in asr_langs:
+                asr_langs = [asr.language_hint, *asr_langs]
+        if asr_langs:
+            merged = list(dict.fromkeys([*asr_langs, *(base.get("languages") or [])]))
+            base["languages"] = merged
+            if asr.language_hint in ("Sinhala", "Tamil"):
+                base["language"] = asr.language_hint
+            elif not base.get("language"):
+                base["language"] = asr_langs[0]
 
     route = _route(text, base, has_prior_match)
     reply_lang = _tts_lang(base.get("language"), base.get("languages"))
 
     match_payload = None
     if route in ("MATCH", "REFINE"):
-        # Persist voice intent row for audit / history.
         VoiceIntent.objects.create(
             user=user,
             raw_text=base.get("raw_text", text),
@@ -300,22 +353,26 @@ def process_turn(
     else:
         reply = _serah_chat_reply(text, reply_lang)
 
-    return {
-        "route": route,
-        "transcript": text,
-        "asr_source": asr.source,
-        "asr_language": asr.language_hint or "",
-        "asr_language_code": asr.language_code or "",
-        "reply": reply,
-        "reply_lang": reply_lang,
-        "intent": {
-            "condition": base.get("condition") or "",
-            "language": base.get("language") or "",
-            "languages": base.get("languages") or [],
-            "care_level": base.get("care_level") or "",
-            "urgency": base.get("urgency") or "routine",
-            "raw_text": base.get("raw_text") or text,
-            "source": base.get("source") or asr.source,
+    return _attach_tts(
+        {
+            "route": route,
+            "transcript": text,
+            "asr_source": asr.source,
+            "asr_language": asr.language_hint or ui or "",
+            "asr_language_code": asr.language_code or "",
+            "reply": reply,
+            "reply_lang": reply_lang,
+            "intent": {
+                "condition": base.get("condition") or "",
+                "language": base.get("language") or "",
+                "languages": base.get("languages") or [],
+                "care_level": base.get("care_level") or "",
+                "urgency": base.get("urgency") or "routine",
+                "raw_text": base.get("raw_text") or text,
+                "source": base.get("source") or asr.source,
+            },
+            "match": match_payload,
         },
-        "match": match_payload,
-    }
+        reply,
+        reply_lang,
+    )
