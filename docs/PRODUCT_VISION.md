@@ -32,7 +32,7 @@ A Django 5 + PostgreSQL **server-rendered** web app for Sri Lanka:
 | Product name | **Care Plus** |
 | Design system | **Aurora Neural** (docs/FRONTEND.md) — not Medcare lorem / not Lumora dual-brand |
 | Signature UX | Neural Core voice assistant (Goal Ring, chips, FSM) |
-| Assistant name | **Serah** retained as the grounded chat/advice persona (optional display name) |
+| Assistant name | **Serah** = conversational persona (chat, clarify, explain matches); **VEHMF** ranks caregivers |
 | Languages | Sinhala, Tamil, English (UI + speech + embeddings) |
 
 ---
@@ -44,10 +44,11 @@ A Django 5 + PostgreSQL **server-rendered** web app for Sri Lanka:
 | Register patient/caregiver | ✅ | ✅ JWT + roles | 6, 10, 22b–c |
 | Email OTP | ✅ (soft) | ✅ proper elevation | 22f |
 | Consent / audit | ❌ | ✅ PDPA gate + immutable audit | 7–8, 68–69 |
-| Voice → structured intent | partial chat | ✅ Neural Core pipeline | 13–15 |
+| Voice → structured intent | partial chat | ✅ Neural Core pipeline (one-shot today) | 13–15 |
+| **Multi-turn conversation** | chat UI | ✅ router: CHAT↔MATCH↔REFINE; Serah replies | **15f–15j** |
 | Medical vocabulary | KnownCondition | ✅ versioned vocab + synonyms | 15b–15c |
-| Serah advice chat | ✅ Gemini | ✅ grounded + disclaimer | 15d–15e |
-| ML matching | RF + Gemini IDs | ✅ VEHMF + XAI | 16–22 |
+| Serah advice chat | ✅ Gemini | ✅ grounded + disclaimer (+ dialogue tool) | 15d–15e |
+| ML matching | RF + Gemini IDs | ✅ VEHMF + XAI (**never** Gemini rank) | 16–22 |
 | Browse/search caregivers | ✅ | ✅ API + map UI | 20b–20e |
 | Caregiver detail | ✅ | ✅ | 20d |
 | Hire request/accept | ✅ via Email | ✅ `CareRequest` | 23–24 |
@@ -86,10 +87,13 @@ A Django 5 + PostgreSQL **server-rendered** web app for Sri Lanka:
 
 ### Patient happy path
 1. Register → consent AI → complete profile (vocab conditions)  
-2. Tap Neural Core → speak need → chips fill → VEHMF results  
-3. Open caregiver → Request care → choose package → pay  
-4. Message caregiver → share/view records → rate after end  
-5. (Later) vitals alerts / emergency re-match  
+2. Tap Neural Core → **talk with Serah** (questions stay CHAT; care needs → MATCH)  
+3. Cards appear → keep talking to refine (“closer”, “Tamil”) or ask why #1 ranked high  
+4. Request care → choose package → pay  
+5. Message caregiver → share/view records → rate after end  
+6. (Later) vitals alerts / emergency re-match  
+
+**AI split (locked):** Gemini/local stub = conversation + clarify copy. **VEHMF only** = caregiver ranking. Gemini must not pick caregiver IDs.
 
 ### Caregiver happy path
 1. Register → onboarding + certs → set availability/calendar  

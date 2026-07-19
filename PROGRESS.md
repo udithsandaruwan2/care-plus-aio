@@ -2,12 +2,12 @@
 
 > **Purpose:** running record of _what's done_ and _what's next_, so work can resume
 > from any device. Committed to git (syncs across machines). Updated **feature by feature**.  
-> Full plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) **v0.2 (75 steps)** ·  
+> Full plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) **v0.3 (~80 steps)** ·  
 > Vision (Old→New): [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) ·  
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-19 — Step 20 match WS + result UX done. Next: Step 20b (browse API) or 21/15b._
+_Last updated: 2026-07-19 — Plan v0.3 adds M3c conversational dialogue (15f–15j). Next: 15b/15f or 20b._
 
 ---
 
@@ -73,13 +73,15 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 18** — AHP principal-eigenvector weights `[α,β,γ,δ]` (CR < 0.1); `config/ahp_weights.json`; env emergency override; `GET /match/weights/`. Branch `feat/step18-ahp-weights`.
 - ✅ **Step 19** — `VEHMFEngine` (CBF+CF-stub+Geo+Trust+XAI); `MatchRun`/`MatchResult`; consent-gated `POST /api/v1/match/`. Branch `feat/step19-vehmf-engine`.
 - ✅ **Step 20** — JWT `ws/match/{id}/` + push; MatchResultCards; SPEAKING→MATCHING→RESULTS. Branch `feat/step20-match-ux`.
-- 🔜 **Step 20b** — Caregiver search & filter API (or Step 21 CF / 15b vocab)
+- ⬜ **M3c Steps 15f–15j** — Conversational dialogue loop (router CHAT vs MATCH vs REFINE; unified mic)
+- 🔜 **Step 20b** — Caregiver search & filter API **or** Step **15b/15f** (vocab / turn router)
 
 ### Expanded product tracks (from Old Care Plus)
 
 | Milestone | Steps | Status |
 |-----------|-------|--------|
 | **M3b** Medical vocab + Serah chat | 15b–15e | ⬜ |
+| **M3c** Conversational dialogue loop | 15f–15j | ⬜ **(plan v0.3)** |
 | **M4b** Marketplace browse/map/detail | 20b–20e | ⬜ |
 | **M5** CF personalization | 21–22 | ⬜ |
 | **M5b** Rich onboarding / OTP | 22b–22f | ⬜ |
@@ -96,7 +98,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M16** Compliance | 68–71 | ⬜ |
 | **M17** Ship | 72–75 | ⬜ |
 
-**Progress:** ~20 / 75 steps (~27%). Voice → VEHMF → explained result cards (+ live WS push).
+**Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
 
 ---
 
@@ -107,11 +109,13 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - Seeded caregivers + CBF preview + **full VEHMF `POST /match/`** (ranked + breakdown + XAI)  
 - AHP weights + emergency override  
 - **Match result cards** + JWT `ws/match/{patient_id}/` push; FSM → RESULTS  
+- **Not yet:** multi-turn “talk like Serah” (chat vs match router) — see M3c  
 
 ---
 
 ## Changelog (newest first)
 
+- **Docs v0.3** — Added **M3c (15f–15j)** conversational dialogue: turn router (CHAT|MATCH|REFINE|ACTION|EMERGENCY), session memory, unified mic loop, post-match refine, Gemini/local policy. Locked: Gemini never ranks caregivers. Branch `docs/conversational-serah-loop`.
 - **Step 20** — JWT match WebSocket + push from `POST /match/`; api-client `match()`; HomePage SPEAKING→MATCHING→RESULTS; `MatchResultCards` (breakdown bars, XAI, latency, Request CTA stub). Branch `feat/step20-match-ux`.
 - **Step 19** — `VEHMFEngine.predict`: FAISS CBF + stub CF + PostGIS geo decay + trust; AHP fusion; XAI text; persists `MatchRun`/`MatchResult`; consent-gated `POST /api/v1/match/` returns ranked list + breakdown + `latency_ms`. 6 tests green. Branch `feat/step19-vehmf-engine`.
 - **Step 18** — AHP solver (`apps.matching.ahp`): principal eigenvector of pairwise survey → `[CBF, CF, Geo, Trust]` weights summing to 1 with CR≈0.019; `config/ahp_weights.json`; emergency vector `[0.80,0.05,0.05,0.10]`; env overrides `AHP_WEIGHTS` / `AHP_EMERGENCY_WEIGHTS`; `build_ahp_weights` command; `GET /api/v1/match/weights/`. Branch `feat/step18-ahp-weights`.
