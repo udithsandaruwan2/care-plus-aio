@@ -1,9 +1,12 @@
-"""Reload secrets from a mounted ``.env`` without recreating the container.
+"""Reload Gemini secrets from a mounted ``.env`` without recreating the container.
 
 Docker Compose only injects ``env_file`` at *create* time. Mounting the host
-``.env`` at ``/app/.env`` and calling ``refresh_env()`` lets Gemini keys and
-backend switches pick up after ``restart`` / uvicorn reload — no
-``--force-recreate`` required.
+``.env`` at ``/app/.env`` and calling ``refresh_env()`` picks up key/model
+changes after ``restart`` — no ``--force-recreate`` required.
+
+Backend switches (``VOICE_INTENT_BACKEND``, etc.) are read at process start from
+settings / env; they are **not** overwritten here so Django ``override_settings``
+in tests keeps working.
 """
 
 from __future__ import annotations
@@ -16,30 +19,19 @@ from django.conf import settings
 
 _ENV_CANDIDATES = (
     Path("/app/.env"),
-    Path(__file__).resolve().parents[2] / ".env",  # backend/.env (rare)
-    Path(__file__).resolve().parents[3] / ".env",  # repo root when not containerized
+    Path(__file__).resolve().parents[2] / ".env",
+    Path(__file__).resolve().parents[3] / ".env",
 )
 
 
 def refresh_env() -> Path | None:
-    """Re-read the first existing ``.env`` into ``os.environ`` + settings attrs."""
+    """Re-read Gemini credentials from the first existing ``.env``."""
     env_file = next((p for p in _ENV_CANDIDATES if p.is_file()), None)
     if env_file is None:
         return None
 
     environ.Env.read_env(str(env_file), overwrite=True)
     env = environ.Env()
-
-    key = env("GEMINI_API_KEY", default="")
-    model = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
-    settings.GEMINI_API_KEY = key
-    settings.GEMINI_MODEL = model
-    settings.VOICE_INTENT_BACKEND = env("VOICE_INTENT_BACKEND", default="") or (
-        "gemini" if key else "stub"
-    )
-    settings.ASR_BACKEND = env("ASR_BACKEND", default="auto") or "auto"
-    settings.DIALOGUE_CHAT_BACKEND = env("DIALOGUE_CHAT_BACKEND", default="") or (
-        "gemini" if key else "stub"
-    )
-    settings.LOCAL_LLM_URL = env("LOCAL_LLM_URL", default="")
+    settings.GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+    settings.GEMINI_MODEL = env("GEMINI_MODEL", default=settings.GEMINI_MODEL)
     return env_file
