@@ -84,9 +84,14 @@ export function useVoiceTurn() {
         });
         opts.continueListening?.();
       } catch (err) {
+        setSerahReply(null);
+        setAsrSource(null);
+        setTtsSource(null);
         if (err instanceof ApiError && err.status === CONSENT_STATUS) {
           setConsentNeeded(true);
           setError('AI processing needs your consent before we can understand your request.');
+        } else if (err instanceof ApiError && err.status === 401) {
+          setError('Session expired — sign in again, then tap the mic.');
         } else {
           setError(err instanceof Error ? err.message : 'Could not understand that. Try again.');
         }
