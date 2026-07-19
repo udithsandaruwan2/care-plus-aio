@@ -119,6 +119,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Fix voice turn 401 / empty ASR** — JWT refresh on 401; MediaRecorder flush; clearer empty-mic vs bad-ASR Serah replies; multi-commit branch `fix/voice-turn-401-empty-asr`.
 - **Step 20d** — Caregiver detail: `GET /caregivers/<id>/` + audited view; web `/caregivers/:id` (bio, certs, languages, specialties, trust, area, reviews teaser, Request CTA stub); browse + match cards link in. Branch `feat/step20d-caregiver-detail`.
 - **Voice lang picker + STT/TTS framework** — Explicit සිංහල|தமிழ்|English locks captions, Whisper ASR, and Serah replies; `apps.voice.tts` (Piper → Gemini TTS → browser); `/voice/turn/` returns `reply_audio_*` + `tts_source`. Branch `feat/voice-lang-picker-tts`.
 - **Step 20c** — `/caregivers` browse: search, language/specialty chips, Leaflet dark map, list + empty/error; api-client `caregivers()`. Branch `feat/step20c-browse-ui`.
