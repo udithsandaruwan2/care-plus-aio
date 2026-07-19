@@ -146,3 +146,44 @@ export const MatchInput = z.object({
   emergency: z.boolean().optional(),
 });
 export type MatchInput = z.infer<typeof MatchInput>;
+
+export const CaregiverProfile = z.object({
+  id: z.number(),
+  email: z.string(),
+  display_name: z.string(),
+  longitude: z.number().nullable(),
+  latitude: z.number().nullable(),
+  city: z.string().optional().default(''),
+  certifications: z.array(z.string()),
+  languages: z.array(z.string()),
+  specialties: z.array(z.string()),
+  care_levels: z.array(z.string()),
+  trust_score: z.number(),
+  bio: z.string().optional().default(''),
+  is_active: z.boolean().optional(),
+  is_available: z.boolean().optional().default(true),
+  created_at: z.string().optional(),
+});
+export type CaregiverProfile = z.infer<typeof CaregiverProfile>;
+
+export const CaregiverListResponse = z.object({
+  count: z.number(),
+  next: z.string().nullable().optional(),
+  previous: z.string().nullable().optional(),
+  results: z.array(CaregiverProfile),
+});
+export type CaregiverListResponse = z.infer<typeof CaregiverListResponse>;
+
+export const CaregiverListParams = z.object({
+  q: z.string().optional(),
+  language: z.string().optional(),
+  specialty: z.string().optional(),
+  city: z.string().optional(),
+  care_level: z.string().optional(),
+  available: z.union([z.boolean(), z.string()]).optional(),
+  near: z.string().optional(),
+  radius_km: z.number().optional(),
+  page: z.number().int().optional(),
+  page_size: z.number().int().optional(),
+});
+export type CaregiverListParams = z.infer<typeof CaregiverListParams>;

@@ -245,10 +245,9 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 **Done:** `GET /caregivers/?q=&language=&specialty=&city=&care_level=&available=&near=lon,lat&radius_km=` with pagination; `city` + `is_available` on profile; only `is_active` listed.
 **✅ Acceptance:** filters combine; pagination; only `is_active` caregivers.
 
-### Step 20c — Browse UI (web)
+### Step 20c — Browse UI (web) ✅ **DONE**
 
-**Goal:** searchable caregiver directory.  
-**Tasks:** list + filter chips; map pins (Leaflet/MapLibre); empty/error states.  
+**Done:** `/caregivers` browse page — search + language/specialty/available chips; Leaflet dark map pins; list + empty/error; link from Neural Core home.
 **✅ Acceptance:** seed caregivers visible; filter by Sinhala + diabetes works.
 
 ### Step 20d — Caregiver public detail page
@@ -587,4 +586,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 20c — Browse UI (web)** (`feat/step20c-browse-ui`), or Step 15c / 21 CF.
+**Step 20d — Caregiver public detail page** (`feat/step20d-caregiver-detail`), or 20e availability / 21 CF.

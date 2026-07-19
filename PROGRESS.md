@@ -7,7 +7,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-19 — Step 20b caregiver search/filter API done. Next: 20c browse UI._
+_Last updated: 2026-07-19 — Step 20c caregiver browse UI + map done. Next: 20d detail page._
 
 ---
 
@@ -75,8 +75,9 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 20** — JWT `ws/match/{id}/` + push; MatchResultCards; SPEAKING→MATCHING→RESULTS. Branch `feat/step20-match-ux`.
 - ✅ **Step 15b** — Canonical `ConditionTerm` vocab (≥37); `GET /vocab/conditions/`; stub maps ඩෙංගු→`dengue`. Branch `feat/step15b-medical-vocab`.
 - ✅ **Step 20b** — Caregiver search/filter/geo API + pagination (`city`, `is_available`). Branch `feat/step20b-caregiver-search`.
+- ✅ **Step 20c** — `/caregivers` browse UI (chips + Leaflet map). Branch `feat/step20c-browse-ui`.
 - ⬜ **M3c Steps 15f–15j** — Conversational dialogue (partially shipped via `/voice/turn/` + TTS; formalize remaining)
-- 🔜 **Step 20c** — Browse UI (web)
+- 🔜 **Step 20d** — Caregiver public detail page
 
 ### Expanded product tracks (from Old Care Plus)
 
@@ -84,7 +85,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 |-----------|-------|--------|
 | **M3b** Medical vocab + Serah chat | 15b–15e | 15b ✅ · 15c–e ⬜ |
 | **M3c** Conversational dialogue loop | 15f–15j | ░ partial (`/voice/turn/` + TTS shipped) |
-| **M4b** Marketplace browse/map/detail | 20b–20e | 20b ✅ · 20c–e ⬜ |
+| **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20c ✅ · 20d–e ⬜ |
 | **M5** CF personalization | 21–22 | ⬜ |
 | **M5b** Rich onboarding / OTP | 22b–22f | ⬜ |
 | **M6** Hire lifecycle (`CareRequest`) | 23–28 | ⬜ |
@@ -117,6 +118,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 20c** — `/caregivers` browse: search, language/specialty chips, Leaflet dark map, list + empty/error; api-client `caregivers()`. Branch `feat/step20c-browse-ui`.
 - **Step 20b** — Expand `GET /caregivers/` with combinable `q/language/specialty/city/care_level/available` + PostGIS `near/radius_km`, pagination, `city`/`is_available` fields. Branch `feat/step20b-caregiver-search`.
 - **Step 15b** — `apps.vocab`: `ConditionTerm` + `seed_vocab` (37 Sri Lanka terms with si/ta/en synonyms); `GET /api/v1/vocab/conditions/`; voice stub/Gemini resolve to slugs (`ඩෙංගු`→`dengue`, “sugar problem”→`diabetes`). Branch `feat/step15b-medical-vocab`.
 - **Conversational voice** — `POST /voice/turn/` (audio+text); Gemini multilingual ASR; Serah TTS replies; VEHMF when matching; `ASR_BACKEND` / `VOICE_INTENT_BACKEND=local` / `LOCAL_LLM_URL` slots; `.env` mounted so Gemini keys don’t need recreate. Branch `feat/conversational-voice-asr`.

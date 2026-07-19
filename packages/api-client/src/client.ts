@@ -1,4 +1,5 @@
 import {
+  CaregiverListResponse,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -8,6 +9,7 @@ import {
   User,
   VoiceIntent,
   VoiceTurnResponse,
+  type CaregiverListParams,
   type MatchInput,
   type RegisterInput,
   type VoiceIntentInput,
@@ -146,6 +148,21 @@ export function createApiClient(options: ApiClientOptions) {
         },
         (d) => MatchResponse.parse(d),
       ),
+    caregivers: (params: CaregiverListParams = {}) => {
+      const qs = new URLSearchParams();
+      if (params.q) qs.set('q', params.q);
+      if (params.language) qs.set('language', params.language);
+      if (params.specialty) qs.set('specialty', params.specialty);
+      if (params.city) qs.set('city', params.city);
+      if (params.care_level) qs.set('care_level', params.care_level);
+      if (params.available != null) qs.set('available', String(params.available));
+      if (params.near) qs.set('near', params.near);
+      if (params.radius_km != null) qs.set('radius_km', String(params.radius_km));
+      if (params.page != null) qs.set('page', String(params.page));
+      if (params.page_size != null) qs.set('page_size', String(params.page_size));
+      const suffix = qs.toString() ? `?${qs}` : '';
+      return request(`/caregivers/${suffix}`, {}, (d) => CaregiverListResponse.parse(d));
+    },
   };
 }
 

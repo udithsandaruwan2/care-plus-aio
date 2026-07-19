@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
 import { AssistantState, STATE_COPY, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
@@ -172,13 +173,21 @@ export function HomePage() {
               {brand.name}
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="shrink-0 rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-rose hover:text-rose"
-          >
-            Sign out
-          </button>
+          <div className="flex shrink-0 gap-2">
+            <Link
+              to="/caregivers"
+              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+            >
+              Browse
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-rose hover:text-rose"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
         <p className="mx-auto mt-6 max-w-md text-center text-xs text-muted">
