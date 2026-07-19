@@ -15,13 +15,15 @@ _Last updated: 2026-07-19 — Step 18 AHP weights done. Next: Step 19 (VEHMF eng
 
 | Rule | Detail |
 |------|--------|
+| **Author** | Always **Udith Sandaruwan** `<developer.udithsandaruwan@gmail.com>` — never `Care Plus Dev` / agent |
+| **How** | Terminal only: `git add` → `git -c user.name=… -c user.email=… commit` → `git push` → `gh pr …` |
 | **Branch** | One branch per feature/step (`feat/stepN-<slug>`, `fix/…`, `chore/…`) off `main` |
 | **Commits** | Many focused commits per branch OK |
 | **Push** | Always push after development (and when switching devices / end of session) |
 | **Merge** | When the branch is complete (or when necessary): PR → merge into `main` |
 | **Next feature** | New branch from updated `main` — never pile features on one branch |
 
-Rules file: `.cursor/rules/git-workflow.mdc`.
+Rules file: `.cursor/rules/git-workflow.mdc` (includes identity + terminal commit recipe).
 
 ---
 

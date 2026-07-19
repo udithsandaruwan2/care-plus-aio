@@ -5,6 +5,33 @@ alwaysApply: true
 
 # Git Workflow
 
+## Author identity (required)
+
+All commits must be attributed to **Udith Sandaruwan**, not an agent/placeholder.
+
+| Field | Value |
+|-------|--------|
+| **Name** | `Udith Sandaruwan` |
+| **Email** | `developer.udithsandaruwan@gmail.com` |
+| **GitHub** | `udithsandaruwan2` (use `gh` CLI already installed on this machine) |
+
+**How to commit (terminal only):**
+
+```bash
+git add -A   # or pathspecs — never commit .env / secrets
+git -c user.name="Udith Sandaruwan" -c user.email="developer.udithsandaruwan@gmail.com" commit -m "$(cat <<'EOF'
+feat(scope): short message
+
+EOF
+)"
+git push -u origin HEAD   # first push on a branch; then git push
+```
+
+- Do **not** commit as `Care Plus Dev <dev@careplus.local>` or any agent identity.
+- Prefer `-c user.name=… -c user.email=…` on each commit so a stray local repo `user.*` override cannot rewrite authorship.
+- Use **`gh pr create`** / **`gh pr merge`** for GitHub (CLI is configured on this machine).
+- Flow every time: **branch → work → `git add` → `commit` (your identity) → `push` → PR → merge → repeat**.
+
 ## Branching
 
 - **One branch per feature / step.** Before starting work, create a branch off
@@ -19,6 +46,8 @@ alwaysApply: true
 - Use conventional messages: `feat(backend): …`, `fix(web): …`, `chore: …`,
   with a short body when useful.
 - Never commit secrets (`.env`, credentials).
+- Always create commits via the **shell/terminal** with the identity flags above
+  (not a GUI “Commit” that might use a different author).
 
 ## Push (required)
 
