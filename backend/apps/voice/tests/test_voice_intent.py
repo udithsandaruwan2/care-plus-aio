@@ -65,6 +65,7 @@ class VoiceIntentApiTests(APITestCase):
         self.assertEqual(resp.data["condition"], "Asthma")
 
 
+@override_settings(VOICE_INTENT_BACKEND="stub")
 class ExtractorUnitTests(APITestCase):
     def test_tamil_script_detected(self):
         out = extract_intent("எனக்கு நீரிழிவு உள்ளது")
