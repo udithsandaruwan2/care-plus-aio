@@ -15,7 +15,19 @@ const CHIPS: ChipDef[] = [
 
 /** Color-coded chips that pop in as intent fields are captured. */
 export function EntityChips({ intent }: { intent: IntentDraft }) {
-  const active = CHIPS.filter((c) => intent[c.key]);
+  const languageLabel =
+    intent.languages && intent.languages.length > 1
+      ? intent.languages.join(' + ')
+      : intent.language;
+
+  const values: Partial<Record<keyof IntentDraft, string | undefined>> = {
+    condition: intent.condition,
+    language: languageLabel,
+    care_level: intent.care_level,
+    urgency: intent.urgency,
+  };
+
+  const active = CHIPS.filter((c) => values[c.key]);
   if (active.length === 0) {
     return <p className="text-xs text-muted">No details captured yet.</p>;
   }
@@ -26,7 +38,7 @@ export function EntityChips({ intent }: { intent: IntentDraft }) {
           key={c.key}
           className={`animate-[fadeIn_260ms_ease] rounded-full border bg-void/40 px-3 py-1 text-xs ${c.className}`}
         >
-          <span className="opacity-60">{c.label}:</span> {String(intent[c.key])}
+          <span className="opacity-60">{c.label}:</span> {values[c.key]}
         </span>
       ))}
     </div>

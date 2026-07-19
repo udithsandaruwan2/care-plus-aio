@@ -12,7 +12,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import ConsentLog, ConsentScope
-from apps.voice.extraction import extract_intent
+from apps.voice.extraction import detect_language, detect_languages, extract_intent
 from apps.voice.models import VoiceIntent
 
 User = get_user_model()
@@ -45,6 +45,7 @@ class VoiceIntentApiTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         self.assertEqual(resp.data["condition"], "Diabetes")
         self.assertEqual(resp.data["language"], "Sinhala")
+        self.assertIn("Sinhala", resp.data["languages"])
         self.assertEqual(resp.data["care_level"], "intermediate")
         self.assertEqual(resp.data["source"], "stub")
 
@@ -81,3 +82,14 @@ class ExtractorUnitTests(APITestCase):
         self.assertEqual(out["condition"], "Dengue")
         self.assertEqual(out["language"], "Sinhala")
         self.assertEqual(out["urgency"], "urgent")
+
+    def test_singlish_mixed_languages(self):
+        out = extract_intent("මට diabetes caregiver ඕනේ Sinhala speaking")
+        self.assertEqual(out["condition"], "Diabetes")
+        self.assertEqual(out["language"], "Sinhala")
+        self.assertEqual(out["languages"], ["Sinhala", "English"])
+
+    def test_tanglish_mixed_languages(self):
+        langs = detect_languages("எனக்கு diabetes care வேண்டும் please")
+        self.assertEqual(langs, ["Tamil", "English"])
+        self.assertEqual(detect_language("எனக்கு diabetes care வேண்டும் please"), "Tamil")
