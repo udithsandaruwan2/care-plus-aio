@@ -5,8 +5,10 @@ const TAMIL = /[\u0B80-\u0BFF]/;
 
 /**
  * Pick a Web Speech `lang` from transcript script, then browser locale.
- * Mixed Singlish/Tanglish prefers the local script locale (better for
- * capturing Sinhala/Tamil words); pure Latin → en-US.
+ *
+ * Important: Chrome's Web Speech for si-LK / ta-LK is unreliable and often
+ * returns English-only. Captions are best-effort; real multilingual ASR is
+ * server-side (Gemini audio / future faster-whisper) via ``/voice/turn/``.
  */
 export function guessRecognitionLang(text?: string): RecognitionLang {
   const sample = (text ?? '').trim();
@@ -18,7 +20,7 @@ export function guessRecognitionLang(text?: string): RecognitionLang {
   if (lower.startsWith('si')) return 'si-LK';
   if (lower.startsWith('ta')) return 'ta-LK';
   if (lower.startsWith('en')) return 'en-US';
-  // Sri Lanka–first product: Singlish usually captures better under si-LK than en-US.
+  // Sri Lanka–first captions; server ASR still owns correctness.
   return 'si-LK';
 }
 

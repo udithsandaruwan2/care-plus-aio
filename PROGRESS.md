@@ -7,7 +7,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-19 — Auto + mixed-language voice (Singlish/Tanglish); Gemini key live after container recreate._
+_Last updated: 2026-07-19 — Conversational Serah + Gemini audio ASR; env hot-reload; local model slots._
 
 ---
 
@@ -115,6 +115,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Conversational voice** — `POST /voice/turn/` (audio+text); Gemini multilingual ASR; Serah TTS replies; VEHMF when matching; `ASR_BACKEND` / `VOICE_INTENT_BACKEND=local` / `LOCAL_LLM_URL` slots; `.env` mounted so Gemini keys don’t need recreate. Branch `feat/conversational-voice-asr`.
 - **Auto + mixed language** — Removed manual lang picker; ASR auto-picks si/ta/en; intent returns `languages[]` for Singlish/Tanglish; primary `language` still drives match. Gemini key loaded after `docker compose up --force-recreate backend`. Branch `feat/auto-multilang-voice`.
 - **Docs v0.3** — Added **M3c (15f–15j)** conversational dialogue: turn router (CHAT|MATCH|REFINE|ACTION|EMERGENCY), session memory, unified mic loop, post-match refine, Gemini/local policy. Locked: Gemini never ranks caregivers. Branch `docs/conversational-serah-loop`.
 - **Step 20** — JWT match WebSocket + push from `POST /match/`; api-client `match()`; HomePage SPEAKING→MATCHING→RESULTS; `MatchResultCards` (breakdown bars, XAI, latency, Request CTA stub). Branch `feat/step20-match-ux`.

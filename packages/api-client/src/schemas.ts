@@ -113,6 +113,28 @@ export const MatchResponse = z.object({
 });
 export type MatchResponse = z.infer<typeof MatchResponse>;
 
+export const VoiceTurnIntent = z.object({
+  condition: z.string(),
+  language: z.string(),
+  languages: z.array(z.string()).optional().default([]),
+  care_level: z.string(),
+  urgency: z.string(),
+  raw_text: z.string(),
+  source: z.string().optional(),
+});
+export type VoiceTurnIntent = z.infer<typeof VoiceTurnIntent>;
+
+export const VoiceTurnResponse = z.object({
+  route: z.enum(['CHAT', 'MATCH', 'CLARIFY', 'REFINE']),
+  transcript: z.string(),
+  asr_source: z.string(),
+  reply: z.string(),
+  reply_lang: z.string(),
+  intent: VoiceTurnIntent.nullable(),
+  match: MatchResponse.nullable().optional(),
+});
+export type VoiceTurnResponse = z.infer<typeof VoiceTurnResponse>;
+
 export const MatchInput = z.object({
   condition: z.string().optional(),
   language: z.string().optional(),

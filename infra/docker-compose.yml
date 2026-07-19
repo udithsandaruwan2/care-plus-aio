@@ -53,6 +53,8 @@ services:
       - ../backend:/app
       - ../ml:/ml
       - ../config:/config
+      # Mount host .env so Django can read_env without recreating the container.
+      - ../.env:/app/.env:ro
     environment:
       FAISS_ARTIFACT_DIR: /ml/artifacts
       AHP_WEIGHTS_PATH: /config/ahp_weights.json
@@ -81,6 +83,8 @@ services:
       - ../backend:/app
       - ../ml:/ml
       - ../config:/config
+      # Mount host .env so Django can read_env without recreating the container.
+      - ../.env:/app/.env:ro
     environment:
       FAISS_ARTIFACT_DIR: /ml/artifacts
       AHP_WEIGHTS_PATH: /config/ahp_weights.json

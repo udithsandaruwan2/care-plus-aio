@@ -7,6 +7,7 @@ import {
   TokenPair,
   User,
   VoiceIntent,
+  VoiceTurnResponse,
   type MatchInput,
   type RegisterInput,
   type VoiceIntentInput,
@@ -37,7 +38,7 @@ export function createApiClient(options: ApiClientOptions) {
     parse: (data: unknown) => T,
   ): Promise<T> {
     const headers = new Headers(init.headers);
-    if (!headers.has('Content-Type') && init.body) {
+    if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
     }
     const token = getAccessToken?.();
@@ -96,6 +97,31 @@ export function createApiClient(options: ApiClientOptions) {
         },
         (d) => VoiceIntent.parse(d),
       ),
+    /**
+     * Conversational turn: optional Web Speech text + recorded audio.
+     * Audio is preferred for Sinhala/Tamil (server Gemini ASR).
+     */
+    voiceTurn: (input: {
+      text?: string;
+      audio?: Blob | null;
+      hasPriorMatch?: boolean;
+      priorIntent?: Record<string, unknown> | null;
+    }) => {
+      const form = new FormData();
+      if (input.text) form.append('text', input.text);
+      if (input.audio) form.append('audio', input.audio, 'turn.webm');
+      form.append('has_prior_match', input.hasPriorMatch ? 'true' : 'false');
+      if (input.priorIntent) form.append('prior_intent', JSON.stringify(input.priorIntent));
+      return request(
+        '/voice/turn/',
+        {
+          method: 'POST',
+          body: form,
+          headers: {}, // let browser set multipart boundary
+        },
+        (d) => VoiceTurnResponse.parse(d),
+      );
+    },
     getConsent: () => request('/consent/', {}, (d) => ConsentState.parse(d)),
     setConsent: (scope: string, granted: boolean) =>
       request('/consent/', { method: 'POST', body: JSON.stringify({ scope, granted }) }, (d) =>

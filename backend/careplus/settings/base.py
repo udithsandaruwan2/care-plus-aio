@@ -9,11 +9,22 @@ from pathlib import Path
 
 import environ
 
+from pathlib import Path
+
+import environ
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
     DJANGO_DEBUG=(bool, False),
 )
+
+# Prefer a mounted ``/app/.env`` (see docker-compose) so Gemini keys update
+# without ``docker compose up --force-recreate``.
+for _env_path in (Path("/app/.env"), BASE_DIR.parent / ".env", BASE_DIR / ".env"):
+    if _env_path.is_file():
+        environ.Env.read_env(str(_env_path), overwrite=True)
+        break
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-dev-key-change-me")
 DEBUG = env("DJANGO_DEBUG")
@@ -114,13 +125,20 @@ CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = True
 
-# ── Cognitive layer (voice → intent) ─────────────────────────────
+# ── Cognitive layer (voice → intent + dialogue) ──────────────────
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
 GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
-# "gemini" when a key is present, else deterministic "stub" (dev/tests/offline).
+# stub | gemini | local (local URL empty until you add an on-prem model)
 VOICE_INTENT_BACKEND = env(
     "VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
 )
+# auto | client | gemini_audio | faster_whisper (whisper slot empty for now)
+ASR_BACKEND = env("ASR_BACKEND", default="auto")
+DIALOGUE_CHAT_BACKEND = env(
+    "DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
+)
+# Future local LLM / local ASR endpoint (leave blank)
+LOCAL_LLM_URL = env("LOCAL_LLM_URL", default="")
 
 # ── Matching / embeddings (Step 17) ──────────────────────────────
 # "hash" = deterministic feature hashing (lean/CI). "e5" = multilingual-e5-base.
