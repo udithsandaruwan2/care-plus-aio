@@ -28,21 +28,6 @@ _SINHALA_RE = re.compile(r"[\u0D80-\u0DFF]")
 _TAMIL_RE = re.compile(r"[\u0B80-\u0BFF]")
 _LATIN_WORD_RE = re.compile(r"[A-Za-z]{2,}")
 
-# condition keywords → canonical English label (Sinhala/Tamil/English).
-_CONDITION_MAP: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"දියවැඩ|நீரிழ|diabet", re.I), "Diabetes"),
-    (
-        re.compile(r"අධි\s*රුධිර|රුධිර\s*පීඩ|இரத்த\s*அழுத்த|hypertens|blood\s*pressure", re.I),
-        "Hypertension",
-    ),
-    (re.compile(r"හෘද|இதய|cardiac|heart", re.I), "Cardiac"),
-    (re.compile(r"ඇදුම|ஆஸ்துமா|asthma", re.I), "Asthma"),
-    (re.compile(r"ආඝාත|stroke|paralys", re.I), "Stroke"),
-    (re.compile(r"පිළිකා|புற்றுநோய்|cancer", re.I), "Cancer"),
-    (re.compile(r"ඩෙංගු|டெங்கு|dengue", re.I), "Dengue"),
-    (re.compile(r"වයෝවෘද්ධ|elderly|geriatric|වැඩිහිටි", re.I), "Elderly care"),
-]
-
 _LEVEL_MAP: list[tuple[re.Pattern[str], str]] = [
     (
         re.compile(r"දැඩි|බරපතල|advanced|intensive|critical|24\s*hour|specialist", re.I),
@@ -120,7 +105,9 @@ def _first_match(text: str, table: list[tuple[re.Pattern[str], str]], default: s
 
 
 def extract_stub(text: str, hint_language: str | None = None) -> dict:
-    condition = _first_match(text, _CONDITION_MAP, default="")
+    from apps.vocab.resolver import resolve_condition
+
+    slug, _canonical = resolve_condition(text)
     languages = detect_languages(text)
     language = detect_language(text, hint_language)
     # Ensure primary is always listed.
@@ -129,7 +116,7 @@ def extract_stub(text: str, hint_language: str | None = None) -> dict:
     care_level = _first_match(text, _LEVEL_MAP, default=CareLevel.INTERMEDIATE)
     urgency = _first_match(text, _URGENCY_MAP, default=Urgency.ROUTINE)
     return {
-        "condition": condition,
+        "condition": slug,
         "language": language,
         "languages": languages,
         "care_level": care_level,
@@ -177,8 +164,8 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
                 "or Tamil+English (Tanglish) in one sentence — detect ALL languages used "
                 "in `languages`, and set `language` to the preferred care language "
                 "(usually the local language if present, unless they ask for English). "
-                "Return ONLY JSON matching the schema. condition must be an English "
-                "medical label (or empty). "
+                "Return ONLY JSON matching the schema. condition must be a canonical "
+                "slug from the Care Plus vocab (e.g. diabetes, dengue) or empty string. "
                 "care_level ∈ basic|intermediate|advanced. urgency ∈ routine|urgent|critical."
             ),
         )
@@ -219,8 +206,19 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
     urgency = data.get("urgency")
     if urgency not in Urgency.values:
         urgency = stub["urgency"]
+
+    from apps.vocab.resolver import resolve_condition
+
+    raw_condition = (data.get("condition") or stub["condition"] or "").strip()
+    slug, _ = resolve_condition(raw_condition) if raw_condition else ("", "")
+    if not slug and raw_condition:
+        # Also try resolving against the full utterance.
+        slug, _ = resolve_condition(text)
+    if not slug:
+        slug = stub["condition"]
+
     return {
-        "condition": (data.get("condition") or stub["condition"]).strip(),
+        "condition": slug,
         "language": language,
         "languages": languages,
         "care_level": care_level,

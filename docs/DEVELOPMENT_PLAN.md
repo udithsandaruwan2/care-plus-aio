@@ -132,18 +132,10 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 
 ## M3b · Medical vocabulary & Serah (from old KnownCondition + Serah)
 
-### Step 15b — Canonical medical vocabulary service
+### Step 15b — Canonical medical vocabulary service ✅ **DONE**
 
-**Goal:** one source of truth for condition labels used by stub, Gemini, matching, and admin.  
-**Tasks:**
-- `apps.vocab` (or `matching.vocab`): `ConditionTerm` model — `slug`, `canonical_en`, synonyms `[si, ta, en]`, `active`, `version`
-- Seed from old `KnownCondition` + common Sri Lanka conditions (diabetes, dengue, hypertension, …)
-- Export JSON used by stub extractor + Gemini system prompt (“condition MUST be a canonical slug or empty”)
-- Admin CRUD (auditor/admin)
-
+**Done:** `apps.vocab.ConditionTerm` (slug, canonical_en, si/ta/en synonyms, active, version); `seed_vocab` (≥37 Sri Lanka terms); `GET /api/v1/vocab/conditions/`; stub/Gemini resolve via vocab (`ඩෙංගු` → `dengue`); admin CRUD.
 **✅ Acceptance:** `GET /api/v1/vocab/conditions/` returns ≥30 active terms; stub maps ඩෙංගු → `dengue`; unknown phrase → empty condition + CLARIFYING.
-
-**Depends on:** Step 14. **Feeds:** 15c, 17–19, 54.
 
 ### Step 15c — Extractor wired to vocab (normalize)
 
@@ -596,5 +588,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Product feel:** Step **15f** (turn router) closes the “talk like an assistant” gap — or keep shipping marketplace with **20b**.  
-**Default suggestion:** **15b → 15f → 15h** (vocab + router + unified mic loop), then 20b browse.
+**Step 20b — Caregiver search & filter API**, or **15c** (vocab normalize polish) / formalize remaining M3c steps.

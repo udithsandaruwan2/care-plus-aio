@@ -7,7 +7,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-19 — Conversational Serah + Gemini audio ASR; env hot-reload; local model slots._
+_Last updated: 2026-07-19 — Step 15b medical vocab done (37 terms). Next: 15c polish / 20b browse / M3c docs sync._
 
 ---
 
@@ -73,15 +73,16 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 18** — AHP principal-eigenvector weights `[α,β,γ,δ]` (CR < 0.1); `config/ahp_weights.json`; env emergency override; `GET /match/weights/`. Branch `feat/step18-ahp-weights`.
 - ✅ **Step 19** — `VEHMFEngine` (CBF+CF-stub+Geo+Trust+XAI); `MatchRun`/`MatchResult`; consent-gated `POST /api/v1/match/`. Branch `feat/step19-vehmf-engine`.
 - ✅ **Step 20** — JWT `ws/match/{id}/` + push; MatchResultCards; SPEAKING→MATCHING→RESULTS. Branch `feat/step20-match-ux`.
-- ⬜ **M3c Steps 15f–15j** — Conversational dialogue loop (router CHAT vs MATCH vs REFINE; unified mic)
-- 🔜 **Step 20b** — Caregiver search & filter API **or** Step **15b/15f** (vocab / turn router)
+- ✅ **Step 15b** — Canonical `ConditionTerm` vocab (≥37); `GET /vocab/conditions/`; stub maps ඩෙංගු→`dengue`. Branch `feat/step15b-medical-vocab`.
+- ⬜ **M3c Steps 15f–15j** — Conversational dialogue (partially shipped via `/voice/turn/` + TTS; formalize remaining)
+- 🔜 **Step 20b** — Caregiver search & filter API **or** Step **15c** vocab normalize polish
 
 ### Expanded product tracks (from Old Care Plus)
 
 | Milestone | Steps | Status |
 |-----------|-------|--------|
-| **M3b** Medical vocab + Serah chat | 15b–15e | ⬜ |
-| **M3c** Conversational dialogue loop | 15f–15j | ⬜ **(plan v0.3)** |
+| **M3b** Medical vocab + Serah chat | 15b–15e | 15b ✅ · 15c–e ⬜ |
+| **M3c** Conversational dialogue loop | 15f–15j | ░ partial (`/voice/turn/` + TTS shipped) |
 | **M4b** Marketplace browse/map/detail | 20b–20e | ⬜ |
 | **M5** CF personalization | 21–22 | ⬜ |
 | **M5b** Rich onboarding / OTP | 22b–22f | ⬜ |
@@ -115,6 +116,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 15b** — `apps.vocab`: `ConditionTerm` + `seed_vocab` (37 Sri Lanka terms with si/ta/en synonyms); `GET /api/v1/vocab/conditions/`; voice stub/Gemini resolve to slugs (`ඩෙංගු`→`dengue`, “sugar problem”→`diabetes`). Branch `feat/step15b-medical-vocab`.
 - **Conversational voice** — `POST /voice/turn/` (audio+text); Gemini multilingual ASR; Serah TTS replies; VEHMF when matching; `ASR_BACKEND` / `VOICE_INTENT_BACKEND=local` / `LOCAL_LLM_URL` slots; `.env` mounted so Gemini keys don’t need recreate. Branch `feat/conversational-voice-asr`.
 - **Auto + mixed language** — Removed manual lang picker; ASR auto-picks si/ta/en; intent returns `languages[]` for Singlish/Tanglish; primary `language` still drives match. Gemini key loaded after `docker compose up --force-recreate backend`. Branch `feat/auto-multilang-voice`.
 - **Docs v0.3** — Added **M3c (15f–15j)** conversational dialogue: turn router (CHAT|MATCH|REFINE|ACTION|EMERGENCY), session memory, unified mic loop, post-match refine, Gemini/local policy. Locked: Gemini never ranks caregivers. Branch `docs/conversational-serah-loop`.

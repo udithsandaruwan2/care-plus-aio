@@ -44,7 +44,7 @@ class VoiceIntentApiTests(APITestCase):
         self._consent()
         resp = self.client.post(self.url, {"text": SINHALA}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(resp.data["condition"], "Diabetes")
+        self.assertEqual(resp.data["condition"], "diabetes")
         self.assertEqual(resp.data["language"], "Sinhala")
         self.assertIn("Sinhala", resp.data["languages"])
         self.assertEqual(resp.data["care_level"], "intermediate")
@@ -52,7 +52,7 @@ class VoiceIntentApiTests(APITestCase):
 
         row = VoiceIntent.objects.get(pk=resp.data["id"])
         self.assertEqual(row.user, self.user)
-        self.assertEqual(row.condition, "Diabetes")
+        self.assertEqual(row.condition, "diabetes")
 
     def test_language_hint_overrides_detection(self):
         self.client.force_authenticate(self.user)
@@ -62,7 +62,7 @@ class VoiceIntentApiTests(APITestCase):
         )
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         self.assertEqual(resp.data["language"], "English")
-        self.assertEqual(resp.data["condition"], "Asthma")
+        self.assertEqual(resp.data["condition"], "asthma")
 
 
 @override_settings(VOICE_INTENT_BACKEND="stub")
@@ -70,24 +70,24 @@ class ExtractorUnitTests(APITestCase):
     def test_tamil_script_detected(self):
         out = extract_intent("எனக்கு நீரிழிவு உள்ளது")
         self.assertEqual(out["language"], "Tamil")
-        self.assertEqual(out["condition"], "Diabetes")
+        self.assertEqual(out["condition"], "diabetes")
 
     def test_urgency_and_advanced_level(self):
         out = extract_intent("emergency: need advanced cardiac care now")
-        self.assertEqual(out["condition"], "Cardiac")
+        self.assertEqual(out["condition"], "cardiac")
         self.assertEqual(out["care_level"], "advanced")
         self.assertEqual(out["urgency"], "urgent")
         self.assertEqual(out["language"], "English")
 
     def test_sinhala_dengue_and_soon_urgency(self):
         out = extract_intent("මට ඩෙංගු තියෙනවා මට ඉක්මනින් එයා එක ඕනේ")
-        self.assertEqual(out["condition"], "Dengue")
+        self.assertEqual(out["condition"], "dengue")
         self.assertEqual(out["language"], "Sinhala")
         self.assertEqual(out["urgency"], "urgent")
 
     def test_singlish_mixed_languages(self):
         out = extract_intent("මට diabetes caregiver ඕනේ Sinhala speaking")
-        self.assertEqual(out["condition"], "Diabetes")
+        self.assertEqual(out["condition"], "diabetes")
         self.assertEqual(out["language"], "Sinhala")
         self.assertEqual(out["languages"], ["Sinhala", "English"])
 
