@@ -172,6 +172,7 @@ export function createApiClient(options: ApiClientOptions) {
       audio?: Blob | null;
       hasPriorMatch?: boolean;
       priorIntent?: Record<string, unknown> | null;
+      priorMatch?: Record<string, unknown> | null;
       uiLanguage?: 'Sinhala' | 'Tamil' | 'English';
     }) => {
       const form = new FormData();
@@ -179,6 +180,7 @@ export function createApiClient(options: ApiClientOptions) {
       if (input.audio) form.append('audio', input.audio, 'turn.webm');
       form.append('has_prior_match', input.hasPriorMatch ? 'true' : 'false');
       if (input.priorIntent) form.append('prior_intent', JSON.stringify(input.priorIntent));
+      if (input.priorMatch) form.append('prior_match', JSON.stringify(input.priorMatch));
       if (input.uiLanguage) form.append('ui_language', input.uiLanguage);
       return request(
         '/voice/turn/',

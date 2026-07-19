@@ -125,7 +125,8 @@ export const VoiceTurnIntent = z.object({
 export type VoiceTurnIntent = z.infer<typeof VoiceTurnIntent>;
 
 export const VoiceTurnResponse = z.object({
-  route: z.enum(['CHAT', 'MATCH', 'CLARIFY', 'REFINE']),
+  route: z.enum(['CHAT', 'MATCH', 'CLARIFY', 'REFINE', 'ACTION', 'EMERGENCY']),
+  situation: z.string().optional().default(''),
   transcript: z.string(),
   asr_source: z.string(),
   asr_language: z.string().optional().default(''),
@@ -137,6 +138,7 @@ export const VoiceTurnResponse = z.object({
   tts_source: z.string().optional().default(''),
   intent: VoiceTurnIntent.nullable(),
   match: MatchResponse.nullable().optional(),
+  clear_match: z.boolean().optional().default(false),
 });
 export type VoiceTurnResponse = z.infer<typeof VoiceTurnResponse>;
 

@@ -33,6 +33,7 @@ export function useVoiceTurn() {
           audio: opts.audio,
           hasPriorMatch: Boolean(store.match),
           priorIntent: store.intent as Record<string, unknown>,
+          priorMatch: store.match as unknown as Record<string, unknown>,
           uiLanguage: store.uiLanguage,
         });
         setConsentNeeded(false);
@@ -47,6 +48,10 @@ export function useVoiceTurn() {
         if (result.transcript) {
           store.setTranscript(result.transcript);
           store.setInterim('');
+        }
+
+        if (result.clear_match) {
+          store.setMatch(null);
         }
 
         if (result.intent) {
@@ -72,6 +77,17 @@ export function useVoiceTurn() {
           store.setState(AssistantState.RESULTS, { force: true });
         } else if (result.route === 'CLARIFY') {
           store.setState(AssistantState.CLARIFYING, { force: true });
+        } else if (result.route === 'EMERGENCY') {
+          store.setState(AssistantState.EMERGENCY, { force: true });
+        } else if (result.route === 'ACTION' || result.route === 'CHAT') {
+          // Keep RESULTS visible while chatting about / after matches.
+          if (store.match && !result.clear_match) {
+            store.setState(AssistantState.RESULTS, { force: true });
+          } else if (result.intent && !nextMissingField(result.intent as IntentDraft)) {
+            store.setState(AssistantState.SPEAKING, { force: true });
+          } else {
+            store.setState(AssistantState.IDLE, { force: true });
+          }
         } else if (result.intent && !nextMissingField(result.intent as IntentDraft)) {
           store.setState(AssistantState.SPEAKING, { force: true });
         } else {
