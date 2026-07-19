@@ -1,8 +1,14 @@
 import time
 
 from rest_framework import generics, permissions, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
+from django.db.models import Q
 
 from apps.accounts.permissions import HasAIConsent, RolePermission
 
@@ -18,12 +24,81 @@ from .serializers import (
 )
 
 
+class CaregiverPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class CaregiverListView(generics.ListAPIView):
-    """GET /api/v1/caregivers/ — active caregiver profiles (authenticated)."""
+    """GET /api/v1/caregivers/ — searchable active caregivers (Step 20b).
+
+    Query params (combinable):
+      q, language, specialty, city, care_level, available,
+      near=lon,lat, radius_km (default 25 when near is set)
+    """
 
     serializer_class = CaregiverProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-    queryset = CaregiverProfile.objects.filter(is_active=True).select_related("user")
+    pagination_class = CaregiverPagination
+
+    def get_queryset(self):
+        qs = CaregiverProfile.objects.filter(is_active=True).select_related("user")
+        params = self.request.query_params
+
+        q = (params.get("q") or "").strip()
+        if q:
+            qs = qs.filter(
+                Q(display_name__icontains=q)
+                | Q(bio__icontains=q)
+                | Q(city__icontains=q)
+                | Q(specialties__icontains=q)
+            )
+
+        language = (params.get("language") or "").strip()
+        if language:
+            qs = qs.filter(languages__contains=[language])
+
+        specialty = (params.get("specialty") or "").strip().lower()
+        if specialty:
+            qs = qs.filter(specialties__icontains=specialty)
+
+        city = (params.get("city") or "").strip()
+        if city:
+            qs = qs.filter(city__iexact=city)
+
+        care_level = (params.get("care_level") or "").strip().lower()
+        if care_level:
+            qs = qs.filter(care_levels__contains=[care_level])
+
+        available = (params.get("available") or "").strip().lower()
+        if available in ("1", "true", "yes"):
+            qs = qs.filter(is_available=True)
+        elif available in ("0", "false", "no"):
+            qs = qs.filter(is_available=False)
+
+        near = (params.get("near") or "").strip()
+        if near:
+            try:
+                lon_s, lat_s = near.split(",", 1)
+                lon, lat = float(lon_s.strip()), float(lat_s.strip())
+            except (TypeError, ValueError):
+                return qs.none()
+            try:
+                radius_km = float(params.get("radius_km") or 25)
+            except (TypeError, ValueError):
+                radius_km = 25.0
+            radius_km = max(0.5, min(radius_km, 500.0))
+            origin = Point(lon, lat, srid=4326)
+            qs = (
+                qs.filter(location__dwithin=(origin, D(km=radius_km)))
+                .annotate(distance=Distance("location", origin))
+                .order_by("distance", "-trust_score")
+            )
+        else:
+            qs = qs.order_by("-trust_score", "display_name")
+
+        return qs
 
 
 class PatientListView(generics.ListAPIView):

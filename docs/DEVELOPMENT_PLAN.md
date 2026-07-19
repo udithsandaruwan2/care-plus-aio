@@ -240,10 +240,9 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 
 ## M4b · Marketplace browse (old `/caregivers` + profile pages)
 
-### Step 20b — Caregiver search & filter API
+### Step 20b — Caregiver search & filter API ✅ **DONE**
 
-**Goal:** non-AI discovery.  
-**Tasks:** `GET /caregivers/?q=&language=&specialty=&city=&care_level=&available=` with PostGIS optional `near=lon,lat&radius_km=`.  
+**Done:** `GET /caregivers/?q=&language=&specialty=&city=&care_level=&available=&near=lon,lat&radius_km=` with pagination; `city` + `is_available` on profile; only `is_active` listed.
 **✅ Acceptance:** filters combine; pagination; only `is_active` caregivers.
 
 ### Step 20c — Browse UI (web)
@@ -588,4 +587,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 20b — Caregiver search & filter API**, or **15c** (vocab normalize polish) / formalize remaining M3c steps.
+**Step 20c — Browse UI (web)** (`feat/step20c-browse-ui`), or Step 15c / 21 CF.

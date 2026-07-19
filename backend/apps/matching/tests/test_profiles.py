@@ -111,8 +111,9 @@ class CaregiverListApiTests(APITestCase):
         self.client.force_authenticate(self.patient)
         resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertGreaterEqual(len(resp.data), 1)
-        row = next(r for r in resp.data if r["display_name"] == "Listed CG")
+        results = resp.data["results"] if isinstance(resp.data, dict) else resp.data
+        self.assertGreaterEqual(len(results), 1)
+        row = next(r for r in results if r["display_name"] == "Listed CG")
         self.assertAlmostEqual(row["longitude"], 80.6337, places=3)
         self.assertAlmostEqual(row["latitude"], 7.2906, places=3)
         self.assertEqual(row["trust_score"], 0.9)
