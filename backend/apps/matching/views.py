@@ -1,3 +1,5 @@
+import time
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,9 +8,14 @@ from apps.accounts.permissions import HasAIConsent, RolePermission
 
 from .ahp import build_config, get_ahp_weights
 from .embeddings import get_embedder, intent_to_text
+from .engine import run_match
 from .faiss_index import load_index
-from .models import CaregiverProfile, PatientProfile
-from .serializers import CaregiverProfileSerializer, PatientProfileSerializer
+from .models import CaregiverProfile, MatchResult, MatchRun, PatientProfile
+from .serializers import (
+    CaregiverProfileSerializer,
+    MatchRequestSerializer,
+    PatientProfileSerializer,
+)
 
 
 class CaregiverListView(generics.ListAPIView):
@@ -120,3 +127,110 @@ class AhpWeightsView(APIView):
             name: round(w, 6) for name, w in zip(factors, doc["emergency_vector"], strict=True)
         }
         return Response(doc)
+
+
+class MatchView(APIView):
+    """POST /api/v1/match/ — VEHMF ranked caregivers + breakdown + XAI (Step 19)."""
+
+    permission_classes = [permissions.IsAuthenticated, HasAIConsent]
+
+    def post(self, request):
+        ser = MatchRequestSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        # Prefer explicit lon/lat; else the caller's patient profile location.
+        lon, lat = data.get("longitude"), data.get("latitude")
+        if lon is None:
+            profile = getattr(request.user, "patient_profile", None)
+            if profile is not None and profile.location is not None:
+                lon, lat = profile.location.x, profile.location.y
+
+        t0 = time.perf_counter()
+        try:
+            out = run_match(
+                condition=data.get("condition", ""),
+                language=data.get("language", ""),
+                care_level=data.get("care_level", ""),
+                query=data.get("query", ""),
+                patient_id=request.user.pk,
+                longitude=lon,
+                latitude=lat,
+                top_k=data.get("k", 10),
+                emergency=bool(data.get("emergency")),
+            )
+        except Exception as exc:  # index missing / empty
+            return Response(
+                {"detail": f"Match engine unavailable: {exc}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+
+        run = MatchRun.objects.create(
+            user=request.user,
+            query=out.query,
+            condition=data.get("condition", ""),
+            language=data.get("language", ""),
+            care_level=data.get("care_level", ""),
+            emergency=out.emergency,
+            weights=list(out.weights),
+            latency_ms=latency_ms,
+        )
+        profiles = {
+            p.id: p
+            for p in CaregiverProfile.objects.filter(
+                id__in=[r.caregiver_id for r in out.results]
+            ).select_related("user")
+        }
+        result_rows = []
+        for rank, hit in enumerate(out.results, start=1):
+            MatchResult.objects.create(
+                run=run,
+                caregiver_id=hit.caregiver_id,
+                rank=rank,
+                score=hit.score,
+                cbf=hit.cbf,
+                cf=hit.cf,
+                geo=hit.geo,
+                trust=hit.trust,
+                explanation=hit.explanation,
+                distance_m=hit.distance_m,
+            )
+            p = profiles.get(hit.caregiver_id)
+            result_rows.append(
+                {
+                    "caregiver_id": hit.caregiver_id,
+                    "rank": rank,
+                    "score": round(hit.score, 6),
+                    "breakdown": {
+                        "cbf": round(hit.cbf, 6),
+                        "cf": round(hit.cf, 6),
+                        "geo": round(hit.geo, 6),
+                        "trust": round(hit.trust, 6),
+                    },
+                    "explanation": hit.explanation,
+                    "distance_m": None if hit.distance_m is None else round(hit.distance_m, 1),
+                    "display_name": p.display_name if p else "",
+                    "specialties": p.specialties if p else [],
+                    "languages": p.languages if p else [],
+                    "care_levels": p.care_levels if p else [],
+                    "trust_score": p.trust_score if p else None,
+                }
+            )
+
+        return Response(
+            {
+                "request_id": run.pk,
+                "latency_ms": latency_ms,
+                "query": out.query,
+                "emergency": out.emergency,
+                "weights": {
+                    "cbf": round(out.weights[0], 6),
+                    "cf": round(out.weights[1], 6),
+                    "geo": round(out.weights[2], 6),
+                    "trust": round(out.weights[3], 6),
+                },
+                "results": result_rows,
+            },
+            status=status.HTTP_201_CREATED,
+        )

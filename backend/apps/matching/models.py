@@ -87,3 +87,53 @@ class PatientProfile(models.Model):
 
     def __str__(self):
         return self.display_name or f"patient:{self.user_id}"
+
+
+class MatchRun(models.Model):
+    """One VEHMF invocation (request + latency + weights used)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="match_runs",
+        null=True,
+        blank=True,
+    )
+    query = models.TextField()
+    condition = models.CharField(max_length=120, blank=True, default="")
+    language = models.CharField(max_length=16, blank=True, default="")
+    care_level = models.CharField(max_length=16, blank=True, default="")
+    emergency = models.BooleanField(default=False)
+    weights = ArrayField(models.FloatField(), size=4, default=list)
+    latency_ms = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"MatchRun#{self.pk} ({self.latency_ms}ms)"
+
+
+class MatchResult(models.Model):
+    """One ranked caregiver row belonging to a ``MatchRun``."""
+
+    run = models.ForeignKey(MatchRun, on_delete=models.CASCADE, related_name="results")
+    caregiver = models.ForeignKey(
+        CaregiverProfile, on_delete=models.CASCADE, related_name="match_hits"
+    )
+    rank = models.PositiveSmallIntegerField()
+    score = models.FloatField()
+    cbf = models.FloatField()
+    cf = models.FloatField()
+    geo = models.FloatField()
+    trust = models.FloatField()
+    explanation = models.CharField(max_length=255)
+    distance_m = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("run", "rank")
+        unique_together = ("run", "rank")
+
+    def __str__(self):
+        return f"#{self.rank} caregiver={self.caregiver_id} score={self.score:.3f}"

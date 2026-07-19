@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
 
-from .models import CaregiverProfile, PatientProfile
+from .models import CaregiverProfile, MatchResult, MatchRun, PatientProfile
 
 
 @admin.register(CaregiverProfile)
@@ -29,3 +29,48 @@ class PatientProfileAdmin(GISModelAdmin):
     list_filter = ("preferred_language", "care_level")
     search_fields = ("display_name", "user__email", "conditions")
     readonly_fields = ("created_at", "updated_at")
+
+
+class MatchResultInline(admin.TabularInline):
+    model = MatchResult
+    extra = 0
+    readonly_fields = (
+        "rank",
+        "caregiver",
+        "score",
+        "cbf",
+        "cf",
+        "geo",
+        "trust",
+        "explanation",
+        "distance_m",
+    )
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(MatchRun)
+class MatchRunAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "query", "emergency", "latency_ms", "created_at")
+    list_filter = ("emergency",)
+    search_fields = ("query", "user__email", "condition")
+    readonly_fields = (
+        "user",
+        "query",
+        "condition",
+        "language",
+        "care_level",
+        "emergency",
+        "weights",
+        "latency_ms",
+        "created_at",
+    )
+    inlines = [MatchResultInline]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

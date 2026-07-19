@@ -182,13 +182,14 @@ emergency override `[0.80,0.05,0.05,0.10]`; env comma overrides; `build_ahp_weig
 `GET /api/v1/match/weights/`.
 **✅ Acceptance:** weights sum to 1, CR < 0.1, overrideable via env for emergencies.
 
-### Step 19 — VEHMF engine + `/api/v1/match` 🔜 **NEXT**
+### Step 19 — VEHMF engine + `/api/v1/match` ✅ **DONE**
 
-**Goal:** full fusion + XAI.  
-**Tasks:** `VEHMFEngine.predict` (CBF, geo PostGIS distance→score, trust, normalize, fuse); persist `MatchRun` + `MatchResult` rows; consent-gated.  
-**✅ Acceptance:** POST match returns ranked list + breakdown + explanation; unit tests on fusion math; p95 < 800 ms on 25 seed caregivers.
+**Done:** `VEHMFEngine` fuses CBF (FAISS) + CF stub + PostGIS geo + trust with AHP
+weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
+`POST /api/v1/match/` returns ranked list + breakdown + latency.
+**✅ Acceptance:** POST match returns ranked list + breakdown + explanation; unit tests on fusion math; p95 < 800 ms on seed caregivers.
 
-### Step 20 — Match WebSocket + result UX
+### Step 20 — Match WebSocket + result UX 🔜 **NEXT**
 
 **Goal:** voice → SPEAKING → MATCHING → RESULTS with cards.  
 **Tasks:** `ws/match/{patient_id}`; result cards (score, breakdown bars, XAI, distance, languages); latency badge; “Request this caregiver” CTA (wires to M6).  
@@ -546,4 +547,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 19 — VEHMF engine + `/api/v1/match`** (`feat/step19-vehmf-engine`).
+**Step 20 — Match over WebSocket + result UX** (`feat/step20-match-ux`).
