@@ -1,6 +1,6 @@
 # Care Plus — Full Product Development Plan
 
-> **Status:** Active build plan **v0.2** (full-platform precision edition)  
+> **Status:** Active build plan **v0.3** (full-platform + conversational loop)  
 > Companions: [ARCHITECTURE.md](ARCHITECTURE.md) · [FRONTEND.md](FRONTEND.md) · [PRODUCT_VISION.md](PRODUCT_VISION.md) · [PROGRESS.md](../PROGRESS.md)  
 > **Reference product:** `Old Care Plus/care-plus-main` (Lumora / Care Plus HND platform) — product completeness target, **not** the tech stack to copy.
 
@@ -30,6 +30,7 @@
 | 8 | Medical labels | Versioned **canonical vocab** + stub synonyms + Gemini normalize-to-vocab | See M3b / Step 15b |
 | 9 | Payments | Real LKR rails later; MVP = verified mock → PayHere/Stripe | Never fake “success” without a PaymentIntent |
 | 10 | Comms | In-app messaging + email notifications (not SMTP-as-hire-workflow) | Old `Email` model becomes `CareRequest` + `Message` |
+| 11 | Conversation | **One Neural Core mic** = multi-turn dialogue; **router** picks CHAT vs MATCH vs REFINE vs ACTION | Gemini/local for talk; **VEHMF only** for caregiver ranking (never Gemini re-rank) |
 
 ---
 
@@ -40,8 +41,8 @@ The finished Care Plus platform must deliver **everything the old app aimed for*
 | Old capability | New delivery |
 |----------------|--------------|
 | Patient ↔ caregiver Sri Lanka marketplace | Profiles + browse/search + map + VEHMF match |
-| ML + Gemini (“Serah”) recommendations | VEHMF + XAI; Serah = grounded chat assistant |
-| Voice assistant (browser STT/TTS) | Neural Core voice → intent → match |
+| ML + Gemini (“Serah”) recommendations | VEHMF + XAI for ranking; Serah = conversational persona (chat + clarify + explain matches) |
+| Voice assistant (browser STT/TTS) | **Multi-turn** Neural Core: talk ↔ Serah reply ↔ talk again; router → chat **or** VEHMF match |
 | Hire request → accept/reject → pay → active link | First-class `CareRequest` + `CareRelationship` + payments |
 | Medical records + health profile | Encrypted records + Timescale vitals (upgrade) |
 | Admin analytics + KnownCondition catalog | Admin console + medical vocab admin |
@@ -59,7 +60,7 @@ Full mapping: [PRODUCT_VISION.md](PRODUCT_VISION.md).
 
 ---
 
-## 2. Milestone map (v0.2 — 75 steps)
+## 2. Milestone map (v0.3 — ~80 steps)
 
 | Milestone | Steps | Outcome |
 |-----------|-------|---------|
@@ -67,8 +68,9 @@ Full mapping: [PRODUCT_VISION.md](PRODUCT_VISION.md).
 | **M1 · Auth & Consent** | 6–8 ✅ | JWT, RBAC, consent, audit |
 | **M2 · Web shell + Neural Core** | 9–12 ✅ | Aurora Neural + brain + FSM |
 | **M3 · Voice → Intent** | 13–15 ✅ | Mic → Gemini/stub → chips + Goal Ring |
-| **M3b · Medical vocab & Serah chat** | 15b–15e | Canonical conditions, normalize, grounded Serah |
-| **M4 · VEHMF v1 + Match UX** | 16–20 | Ranked, explained matches (voice → results) |
+| **M3b · Medical vocab & Serah chat** | 15b–15e | Canonical conditions, normalize, grounded Serah API/UI |
+| **M3c · Conversational dialogue loop** | 15f–15j | Multi-turn talk ↔ reply; router CHAT vs MATCH vs REFINE |
+| **M4 · VEHMF v1 + Match UX** | 16–20 ✅ | Ranked, explained matches (voice → results) |
 | **M4b · Marketplace browse** | 20b–20e | Search/filter/map/caregiver detail (old `/caregivers`) |
 | **M5 · Personalization (CF)** | 21–22 | ALS blended into fusion |
 | **M5b · Profiles & onboarding** | 22b–22f | Rich patient/caregiver profiles (old Profile fields) |
@@ -85,8 +87,8 @@ Full mapping: [PRODUCT_VISION.md](PRODUCT_VISION.md).
 | **M16 · Compliance & hardening** | 68–71 | Encryption, erasure, TLS, load tests |
 | **M17 · Ship** | 72–75 | CI/CD, deploy, stores, launch checklist |
 
-**Current position:** Steps **1–16 done**. **Next executable step: 17** (embeddings + FAISS).  
-Steps **15b–15e** (vocab/Serah) can run **in parallel after 17** or immediately after 16 if matching is paused — prefer **17 → 20 first** so voice→match closes the research loop, then 15b polish.
+**Current position:** Steps **1–20 done** (voice → VEHMF cards). **Next:** 20b browse, or **15b→15j** for vocab + conversational loop, or 21 CF.  
+Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** before polish so the mic feels like a real assistant, not a one-shot form.
 
 ---
 
@@ -150,15 +152,62 @@ Steps **15b–15e** (vocab/Serah) can run **in parallel after 17** or immediatel
 
 ### Step 15d — Serah grounded chat API (advice mode)
 
-**Goal:** recreate old `/dashboard/ai` with safety.  
-**Tasks:** `POST /api/v1/serah/chat` — Gemini with patient profile + recent intents + disclaimer; no diagnosis claims; consent-gated; audit.  
+**Goal:** recreate old `/dashboard/ai` with safety (tool used by the dialogue router).  
+**Tasks:** `POST /api/v1/serah/chat` — Gemini (or local stub when no key) with patient profile + recent intents + disclaimer; no diagnosis claims; consent-gated; audit.  
 **✅ Acceptance:** authenticated patient gets contextual reply; unauthenticated/no consent → 401/451; response includes disclaimer footer.
 
 ### Step 15e — Serah chat UI + TTS
 
-**Goal:** web chat panel (old `ai.html` voice UX) beside Neural Core.  
+**Goal:** visible chat transcript + optional readback (feeds the unified mic loop in M3c).  
 **Tasks:** chat transcript UI; optional `speechSynthesis` readback; link “Ask Serah about this match”.  
-**✅ Acceptance:** patient can chat + hear reply; mic still drives match pipeline separately.
+**✅ Acceptance:** patient can chat + hear reply.
+
+---
+
+## M3c · Conversational dialogue loop (talk ↔ reply ↔ talk)
+
+> **Why:** Today the mic is a one-shot form (“speak need → cards”). The finished product must feel like **talking to Serah**: normal conversation stays in chat; caregiver-finding turns call **VEHMF**; after cards, the patient can keep talking to refine or ask questions.
+
+### Step 15f — Turn router (CHAT | MATCH | REFINE | ACTION | EMERGENCY)
+
+**Goal:** classify each spoken/typed turn before choosing a backend.  
+**Tasks:**
+- `POST /api/v1/dialogue/turn` (or extend voice intent) returns `{ route, intent?, reply_hint? }`
+- Routes:
+  - **CHAT** — general care questions, empathy, how Care Plus works → Serah (Gemini or local stub)
+  - **MATCH** — patient wants caregivers → extract goal fields → VEHMF (`POST /match/`)
+  - **REFINE** — after RESULTS (“closer”, “Tamil”, “female”, “about #2”) → update filters → re-run VEHMF
+  - **ACTION** — “request the first one” / “book” → hire CTA (Step 23+)
+  - **EMERGENCY** — urgent language → emergency weights + alert UX
+- Never let Gemini invent caregiver rankings; ranking stays VEHMF + XAI only
+
+**✅ Acceptance:** fixture phrases map to correct routes (≥90% on a small labeled set); MATCH never returns Gemini-picked IDs.
+
+**Depends on:** 15d, 20. **Feeds:** 15g–15j, 23.
+
+### Step 15g — Conversation session + memory
+
+**Goal:** multi-turn context without losing chips/results.  
+**Tasks:** `DialogueSession` (user, lang, route history, last `MatchRun`, open questions); store last N turns; FSM stays on RESULTS while chatting about matches; “New request” clears session.  
+**✅ Acceptance:** after cards, asking “why is #1 ranked high?” keeps RESULTS visible and answers with that run’s XAI; “find someone else” triggers REFINE/MATCH.
+
+### Step 15h — Unified Neural Core conversation loop (UI)
+
+**Goal:** one mic, continuous dialogue — not a separate Serah panel forever.  
+**Tasks:** after every turn, Serah speaks/shows a short reply; mic re-arms (or “Tap to continue”); LISTENING ↔ THINKING ↔ (SPEAKING|CHAT_REPLY|MATCHING|RESULTS); Goal Ring still fills on MATCH/REFINE; chat bubbles for Serah lines.  
+**✅ Acceptance:** user can: greet → ask diabetes tip (CHAT) → “find me a Sinhala caregiver” (MATCH → cards) → “someone closer” (REFINE) without leaving the home screen.
+
+### Step 15i — Post-match conversational refine
+
+**Goal:** talk to adjust the shortlist.  
+**Tasks:** map refine phrases → filter deltas (language, care_level, max_distance_km, specialty); re-call VEHMF; push via existing `ws/match/`; highlight changed ranks.  
+**✅ Acceptance:** “only Tamil speakers within 5 km” updates cards; latency badge still shown.
+
+### Step 15j — Local / Gemini policy for dialogue
+
+**Goal:** clear AI split so cost and PDPA stay sane.  
+**Tasks:** document + env: `DIALOGUE_CHAT_BACKEND=gemini|stub`; MATCH/REFINE always local VEHMF; stub chat for CI/offline; rate-limit Gemini chat; audit every turn route.  
+**✅ Acceptance:** with no `GEMINI_API_KEY`, CHAT still replies via stub; MATCH still returns real seed caregivers.
 
 ---
 
@@ -522,11 +571,11 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 
 | Track | Steps | When |
 |-------|-------|------|
-| A · Research core | 17→20 | **Primary now** |
-| B · Vocab/Serah | 15b→15e | After 16; can overlap 18–19 |
-| C · Marketplace UI | 20b→20e | After 16; before or after 20 |
-| D · Hire/pay | 23→33 | After 20 (needs Request CTA) |
-| E · Mobile | 62→67 | After web patient flow stable (≈ after 33) |
+| A · Research core | 17→20 ✅ | Done |
+| B · Vocab + Serah + **dialogue loop** | 15b→15j | After 20; can overlap 20b–22 |
+| C · Marketplace UI | 20b→20e | After 16; before or after dialogue |
+| D · Hire/pay | 23→33 | After 20 (needs Request CTA); ACTION route in 15f wires later |
+| E · Mobile | 62→67 | After web patient flow stable (≈ after 33 + 15h) |
 
 ---
 
@@ -546,4 +595,5 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 20b — Caregiver search & filter API** (`feat/step20b-caregiver-search`), or Step 21 CF / 15b vocab.
+**Product feel:** Step **15f** (turn router) closes the “talk like an assistant” gap — or keep shipping marketplace with **20b**.  
+**Default suggestion:** **15b → 15f → 15h** (vocab + router + unified mic loop), then 20b browse.
