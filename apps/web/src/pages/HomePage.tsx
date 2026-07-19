@@ -11,10 +11,14 @@ import { GoalRing } from '../assistant/GoalRing';
 import { EntityChips } from '../assistant/EntityChips';
 import { Transcript } from '../assistant/Transcript';
 import { StateStepper } from '../assistant/StateStepper';
-import { useSpeechRecognition, type RecognitionLang } from '../assistant/useSpeechRecognition';
+import { useSpeechRecognition } from '../assistant/useSpeechRecognition';
 import { useIntentExtraction } from '../assistant/useIntentExtraction';
 import { MatchResultCards } from '../assistant/MatchResultCards';
 import { useMatch, useMatchSocket } from '../assistant/useMatch';
+import {
+  guessRecognitionLang,
+  recognitionLangLabel,
+} from '../assistant/guessRecognitionLang';
 
 const CLARIFY_PROMPTS: Record<string, string> = {
   condition: 'What condition or symptom should I focus on?',
@@ -26,16 +30,10 @@ const NeuralCoreCanvas = lazy(() =>
   import('../neural-core/NeuralCoreCanvas').then((m) => ({ default: m.NeuralCoreCanvas })),
 );
 
-const LANGS: { id: RecognitionLang; label: string }[] = [
-  { id: 'si-LK', label: 'සිංහල' },
-  { id: 'ta-LK', label: 'தமிழ்' },
-  { id: 'en-US', label: 'EN' },
-];
-
 export function HomePage() {
   const { user, logout } = useAuth();
   const [health, setHealth] = useState<string>('…');
-  const [lang, setLang] = useState<RecognitionLang>('si-LK');
+  const [asrLang, setAsrLang] = useState(() => guessRecognitionLang());
   const mic = useMicAmplitude();
   const reducedMotion = useReducedMotion();
   const { state, intent, transcript, interim, match, matchError, setState, setInterim, appendTranscript, reset } =
@@ -51,13 +49,22 @@ export function HomePage() {
   useMatchSocket();
 
   const speech = useSpeechRecognition({
-    lang,
-    onInterim: (text) => setInterim(text),
-    onFinal: (text) => appendTranscript(text),
+    lang: asrLang,
+    onInterim: (text) => {
+      setInterim(text);
+      // Nudge ASR locale toward local script as soon as we hear it.
+      const next = guessRecognitionLang(`${useAssistant.getState().transcript} ${text}`);
+      setAsrLang((prev) => (prev === next ? prev : next));
+    },
+    onFinal: (text) => {
+      appendTranscript(text);
+      const next = guessRecognitionLang(`${useAssistant.getState().transcript} ${text}`);
+      setAsrLang((prev) => (prev === next ? prev : next));
+    },
     onEnd: () => {
       mic.stop();
       // Silence / stop → understand what was said, filling the ring & chips.
-      void extract(useAssistant.getState().transcript, lang);
+      void extract(useAssistant.getState().transcript);
     },
   });
 
@@ -92,6 +99,7 @@ export function HomePage() {
     // for a brand-new session.
     if (current !== AssistantState.CLARIFYING) {
       reset();
+      setAsrLang(guessRecognitionLang());
     } else {
       setInterim('');
     }
@@ -102,7 +110,7 @@ export function HomePage() {
 
   async function onGrantConsent() {
     const ok = await grantConsent();
-    if (ok) void extract(useAssistant.getState().transcript, lang);
+    if (ok) void extract(useAssistant.getState().transcript);
   }
 
   const progress = Math.round(goalRingProgress(intent) * 100);
@@ -131,24 +139,15 @@ export function HomePage() {
           </button>
         </div>
 
-        {/* Language selector */}
-        <div className="mx-auto mt-6 flex gap-1.5">
-          {LANGS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              onClick={() => setLang(l.id)}
-              disabled={listening}
-              className={`rounded-full border px-3 py-1 text-sm transition disabled:opacity-50 ${
-                lang === l.id
-                  ? 'border-cyan text-cyan'
-                  : 'border-hair text-muted hover:border-cyan/40'
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
+        {/* Auto language — no manual picker; ASR follows script / browser locale */}
+        <p className="mx-auto mt-6 text-center text-xs text-muted">
+          Listening as <span className="text-cyan">{recognitionLangLabel(asrLang)}</span>
+          {intent.languages && intent.languages.length > 1
+            ? ` · heard ${intent.languages.join(' + ')}`
+            : ''}
+          {' · '}
+          mix Sinhala/Tamil with English anytime
+        </p>
 
         {/* Neural Core inside the Goal Ring */}
         <section className="relative mx-auto mt-4 flex w-full max-w-lg flex-col items-center">

@@ -19,6 +19,8 @@ export type GoalField = (typeof GOAL_FIELDS)[number];
 export type IntentDraft = {
   condition?: string;
   language?: 'Sinhala' | 'Tamil' | 'English';
+  /** All languages detected (code-switching). */
+  languages?: Array<'Sinhala' | 'Tamil' | 'English'>;
   care_level?: 'basic' | 'intermediate' | 'advanced';
   urgency?: 'routine' | 'urgent' | 'critical';
   raw_text?: string;

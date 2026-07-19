@@ -1,15 +1,8 @@
 import { useCallback, useState } from 'react';
-import { ApiError, AI_CONSENT_SCOPE, type VoiceLanguage } from '@care-plus/api-client';
+import { ApiError, AI_CONSENT_SCOPE } from '@care-plus/api-client';
 import { AssistantState, nextMissingField, type IntentDraft } from '@care-plus/core';
 import { api } from '../auth/api';
 import { useAssistant } from './store';
-import type { RecognitionLang } from './useSpeechRecognition';
-
-const LANG_HINT: Record<RecognitionLang, VoiceLanguage> = {
-  'si-LK': 'Sinhala',
-  'ta-LK': 'Tamil',
-  'en-US': 'English',
-};
 
 const CONSENT_STATUS = 451;
 
@@ -17,6 +10,9 @@ const CONSENT_STATUS = 451;
  * Sends a finalized transcript to the backend voice/intent endpoint, merges the
  * structured result into the assistant store, and drives the FSM to SPEAKING
  * (all required fields captured) or CLARIFYING (a field is still missing).
+ *
+ * Language is auto-detected on the server (including Singlish / Tanglish mixes);
+ * the client does not send a language hint.
  *
  * The endpoint is consent-gated (HTTP 451): if AI consent is missing we surface
  * `consentNeeded` so the UI can offer a one-tap opt-in and retry.
@@ -26,7 +22,7 @@ export function useIntentExtraction() {
   const [error, setError] = useState<string | null>(null);
   const [consentNeeded, setConsentNeeded] = useState(false);
 
-  const extract = useCallback(async (text: string, lang: RecognitionLang) => {
+  const extract = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) {
       // Nothing was heard — fall back to a re-prompt rather than a dead end.
@@ -40,7 +36,7 @@ export function useIntentExtraction() {
     store.setState(AssistantState.THINKING, { force: true });
 
     try {
-      const result = await api.voiceIntent({ text: trimmed, language: LANG_HINT[lang] });
+      const result = await api.voiceIntent({ text: trimmed });
       setConsentNeeded(false);
 
       // Only overwrite fields the extractor actually filled — keeps prior chips
@@ -48,6 +44,7 @@ export function useIntentExtraction() {
       const draft: Partial<IntentDraft> = { raw_text: result.raw_text };
       if (result.condition) draft.condition = result.condition;
       if (result.language) draft.language = result.language;
+      if (result.languages?.length) draft.languages = result.languages;
       if (result.care_level) draft.care_level = result.care_level;
       if (result.urgency) draft.urgency = result.urgency;
       store.setIntent(draft);
@@ -77,8 +74,8 @@ export function useIntentExtraction() {
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save consent.');
-      return false;
     }
+    return false;
   }, []);
 
   return { extract, extracting, error, consentNeeded, grantConsent, setError };

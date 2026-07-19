@@ -18,6 +18,7 @@ class VoiceIntentSerializer(serializers.ModelSerializer):
             "raw_text",
             "condition",
             "language",
+            "languages",
             "care_level",
             "urgency",
             "source",

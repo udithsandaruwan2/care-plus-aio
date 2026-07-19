@@ -35,6 +35,8 @@ class VoiceIntent(models.Model):
     raw_text = models.TextField()
     condition = models.CharField(max_length=120, blank=True, default="")
     language = models.CharField(max_length=16, choices=Language.choices)
+    # All languages detected in the utterance (Singlish / Tanglish mixes).
+    languages = models.JSONField(default=list, blank=True)
     care_level = models.CharField(max_length=16, choices=CareLevel.choices)
     urgency = models.CharField(max_length=16, choices=Urgency.choices, default=Urgency.ROUTINE)
     source = models.CharField(max_length=16, default="stub")

@@ -116,7 +116,7 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 # ── Cognitive layer (voice → intent) ─────────────────────────────
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
-GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-1.5-flash")
+GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
 # "gemini" when a key is present, else deterministic "stub" (dev/tests/offline).
 VOICE_INTENT_BACKEND = env(
     "VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"

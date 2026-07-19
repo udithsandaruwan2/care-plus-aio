@@ -2,13 +2,17 @@
 
 Two backends behind one ``extract_intent`` function:
 
-* **gemini** — Google Gemini 1.5 Flash with ``response_mime_type=application/json``
+* **gemini** — Google Gemini with ``response_mime_type=application/json``
   and a strict schema (used when ``GEMINI_API_KEY`` is set).
 * **stub** — deterministic keyword/script heuristics (dev / tests / offline),
   so the pipeline works and is reproducible without any external call.
 
 Both return a dict validated against the model choices:
-``{condition, language, care_level, urgency, raw_text, source}``.
+``{condition, language, languages, care_level, urgency, raw_text, source}``.
+
+``language`` = preferred care language (primary).
+``languages`` = all detected in the utterance (supports Sinhala–English /
+Tamil–English code-switching).
 """
 
 from __future__ import annotations
@@ -22,6 +26,7 @@ from .models import CareLevel, Language, Urgency
 # Unicode blocks for script detection.
 _SINHALA_RE = re.compile(r"[\u0D80-\u0DFF]")
 _TAMIL_RE = re.compile(r"[\u0B80-\u0BFF]")
+_LATIN_WORD_RE = re.compile(r"[A-Za-z]{2,}")
 
 # condition keywords → canonical English label (Sinhala/Tamil/English).
 _CONDITION_MAP: list[tuple[re.Pattern[str], str]] = [
@@ -57,18 +62,53 @@ _URGENCY_MAP: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def detect_language(text: str, hint: str | None = None) -> str:
-    if hint in Language.values:
-        return hint
+def detect_languages(text: str) -> list[str]:
+    """All languages present in the utterance (script + Latin + explicit names).
+
+    Order is stable: Sinhala → Tamil → English. Empty text → ``[English]``.
+    """
+    found: set[str] = set()
     if _SINHALA_RE.search(text):
-        return Language.SINHALA
+        found.add(Language.SINHALA)
     if _TAMIL_RE.search(text):
-        return Language.TAMIL
-    # Explicit language mentions.
+        found.add(Language.TAMIL)
+    if _LATIN_WORD_RE.search(text):
+        found.add(Language.ENGLISH)
+    if re.search(r"සිංහල|sinhala", text, re.I):
+        found.add(Language.SINHALA)
+    if re.search(r"දෙමළ|தமிழ்|tamil", text, re.I):
+        found.add(Language.TAMIL)
+    if re.search(r"\benglish\b|ඉංග්‍රීසි|ஆங்கிலம்", text, re.I):
+        found.add(Language.ENGLISH)
+    if not found:
+        found.add(Language.ENGLISH)
+    order = [Language.SINHALA, Language.TAMIL, Language.ENGLISH]
+    return [lang for lang in order if lang in found]
+
+
+def detect_language(text: str, hint: str | None = None) -> str:
+    """Preferred care language for matching (single primary).
+
+    Priority: explicit caregiver-language request → dominant local script →
+    soft API hint (only when no local script) → English.
+    """
+    # Explicit preference in the utterance wins (Singlish/Tanglish included).
     if re.search(r"සිංහල|sinhala", text, re.I):
         return Language.SINHALA
     if re.search(r"දෙමළ|தமிழ்|tamil", text, re.I):
         return Language.TAMIL
+    if re.search(r"\benglish\b|ඉංග්‍රීසි|ஆங்கிலம்", text, re.I) and not (
+        _SINHALA_RE.search(text) or _TAMIL_RE.search(text)
+    ):
+        return Language.ENGLISH
+
+    langs = detect_languages(text)
+    for preferred in (Language.SINHALA, Language.TAMIL):
+        if preferred in langs:
+            return preferred
+
+    if hint in Language.values:
+        return hint
     return Language.ENGLISH
 
 
@@ -81,12 +121,17 @@ def _first_match(text: str, table: list[tuple[re.Pattern[str], str]], default: s
 
 def extract_stub(text: str, hint_language: str | None = None) -> dict:
     condition = _first_match(text, _CONDITION_MAP, default="")
+    languages = detect_languages(text)
     language = detect_language(text, hint_language)
+    # Ensure primary is always listed.
+    if language not in languages:
+        languages = [language, *[lng for lng in languages if lng != language]]
     care_level = _first_match(text, _LEVEL_MAP, default=CareLevel.INTERMEDIATE)
     urgency = _first_match(text, _URGENCY_MAP, default=Urgency.ROUTINE)
     return {
         "condition": condition,
         "language": language,
+        "languages": languages,
         "care_level": care_level,
         "urgency": urgency,
         "raw_text": text,
@@ -98,11 +143,20 @@ _SCHEMA_HINT = {
     "type": "object",
     "properties": {
         "condition": {"type": "string", "description": "Primary medical condition in English"},
-        "language": {"type": "string", "enum": list(Language.values)},
+        "language": {
+            "type": "string",
+            "enum": list(Language.values),
+            "description": "Preferred care language for the caregiver",
+        },
+        "languages": {
+            "type": "array",
+            "items": {"type": "string", "enum": list(Language.values)},
+            "description": "All languages mixed in the utterance (code-switching)",
+        },
         "care_level": {"type": "string", "enum": list(CareLevel.values)},
         "urgency": {"type": "string", "enum": list(Urgency.values)},
     },
-    "required": ["language", "care_level", "urgency"],
+    "required": ["language", "languages", "care_level", "urgency"],
 }
 
 
@@ -119,13 +173,20 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
             settings.GEMINI_MODEL,
             system_instruction=(
                 "You extract structured caregiver-matching intent from a patient's "
-                "utterance (Sinhala, Tamil, or English). Return ONLY JSON matching the "
-                "schema. condition must be an English medical label (or empty). "
+                "utterance. Patients in Sri Lanka often mix Sinhala+English (Singlish) "
+                "or Tamil+English (Tanglish) in one sentence — detect ALL languages used "
+                "in `languages`, and set `language` to the preferred care language "
+                "(usually the local language if present, unless they ask for English). "
+                "Return ONLY JSON matching the schema. condition must be an English "
+                "medical label (or empty). "
                 "care_level ∈ basic|intermediate|advanced. urgency ∈ routine|urgent|critical."
             ),
         )
+        prompt = text
+        if hint_language:
+            prompt = f"(UI language hint was {hint_language}; prefer auto-detect from text)\n{text}"
         resp = model.generate_content(
-            text,
+            prompt,
             generation_config={
                 "response_mime_type": "application/json",
                 "response_schema": _SCHEMA_HINT,
@@ -143,6 +204,15 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
     language = data.get("language")
     if language not in Language.values:
         language = stub["language"]
+    raw_langs = data.get("languages") or stub["languages"]
+    languages: list[str] = []
+    for lng in raw_langs:
+        if lng in Language.values and lng not in languages:
+            languages.append(lng)
+    if language not in languages:
+        languages.insert(0, language)
+    if not languages:
+        languages = stub["languages"]
     care_level = data.get("care_level")
     if care_level not in CareLevel.values:
         care_level = stub["care_level"]
@@ -152,6 +222,7 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
     return {
         "condition": (data.get("condition") or stub["condition"]).strip(),
         "language": language,
+        "languages": languages,
         "care_level": care_level,
         "urgency": urgency,
         "raw_text": text,

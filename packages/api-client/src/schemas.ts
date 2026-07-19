@@ -54,6 +54,8 @@ export const VoiceIntent = z.object({
   raw_text: z.string(),
   condition: z.string(),
   language: VoiceLanguage,
+  /** All languages mixed in the utterance (Singlish / Tanglish). */
+  languages: z.array(VoiceLanguage).optional().default([]),
   care_level: z.enum(['basic', 'intermediate', 'advanced']),
   urgency: z.enum(['routine', 'urgent', 'critical']),
   source: z.string(),
