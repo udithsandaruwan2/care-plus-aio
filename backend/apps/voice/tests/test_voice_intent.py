@@ -12,7 +12,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import ConsentLog, ConsentScope
-from apps.voice.extraction import detect_language, detect_languages, extract_intent
+from apps.voice.backends import extract_intent
+from apps.voice.extraction import detect_language, detect_languages
 from apps.voice.models import VoiceIntent
 
 User = get_user_model()

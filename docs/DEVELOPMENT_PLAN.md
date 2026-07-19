@@ -20,7 +20,7 @@
 
 | # | Decision | Locked default | Note |
 |---|----------|----------------|------|
-| 1 | ASR | Web Speech (web) / on-device (mobile) + server `faster-whisper` fallback | No GPU at runtime |
+| 1 | ASR | Web Speech **captions** + server ASR (`ASR_BACKEND=auto` → Gemini audio; `faster_whisper` slot empty) | Browser STT alone is English-biased for si/ta |
 | 2 | CF | `implicit` ALS → LightFM upgrade path | Pluggable `CFModel` |
 | 3 | Time-series | TimescaleDB | One DB |
 | 4 | Embeddings | `intfloat/multilingual-e5-base` (768-d) | FAISS CBF |
@@ -31,6 +31,7 @@
 | 9 | Payments | Real LKR rails later; MVP = verified mock → PayHere/Stripe | Never fake “success” without a PaymentIntent |
 | 10 | Comms | In-app messaging + email notifications (not SMTP-as-hire-workflow) | Old `Email` model becomes `CareRequest` + `Message` |
 | 11 | Conversation | **One Neural Core mic** = multi-turn dialogue; **router** picks CHAT vs MATCH vs REFINE vs ACTION | Gemini/local for talk; **VEHMF only** for caregiver ranking (never Gemini re-rank) |
+| 12 | Intent NLP | `VOICE_INTENT_BACKEND=stub\|gemini\|local` (`LOCAL_LLM_URL` empty until you add a model) | Pluggable local slot |
 
 ---
 

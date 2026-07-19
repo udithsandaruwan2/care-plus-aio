@@ -228,10 +228,3 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
         "raw_text": text,
         "source": "gemini",
     }
-
-
-def extract_intent(text: str, hint_language: str | None = None) -> dict:
-    backend = getattr(settings, "VOICE_INTENT_BACKEND", "stub")
-    if backend == "gemini" and settings.GEMINI_API_KEY:
-        return extract_gemini(text, hint_language)
-    return extract_stub(text, hint_language)

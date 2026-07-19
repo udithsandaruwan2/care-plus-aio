@@ -12,9 +12,10 @@ import { EntityChips } from '../assistant/EntityChips';
 import { Transcript } from '../assistant/Transcript';
 import { StateStepper } from '../assistant/StateStepper';
 import { useSpeechRecognition } from '../assistant/useSpeechRecognition';
-import { useIntentExtraction } from '../assistant/useIntentExtraction';
 import { MatchResultCards } from '../assistant/MatchResultCards';
-import { useMatch, useMatchSocket } from '../assistant/useMatch';
+import { useMatchSocket } from '../assistant/useMatch';
+import { useAudioRecorder } from '../assistant/useAudioRecorder';
+import { useVoiceTurn } from '../assistant/useVoiceTurn';
 import {
   guessRecognitionLang,
   recognitionLangLabel,
@@ -34,25 +35,42 @@ export function HomePage() {
   const { user, logout } = useAuth();
   const [health, setHealth] = useState<string>('…');
   const [asrLang, setAsrLang] = useState(() => guessRecognitionLang());
+  const [conversationOn, setConversationOn] = useState(false);
+  const conversationOnRef = useRef(false);
+  conversationOnRef.current = conversationOn;
   const mic = useMicAmplitude();
   const reducedMotion = useReducedMotion();
-  const { state, intent, transcript, interim, match, matchError, setState, setInterim, appendTranscript, reset } =
-    useAssistant();
+  const recorder = useAudioRecorder();
   const {
-    extract,
-    extracting,
-    error: intentError,
+    state,
+    intent,
+    transcript,
+    interim,
+    match,
+    setState,
+    setInterim,
+    appendTranscript,
+    reset,
+  } = useAssistant();
+  const {
+    runTurn,
+    busy,
+    error: turnError,
     consentNeeded,
     grantConsent,
-  } = useIntentExtraction();
-  const { runMatch } = useMatch();
+    serahReply,
+    asrSource,
+    stopSpeaking,
+  } = useVoiceTurn();
   useMatchSocket();
+
+  const endingRef = useRef(false);
+  const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
 
   const speech = useSpeechRecognition({
     lang: asrLang,
     onInterim: (text) => {
       setInterim(text);
-      // Nudge ASR locale toward local script as soon as we hear it.
       const next = guessRecognitionLang(`${useAssistant.getState().transcript} ${text}`);
       setAsrLang((prev) => (prev === next ? prev : next));
     },
@@ -62,11 +80,34 @@ export function HomePage() {
       setAsrLang((prev) => (prev === next ? prev : next));
     },
     onEnd: () => {
-      mic.stop();
-      // Silence / stop → understand what was said, filling the ring & chips.
-      void extract(useAssistant.getState().transcript);
+      if (endingRef.current) return;
+      endingRef.current = true;
+      void (async () => {
+        mic.stop();
+        const audio = await recorder.stop();
+        const text = useAssistant.getState().transcript;
+        await runTurn({
+          text,
+          audio,
+          continueListening: () => {
+            if (!conversationOnRef.current) return;
+            void resumeListeningRef.current();
+          },
+        });
+        endingRef.current = false;
+      })();
     },
   });
+
+  resumeListeningRef.current = async () => {
+    endingRef.current = false;
+    setInterim('');
+    useAssistant.getState().setTranscript('');
+    await mic.start();
+    await recorder.start();
+    speech.start();
+    setState(AssistantState.LISTENING, { force: true });
+  };
 
   useEffect(() => {
     api
@@ -75,42 +116,40 @@ export function HomePage() {
       .catch(() => setHealth('unreachable'));
   }, []);
 
-  // SPEAKING (intent complete) → auto-run VEHMF → RESULTS cards.
-  const prevState = useRef(state);
-  useEffect(() => {
-    if (state === AssistantState.SPEAKING && prevState.current !== AssistantState.SPEAKING) {
-      void runMatch();
-    }
-    prevState.current = state;
-  }, [state, runMatch]);
-
   const listening = mic.active || speech.listening;
 
   async function toggleMic() {
-    if (listening) {
-      // Stopping the recognizer fires `onEnd`, which runs intent extraction.
+    if (listening || busy) {
+      setConversationOn(false);
+      stopSpeaking();
       speech.stop();
       mic.stop();
+      await recorder.stop();
       return;
     }
 
     const current = useAssistant.getState().state;
-    // Keep chips/transcript when answering a CLARIFYING follow-up; only wipe
-    // for a brand-new session.
-    if (current !== AssistantState.CLARIFYING) {
+    if (current !== AssistantState.CLARIFYING && current !== AssistantState.RESULTS) {
       reset();
       setAsrLang(guessRecognitionLang());
     } else {
       setInterim('');
+      useAssistant.getState().setTranscript('');
     }
+    setConversationOn(true);
+    endingRef.current = false;
     await mic.start();
+    await recorder.start();
     speech.start();
     setState(AssistantState.LISTENING, { force: true });
   }
 
   async function onGrantConsent() {
     const ok = await grantConsent();
-    if (ok) void extract(useAssistant.getState().transcript);
+    if (ok) {
+      const audio = null;
+      await runTurn({ text: useAssistant.getState().transcript, audio });
+    }
   }
 
   const progress = Math.round(goalRingProgress(intent) * 100);
@@ -139,17 +178,17 @@ export function HomePage() {
           </button>
         </div>
 
-        {/* Auto language — no manual picker; ASR follows script / browser locale */}
-        <p className="mx-auto mt-6 text-center text-xs text-muted">
-          Listening as <span className="text-cyan">{recognitionLangLabel(asrLang)}</span>
+        <p className="mx-auto mt-6 max-w-md text-center text-xs text-muted">
+          Conversational Serah · captions{' '}
+          <span className="text-cyan">{recognitionLangLabel(asrLang)}</span>
+          {asrSource ? ` · ASR ${asrSource}` : ''}
           {intent.languages && intent.languages.length > 1
             ? ` · heard ${intent.languages.join(' + ')}`
             : ''}
-          {' · '}
-          mix Sinhala/Tamil with English anytime
+          <br />
+          Audio goes to the server for Sinhala / Tamil / English (browser STT is captions only).
         </p>
 
-        {/* Neural Core inside the Goal Ring */}
         <section className="relative mx-auto mt-4 flex w-full max-w-lg flex-col items-center">
           <button
             type="button"
@@ -177,32 +216,28 @@ export function HomePage() {
           </button>
 
           <p className="mt-2 font-display text-sm tracking-wide text-cyan" aria-live="polite">
-            {state} · {extracting ? 'Understanding…' : STATE_COPY[state]}
+            {state} · {busy ? 'Understanding…' : STATE_COPY[state]}
           </p>
+          {serahReply && (
+            <p
+              className="mt-2 max-w-sm text-center text-sm text-mint"
+              aria-live="polite"
+            >
+              Serah: {serahReply}
+            </p>
+          )}
           {clarifyPrompt && (
             <p className="mt-1 text-sm text-amber" aria-live="polite">
-              {clarifyPrompt} Tap below to answer — your other details stay.
-            </p>
-          )}
-          {state === AssistantState.MATCHING && (
-            <p className="mt-1 text-sm text-violet" aria-live="polite">
-              Finding your best caregivers…
-            </p>
-          )}
-          {state === AssistantState.SPEAKING && (
-            <p className="mt-1 text-sm text-mint" aria-live="polite">
-              Got it — matching caregivers now.
+              {clarifyPrompt} Keep talking — your other details stay.
             </p>
           )}
           {(mic.error || speech.error) && (
             <p className="mt-1 text-sm text-rose">{mic.error ?? speech.error}</p>
           )}
-          {(intentError || matchError) && !consentNeeded && (
-            <p className="mt-1 text-sm text-rose">{intentError ?? matchError}</p>
-          )}
+          {turnError && !consentNeeded && <p className="mt-1 text-sm text-rose">{turnError}</p>}
           {consentNeeded && (
             <div className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center">
-              <p className="text-sm text-amber">{intentError}</p>
+              <p className="text-sm text-amber">{turnError}</p>
               <button
                 type="button"
                 onClick={onGrantConsent}
@@ -210,14 +245,11 @@ export function HomePage() {
               >
                 Enable AI processing
               </button>
-              <p className="mt-2 text-xs text-muted">
-                You can revoke this anytime in your privacy settings.
-              </p>
             </div>
           )}
           {!speech.supported && (
             <p className="mt-1 text-xs text-amber">
-              Speech recognition unsupported here — try Chrome/Edge.
+              Live captions unsupported here — audio still uploads for Serah (try Chrome/Edge).
             </p>
           )}
           <p className="mt-1 text-xs text-muted">
@@ -236,7 +268,7 @@ export function HomePage() {
           <button
             type="button"
             onClick={toggleMic}
-            disabled={extracting || state === AssistantState.MATCHING}
+            disabled={busy && !listening}
             className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition disabled:opacity-50 ${
               listening
                 ? 'bg-rose/20 text-rose ring-1 ring-rose/50'
@@ -245,11 +277,11 @@ export function HomePage() {
           >
             {listening
               ? 'Stop'
-              : state === AssistantState.CLARIFYING
-                ? 'Tap to answer'
-                : state === AssistantState.RESULTS
-                  ? 'New request'
-                  : 'Tap to speak'}
+              : busy
+                ? 'Serah is speaking…'
+                : state === AssistantState.CLARIFYING || state === AssistantState.RESULTS
+                  ? 'Continue talking'
+                  : 'Tap to speak with Serah'}
           </button>
         </section>
 
@@ -267,8 +299,8 @@ export function HomePage() {
             <span className="font-mono text-sm text-mint">{health}</span>
           </div>
           <p className="mt-4 text-sm text-muted">
-            Speak a care need — the Neural Core fills the Goal Ring, then VEHMF
-            ranks caregivers with score breakdown and an explanation.
+            Talk with Serah in Sinhala, Tamil, English, or mixed. She replies out loud, and when
+            you need a caregiver VEHMF ranks matches with explanations.
           </p>
         </div>
       </main>
