@@ -121,3 +121,29 @@ class CaregiverSearchApiTests(APITestCase):
         self.client.force_authenticate(self.patient)
         resp = self.client.get(self.url, {"q": "Tamil"})
         self.assertIn("Jaffna Tamil CG", self._names(resp))
+
+    def test_detail_returns_profile_and_audits(self):
+        from apps.accounts.models import AuditAction, AuditLog
+
+        self.client.force_authenticate(self.patient)
+        url = reverse("v1:caregiver_detail", kwargs={"pk": self.colombo.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["display_name"], "Colombo Diabetes CG")
+        self.assertEqual(resp.data["approximate_area"], "Colombo")
+        self.assertEqual(resp.data["review_count"], 0)
+        self.assertIn("certifications", resp.data)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                actor=self.patient,
+                action=AuditAction.VIEW_CAREGIVER,
+                target_id=str(self.colombo.pk),
+            ).exists()
+        )
+
+    def test_detail_404_for_inactive(self):
+        inactive = CaregiverProfile.objects.get(display_name="Inactive CG")
+        self.client.force_authenticate(self.patient)
+        url = reverse("v1:caregiver_detail", kwargs={"pk": inactive.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)

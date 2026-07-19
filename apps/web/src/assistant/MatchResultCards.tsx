@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
 
 function FactorBar({ label, value, className }: { label: string; value: number; className: string }) {
@@ -48,16 +49,24 @@ function MatchCard({ hit }: { hit: MatchHit }) {
 
       <p className="mt-3 text-xs text-cyan/90">{hit.explanation}</p>
 
-      <button
-        type="button"
-        className="mt-3 w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10"
-        onClick={() => {
-          // Hire lifecycle lands in Step 23 (CareRequest).
-          window.alert('Request caregiver — coming in the hire flow (Step 23).');
-        }}
-      >
-        Request this caregiver
-      </button>
+      <div className="mt-3 flex flex-col gap-2">
+        <Link
+          to={`/caregivers/${hit.caregiver_id}`}
+          className="block w-full rounded-full border border-hair px-3 py-1.5 text-center text-xs text-muted transition hover:border-cyan hover:text-cyan"
+        >
+          View profile
+        </Link>
+        <button
+          type="button"
+          className="w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10"
+          onClick={() => {
+            // Hire lifecycle lands in Step 23 (CareRequest).
+            window.alert('Request caregiver — coming in the hire flow (Step 23).');
+          }}
+        >
+          Request this caregiver
+        </button>
+      </div>
     </article>
   );
 }

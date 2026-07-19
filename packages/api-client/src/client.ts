@@ -1,4 +1,5 @@
 import {
+  CaregiverDetail,
   CaregiverListResponse,
   ConsentRow,
   ConsentState,
@@ -166,6 +167,8 @@ export function createApiClient(options: ApiClientOptions) {
       const suffix = qs.toString() ? `?${qs}` : '';
       return request(`/caregivers/${suffix}`, {}, (d) => CaregiverListResponse.parse(d));
     },
+    caregiver: (id: number) =>
+      request(`/caregivers/${id}/`, {}, (d) => CaregiverDetail.parse(d)),
   };
 }
 

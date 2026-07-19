@@ -251,10 +251,9 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 **Done:** `/caregivers` browse page — search + language/specialty/available chips; Leaflet dark map pins; list + empty/error; link from Neural Core home.
 **✅ Acceptance:** seed caregivers visible; filter by Sinhala + diabetes works.
 
-### Step 20d — Caregiver public detail page
+### Step 20d — Caregiver public detail page ✅ **DONE**
 
-**Goal:** old `profile/<uuid>` rebuilt.  
-**Tasks:** bio, certs, languages, specialties, trust, approximate area, reviews teaser, Request CTA.  
+**Done:** `GET /api/v1/caregivers/<id>/` (active only) with bio, certs, languages, specialties, trust, approximate area, reviews teaser stub, audited `view_caregiver`; web `/caregivers/:id` + links from browse + match cards; Request CTA stub → Step 23.  
 **✅ Acceptance:** deep-linkable `/caregivers/:id`; audited view if health-adjacent fields shown.
 
 ### Step 20e — Availability flag + soft presence

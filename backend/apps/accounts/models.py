@@ -118,6 +118,7 @@ class AuditAction(models.TextChoices):
     """Well-known audit action codes (HIPAA/PDPA access trail)."""
 
     VIEW_HEALTH = "view_health", "View patient health data"
+    VIEW_CAREGIVER = "view_caregiver", "View caregiver public profile"
     GRANT_CONSENT = "grant_consent", "Grant processing consent"
     REVOKE_CONSENT = "revoke_consent", "Revoke processing consent"
     LOGIN = "login", "User login"
