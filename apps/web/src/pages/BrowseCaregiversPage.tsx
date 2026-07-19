@@ -244,9 +244,20 @@ export function BrowseCaregiversPage() {
             <p className="mt-1 text-sm text-muted">
               {selected.bio || 'Community caregiver on Care Plus.'}
             </p>
-            <p className="mt-3 text-xs text-cyan">
-              Full profile page lands in Step 20d — for now use Neural Core to match & request.
-            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                to={`/caregivers/${selected.id}`}
+                className="rounded-full bg-cyan/90 px-4 py-2 text-sm font-medium text-void transition hover:bg-cyan"
+              >
+                View full profile
+              </Link>
+              <Link
+                to="/"
+                className="rounded-full border border-hair px-4 py-2 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+              >
+                Match with Serah
+              </Link>
+            </div>
           </div>
         )}
       </main>

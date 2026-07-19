@@ -37,6 +37,43 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
         return obj.location.y if obj.location else None
 
 
+class CaregiverDetailSerializer(CaregiverProfileSerializer):
+    """Public detail payload (Step 20d) — approximate area + reviews teaser."""
+
+    approximate_area = serializers.SerializerMethodField()
+    reviews_teaser = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+
+    class Meta(CaregiverProfileSerializer.Meta):
+        fields = CaregiverProfileSerializer.Meta.fields + (
+            "approximate_area",
+            "reviews_teaser",
+            "review_count",
+        )
+
+    def get_approximate_area(self, obj):
+        city = (obj.city or "").strip()
+        return city or "Sri Lanka"
+
+    def get_reviews_teaser(self, obj):
+        # Full Review model lands in M10 — empty teaser keeps the UI contract stable.
+        return []
+
+    def get_review_count(self, obj):
+        return 0
+
+    def get_longitude(self, obj):
+        # Fuzz to ~1 km for public detail (browse map still uses list coords).
+        if not obj.location:
+            return None
+        return round(obj.location.x, 2)
+
+    def get_latitude(self, obj):
+        if not obj.location:
+            return None
+        return round(obj.location.y, 2)
+
+
 class PatientProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     longitude = serializers.SerializerMethodField()

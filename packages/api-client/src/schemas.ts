@@ -171,6 +171,23 @@ export const CaregiverProfile = z.object({
 });
 export type CaregiverProfile = z.infer<typeof CaregiverProfile>;
 
+export const CaregiverDetail = CaregiverProfile.extend({
+  approximate_area: z.string().optional().default(''),
+  reviews_teaser: z
+    .array(
+      z.object({
+        id: z.number().optional(),
+        rating: z.number().optional(),
+        comment: z.string().optional(),
+        author: z.string().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
+  review_count: z.number().int().optional().default(0),
+});
+export type CaregiverDetail = z.infer<typeof CaregiverDetail>;
+
 export const CaregiverListResponse = z.object({
   count: z.number(),
   next: z.string().nullable().optional(),

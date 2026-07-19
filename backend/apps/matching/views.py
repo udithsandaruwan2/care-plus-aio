@@ -10,6 +10,8 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
 from django.db.models import Q
 
+from apps.accounts.audit import record_audit
+from apps.accounts.models import AuditAction
 from apps.accounts.permissions import HasAIConsent, RolePermission
 
 from .ahp import build_config, get_ahp_weights
@@ -18,6 +20,7 @@ from .engine import run_match
 from .faiss_index import load_index
 from .models import CaregiverProfile, MatchResult, MatchRun, PatientProfile
 from .serializers import (
+    CaregiverDetailSerializer,
     CaregiverProfileSerializer,
     MatchRequestSerializer,
     PatientProfileSerializer,
@@ -99,6 +102,34 @@ class CaregiverListView(generics.ListAPIView):
             qs = qs.order_by("-trust_score", "display_name")
 
         return qs
+
+
+class CaregiverDetailView(generics.RetrieveAPIView):
+    """GET /api/v1/caregivers/<id>/ — public caregiver profile (Step 20d)."""
+
+    serializer_class = CaregiverDetailSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "pk"
+
+    def get_queryset(self):
+        return CaregiverProfile.objects.filter(is_active=True).select_related("user")
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        record_audit(
+            actor=request.user,
+            action=AuditAction.VIEW_CAREGIVER,
+            request=request,
+            target_type="caregiver_profile",
+            target_id=instance.pk,
+            metadata={
+                "display_name": instance.display_name,
+                "city": instance.city,
+            },
+            async_=False,
+        )
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class PatientListView(generics.ListAPIView):
