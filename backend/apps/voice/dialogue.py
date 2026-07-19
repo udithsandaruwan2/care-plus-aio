@@ -132,12 +132,18 @@ def _clarify_reply(intent: dict, lang: str) -> str:
     return "Tell me a bit more so I can find the right caregiver."
 
 
-def _empty_catch_reply(lang: str) -> str:
+def _empty_catch_reply(lang: str, *, had_audio: bool) -> str:
     if lang.startswith("si"):
-        return "අවබෝධ වුණේ නැහැ — mic එක තියලා නැවත කතා කරන්න."
+        if had_audio:
+            return "ශබ්දය ඇසුණත් වචන හඳුනාගත්තේ නැහැ — ටිකක් දිගට කතා කරලා නැවත උත්සාහ කරන්න."
+        return "මයිකය ඇසුණේ නැහැ — mic එක තියලා පැහැදිලිව කතා කරන්න, නතර වුණාට පස්සේ යවන්න."
     if lang.startswith("ta"):
-        return "புரியவில்லை — மைக்கை அழுத்தி மீண்டும் பேசுங்கள்."
-    return "I didn’t catch that — tap the mic and try again."
+        if had_audio:
+            return "ஒலி கேட்டது, ஆனால் சொற்கள் புரியவில்லை — சற்று நீளமாகப் பேசி மீண்டும் முயலுங்கள்."
+        return "மைக் கேட்கவில்லை — மைக்கை அழுத்தித் தெளிவாகப் பேசுங்கள், நிறுத்தியதும் அனுப்பும்."
+    if had_audio:
+        return "I heard audio but couldn’t understand the words — speak a bit longer and try again."
+    return "I didn’t catch any speech — hold the mic, speak clearly, then pause so I can reply."
 
 
 def _attach_tts(payload: dict, reply: str, reply_lang: str) -> dict:
@@ -279,7 +285,8 @@ def process_turn(
     # Picker locks reply language even when ASR/transcript is empty.
     reply_lang = _tts_lang(ui, [ui] if ui else None) if ui else "en-US"
     if not text:
-        reply = _empty_catch_reply(reply_lang)
+        had_audio = bool(audio)
+        reply = _empty_catch_reply(reply_lang, had_audio=had_audio)
         return _attach_tts(
             {
                 "route": "CHAT",

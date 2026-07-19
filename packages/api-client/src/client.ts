@@ -19,6 +19,11 @@ import {
 export type ApiClientOptions = {
   baseUrl: string;
   getAccessToken?: () => string | null;
+  getRefreshToken?: () => string | null;
+  /** Called after a successful token refresh (access, and refresh if rotated). */
+  onTokensRefreshed?: (tokens: { access: string; refresh?: string }) => void;
+  /** Called when refresh fails — clear session / redirect to login. */
+  onAuthFailure?: () => void;
 };
 
 export class ApiError extends Error {
@@ -33,12 +38,63 @@ export class ApiError extends Error {
 }
 
 export function createApiClient(options: ApiClientOptions) {
-  const { baseUrl, getAccessToken } = options;
+  const { baseUrl, getAccessToken, getRefreshToken, onTokensRefreshed, onAuthFailure } = options;
+  let refreshInFlight: Promise<string | null> | null = null;
+
+  async function refreshAccessToken(): Promise<string | null> {
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = (async () => {
+      const refresh = getRefreshToken?.();
+      if (!refresh) return null;
+      try {
+        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/auth/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh }),
+        });
+        const text = await res.text();
+        let data: unknown = null;
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = text;
+          }
+        }
+        if (!res.ok) {
+          onAuthFailure?.();
+          return null;
+        }
+        // Refresh may return only { access } unless rotation is enabled.
+        const access =
+          data && typeof data === 'object' && 'access' in data
+            ? String((data as { access: unknown }).access)
+            : '';
+        if (!access) {
+          onAuthFailure?.();
+          return null;
+        }
+        const nextRefresh =
+          data && typeof data === 'object' && 'refresh' in data
+            ? String((data as { refresh: unknown }).refresh)
+            : undefined;
+        onTokensRefreshed?.({ access, refresh: nextRefresh });
+        return access;
+      } catch {
+        onAuthFailure?.();
+        return null;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+    return refreshInFlight;
+  }
 
   async function request<T>(
     path: string,
     init: RequestInit = {},
     parse: (data: unknown) => T,
+    retried = false,
   ): Promise<T> {
     const headers = new Headers(init.headers);
     if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
@@ -58,6 +114,12 @@ export function createApiClient(options: ApiClientOptions) {
         data = JSON.parse(text);
       } catch {
         data = text;
+      }
+    }
+    if (res.status === 401 && !retried && getRefreshToken && !path.includes('/auth/token')) {
+      const next = await refreshAccessToken();
+      if (next) {
+        return request(path, init, parse, true);
       }
     }
     if (!res.ok) {
