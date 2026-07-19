@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { AssistantState, canTransition, type GoalField, type IntentDraft } from '@care-plus/core';
+import type { MatchHit, MatchResponse } from '@care-plus/api-client';
 
 type AssistantStore = {
   state: AssistantState;
@@ -8,6 +9,9 @@ type AssistantStore = {
   transcript: string;
   /** In-flight (interim) transcript from ASR. */
   interim: string;
+  /** Latest VEHMF match payload (Step 20). */
+  match: MatchResponse | null;
+  matchError: string | null;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -16,6 +20,8 @@ type AssistantStore = {
   setTranscript: (text: string) => void;
   appendTranscript: (text: string) => void;
   setInterim: (text: string) => void;
+  setMatch: (match: MatchResponse | null) => void;
+  setMatchError: (msg: string | null) => void;
   reset: () => void;
 };
 
@@ -24,6 +30,8 @@ const initial = {
   intent: {} as IntentDraft,
   transcript: '',
   interim: '',
+  match: null as MatchResponse | null,
+  matchError: null as string | null,
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -48,5 +56,10 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
     set((s) => ({ transcript: (s.transcript + ' ' + text).trim(), interim: '' })),
   setInterim: (text) => set({ interim: text }),
 
+  setMatch: (match) => set({ match, matchError: null }),
+  setMatchError: (msg) => set({ matchError: msg }),
+
   reset: () => set({ ...initial }),
 }));
+
+export type { MatchHit, MatchResponse };

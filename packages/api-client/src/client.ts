@@ -2,10 +2,12 @@ import {
   ConsentRow,
   ConsentState,
   HealthResponse,
+  MatchResponse,
   RegisterResponse,
   TokenPair,
   User,
   VoiceIntent,
+  type MatchInput,
   type RegisterInput,
   type VoiceIntentInput,
 } from './schemas';
@@ -98,6 +100,25 @@ export function createApiClient(options: ApiClientOptions) {
     setConsent: (scope: string, granted: boolean) =>
       request('/consent/', { method: 'POST', body: JSON.stringify({ scope, granted }) }, (d) =>
         ConsentRow.parse(d),
+      ),
+    match: (input: MatchInput) =>
+      request(
+        '/match/',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            condition: input.condition ?? '',
+            language: input.language ?? '',
+            care_level: input.care_level ?? '',
+            query: input.query ?? '',
+            ...(input.longitude != null && input.latitude != null
+              ? { longitude: input.longitude, latitude: input.latitude }
+              : {}),
+            ...(input.k != null ? { k: input.k } : {}),
+            ...(input.emergency != null ? { emergency: input.emergency } : {}),
+          }),
+        },
+        (d) => MatchResponse.parse(d),
       ),
   };
 }

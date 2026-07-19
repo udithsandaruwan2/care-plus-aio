@@ -189,10 +189,9 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 `POST /api/v1/match/` returns ranked list + breakdown + latency.
 **✅ Acceptance:** POST match returns ranked list + breakdown + explanation; unit tests on fusion math; p95 < 800 ms on seed caregivers.
 
-### Step 20 — Match WebSocket + result UX 🔜 **NEXT**
+### Step 20 — Match WebSocket + result UX ✅ **DONE**
 
-**Goal:** voice → SPEAKING → MATCHING → RESULTS with cards.  
-**Tasks:** `ws/match/{patient_id}`; result cards (score, breakdown bars, XAI, distance, languages); latency badge; “Request this caregiver” CTA (wires to M6).  
+**Done:** JWT `ws/match/{patient_id}/`; push from `POST /match/`; HomePage SPEAKING → MATCHING → RESULTS; `MatchResultCards` (score, CBF/CF/geo/trust bars, XAI, distance, latency badge); Request CTA placeholder → Step 23.
 **✅ Acceptance:** end-to-end voice phrase yields explained cards in UI; FSM reaches RESULTS.
 
 ---
@@ -547,4 +546,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 20 — Match over WebSocket + result UX** (`feat/step20-match-ux`).
+**Step 20b — Caregiver search & filter API** (`feat/step20b-caregiver-search`), or Step 21 CF / 15b vocab.

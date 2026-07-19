@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { brand } from '@care-plus/ui-tokens';
 import { AssistantState, STATE_COPY, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
@@ -13,6 +13,8 @@ import { Transcript } from '../assistant/Transcript';
 import { StateStepper } from '../assistant/StateStepper';
 import { useSpeechRecognition, type RecognitionLang } from '../assistant/useSpeechRecognition';
 import { useIntentExtraction } from '../assistant/useIntentExtraction';
+import { MatchResultCards } from '../assistant/MatchResultCards';
+import { useMatch, useMatchSocket } from '../assistant/useMatch';
 
 const CLARIFY_PROMPTS: Record<string, string> = {
   condition: 'What condition or symptom should I focus on?',
@@ -36,7 +38,7 @@ export function HomePage() {
   const [lang, setLang] = useState<RecognitionLang>('si-LK');
   const mic = useMicAmplitude();
   const reducedMotion = useReducedMotion();
-  const { state, intent, transcript, interim, setState, setInterim, appendTranscript, reset } =
+  const { state, intent, transcript, interim, match, matchError, setState, setInterim, appendTranscript, reset } =
     useAssistant();
   const {
     extract,
@@ -45,6 +47,8 @@ export function HomePage() {
     consentNeeded,
     grantConsent,
   } = useIntentExtraction();
+  const { runMatch } = useMatch();
+  useMatchSocket();
 
   const speech = useSpeechRecognition({
     lang,
@@ -63,6 +67,15 @@ export function HomePage() {
       .then((h) => setHealth(`${h.status} · db ${h.db} · redis ${h.redis}`))
       .catch(() => setHealth('unreachable'));
   }, []);
+
+  // SPEAKING (intent complete) → auto-run VEHMF → RESULTS cards.
+  const prevState = useRef(state);
+  useEffect(() => {
+    if (state === AssistantState.SPEAKING && prevState.current !== AssistantState.SPEAKING) {
+      void runMatch();
+    }
+    prevState.current = state;
+  }, [state, runMatch]);
 
   const listening = mic.active || speech.listening;
 
@@ -172,15 +185,22 @@ export function HomePage() {
               {clarifyPrompt} Tap below to answer — your other details stay.
             </p>
           )}
+          {state === AssistantState.MATCHING && (
+            <p className="mt-1 text-sm text-violet" aria-live="polite">
+              Finding your best caregivers…
+            </p>
+          )}
           {state === AssistantState.SPEAKING && (
             <p className="mt-1 text-sm text-mint" aria-live="polite">
-              Got it. Caregiver matching lands in the next build steps.
+              Got it — matching caregivers now.
             </p>
           )}
           {(mic.error || speech.error) && (
             <p className="mt-1 text-sm text-rose">{mic.error ?? speech.error}</p>
           )}
-          {intentError && !consentNeeded && <p className="mt-1 text-sm text-rose">{intentError}</p>}
+          {(intentError || matchError) && !consentNeeded && (
+            <p className="mt-1 text-sm text-rose">{intentError ?? matchError}</p>
+          )}
           {consentNeeded && (
             <div className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center">
               <p className="text-sm text-amber">{intentError}</p>
@@ -210,10 +230,14 @@ export function HomePage() {
             <EntityChips intent={intent} />
           </div>
 
+          {match && (state === AssistantState.RESULTS || state === AssistantState.MATCHING) && (
+            <MatchResultCards match={match} />
+          )}
+
           <button
             type="button"
             onClick={toggleMic}
-            disabled={extracting}
+            disabled={extracting || state === AssistantState.MATCHING}
             className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition disabled:opacity-50 ${
               listening
                 ? 'bg-rose/20 text-rose ring-1 ring-rose/50'
@@ -224,7 +248,9 @@ export function HomePage() {
               ? 'Stop'
               : state === AssistantState.CLARIFYING
                 ? 'Tap to answer'
-                : 'Tap to speak'}
+                : state === AssistantState.RESULTS
+                  ? 'New request'
+                  : 'Tap to speak'}
           </button>
         </section>
 
@@ -242,8 +268,8 @@ export function HomePage() {
             <span className="font-mono text-sm text-mint">{health}</span>
           </div>
           <p className="mt-4 text-sm text-muted">
-            Speak, and the Neural Core fills the Goal Ring with the condition, language, and care
-            level it understands. Missing a detail? It asks.
+            Speak a care need — the Neural Core fills the Goal Ring, then VEHMF
+            ranks caregivers with score breakdown and an explanation.
           </p>
         </div>
       </main>

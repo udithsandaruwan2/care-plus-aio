@@ -77,3 +77,48 @@ export const ConsentRow = z.object({
   ts: z.string(),
 });
 export type ConsentRow = z.infer<typeof ConsentRow>;
+
+export const MatchBreakdown = z.object({
+  cbf: z.number(),
+  cf: z.number(),
+  geo: z.number(),
+  trust: z.number(),
+});
+export type MatchBreakdown = z.infer<typeof MatchBreakdown>;
+
+export const MatchHit = z.object({
+  caregiver_id: z.number(),
+  rank: z.number(),
+  score: z.number(),
+  breakdown: MatchBreakdown,
+  explanation: z.string(),
+  distance_m: z.number().nullable().optional(),
+  display_name: z.string(),
+  specialties: z.array(z.string()),
+  languages: z.array(z.string()),
+  care_levels: z.array(z.string()),
+  trust_score: z.number().nullable().optional(),
+});
+export type MatchHit = z.infer<typeof MatchHit>;
+
+export const MatchResponse = z.object({
+  request_id: z.number(),
+  latency_ms: z.number(),
+  query: z.string(),
+  emergency: z.boolean(),
+  weights: MatchBreakdown,
+  results: z.array(MatchHit),
+});
+export type MatchResponse = z.infer<typeof MatchResponse>;
+
+export const MatchInput = z.object({
+  condition: z.string().optional(),
+  language: z.string().optional(),
+  care_level: z.string().optional(),
+  query: z.string().optional(),
+  longitude: z.number().optional(),
+  latitude: z.number().optional(),
+  k: z.number().int().min(1).max(25).optional(),
+  emergency: z.boolean().optional(),
+});
+export type MatchInput = z.infer<typeof MatchInput>;
