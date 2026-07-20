@@ -1,4 +1,4 @@
-"""CareRequest create/cancel helpers (Step 23)."""
+"""CareRequest create/cancel/respond helpers (Steps 23–24)."""
 
 from __future__ import annotations
 
@@ -11,14 +11,19 @@ from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import Role
 
+from .interactions import log_interaction
 from .models import (
     ACTIVE_CARE_REQUEST_STATUSES,
     CaregiverProfile,
+    CareRelationship,
+    CareRelationshipStatus,
     CareRequest,
     CareRequestStatus,
+    InteractionKind,
     MatchRun,
 )
 from .patient_guards import ensure_patient_can_request_care
+from .push import push_care_request_update
 
 
 def care_request_ttl() -> timedelta:
@@ -62,7 +67,7 @@ def create_care_request(
         raise ValidationError("match_run does not belong to this patient.")
 
     now = timezone.now()
-    return CareRequest.objects.create(
+    care_request = CareRequest.objects.create(
         patient=patient,
         caregiver=caregiver,
         status=CareRequestStatus.PENDING,
@@ -71,6 +76,17 @@ def create_care_request(
         match_snapshot=match_snapshot or {},
         expires_at=now + care_request_ttl(),
     )
+    log_interaction(
+        patient,
+        caregiver,
+        InteractionKind.REQUEST,
+        metadata={"care_request_id": care_request.pk},
+    )
+    push_care_request_update(
+        caregiver.user_id,
+        _care_request_payload(care_request, event="created"),
+    )
+    return care_request
 
 
 def cancel_care_request(request: CareRequest, *, patient) -> CareRequest:
@@ -81,6 +97,86 @@ def cancel_care_request(request: CareRequest, *, patient) -> CareRequest:
     request.status = CareRequestStatus.CANCELLED
     request.responded_at = timezone.now()
     request.save(update_fields=["status", "responded_at", "updated_at"])
+    push_care_request_update(
+        request.caregiver.user_id,
+        _care_request_payload(request, event="cancelled"),
+    )
+    return request
+
+
+def _care_request_payload(request: CareRequest, *, event: str) -> dict:
+    return {
+        "event": event,
+        "id": request.pk,
+        "status": request.status,
+        "patient_id": request.patient_id,
+        "caregiver_id": request.caregiver_id,
+        "caregiver_name": request.caregiver.display_name,
+        "patient_email": request.patient.email,
+        "message": request.message,
+        "responded_at": request.responded_at.isoformat() if request.responded_at else None,
+    }
+
+
+@transaction.atomic
+def accept_care_request(request: CareRequest, *, caregiver_user) -> tuple[CareRequest, CareRelationship]:
+    if getattr(caregiver_user, "role", None) != Role.CAREGIVER:
+        raise ValidationError("Only caregivers can accept care requests.")
+    if request.caregiver.user_id != caregiver_user.pk:
+        raise ValidationError("This request is not in your inbox.")
+    if request.status != CareRequestStatus.PENDING:
+        raise ValidationError(f"Cannot accept a request in status '{request.status}'.")
+
+    now = timezone.now()
+    request.status = CareRequestStatus.ACCEPTED
+    request.responded_at = now
+    request.save(update_fields=["status", "responded_at", "updated_at"])
+
+    relationship = CareRelationship.objects.create(
+        patient=request.patient,
+        caregiver=request.caregiver,
+        care_request=request,
+        status=CareRelationshipStatus.PENDING_PAYMENT,
+    )
+
+    log_interaction(
+        request.patient,
+        request.caregiver,
+        InteractionKind.ACCEPT,
+        metadata={"care_request_id": request.pk, "relationship_id": relationship.pk},
+    )
+
+    payload = _care_request_payload(request, event="accepted")
+    payload["relationship_id"] = relationship.pk
+    payload["relationship_status"] = relationship.status
+    push_care_request_update(request.patient_id, payload)
+    return request, relationship
+
+
+@transaction.atomic
+def reject_care_request(
+    request: CareRequest,
+    *,
+    caregiver_user,
+    reason: str = "",
+) -> CareRequest:
+    if getattr(caregiver_user, "role", None) != Role.CAREGIVER:
+        raise ValidationError("Only caregivers can reject care requests.")
+    if request.caregiver.user_id != caregiver_user.pk:
+        raise ValidationError("This request is not in your inbox.")
+    if request.status != CareRequestStatus.PENDING:
+        raise ValidationError(f"Cannot reject a request in status '{request.status}'.")
+
+    request.status = CareRequestStatus.REJECTED
+    request.responded_at = timezone.now()
+    if reason.strip():
+        request.message = f"{request.message}\n\n[Rejection note] {reason.strip()}".strip()
+    request.save(update_fields=["status", "responded_at", "message", "updated_at"])
+
+    payload = _care_request_payload(request, event="rejected")
+    if reason.strip():
+        payload["reason"] = reason.strip()
+    push_care_request_update(request.patient_id, payload)
     return request
 
 

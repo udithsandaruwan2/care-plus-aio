@@ -298,6 +298,21 @@ export function createApiClient(options: ApiClientOptions) {
         { method: 'PATCH', body: JSON.stringify({ action: 'cancel' }) },
         (d) => CareRequest.parse(d),
       ),
+    acceptCareRequest: (id: number) =>
+      request(
+        `/care-requests/${id}/action/`,
+        { method: 'PATCH', body: JSON.stringify({ action: 'accept' }) },
+        (d) => CareRequest.parse(d),
+      ),
+    rejectCareRequest: (id: number, reason?: string) =>
+      request(
+        `/care-requests/${id}/action/`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'reject', reason: reason ?? '' }),
+        },
+        (d) => CareRequest.parse(d),
+      ),
   };
 }
 
