@@ -7,7 +7,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-20 — Step 15g dialogue session memory done. Next: 15h polish / 15i refine / M5 CF._
+_Last updated: 2026-07-20 — Step 15i post-match refine done. Next: 15h polish / 15j policy / M5 CF._
 
 ---
 
@@ -79,15 +79,16 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 20d** — Caregiver public detail `/caregivers/:id` + audited API. Branch `feat/step20d-caregiver-detail`.
 - ✅ **Step 20e** — Availability flag + soft presence (`GET/PATCH /caregivers/me/`, match hides unavailable, `/presence`). Branch `feat/step20e-availability`.
 - ✅ **Step 15g** — DialogueSession memory + New request clear. Branch `feat/step15g-session-memory`.
-- ⬜ **M3c Steps 15h–15j** — Unified loop polish / post-match refine / dialogue policy
-- 🔜 **Step 15i** — Post-match conversational refine (or 15h polish / M5 CF)
+- ✅ **Step 15i** — Post-match refine deltas → VEHMF filters + rank-change UI. Branch `feat/step15i-post-match-refine`.
+- ⬜ **M3c Steps 15h, 15j** — Unified loop polish / dialogue policy
+- 🔜 **Step 15j** — Local/Gemini dialogue policy (or 15h / M5 CF)
 
 ### Expanded product tracks (from Old Care Plus)
 
 | Milestone | Steps | Status |
 |-----------|-------|--------|
 | **M3b** Medical vocab + Serah chat | 15b–15e | 15b ✅ · 15c–e ⬜ |
-| **M3c** Conversational dialogue loop | 15f–15j | 15f–15g ✅ · 15h–j ░ |
+| **M3c** Conversational dialogue loop | 15f–15j | 15f–g,15i ✅ · 15h,15j ░ |
 | **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅ |
 | **M5** CF personalization | 21–22 | ⬜ |
 | **M5b** Rich onboarding / OTP | 22b–22f | ⬜ |
@@ -121,6 +122,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 15i** — Refine phrases → language/distance/specialty/care_level deltas; VEHMF hard filters + closer geo tilt; match cards show ↑↓ rank deltas + latency; `refined` flag. Branch `feat/step15i-post-match-refine`.
 - **Step 15g** — `DialogueSession` stores chips, route history, last N turns, last `MatchRun`; turn response includes `session_id`; `GET /voice/session/` + `POST /voice/session/clear/`; Home **New request** clears server+client memory. Branch `feat/step15g-session-memory`.
 - **Step 20e** — Soft presence: VEHMF hides unavailable from top-N; `GET/PATCH /caregivers/me/`; web `/presence` toggle; browse already filters `?available=`. Branch `feat/step20e-availability`.
 - **Step 15f natural conversation router** — After matches, “thank you” / ස්තූතියි / நன்றி stay CHAT (no re-match); situations for goodbye, affirm, about_match, refine, action, emergency; situational Serah stubs + Gemini guidance. Branch `feat/dialogue-natural-conversation`.
