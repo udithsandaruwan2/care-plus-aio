@@ -6,6 +6,7 @@ import logging
 import time
 
 from apps.matching.engine import run_match
+from apps.matching.i18n import localize_explanation, match_spoken_reply
 from apps.matching.interactions import record_match_interactions
 from apps.matching.models import CaregiverProfile, MatchResult, MatchRun
 from apps.matching.push import push_match_results
@@ -67,7 +68,7 @@ def _clarify_reply(intent: dict, lang: str) -> str:
         if not intent.get("language"):
             return "ඔබේ caregiver කතා කළ යුත්තේ සිංහල, දෙමළ, නැත්නම් ඉංග්‍රීසිද?"
         if not intent.get("care_level"):
-            return "කොපමණ සහාය අවශ්‍යද — basic, intermediate, නැත්නම් advanced?"
+            return "කොපමණ සහාය අවශ්‍යද — මූලික, මධ්‍යම, නැත්නම් උසස්?"
         return "හොඳ caregiver කෙනෙක් සොයන්න තවත් විස්තර කියන්න."
     if lang.startswith("ta"):
         if not intent.get("condition"):
@@ -75,7 +76,7 @@ def _clarify_reply(intent: dict, lang: str) -> str:
         if not intent.get("language"):
             return "உங்கள் பராமரிப்பாளர் சிங்களம், தமிழ் அல்லது ஆங்கிலம் பேச வேண்டுமா?"
         if not intent.get("care_level"):
-            return "எவ்வளவு ஆதரவு வேண்டும் — basic, intermediate, அல்லது advanced?"
+            return "எவ்வளவு ஆதரவு வேண்டும் — அடிப்படை, இடைநிலை, அல்லது மேம்பட்ட?"
         return "சரியான பராமரிப்பாளரைக் கண்டுபிடிக்க மேலும் சொல்லுங்கள்."
     if not intent.get("condition"):
         return "What condition or symptom should I focus on?"
@@ -109,46 +110,7 @@ def _attach_tts(payload: dict, reply: str, reply_lang: str) -> dict:
 
 
 def _match_reply(results: list[dict], lang: str, *, refined: bool = False, deltas: dict | None = None) -> str:
-    if not results:
-        if lang.startswith("si"):
-            return "තවම caregiver කෙනෙක් හොයාගත්තේ නැහැ. language හෝ care level එකතු කරන්න."
-        if lang.startswith("ta"):
-            return "இன்னும் பராமரிப்பாளர் கிடைக்கவில்லை. மொழி அல்லது பராமரிப்பு நிலையைச் சேர்க்கவும்."
-        return "I couldn’t find a caregiver yet. Try adding a language or care level."
-    top = results[0]
-    name = top.get("display_name") or "a caregiver"
-    score = int(round(float(top.get("score") or 0) * 100))
-    explanation = (top.get("explanation") or "").strip()
-    n = len(results)
-    refine_bits = []
-    if deltas:
-        if deltas.get("language"):
-            refine_bits.append(str(deltas["language"]))
-        if deltas.get("max_distance_km") is not None:
-            refine_bits.append(f"within {deltas['max_distance_km']:g} km")
-        if deltas.get("specialty"):
-            refine_bits.append(str(deltas["specialty"]))
-        if deltas.get("care_level"):
-            refine_bits.append(str(deltas["care_level"]))
-    filter_note = (", ".join(refine_bits)) if refine_bits else ""
-    if refined and filter_note:
-        if lang.startswith("si"):
-            return (
-                f"Refine කළා ({filter_note}). දැන් {n} දෙනෙක් — හොඳම {name} (score {score}). {explanation}"
-            )
-        if lang.startswith("ta"):
-            return (
-                f"Refine செய்தேன் ({filter_note}). இப்போது {n} பேர் — சிறந்தது {name} (score {score}). {explanation}"
-            )
-        return (
-            f"Updated shortlist ({filter_note}). Now {n} caregivers — best is {name} "
-            f"(score {score}). {explanation}"
-        )
-    if lang.startswith("si"):
-        return f"මට {n} දෙනෙක් හොයාගත්තා. හොඳම match එක {name} (score {score}). {explanation}"
-    if lang.startswith("ta"):
-        return f"நான் {n} பராமரிப்பாளர்களைக் கண்டேன். சிறந்தது {name} (score {score}). {explanation}"
-    return f"I found {n} caregivers. Best match is {name} (score {score}). {explanation}"
+    return match_spoken_reply(results, lang, refined=refined, deltas=deltas)
 
 
 def _run_vehmf(
@@ -537,6 +499,11 @@ def process_turn(
     match_run_id = None
     if match_payload and match_payload.get("request_id"):
         match_run_id = int(match_payload["request_id"])
+
+    if match_payload and reply_lang:
+        for row in match_payload.get("results") or []:
+            if isinstance(row, dict) and row.get("explanation"):
+                row["explanation"] = localize_explanation(row["explanation"], reply_lang)
 
     persist_session_after_turn(
         session,

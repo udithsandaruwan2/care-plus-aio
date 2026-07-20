@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 from django.conf import settings
 
+from apps.matching.i18n import localize_explanation
+
 from .policy import gemini_chat_allowed, resolve_chat_backend
 
 logger = logging.getLogger(__name__)
@@ -25,6 +27,14 @@ def _si(lang: str) -> bool:
 
 def _ta(lang: str) -> bool:
     return lang.startswith("ta")
+
+
+def _display_lang(lang: str) -> str:
+    if _si(lang):
+        return "Sinhala"
+    if _ta(lang):
+        return "Tamil"
+    return "English"
 
 
 def stub_for_situation(
@@ -92,16 +102,16 @@ def stub_for_situation(
         )
 
     if situation == "about_match":
-        explanation = (top or {}).get("explanation") or ""
+        explanation = localize_explanation((top or {}).get("explanation") or "", lang)
         if _si(lang):
             return (
-                f"{name or 'ඉහළම match'} ගැන: {explanation or 'medical/skill match හොඳයි'}. "
-                "වෙනත් කෙනෙක් ඕනේ නම් කියන්න — උදා: closer, Tamil only."
+                f"{name or 'ඉහළම තේරීම'} ගැන: {explanation or 'කුසලතා ගැලපීම හොඳයි'}. "
+                "වෙනත් කෙනෙක් ඕනේ නම් කියන්න — උදා: ආසන්නයි, දෙමළ පමණි."
             )
         if _ta(lang):
             return (
-                f"{name or 'சிறந்த match'} பற்றி: {explanation or 'திறன் பொருத்தம் நன்று'}. "
-                "வேறு நபர் வேண்டுமானால் சொல்லுங்கள் — எ.கா. closer, Tamil only."
+                f"{name or 'சிறந்த தேர்வு'} பற்றி: {explanation or 'திறன் பொருத்தம் நன்று'}. "
+                "வேறு நபர் வேண்டுமானால் சொல்லுங்கள் — எ.கா. அருகில், தமிழ் மட்டும்."
             )
         return (
             f"About {name or 'the top match'}: {explanation or 'strong skill match'}. "
@@ -111,17 +121,17 @@ def stub_for_situation(
     if situation == "request":
         if _si(lang):
             return (
-                f"{name or 'මේ caregiver'} request කරන්න hire flow එක (Step 23) ඉක්මනින් එයි. "
-                "දැන් Browse එකෙන් profile බලන්න."
+                f"{name or 'මේ පරිචාරක'} ඉල්ලීම යවන්න පුළුවන් — පැතිකඩෙන් "
+                "«Request this caregiver» ඔබන්න, නැත්නම් ඉහළ match card එකෙන් ඉල්ලන්න."
             )
         if _ta(lang):
             return (
-                f"{name or 'இந்த பராமரிப்பாளர்'} கோரிக்கை hire flow (Step 23) விரைவில் வரும். "
-                "இப்போது Browse-இல் profile பாருங்கள்."
+                f"{name or 'இந்த பராமரிப்பாளர்'} கோரிக்கை அனுப்பலாம் — "
+                "சுயவிவரத்தில் «Request this caregiver» அல்லது match card-இல் கிளிக் செய்யுங்கள்."
             )
         return (
-            f"Requesting {name or 'this caregiver'} will use the hire flow (Step 23). "
-            "For now, open their profile from Browse."
+            f"You can request {name or 'this caregiver'} from their profile "
+            "or the Request button on the match card."
         )
 
     if situation == "cancel":
@@ -213,7 +223,7 @@ def gemini_chat_reply(
     if match and match.get("results"):
         top = match["results"][0]
         top_name = top.get("display_name") or ""
-        top_xai = top.get("explanation") or ""
+        top_xai = localize_explanation(top.get("explanation") or "", lang)
 
     guidance = {
         "thanks": "They said thanks. Acknowledge warmly. Do NOT pitch finding caregivers again.",
@@ -242,7 +252,7 @@ def gemini_chat_reply(
                 "Never pick or re-rank caregivers — VEHMF does that locally. "
                 f"Situation={situation}. has_prior_match={has_prior_match}. "
                 f"Guidance: {guidance} "
-                f"Prefer reply language matching BCP-47 {lang}. "
+                f"Reply ONLY in {_display_lang(lang)} — never mix English if the user chose Sinhala or Tamil. "
                 f"Patient said: {text}"
             ),
             generation_config={"temperature": 0.35},

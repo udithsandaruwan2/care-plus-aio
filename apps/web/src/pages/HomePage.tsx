@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
-import { AssistantState, STATE_COPY, goalRingProgress, nextMissingField } from '@care-plus/core';
+import { AssistantState, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { useAuth } from '../auth/AuthContext';
 import { useCaregiverProfile } from '../auth/useCaregiverProfile';
@@ -21,6 +21,7 @@ import { useMatchSocket } from '../assistant/useMatch';
 import { useAudioRecorder } from '../assistant/useAudioRecorder';
 import { useVoiceTurn } from '../assistant/useVoiceTurn';
 import { LanguagePicker } from '../assistant/LanguagePicker';
+import { stateCopy } from '../assistant/locale';
 import {
   uiLanguageLabel,
   uiLanguageToRecognition,
@@ -294,7 +295,7 @@ export function HomePage() {
           </button>
 
           <p className="mt-2 font-display text-sm tracking-wide text-cyan" aria-live="polite">
-            {state} · {busy ? 'Understanding…' : STATE_COPY[state]}
+            {stateCopy(state, uiLanguage)}
           </p>
           <ChatBubbles messages={chat} />
           {clarifyPrompt && (
@@ -329,11 +330,11 @@ export function HomePage() {
 
           <Transcript transcript={transcript} interim={interim} />
           <div className="mt-3">
-            <EntityChips intent={intent} />
+            <EntityChips intent={intent} uiLanguage={uiLanguage} />
           </div>
 
           {match && (state === AssistantState.RESULTS || state === AssistantState.MATCHING) && (
-            <MatchResultCards match={match} canRequestCare={canRequestCare} />
+            <MatchResultCards match={match} canRequestCare={canRequestCare} uiLanguage={uiLanguage} />
           )}
 
           <button

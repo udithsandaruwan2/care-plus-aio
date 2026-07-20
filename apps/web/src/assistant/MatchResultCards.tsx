@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
 import { ApiError } from '@care-plus/api-client';
 import { api } from '../auth/api';
+import { localizeExplanation, matchUi } from './locale';
+import type { UiVoiceLanguage } from './uiVoiceLanguage';
 
 function FactorBar({ label, value, className }: { label: string; value: number; className: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
@@ -46,11 +48,15 @@ function MatchCard({
   hit,
   canRequestCare,
   matchRunId,
+  uiLanguage,
 }: {
   hit: MatchHit;
   canRequestCare: boolean;
   matchRunId: number;
+  uiLanguage: UiVoiceLanguage;
 }) {
+  const ui = matchUi(uiLanguage);
+  const explanation = localizeExplanation(hit.explanation, uiLanguage);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const km =
@@ -121,7 +127,7 @@ function MatchCard({
         </div>
         <div className="text-right">
           <p className="font-mono text-lg text-mint">{(hit.score * 100).toFixed(0)}</p>
-          <p className="text-[10px] uppercase tracking-wide text-muted">score</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted">{ui.score}</p>
         </div>
       </div>
 
@@ -132,14 +138,14 @@ function MatchCard({
         <FactorBar label="Trust" value={hit.breakdown.trust} className="bg-amber" />
       </div>
 
-      <p className="mt-3 text-xs text-cyan/90">{hit.explanation}</p>
+      <p className="mt-3 text-xs text-cyan/90">{explanation}</p>
 
       <div className="mt-3 flex flex-col gap-2">
         <Link
           to={`/caregivers/${hit.caregiver_id}`}
           className="block w-full rounded-full border border-hair px-3 py-1.5 text-center text-xs text-muted transition hover:border-cyan hover:text-cyan"
         >
-          View profile
+          {ui.viewProfile}
         </Link>
         <button
           type="button"
@@ -148,12 +154,24 @@ function MatchCard({
           onClick={() => void onRequest()}
         >
           {sent
-            ? 'Request sent'
+            ? uiLanguage === 'Sinhala'
+              ? 'ඉල්ලීම යැවිණි'
+              : uiLanguage === 'Tamil'
+                ? 'கோரிக்கை அனுப்பப்பட்டது'
+                : 'Request sent'
             : busy
-              ? 'Sending…'
+              ? uiLanguage === 'Sinhala'
+                ? 'යවමින්…'
+                : uiLanguage === 'Tamil'
+                  ? 'அனுப்புகிறது…'
+                  : 'Sending…'
               : canRequestCare
-                ? 'Request this caregiver'
-                : 'Complete profile to request'}
+                ? ui.request
+                : uiLanguage === 'Sinhala'
+                  ? 'ඉල්ලීමට පැතිකඩ සම්පූර්ණ කරන්න'
+                  : uiLanguage === 'Tamil'
+                    ? 'கோரிக்கைக்கு சுயவிவரம் நிரம்பவும்'
+                    : 'Complete profile to request'}
         </button>
       </div>
     </article>
@@ -164,18 +182,27 @@ function MatchCard({
 export function MatchResultCards({
   match,
   canRequestCare = true,
+  uiLanguage = 'English',
 }: {
   match: MatchResponse;
   canRequestCare?: boolean;
+  uiLanguage?: UiVoiceLanguage;
 }) {
+  const ui = matchUi(uiLanguage);
   if (!match.results.length) {
-    return <p className="mt-4 text-center text-sm text-muted">No caregivers matched yet.</p>;
+    return <p className="mt-4 text-center text-sm text-muted">{ui.noMatches}</p>;
   }
   return (
     <div className="mt-6 w-full max-w-md space-y-3">
       <div className="flex items-center justify-between gap-2 px-1">
         <p className="font-display text-sm tracking-wide text-mist">
-          {match.refined ? 'Updated matches' : 'Best matches'}
+          {match.refined
+            ? uiLanguage === 'Sinhala'
+              ? 'යාවත්කාලීන ගැලපීම්'
+              : uiLanguage === 'Tamil'
+                ? 'புதுப்பிக்கப்பட்ட பொருத்தங்கள்'
+                : 'Updated matches'
+            : ui.title}
         </p>
         <span className="rounded-full border border-mint/40 px-2.5 py-0.5 font-mono text-[11px] text-mint">
           {match.latency_ms} ms
@@ -187,6 +214,7 @@ export function MatchResultCards({
           hit={hit}
           canRequestCare={canRequestCare}
           matchRunId={match.request_id}
+          uiLanguage={uiLanguage}
         />
       ))}
     </div>
