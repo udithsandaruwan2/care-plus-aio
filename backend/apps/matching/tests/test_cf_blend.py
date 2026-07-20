@@ -96,6 +96,8 @@ class CfBlendEngineTests(TestCase):
             care_levels=["intermediate"],
             trust_score=trust,
             bio=name,
+            is_active=True,
+            is_approved=True,
         )
 
     def test_cf_bias_can_promote_preferred_caregiver(self):

@@ -79,6 +79,7 @@ class CaregiverSearchApiTests(APITestCase):
             care_levels=care_levels,
             trust_score=0.8,
             is_active=True,
+            is_approved=True,
             is_available=available,
         )
 

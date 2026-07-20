@@ -87,6 +87,8 @@ class RefineEngineFilterTests(TestCase):
             care_levels=["intermediate"],
             trust_score=0.9,
             bio=name,
+            is_active=True,
+            is_approved=True,
             is_available=True,
         )
 

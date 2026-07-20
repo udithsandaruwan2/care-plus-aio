@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from apps.vocab.models import ConditionTerm
 
+from .caregiver_profile import caregiver_profile_completion
 from .models import CaregiverProfile, Language, PatientProfile
 from .patient_profile import patient_profile_completion
 
@@ -39,6 +40,116 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
 
     def get_latitude(self, obj):
         return obj.location.y if obj.location else None
+
+
+class CaregiverMeSerializer(CaregiverProfileSerializer):
+    """Own-profile payload with onboarding completion (Step 22c)."""
+
+    nic_id = serializers.CharField()
+    years_experience = serializers.IntegerField(allow_null=True)
+    service_radius_km = serializers.FloatField()
+    certification_docs = serializers.JSONField()
+    is_approved = serializers.BooleanField()
+    completion_percent = serializers.SerializerMethodField()
+    onboarding_complete = serializers.SerializerMethodField()
+    is_match_eligible = serializers.SerializerMethodField()
+    missing_fields = serializers.SerializerMethodField()
+
+    class Meta(CaregiverProfileSerializer.Meta):
+        fields = CaregiverProfileSerializer.Meta.fields + (
+            "nic_id",
+            "years_experience",
+            "service_radius_km",
+            "certification_docs",
+            "is_approved",
+            "completion_percent",
+            "onboarding_complete",
+            "is_match_eligible",
+            "missing_fields",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def _completion(self, obj):
+        return caregiver_profile_completion(obj)
+
+    def get_completion_percent(self, obj):
+        return self._completion(obj).percent
+
+    def get_onboarding_complete(self, obj):
+        c = self._completion(obj)
+        return c.percent >= c.min_percent
+
+    def get_is_match_eligible(self, obj):
+        c = self._completion(obj)
+        return obj.is_active and obj.is_approved and c.percent >= c.min_percent
+
+    def get_missing_fields(self, obj):
+        return self._completion(obj).missing_fields
+
+
+class CaregiverProfileUpdateSerializer(serializers.ModelSerializer):
+    longitude = serializers.FloatField(required=False, allow_null=True, write_only=True)
+    latitude = serializers.FloatField(required=False, allow_null=True, write_only=True)
+    certification_docs = serializers.JSONField(required=False)
+
+    class Meta:
+        model = CaregiverProfile
+        fields = (
+            "display_name",
+            "nic_id",
+            "city",
+            "longitude",
+            "latitude",
+            "languages",
+            "specialties",
+            "care_levels",
+            "certifications",
+            "years_experience",
+            "service_radius_km",
+            "bio",
+            "certification_docs",
+            "is_available",
+        )
+
+    def validate_languages(self, value):
+        allowed = {c.value for c in Language}
+        unknown = [v for v in value if v not in allowed]
+        if unknown:
+            raise serializers.ValidationError(
+                f"languages must be one of {sorted(allowed)} (got {unknown})"
+            )
+        return value
+
+    def validate_specialties(self, value):
+        slugs = [s.strip().lower() for s in value if (s or "").strip()]
+        if not slugs:
+            return []
+        active = set(
+            ConditionTerm.objects.filter(active=True, slug__in=slugs).values_list(
+                "slug", flat=True
+            )
+        )
+        unknown = sorted(set(slugs) - active)
+        if unknown:
+            raise serializers.ValidationError(
+                f"Unknown specialty slug(s): {', '.join(unknown)}"
+            )
+        return slugs
+
+    def validate(self, attrs):
+        if "longitude" in self.initial_data or "latitude" in self.initial_data:
+            lon = attrs.pop("longitude", None)
+            lat = attrs.pop("latitude", None)
+            if lon is None or lat is None:
+                raise serializers.ValidationError(
+                    "longitude and latitude must be provided together."
+                )
+            attrs["location"] = Point(float(lon), float(lat), srid=4326)
+        else:
+            attrs.pop("longitude", None)
+            attrs.pop("latitude", None)
+        return attrs
 
 
 class CaregiverDetailSerializer(CaregiverProfileSerializer):

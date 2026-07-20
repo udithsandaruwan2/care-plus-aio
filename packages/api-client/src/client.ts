@@ -1,6 +1,7 @@
 import {
   CaregiverDetail,
   CaregiverListResponse,
+  CaregiverMeProfile,
   CaregiverProfile,
   ConditionListResponse,
   ConsentRow,
@@ -17,6 +18,7 @@ import {
   VoiceTurnResponse,
   DialoguePolicy,
   type CaregiverListParams,
+  type CaregiverProfileUpdate,
   type MatchInput,
   type PatientProfileUpdate,
   type RegisterInput,
@@ -251,7 +253,13 @@ export function createApiClient(options: ApiClientOptions) {
     caregiver: (id: number) =>
       request(`/caregivers/${id}/`, {}, (d) => CaregiverDetail.parse(d)),
     myCaregiverProfile: () =>
-      request('/caregivers/me/', {}, (d) => CaregiverProfile.parse(d)),
+      request('/caregivers/me/', {}, (d) => CaregiverMeProfile.parse(d)),
+    updateMyCaregiverProfile: (input: CaregiverProfileUpdate) =>
+      request(
+        '/caregivers/me/',
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => CaregiverMeProfile.parse(d),
+      ),
     setMyAvailability: (is_available: boolean) =>
       request(
         '/caregivers/me/',
@@ -259,7 +267,7 @@ export function createApiClient(options: ApiClientOptions) {
           method: 'PATCH',
           body: JSON.stringify({ is_available }),
         },
-        (d) => CaregiverProfile.parse(d),
+        (d) => CaregiverMeProfile.parse(d),
       ),
     myPatientProfile: () => request('/patients/me/', {}, (d) => PatientProfile.parse(d)),
     updateMyPatientProfile: (input: PatientProfileUpdate) =>

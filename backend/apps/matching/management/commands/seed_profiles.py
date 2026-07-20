@@ -120,6 +120,13 @@ class Command(BaseCommand):
                 trust_score=round(rng.uniform(0.55, 0.98), 3),
                 embedding=[],
                 bio=f"Community caregiver based near {city_name}.",
+                nic_id=f"19{900000000 + i:09d}"[:12],
+                years_experience=rng.randint(2, 15),
+                service_radius_km=round(rng.uniform(15.0, 50.0), 1),
+                certification_docs=[
+                    {"name": c, "status": "verified"} for c in rng.sample(CERTIFICATIONS, k=2)
+                ],
+                is_approved=True,
                 is_active=True,
                 # Soft presence demo: ~every 10th seed caregiver starts unavailable.
                 is_available=(i % 10 != 0),

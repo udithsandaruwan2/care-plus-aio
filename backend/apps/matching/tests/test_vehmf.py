@@ -79,6 +79,8 @@ class VehmfEngineTests(TestCase):
             care_levels=care_levels,
             trust_score=trust,
             bio=name,
+            is_active=True,
+            is_approved=True,
         )
 
     def test_run_match_ranks_diabetes_near_colombo(self):
@@ -121,6 +123,8 @@ class MatchApiTests(APITestCase):
             care_levels=["intermediate"],
             trust_score=0.9,
             bio="near Colombo",
+            is_active=True,
+            is_approved=True,
         )
         self.url = reverse("v1:match")
 

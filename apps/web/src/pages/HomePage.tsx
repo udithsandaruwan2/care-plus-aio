@@ -4,6 +4,7 @@ import { brand } from '@care-plus/ui-tokens';
 import { AssistantState, STATE_COPY, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { useAuth } from '../auth/AuthContext';
+import { useCaregiverProfile } from '../auth/useCaregiverProfile';
 import { usePatientProfile } from '../auth/usePatientProfile';
 import { api } from '../auth/api';
 import { useMicAmplitude } from '../neural-core/useMicAmplitude';
@@ -38,6 +39,7 @@ const NeuralCoreCanvas = lazy(() =>
 export function HomePage() {
   const { user, logout } = useAuth();
   const { canRequestCare, completionPercent } = usePatientProfile();
+  const { isMatchEligible, completionPercent: cgCompletion } = useCaregiverProfile();
   const [health, setHealth] = useState<string>('…');
   const [conversationOn, setConversationOn] = useState(false);
   const conversationOnRef = useRef(false);
@@ -205,6 +207,14 @@ export function HomePage() {
                 className="rounded-lg border border-amber/40 px-3 py-1.5 text-sm text-amber transition hover:border-amber hover:bg-amber/10"
               >
                 Profile {completionPercent}%
+              </Link>
+            )}
+            {user?.role === 'caregiver' && !isMatchEligible && (
+              <Link
+                to="/caregiver-onboarding"
+                className="rounded-lg border border-amber/40 px-3 py-1.5 text-sm text-amber transition hover:border-amber hover:bg-amber/10"
+              >
+                Profile {cgCompletion}%
               </Link>
             )}
             {user?.role === 'caregiver' && (

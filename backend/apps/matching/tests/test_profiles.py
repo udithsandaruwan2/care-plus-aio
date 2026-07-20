@@ -29,6 +29,8 @@ class ProfileModelTests(TestCase):
             specialties=["diabetes"],
             care_levels=["basic", "intermediate"],
             trust_score=0.88,
+            is_active=True,
+            is_approved=True,
         )
         profile.refresh_from_db()
         self.assertEqual(profile.location.srid, 4326)
@@ -100,6 +102,8 @@ class CaregiverListApiTests(APITestCase):
             specialties=["elderly care"],
             care_levels=["basic"],
             trust_score=0.9,
+            is_active=True,
+            is_approved=True,
         )
         self.url = reverse("v1:caregiver_list")
 

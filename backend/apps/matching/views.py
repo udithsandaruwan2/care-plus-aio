@@ -28,13 +28,15 @@ from .models import (
     PatientProfile,
 )
 from .serializers import (
-    CaregiverAvailabilitySerializer,
     CaregiverDetailSerializer,
+    CaregiverMeSerializer,
     CaregiverProfileSerializer,
+    CaregiverProfileUpdateSerializer,
     MatchRequestSerializer,
     PatientProfileSerializer,
     PatientProfileUpdateSerializer,
 )
+from .caregiver_profile import activate_caregiver_if_ready
 
 
 class CaregiverPagination(PageNumberPagination):
@@ -150,30 +152,35 @@ class CaregiverDetailView(generics.RetrieveAPIView):
 
 
 class CaregiverMeView(APIView):
-    """GET/PATCH /api/v1/caregivers/me/ — own profile + soft presence toggle (Step 20e)."""
+    """GET/PATCH /api/v1/caregivers/me/ — onboarding + presence (Step 22c)."""
 
     permission_classes = [permissions.IsAuthenticated, IsCaregiver]
 
     def _profile(self, user) -> CaregiverProfile:
-        try:
-            return user.caregiver_profile
-        except CaregiverProfile.DoesNotExist as exc:
-            raise NotFound(
-                "Caregiver profile not found. Ask an admin to seed your profile, "
-                "or complete onboarding when it ships."
-            ) from exc
+        profile, _ = CaregiverProfile.objects.get_or_create(
+            user=user,
+            defaults={
+                "display_name": user.first_name or user.email.split("@")[0],
+                "location": Point(79.8612, 6.9271, srid=4326),
+                "city": "",
+                "is_active": False,
+                "is_approved": False,
+            },
+        )
+        return profile
 
     def get(self, request):
         profile = self._profile(request.user)
-        return Response(CaregiverProfileSerializer(profile).data)
+        return Response(CaregiverMeSerializer(profile).data)
 
     def patch(self, request):
         profile = self._profile(request.user)
-        ser = CaregiverAvailabilitySerializer(profile, data=request.data, partial=True)
+        ser = CaregiverProfileUpdateSerializer(profile, data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
         ser.save()
+        profile = activate_caregiver_if_ready(profile)
         profile.refresh_from_db()
-        return Response(CaregiverProfileSerializer(profile).data)
+        return Response(CaregiverMeSerializer(profile).data)
 
 
 class PatientMeView(APIView):

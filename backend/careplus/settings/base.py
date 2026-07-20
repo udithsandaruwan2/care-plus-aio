@@ -183,6 +183,9 @@ CF_ARTIFACT_DIR = env("CF_ARTIFACT_DIR", default="")
 CF_ENABLED = env.bool("CF_ENABLED", default=True)
 # Minimum patient profile completion % before requesting care (Step 22b).
 PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
+# Caregiver onboarding + auto-approval (Step 22c).
+CAREGIVER_AUTO_APPROVE = env.bool("CAREGIVER_AUTO_APPROVE", default=True)
+CAREGIVER_PROFILE_MIN_COMPLETION = env.int("CAREGIVER_PROFILE_MIN_COMPLETION", default=80)
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"

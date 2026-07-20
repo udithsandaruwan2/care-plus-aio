@@ -70,6 +70,8 @@ class FaissIndexTests(TestCase):
             care_levels=care_levels,
             trust_score=0.8,
             bio=f"{name} near test city",
+            is_active=True,
+            is_approved=True,
         )
 
     @override_settings(EMBEDDING_BACKEND="hash", FAISS_ARTIFACT_DIR="")
@@ -127,6 +129,8 @@ class CbfPreviewApiTests(APITestCase):
             care_levels=["intermediate", "advanced"],
             trust_score=0.95,
             bio="Community caregiver based near Colombo.",
+            is_active=True,
+            is_approved=True,
         )
         self.url = reverse("v1:match_cbf_preview")
 

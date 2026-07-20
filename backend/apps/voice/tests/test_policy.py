@@ -91,6 +91,8 @@ class StubChatAndLocalMatchTests(TestCase):
             languages=["Sinhala", "English"],
             care_levels=["intermediate"],
             trust_score=0.9,
+            is_active=True,
+            is_approved=True,
             is_available=True,
         )
 
