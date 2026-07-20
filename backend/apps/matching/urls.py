@@ -4,6 +4,7 @@ from .views import (
     AhpWeightsView,
     CaregiverDetailView,
     CaregiverListView,
+    CaregiverMeView,
     CbfPreviewView,
     MatchView,
     PatientListView,
@@ -11,6 +12,7 @@ from .views import (
 
 urlpatterns = [
     path("caregivers/", CaregiverListView.as_view(), name="caregiver_list"),
+    path("caregivers/me/", CaregiverMeView.as_view(), name="caregiver_me"),
     path("caregivers/<int:pk>/", CaregiverDetailView.as_view(), name="caregiver_detail"),
     path("patients/", PatientListView.as_view(), name="patient_list"),
     path("match/", MatchView.as_view(), name="match"),
