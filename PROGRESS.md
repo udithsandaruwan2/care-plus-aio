@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-20 — Step 15j dialogue AI policy done. Next: 15h loop polish / M5 CF (21)._
+_Last updated: 2026-07-20 — Step 15h unified conversation loop done. M3c complete. Next: M5 CF (21)._
 
 ---
 
@@ -82,15 +82,15 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 15g** — DialogueSession memory + New request clear. Branch `feat/step15g-session-memory`.
 - ✅ **Step 15i** — Post-match refine deltas → VEHMF filters + rank-change UI. Branch `feat/step15i-post-match-refine`.
 - ✅ **Step 15j** — Dialogue AI policy (stub/gemini chat, VEHMF-only match, rate limit). Branch `feat/step15j-dialogue-policy`.
-- ⬜ **M3c Step 15h** — Unified loop polish (partial already via turn loop + TTS)
-- 🔜 **Step 15h** — Unified Neural Core loop polish (or M5 CF Step 21)
+- ✅ **Step 15h** — Unified loop: chat bubbles, CHAT_REPLY FSM, mic re-arm. Branch `feat/step15h-conversation-loop`.
+- 🔜 **Step 21** — Interaction log + CF training offline
 
 ### Expanded product tracks (from Old Care Plus)
 
 | Milestone | Steps | Status |
 |-----------|-------|--------|
 | **M3b** Medical vocab + Serah chat | 15b–15e | 15b ✅ · 15c–e ⬜ |
-| **M3c** Conversational dialogue loop | 15f–15j | 15f–g,15i–j ✅ · 15h ░ |
+| **M3c** Conversational dialogue loop | 15f–15j | 15f–15j ✅ |
 | **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅ |
 | **M5** CF personalization | 21–22 | ⬜ |
 | **M5b** Rich onboarding / OTP | 22b–22f | ⬜ |
@@ -124,6 +124,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 15h** — Unified Neural Core loop: `CHAT_REPLY` FSM state, scrollable `ChatBubbles`, MATCHING→RESULTS transition, mic re-arms after Serah TTS in conversation mode. Branch `feat/step15h-conversation-loop`.
 - **Step 15j** — Dialogue AI policy: `DIALOGUE_CHAT_BACKEND` + Gemini chat rate limit; MATCH/REFINE stay VEHMF-only; `GET /voice/policy/`; turn `chat_source` + audit; docs in `DIALOGUE_POLICY.md`. Branch `feat/step15j-dialogue-policy`.
 - **Step 15i** — Refine phrases → language/distance/specialty/care_level deltas; VEHMF hard filters + closer geo tilt; match cards show ↑↓ rank deltas + latency; `refined` flag. Branch `feat/step15i-post-match-refine`.
 - **Step 15g** — `DialogueSession` stores chips, route history, last N turns, last `MatchRun`; turn response includes `session_id`; `GET /voice/session/` + `POST /voice/session/clear/`; Home **New request** clears server+client memory. Branch `feat/step15g-session-memory`.

@@ -7,6 +7,7 @@ const STEP_ORDER: AssistantState[] = [
   AssistantState.THINKING,
   AssistantState.CLARIFYING,
   AssistantState.SPEAKING,
+  AssistantState.CHAT_REPLY,
   AssistantState.MATCHING,
   AssistantState.RESULTS,
   AssistantState.EMERGENCY,

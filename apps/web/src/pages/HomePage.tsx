@@ -9,6 +9,7 @@ import { useMicAmplitude } from '../neural-core/useMicAmplitude';
 import { useAssistant } from '../assistant/store';
 import { useReducedMotion } from '../assistant/useReducedMotion';
 import { GoalRing } from '../assistant/GoalRing';
+import { ChatBubbles } from '../assistant/ChatBubbles';
 import { EntityChips } from '../assistant/EntityChips';
 import { Transcript } from '../assistant/Transcript';
 import { StateStepper } from '../assistant/StateStepper';
@@ -48,6 +49,7 @@ export function HomePage() {
     transcript,
     interim,
     match,
+    chat,
     uiLanguage,
     setState,
     setInterim,
@@ -62,7 +64,6 @@ export function HomePage() {
     error: turnError,
     consentNeeded,
     grantConsent,
-    serahReply,
     asrSource,
     asrHeardLang,
     ttsSource,
@@ -132,7 +133,11 @@ export function HomePage() {
     }
 
     const current = useAssistant.getState().state;
-    if (current !== AssistantState.CLARIFYING && current !== AssistantState.RESULTS) {
+    if (
+      current !== AssistantState.CLARIFYING &&
+      current !== AssistantState.RESULTS &&
+      current !== AssistantState.CHAT_REPLY
+    ) {
       reset();
     } else {
       setInterim('');
@@ -255,14 +260,7 @@ export function HomePage() {
           <p className="mt-2 font-display text-sm tracking-wide text-cyan" aria-live="polite">
             {state} · {busy ? 'Understanding…' : STATE_COPY[state]}
           </p>
-          {serahReply && (
-            <p
-              className="mt-2 max-w-sm text-center text-sm text-mint"
-              aria-live="polite"
-            >
-              Serah: {serahReply}
-            </p>
-          )}
+          <ChatBubbles messages={chat} />
           {clarifyPrompt && (
             <p className="mt-1 text-sm text-amber" aria-live="polite">
               {clarifyPrompt} Keep talking — your other details stay.
@@ -316,12 +314,17 @@ export function HomePage() {
               ? 'Stop / send'
               : busy
                 ? 'Serah is speaking…'
-                : state === AssistantState.CLARIFYING || state === AssistantState.RESULTS
+                : state === AssistantState.CLARIFYING ||
+                    state === AssistantState.RESULTS ||
+                    state === AssistantState.CHAT_REPLY
                   ? 'Continue talking'
                   : 'Tap to speak with Serah'}
           </button>
 
-          {(match || state === AssistantState.CLARIFYING || state === AssistantState.RESULTS) && (
+          {(match ||
+            state === AssistantState.CLARIFYING ||
+            state === AssistantState.RESULTS ||
+            state === AssistantState.CHAT_REPLY) && (
             <button
               type="button"
               onClick={() => void onNewRequest()}
