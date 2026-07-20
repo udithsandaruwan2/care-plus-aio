@@ -89,6 +89,11 @@ class VEHMFEngine:
         candidate_pool: int = 100,
         weights: Sequence[float] | None = None,
         emergency: bool = False,
+        max_distance_m: float | None = None,
+        require_language: str = "",
+        require_specialty: str = "",
+        require_care_level: str = "",
+        prefer_closer: bool = False,
     ) -> MatchOutput:
         if self.index.size == 0:
             return MatchOutput(
@@ -106,6 +111,9 @@ class VEHMFEngine:
                 dtype=np.float32,
             )
         )
+        # Soft refine: tilt fusion toward geography when user asks for closer.
+        if prefer_closer and weights is None and not emergency:
+            W = np.asarray(normalize_weights([0.25, 0.05, 0.55, 0.15]), dtype=np.float32)
 
         # 1. CBF — FAISS inner product on L2-normalized vectors.
         qvec = get_embedder().embed([query_text])[0]
@@ -120,7 +128,6 @@ class VEHMFEngine:
             )
 
         caregiver_ids = [cid for cid, _ in cbf_hits]
-        cbf_raw = np.array([score for _, score in cbf_hits], dtype=np.float32)
 
         # Soft presence (Step 20e): unavailable caregivers stay in the FAISS index
         # but are hidden from match top-N (browse can still show them via ?available=0).
@@ -161,11 +168,41 @@ class VEHMFEngine:
         score_matrix = np.column_stack((cbf, cf, geo, trust))
         final = score_matrix @ W
 
-        # 6. Rank + XAI for each returned row (explanation uses that row's dominant factor).
-        order = np.argsort(-final)[:top_k]
+        # 6. Hard refine filters (Step 15i) then rank.
+        lang_req = (require_language or "").strip()
+        spec_req = (require_specialty or "").strip().lower()
+        care_req = (require_care_level or "").strip().lower()
+
+        eligible: list[int] = []
+        for i, cid in enumerate(ordered_ids):
+            p = profiles[cid]
+            if lang_req and lang_req not in (p.languages or []):
+                continue
+            if care_req and care_req not in [c.lower() for c in (p.care_levels or [])]:
+                continue
+            if spec_req:
+                specs = [s.lower() for s in (p.specialties or [])]
+                if not any(spec_req in s or s in spec_req for s in specs):
+                    continue
+            dist = distances.get(cid)
+            if max_distance_m is not None:
+                if dist is None or dist > max_distance_m:
+                    continue
+            eligible.append(i)
+
+        if not eligible:
+            return MatchOutput(
+                results=[],
+                weights=tuple(float(w) for w in W),
+                query=query_text,
+                emergency=emergency,
+            )
+
+        eligible_arr = np.asarray(eligible, dtype=np.int64)
+        order_local = np.argsort(-final[eligible_arr])[:top_k]
         results: list[RankedMatch] = []
-        for idx in order:
-            i = int(idx)
+        for loc in order_local:
+            i = int(eligible_arr[int(loc)])
             cid = ordered_ids[i]
             row = score_matrix[i]
             contributor = int(np.argmax(row * W))
@@ -230,19 +267,40 @@ def run_match(
     top_k: int = 10,
     emergency: bool = False,
     engine: VEHMFEngine | None = None,
+    max_distance_km: float | None = None,
+    specialty: str = "",
+    prefer_closer: bool = False,
+    hard_filter_language: bool = False,
+    hard_filter_care_level: bool = False,
 ) -> MatchOutput:
-    """Convenience wrapper used by the API layer."""
+    """Convenience wrapper used by the API layer.
+
+    Soft CBF text always includes language/care_level. Hard filters (Step 15i
+    refine) are opt-in so a normal match is not over-constrained.
+    """
+    extra = query
+    if specialty:
+        extra = f"{specialty} {query}".strip()
     text = intent_to_text(
-        condition=condition, language=language, care_level=care_level, extra=query
+        condition=condition or specialty,
+        language=language,
+        care_level=care_level,
+        extra=extra,
     )
     origin = None
     if longitude is not None and latitude is not None:
         origin = Point(float(longitude), float(latitude), srid=4326)
     eng = engine or VEHMFEngine()
+    max_m = None if max_distance_km is None else float(max_distance_km) * 1000.0
     return eng.predict(
         query_text=text or query or "care",
         patient_id=patient_id,
         origin=origin,
         top_k=top_k,
         emergency=emergency,
+        max_distance_m=max_m,
+        require_language=language if hard_filter_language else "",
+        require_specialty=specialty or "",
+        require_care_level=care_level if hard_filter_care_level else "",
+        prefer_closer=prefer_closer,
     )

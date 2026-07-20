@@ -180,10 +180,11 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 **✅ Partial:** `/voice/turn/` loop + language picker (සිංහල|தமிழ்|English) locks ASR + reply language; server TTS (`TTS_BACKEND=auto`: Piper→Gemini→browser) returns `reply_audio_base64`.
 **✅ Acceptance:** user can: greet → ask diabetes tip (CHAT) → “find me a Sinhala caregiver” (MATCH → cards) → “someone closer” (REFINE) without leaving the home screen.
 
-### Step 15i — Post-match conversational refine
+### Step 15i — Post-match conversational refine ✅ **DONE**
 
 **Goal:** talk to adjust the shortlist.  
 **Tasks:** map refine phrases → filter deltas (language, care_level, max_distance_km, specialty); re-call VEHMF; push via existing `ws/match/`; highlight changed ranks.  
+**Done:** `apps.voice.refine` deltas; VEHMF hard filters + closer geo tilt; rank_delta/previous_rank on cards; refine reply notes filters.  
 **✅ Acceptance:** “only Tamil speakers within 5 km” updates cards; latency badge still shown.
 
 ### Step 15j — Local / Gemini policy for dialogue
@@ -576,4 +577,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 15i — Post-match conversational refine**, or **Step 15h** unified loop polish / **Step 21** CF.
+**Step 15j — Local / Gemini dialogue policy**, or **Step 15h** loop polish / **Step 21** CF.
