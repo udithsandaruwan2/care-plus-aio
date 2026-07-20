@@ -244,10 +244,11 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 **Done:** `GET /api/v1/caregivers/<id>/` (active only) with bio, certs, languages, specialties, trust, approximate area, reviews teaser stub, audited `view_caregiver`; web `/caregivers/:id` + links from browse + match cards; Request CTA stub → Step 23.  
 **✅ Acceptance:** deep-linkable `/caregivers/:id`; audited view if health-adjacent fields shown.
 
-### Step 20e — Availability flag + soft presence
+### Step 20e — Availability flag + soft presence ✅ **DONE**
 
 **Goal:** old `is_available`.  
 **Tasks:** caregiver toggles availability; match/browse honor it.  
+**Done:** VEHMF hides `is_available=False` from top-N; browse `?available=`; `GET/PATCH /caregivers/me/`; web `/presence`.  
 **✅ Acceptance:** unavailable caregivers hidden from match top-N (or ranked last with badge).
 
 ---
@@ -574,4 +575,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 20d — Caregiver public detail page** (`feat/step20d-caregiver-detail`), or 20e availability / 21 CF.
+**Step 15g — Session memory across turns**, or **Step 21 — CF training** (`feat/step21-cf-interactions`).
