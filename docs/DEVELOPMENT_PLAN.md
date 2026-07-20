@@ -18,20 +18,20 @@
 
 ## 0. Decisions locked (lean profile)
 
-| # | Decision | Locked default | Note |
-|---|----------|----------------|------|
-| 1 | ASR | Web Speech **captions** + local **faster-whisper** (`ASR_BACKEND=faster_whisper`; SPEAK-ASR Sinhala specialist; Gemini audio optional) | Browser STT alone is English-biased for si/ta |
-| 2 | CF | `implicit` ALS → LightFM upgrade path | Pluggable `CFModel` |
-| 3 | Time-series | TimescaleDB | One DB |
-| 4 | Embeddings | `intfloat/multilingual-e5-base` (768-d) | FAISS CBF |
-| 5 | Hosting | Single VM + Docker Compose, `ap-south` | PDPA proximity |
-| 6 | Brand | **Care Plus** product name; **Aurora Neural** design system | Drop dual “Lumora” brand in UI |
-| 7 | Matching | **VEHMF** (CBF+CF+Geo+Trust+AHP+XAI) replaces old RF+ad-hoc Gemini rank | Research core |
-| 8 | Medical labels | Versioned **canonical vocab** + stub synonyms + Gemini normalize-to-vocab | See M3b / Step 15b |
-| 9 | Payments | Real LKR rails later; MVP = verified mock → PayHere/Stripe | Never fake “success” without a PaymentIntent |
-| 10 | Comms | In-app messaging + email notifications (not SMTP-as-hire-workflow) | Old `Email` model becomes `CareRequest` + `Message` |
-| 11 | Conversation | **One Neural Core mic** = multi-turn dialogue; **router** picks CHAT vs MATCH vs REFINE vs ACTION | Gemini/local for talk; **VEHMF only** for caregiver ranking (never Gemini re-rank) |
-| 12 | Intent NLP | `VOICE_INTENT_BACKEND=stub\|gemini\|local` (`LOCAL_LLM_URL` empty until you add a model) | Pluggable local slot |
+| #   | Decision       | Locked default                                                                                                                         | Note                                                                               |
+| --- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | ASR            | Web Speech **captions** + local **faster-whisper** (`ASR_BACKEND=faster_whisper`; SPEAK-ASR Sinhala specialist; Gemini audio optional) | Browser STT alone is English-biased for si/ta                                      |
+| 2   | CF             | `implicit` ALS → LightFM upgrade path                                                                                                  | Pluggable `CFModel`                                                                |
+| 3   | Time-series    | TimescaleDB                                                                                                                            | One DB                                                                             |
+| 4   | Embeddings     | `intfloat/multilingual-e5-base` (768-d)                                                                                                | FAISS CBF                                                                          |
+| 5   | Hosting        | Single VM + Docker Compose, `ap-south`                                                                                                 | PDPA proximity                                                                     |
+| 6   | Brand          | **Care Plus** product name; **Aurora Neural** design system                                                                            | Drop dual “Lumora” brand in UI                                                     |
+| 7   | Matching       | **VEHMF** (CBF+CF+Geo+Trust+AHP+XAI) replaces old RF+ad-hoc Gemini rank                                                                | Research core                                                                      |
+| 8   | Medical labels | Versioned **canonical vocab** + stub synonyms + Gemini normalize-to-vocab                                                              | See M3b / Step 15b                                                                 |
+| 9   | Payments       | Real LKR rails later; MVP = verified mock → PayHere/Stripe                                                                             | Never fake “success” without a PaymentIntent                                       |
+| 10  | Comms          | In-app messaging + email notifications (not SMTP-as-hire-workflow)                                                                     | Old `Email` model becomes `CareRequest` + `Message`                                |
+| 11  | Conversation   | **One Neural Core mic** = multi-turn dialogue; **router** picks CHAT vs MATCH vs REFINE vs ACTION                                      | Gemini/local for talk; **VEHMF only** for caregiver ranking (never Gemini re-rank) |
+| 12  | Intent NLP     | `VOICE_INTENT_BACKEND=stub\|gemini\|local` (`LOCAL_LLM_URL` empty until you add a model)                                               | Pluggable local slot                                                               |
 
 ---
 
@@ -39,21 +39,21 @@
 
 The finished Care Plus platform must deliver **everything the old app aimed for**, rebuilt with the new architecture:
 
-| Old capability | New delivery |
-|----------------|--------------|
-| Patient ↔ caregiver Sri Lanka marketplace | Profiles + browse/search + map + VEHMF match |
-| ML + Gemini (“Serah”) recommendations | VEHMF + XAI for ranking; Serah = conversational persona (chat + clarify + explain matches) |
-| Voice assistant (browser STT/TTS) | **Multi-turn** Neural Core: talk ↔ Serah reply ↔ talk again; router → chat **or** VEHMF match |
-| Hire request → accept/reject → pay → active link | First-class `CareRequest` + `CareRelationship` + payments |
-| Medical records + health profile | Encrypted records + Timescale vitals (upgrade) |
-| Admin analytics + KnownCondition catalog | Admin console + medical vocab admin |
-| OTP auth, role dashboards | JWT + optional email OTP; role home shells |
-| Care packages (LKR), hospital/food add-ons | Catalog models + checkout (real persistence) |
-| Reviews | Moderated reviews with real ratings |
-| Static marketing site | React marketing + app (Aurora Neural) |
-| *(missing in old)* Mobile | Expo RN patient + caregiver apps |
-| *(missing in old)* Realtime health / emergency re-match | Timescale + anomaly + dynamic VEHMF weights |
-| *(missing in old)* Scheduling / Redlock | Shift calendar + conflict fallback |
+| Old capability                                          | New delivery                                                                                  |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Patient ↔ caregiver Sri Lanka marketplace               | Profiles + browse/search + map + VEHMF match                                                  |
+| ML + Gemini (“Serah”) recommendations                   | VEHMF + XAI for ranking; Serah = conversational persona (chat + clarify + explain matches)    |
+| Voice assistant (browser STT/TTS)                       | **Multi-turn** Neural Core: talk ↔ Serah reply ↔ talk again; router → chat **or** VEHMF match |
+| Hire request → accept/reject → pay → active link        | First-class `CareRequest` + `CareRelationship` + payments                                     |
+| Medical records + health profile                        | Encrypted records + Timescale vitals (upgrade)                                                |
+| Admin analytics + KnownCondition catalog                | Admin console + medical vocab admin                                                           |
+| OTP auth, role dashboards                               | JWT + optional email OTP; role home shells                                                    |
+| Care packages (LKR), hospital/food add-ons              | Catalog models + checkout (real persistence)                                                  |
+| Reviews                                                 | Moderated reviews with real ratings                                                           |
+| Static marketing site                                   | React marketing + app (Aurora Neural)                                                         |
+| _(missing in old)_ Mobile                               | Expo RN patient + caregiver apps                                                              |
+| _(missing in old)_ Realtime health / emergency re-match | Timescale + anomaly + dynamic VEHMF weights                                                   |
+| _(missing in old)_ Scheduling / Redlock                 | Shift calendar + conflict fallback                                                            |
 
 **Do not copy from old:** mock card payment, Windows tray launcher, unused SpeechRecognition deps, RandomForest on postal-code “distance”, hire-via-Email overload, lorem marketing copy, `DEBUG=True` / secrets in repo.
 
@@ -63,30 +63,30 @@ Full mapping: [PRODUCT_VISION.md](PRODUCT_VISION.md).
 
 ## 2. Milestone map (v0.3 — ~80 steps)
 
-| Milestone | Steps | Outcome |
-|-----------|-------|---------|
-| **M0 · Foundations** | 1–5 ✅ | Monorepo + Django + DB + Docker + CI |
-| **M1 · Auth & Consent** | 6–8 ✅ | JWT, RBAC, consent, audit |
-| **M2 · Web shell + Neural Core** | 9–12 ✅ | Aurora Neural + brain + FSM |
-| **M3 · Voice → Intent** | 13–15 ✅ | Mic → Gemini/stub → chips + Goal Ring |
-| **M3b · Medical vocab & Serah chat** | 15b–15e | Canonical conditions, normalize, grounded Serah API/UI |
-| **M3c · Conversational dialogue loop** | 15f–15j | Multi-turn talk ↔ reply; router CHAT vs MATCH vs REFINE |
-| **M4 · VEHMF v1 + Match UX** | 16–20 ✅ | Ranked, explained matches (voice → results) |
-| **M4b · Marketplace browse** | 20b–20e | Search/filter/map/caregiver detail (old `/caregivers`) |
-| **M5 · Personalization (CF)** | 21–22 | ALS blended into fusion |
-| **M5b · Profiles & onboarding** | 22b–22f | Rich patient/caregiver profiles (old Profile fields) |
-| **M6 · Hire lifecycle** | 23–28 | Request → accept/reject → relationship (old hire flow) |
-| **M7 · Catalog, checkout & payments** | 29–33 | Care packages, LKR checkout, payment intents |
-| **M8 · Medical records** | 34–37 | Docs, attachments, caregiver access, audit |
-| **M9 · Messaging & notifications** | 38–41 | Threads, email/push notifications |
-| **M10 · Reviews & trust** | 42–44 | Ratings feed `trust_score` |
-| **M11 · Health monitoring** | 45–49 | Timescale, anomalies, emergency re-match, alerts |
-| **M12 · Scheduling** | 50–53 | Calendar, Redlock, conflict fallback |
-| **M13 · Admin console** | 54–58 | Users, vocab, analytics, appointments/leads |
-| **M14 · i18n & accessibility** | 59–61 | si/ta/en UI, a11y, reduced-motion |
-| **M15 · Mobile (Expo)** | 62–67 | Patient + caregiver parity |
-| **M16 · Compliance & hardening** | 68–71 | Encryption, erasure, TLS, load tests |
-| **M17 · Ship** | 72–75 | CI/CD, deploy, stores, launch checklist |
+| Milestone                              | Steps    | Outcome                                                 |
+| -------------------------------------- | -------- | ------------------------------------------------------- |
+| **M0 · Foundations**                   | 1–5 ✅   | Monorepo + Django + DB + Docker + CI                    |
+| **M1 · Auth & Consent**                | 6–8 ✅   | JWT, RBAC, consent, audit                               |
+| **M2 · Web shell + Neural Core**       | 9–12 ✅  | Aurora Neural + brain + FSM                             |
+| **M3 · Voice → Intent**                | 13–15 ✅ | Mic → Gemini/stub → chips + Goal Ring                   |
+| **M3b · Medical vocab & Serah chat**   | 15b–15e  | Canonical conditions, normalize, grounded Serah API/UI  |
+| **M3c · Conversational dialogue loop** | 15f–15j  | Multi-turn talk ↔ reply; router CHAT vs MATCH vs REFINE |
+| **M4 · VEHMF v1 + Match UX**           | 16–20 ✅ | Ranked, explained matches (voice → results)             |
+| **M4b · Marketplace browse**           | 20b–20e  | Search/filter/map/caregiver detail (old `/caregivers`)  |
+| **M5 · Personalization (CF)**          | 21–22    | ALS blended into fusion                                 |
+| **M5b · Profiles & onboarding**        | 22b–22f  | Rich patient/caregiver profiles (old Profile fields)    |
+| **M6 · Hire lifecycle**                | 23–28    | Request → accept/reject → relationship (old hire flow)  |
+| **M7 · Catalog, checkout & payments**  | 29–33    | Care packages, LKR checkout, payment intents            |
+| **M8 · Medical records**               | 34–37    | Docs, attachments, caregiver access, audit              |
+| **M9 · Messaging & notifications**     | 38–41    | Threads, email/push notifications                       |
+| **M10 · Reviews & trust**              | 42–44    | Ratings feed `trust_score`                              |
+| **M11 · Health monitoring**            | 45–49    | Timescale, anomalies, emergency re-match, alerts        |
+| **M12 · Scheduling**                   | 50–53    | Calendar, Redlock, conflict fallback                    |
+| **M13 · Admin console**                | 54–58    | Users, vocab, analytics, appointments/leads             |
+| **M14 · i18n & accessibility**         | 59–61    | si/ta/en UI, a11y, reduced-motion                       |
+| **M15 · Mobile (Expo)**                | 62–67    | Patient + caregiver parity                              |
+| **M16 · Compliance & hardening**       | 68–71    | Encryption, erasure, TLS, load tests                    |
+| **M17 · Ship**                         | 72–75    | CI/CD, deploy, stores, launch checklist                 |
 
 **Current position:** Steps **1–21 done** (voice → VEHMF + CF training offline). **Next:** Step 22 blend CF into fusion, or 20b browse polish, or 15c–e Serah chat.  
 Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** before polish so the mic feels like a real assistant, not a one-shot form.
@@ -96,18 +96,25 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 ## M0 · Foundations ✅
 
 ### Step 1 — Repo & monorepo skeleton ✅
+
 ### Step 2 — Docker Compose (Timescale+PostGIS+Redis) ✅
+
 ### Step 3 — Django+DRF skeleton + health ✅
+
 ### Step 4 — Channels + Celery ✅
-### Step 5 — Quality gates (Ruff/Black/Prettier/CI) ✅  
-*(Browsable API instead of Swagger — intentional)*
+
+### Step 5 — Quality gates (Ruff/Black/Prettier/CI) ✅
+
+_(Browsable API instead of Swagger — intentional)_
 
 ---
 
 ## M1 · Auth & Consent ✅
 
 ### Step 6 — Custom User + JWT + RBAC ✅
+
 ### Step 7 — Consent engine (451 gate) ✅
+
 ### Step 8 — Immutable audit trail ✅
 
 ---
@@ -115,8 +122,11 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 ## M2 · Web shell + Neural Core ✅
 
 ### Step 9 — Shared packages + Vite web ✅
+
 ### Step 10 — Auth screens ✅
+
 ### Step 11 — Neural Core (neuron cloud) ✅
+
 ### Step 12 — Assistant FSM + Goal Ring shell ✅
 
 ---
@@ -124,9 +134,12 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 ## M3 · Voice → Intent ✅
 
 ### Step 13 — Web Speech mic + live transcript ✅
+
 ### Step 14 — Backend voice/intent (Gemini + stub) ✅
-### Step 15 — Chips + Goal Ring end-to-end ✅  
-*(Clarify loop + dengue vocab fix shipped)*
+
+### Step 15 — Chips + Goal Ring end-to-end ✅
+
+_(Clarify loop + dengue vocab fix shipped)_
 
 ---
 
@@ -266,7 +279,8 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 
 ### Step 22 — Blend CF into VEHMF fusion
 
-**✅ Acceptance:** four-factor fusion; offline NDCG/MAP improves vs CBF-only; feature flag to disable CF.
+**✅ Acceptance:** four-factor fusion; offline NDCG/MAP improves vs CBF-only; feature flag to disable CF.  
+**Done:** `get_cf_model()` loads ALS into `VEHMFEngine`; `CF_ENABLED=false` zeroes β; match payload + `GET /match/weights/` expose `cf` metadata; NDCG/MAP regression tests.
 
 ---
 
@@ -519,11 +533,16 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 ## M15 · Mobile (Expo RN)
 
 ### Step 62 — Expo bootstrap + shared packages
+
 ### Step 63 — Auth + role navigation
+
 ### Step 64 — Neural Core (Skia) + voice → intent
+
 ### Step 65 — Match results + request caregiver
+
 ### Step 66 — Caregiver inbox + messaging
-### Step 67 — Push alerts + store build profiles  
+
+### Step 67 — Push alerts + store build profiles
 
 **✅ Acceptance (M15):** Android + iOS patient voice→match→request; caregiver accept; alert push.
 
@@ -532,8 +551,11 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 ## M16 · Compliance & hardening
 
 ### Step 68 — pgcrypto / field encryption on health + intent
+
 ### Step 69 — Right-to-erasure + FAISS eviction + data export (JSON/PDF)
+
 ### Step 70 — TLS 1.3, security headers, rate limits, CORS lockdown
+
 ### Step 71 — Load & concurrency tests (match p95, booking Redlock)
 
 **✅ Acceptance:** compliance checklist signed; load targets met.
@@ -543,8 +565,11 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 ## M17 · Ship
 
 ### Step 72 — CI/CD (build, test, push images, migrate)
+
 ### Step 73 — Deploy VM + observability (logs, metrics, Sentry)
+
 ### Step 74 — Play Store + App Store submissions
+
 ### Step 75 — Launch checklist (PDPA notices, support email, backups, runbooks)
 
 **✅ Acceptance:** production URL live; apps in review/live; runbooks in `docs/ops/`.
@@ -553,13 +578,13 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 
 ## Parallel tracks (optional acceleration)
 
-| Track | Steps | When |
-|-------|-------|------|
-| A · Research core | 17→20 ✅ | Done |
-| B · Vocab + Serah + **dialogue loop** | 15b→15j | After 20; can overlap 20b–22 |
-| C · Marketplace UI | 20b→20e | After 16; before or after dialogue |
-| D · Hire/pay | 23→33 | After 20 (needs Request CTA); ACTION route in 15f wires later |
-| E · Mobile | 62→67 | After web patient flow stable (≈ after 33 + 15h) |
+| Track                                 | Steps    | When                                                          |
+| ------------------------------------- | -------- | ------------------------------------------------------------- |
+| A · Research core                     | 17→20 ✅ | Done                                                          |
+| B · Vocab + Serah + **dialogue loop** | 15b→15j  | After 20; can overlap 20b–22                                  |
+| C · Marketplace UI                    | 20b→20e  | After 16; before or after dialogue                            |
+| D · Hire/pay                          | 23→33    | After 20 (needs Request CTA); ACTION route in 15f wires later |
+| E · Mobile                            | 62→67    | After web patient flow stable (≈ after 33 + 15h)              |
 
 ---
 
@@ -579,4 +604,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 22 — Blend CF into VEHMF fusion** (`feat/step22-cf-blend`).
+**Step 22b — Patient onboarding wizard** (`feat/step22b-patient-onboarding`).

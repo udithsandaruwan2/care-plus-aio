@@ -1,21 +1,21 @@
 import time
 
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
+from django.db.models import Q
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from django.contrib.gis.db.models.functions import Distance
-from django.contrib.gis.geos import Point
-from django.contrib.gis.measure import D
-from django.db.models import Q
-
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
 from apps.accounts.permissions import HasAIConsent, IsCaregiver, RolePermission
 
 from .ahp import build_config, get_ahp_weights
+from .cf_model import cf_model_info, get_cf_model
 from .embeddings import get_embedder, intent_to_text
 from .engine import run_match
 from .faiss_index import load_index
@@ -275,6 +275,7 @@ class AhpWeightsView(APIView):
         doc["emergency_weights"] = {
             name: round(w, 6) for name, w in zip(factors, doc["emergency_vector"], strict=True)
         }
+        doc["cf"] = cf_model_info(get_cf_model())
         return Response(doc)
 
 
@@ -379,6 +380,8 @@ class MatchView(APIView):
             "latency_ms": latency_ms,
             "query": out.query,
             "emergency": out.emergency,
+            "cf_enabled": out.cf_enabled,
+            "cf_version": out.cf_version,
             "weights": {
                 "cbf": round(out.weights[0], 6),
                 "cf": round(out.weights[1], 6),
