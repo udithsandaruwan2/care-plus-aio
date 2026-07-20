@@ -410,6 +410,47 @@ export const CareRelationshipListResponse = z.object({
 });
 export type CareRelationshipListResponse = z.infer<typeof CareRelationshipListResponse>;
 
+export const LeadStatus = z.enum(['new', 'contacted', 'closed']);
+export type LeadStatus = z.infer<typeof LeadStatus>;
+
+export const Lead = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string(),
+  phone: z.string().optional().default(''),
+  message: z.string().optional().default(''),
+  city: z.string().optional().default(''),
+  preferred_language: z.string().optional().default(''),
+  source: z.string().optional().default('marketing_form'),
+  status: LeadStatus,
+  contacted_at: z.string().nullable().optional(),
+  contacted_by_email: z.string().nullable().optional(),
+  admin_notes: z.string().optional().default(''),
+  ack_email_sent: z.boolean().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type Lead = z.infer<typeof Lead>;
+
+export const LeadCreate = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  message: z.string().optional(),
+  city: z.string().optional(),
+  preferred_language: z.string().optional(),
+  source: z.string().optional(),
+});
+export type LeadCreate = z.infer<typeof LeadCreate>;
+
+export const LeadListResponse = z.object({
+  count: z.number(),
+  next: z.string().nullable().optional(),
+  previous: z.string().nullable().optional(),
+  results: z.array(Lead),
+});
+export type LeadListResponse = z.infer<typeof LeadListResponse>;
+
 export const ConditionTerm = z.object({
   slug: z.string(),
   canonical_en: z.string(),
