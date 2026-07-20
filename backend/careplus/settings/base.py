@@ -53,6 +53,7 @@ LOCAL_APPS = [
     "apps.voice",
     "apps.matching",
     "apps.vocab",
+    "apps.leads",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -196,6 +197,13 @@ CAREGIVER_PROFILE_MIN_COMPLETION = env.int("CAREGIVER_PROFILE_MIN_COMPLETION", d
 CARE_REQUEST_TTL_HOURS = env.int("CARE_REQUEST_TTL_HOURS", default=72)
 # Step 25 — block a second active primary caregiver for the same patient.
 ONE_PRIMARY_CAREGIVER = env.bool("ONE_PRIMARY_CAREGIVER", default=True)
+# Step 27 — auto-ack email when a marketing lead is submitted.
+LEAD_ACK_EMAIL_ENABLED = env.bool("LEAD_ACK_EMAIL_ENABLED", default=True)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@careplus.local")
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"

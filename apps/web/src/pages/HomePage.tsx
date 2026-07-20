@@ -200,11 +200,25 @@ export function HomePage() {
           </div>
           <div className="flex shrink-0 gap-2">
             <Link
+              to="/contact"
+              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+            >
+              Contact
+            </Link>
+            <Link
               to="/caregivers"
               className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
             >
               Browse
             </Link>
+            {user?.role === 'admin' && (
+              <Link
+                to="/leads"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-amber hover:text-amber"
+              >
+                Leads
+              </Link>
+            )}
             {user?.role === 'patient' && !canRequestCare && (
               <Link
                 to="/onboarding"

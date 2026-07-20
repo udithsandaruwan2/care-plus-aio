@@ -9,6 +9,9 @@ import {
   CareRelationship,
   CareRelationshipListResponse,
   ConditionListResponse,
+  Lead,
+  LeadCreate,
+  LeadListResponse,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -25,6 +28,7 @@ import {
   type CaregiverListParams,
   type CaregiverProfileUpdate,
   type CareRequestCreate,
+  type LeadCreate,
   type MatchInput,
   type PatientProfileUpdate,
   type RegisterInput,
@@ -339,6 +343,28 @@ export function createApiClient(options: ApiClientOptions) {
           body: JSON.stringify({ action: 'end', reason: reason ?? '' }),
         },
         (d) => CareRelationship.parse(d),
+      ),
+    createLead: (input: LeadCreate) =>
+      request(
+        '/leads/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => Lead.parse(d),
+      ),
+    listLeads: (page?: number, statusFilter?: string) => {
+      const params = new URLSearchParams();
+      if (page != null) params.set('page', String(page));
+      if (statusFilter) params.set('status', statusFilter);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      return request(`/leads/${qs}`, {}, (d) => LeadListResponse.parse(d));
+    },
+    markLeadContacted: (id: number, notes?: string) =>
+      request(
+        `/leads/${id}/contact/`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'contact', notes: notes ?? '' }),
+        },
+        (d) => Lead.parse(d),
       ),
   };
 }
