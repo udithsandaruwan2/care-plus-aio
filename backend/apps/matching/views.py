@@ -20,11 +20,18 @@ from .embeddings import get_embedder, intent_to_text
 from .engine import run_match
 from .faiss_index import load_index
 from .interactions import log_interaction, record_match_interactions
+from .care_relationships import (
+    activate_relationship,
+    end_relationship,
+    relationship_payload,
+)
 from .care_requests import accept_care_request, cancel_care_request, create_care_request, reject_care_request
 from .caregiver_profile import activate_caregiver_if_ready
 from .models import (
     CareRequest,
     CaregiverProfile,
+    CareRelationship,
+    CareRelationshipStatus,
     InteractionKind,
     MatchResult,
     MatchRun,
@@ -38,6 +45,8 @@ from .serializers import (
     CareRequestActionSerializer,
     CareRequestCreateSerializer,
     CareRequestSerializer,
+    CareRelationshipActionSerializer,
+    CareRelationshipSerializer,
     MatchRequestSerializer,
     PatientProfileSerializer,
     PatientProfileUpdateSerializer,
@@ -634,3 +643,119 @@ class CareRequestActionView(APIView):
             async_=False,
         )
         return Response(CareRequestSerializer(care_request).data)
+
+
+class CareRelationshipPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 50
+
+
+class CareRelationshipListView(generics.ListAPIView):
+    """GET /api/v1/care-relationships/ — history for patient or caregiver."""
+
+    serializer_class = CareRelationshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CareRelationshipPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = CareRelationship.objects.select_related(
+            "patient", "caregiver", "caregiver__user"
+        )
+        if user.role == "patient":
+            return qs.filter(patient=user)
+        if user.role == "caregiver":
+            return qs.filter(caregiver__user=user)
+        return qs.none()
+
+
+class CareRelationshipCurrentView(APIView):
+    """GET /api/v1/care-relationships/current/ — active primary link if any."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        qs = CareRelationship.objects.select_related(
+            "patient", "caregiver", "caregiver__user"
+        ).filter(status=CareRelationshipStatus.ACTIVE, is_primary=True)
+        if user.role == "patient":
+            rel = qs.filter(patient=user).first()
+        elif user.role == "caregiver":
+            rel = qs.filter(caregiver__user=user).first()
+        else:
+            rel = None
+        if rel is None:
+            return Response(None)
+        return Response(CareRelationshipSerializer(rel).data)
+
+
+class CareRelationshipActionView(APIView):
+    """PATCH /api/v1/care-relationships/<id>/action/ — activate or end."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk: int):
+        ser = CareRelationshipActionSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        action = ser.validated_data["action"]
+        reason = ser.validated_data.get("reason", "")
+
+        try:
+            rel = CareRelationship.objects.select_related(
+                "patient", "caregiver", "caregiver__user"
+            ).get(pk=pk)
+        except CareRelationship.DoesNotExist as exc:
+            raise NotFound("Care relationship not found.") from exc
+
+        user = request.user
+        if user.role == "patient" and rel.patient_id != user.pk:
+            raise NotFound("Care relationship not found.")
+        if user.role == "caregiver" and rel.caregiver.user_id != user.pk:
+            raise NotFound("Care relationship not found.")
+        if user.role not in ("patient", "caregiver"):
+            raise PermissionDenied("Only patients and caregivers can manage care relationships.")
+
+        from .push import push_care_relationship_update
+
+        if action == "activate":
+            try:
+                rel = activate_relationship(rel, actor=user)
+            except Exception as exc:
+                raise ValidationError(str(exc)) from exc
+            record_audit(
+                actor=user,
+                action=AuditAction.ACTIVATE_CARE_RELATIONSHIP,
+                request=request,
+                target_type="care_relationship",
+                target_id=rel.pk,
+                metadata={"patient_id": rel.patient_id, "caregiver_id": rel.caregiver_id},
+                async_=False,
+            )
+            payload = relationship_payload(rel, event="activated")
+            push_care_relationship_update(rel.patient_id, payload)
+            push_care_relationship_update(rel.caregiver.user_id, payload)
+            return Response(CareRelationshipSerializer(rel).data)
+
+        try:
+            rel = end_relationship(rel, actor=user, reason=reason)
+        except Exception as exc:
+            raise ValidationError(str(exc)) from exc
+        record_audit(
+            actor=user,
+            action=AuditAction.END_CARE_RELATIONSHIP,
+            request=request,
+            target_type="care_relationship",
+            target_id=rel.pk,
+            metadata={
+                "patient_id": rel.patient_id,
+                "caregiver_id": rel.caregiver_id,
+                "reason": reason.strip(),
+            },
+            async_=False,
+        )
+        payload = relationship_payload(rel, event="ended")
+        push_care_relationship_update(rel.patient_id, payload)
+        push_care_relationship_update(rel.caregiver.user_id, payload)
+        return Response(CareRelationshipSerializer(rel).data)

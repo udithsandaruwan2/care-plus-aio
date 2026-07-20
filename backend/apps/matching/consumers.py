@@ -49,3 +49,10 @@ class MatchConsumer(AsyncWebsocketConsumer):
                 {"type": "care_request.updated", "payload": event["payload"]}
             )
         )
+
+    async def care_relationship_updated(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {"type": "care_relationship.updated", "payload": event["payload"]}
+            )
+        )

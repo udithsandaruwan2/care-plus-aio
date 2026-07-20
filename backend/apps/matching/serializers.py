@@ -349,6 +349,7 @@ class CareRequestSerializer(serializers.ModelSerializer):
     caregiver_id = serializers.IntegerField(source="caregiver.id", read_only=True)
     caregiver_name = serializers.CharField(source="caregiver.display_name", read_only=True)
     relationship_id = serializers.SerializerMethodField()
+    relationship_status = serializers.SerializerMethodField()
 
     class Meta:
         from .models import CareRequest
@@ -366,6 +367,7 @@ class CareRequestSerializer(serializers.ModelSerializer):
             "expires_at",
             "responded_at",
             "relationship_id",
+            "relationship_status",
             "created_at",
             "updated_at",
         )
@@ -375,6 +377,12 @@ class CareRequestSerializer(serializers.ModelSerializer):
         rel = getattr(obj, "relationship", None)
         if rel is not None:
             return rel.pk
+        return None
+
+    def get_relationship_status(self, obj) -> str | None:
+        rel = getattr(obj, "relationship", None)
+        if rel is not None:
+            return rel.status
         return None
 
 
@@ -412,3 +420,32 @@ class CareRequestActionSerializer(serializers.Serializer):
 
 class CareRequestCancelSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=["cancel"])
+
+
+class CareRelationshipSerializer(serializers.ModelSerializer):
+    patient_email = serializers.EmailField(source="patient.email", read_only=True)
+    caregiver_id = serializers.IntegerField(source="caregiver.id", read_only=True)
+    caregiver_name = serializers.CharField(source="caregiver.display_name", read_only=True)
+
+    class Meta:
+        from .models import CareRelationship
+
+        model = CareRelationship
+        fields = (
+            "id",
+            "patient_email",
+            "caregiver_id",
+            "caregiver_name",
+            "care_request",
+            "status",
+            "is_primary",
+            "started_at",
+            "ended_at",
+            "end_reason",
+        )
+        read_only_fields = fields
+
+
+class CareRelationshipActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["activate", "end"])
+    reason = serializers.CharField(required=False, allow_blank=True, max_length=500)

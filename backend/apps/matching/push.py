@@ -25,3 +25,14 @@ def push_care_request_update(user_id: int, payload: dict) -> None:
         f"match_{user_id}",
         {"type": "care_request.updated", "payload": payload},
     )
+
+
+def push_care_relationship_update(user_id: int, payload: dict) -> None:
+    """Notify patient or caregiver of care-relationship lifecycle changes."""
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    async_to_sync(layer.group_send)(
+        f"match_{user_id}",
+        {"type": "care_relationship.updated", "payload": payload},
+    )

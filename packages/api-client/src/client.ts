@@ -6,6 +6,8 @@ import {
   CareRequest,
   CareRequestCreate,
   CareRequestListResponse,
+  CareRelationship,
+  CareRelationshipListResponse,
   ConditionListResponse,
   ConsentRow,
   ConsentState,
@@ -312,6 +314,31 @@ export function createApiClient(options: ApiClientOptions) {
           body: JSON.stringify({ action: 'reject', reason: reason ?? '' }),
         },
         (d) => CareRequest.parse(d),
+      ),
+    listCareRelationships: (page?: number) => {
+      const qs = page != null ? `?page=${page}` : '';
+      return request(`/care-relationships/${qs}`, {}, (d) =>
+        CareRelationshipListResponse.parse(d),
+      );
+    },
+    currentCareRelationship: () =>
+      request('/care-relationships/current/', {}, (d) =>
+        d == null ? null : CareRelationship.parse(d),
+      ),
+    activateCareRelationship: (id: number) =>
+      request(
+        `/care-relationships/${id}/action/`,
+        { method: 'PATCH', body: JSON.stringify({ action: 'activate' }) },
+        (d) => CareRelationship.parse(d),
+      ),
+    endCareRelationship: (id: number, reason?: string) =>
+      request(
+        `/care-relationships/${id}/action/`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'end', reason: reason ?? '' }),
+        },
+        (d) => CareRelationship.parse(d),
       ),
   };
 }
