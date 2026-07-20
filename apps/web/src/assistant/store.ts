@@ -7,6 +7,16 @@ import {
   type UiVoiceLanguage,
 } from './uiVoiceLanguage';
 
+export type ChatMessage = {
+  id: string;
+  role: 'user' | 'serah';
+  text: string;
+  route?: string;
+};
+
+const CHAT_LIMIT = 24;
+let chatSeq = 0;
+
 type AssistantStore = {
   state: AssistantState;
   intent: IntentDraft;
@@ -14,6 +24,8 @@ type AssistantStore = {
   transcript: string;
   /** In-flight (interim) transcript from ASR. */
   interim: string;
+  /** Multi-turn chat bubbles (Step 15h). */
+  chat: ChatMessage[];
   /** Latest VEHMF match payload (Step 20). */
   match: MatchResponse | null;
   matchError: string | null;
@@ -31,6 +43,7 @@ type AssistantStore = {
   setInterim: (text: string) => void;
   setMatch: (match: MatchResponse | null) => void;
   setMatchError: (msg: string | null) => void;
+  appendChat: (msg: Omit<ChatMessage, 'id'>) => void;
   setSessionId: (id: number | null) => void;
   setUiLanguage: (lang: UiVoiceLanguage) => void;
   reset: () => void;
@@ -41,6 +54,7 @@ const initial = {
   intent: {} as IntentDraft,
   transcript: '',
   interim: '',
+  chat: [] as ChatMessage[],
   match: null as MatchResponse | null,
   matchError: null as string | null,
   sessionId: null as number | null,
@@ -71,6 +85,10 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
 
   setMatch: (match) => set({ match, matchError: null }),
   setMatchError: (msg) => set({ matchError: msg }),
+  appendChat: (msg) =>
+    set((s) => ({
+      chat: [...s.chat, { ...msg, id: `c${++chatSeq}` }].slice(-CHAT_LIMIT),
+    })),
   setSessionId: (id) => set({ sessionId: id }),
 
   setUiLanguage: (lang) => {

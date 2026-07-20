@@ -36,6 +36,7 @@ export function NeuralCoreCanvas({ amplitude, state, className, reducedMotion }:
     !reducedMotion &&
     (state === S.LISTENING ||
       state === S.THINKING ||
+      state === S.CHAT_REPLY ||
       state === S.MATCHING ||
       state === S.EMERGENCY ||
       amplitude > 0.02);

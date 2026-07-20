@@ -11,6 +11,7 @@ const STATE_COLOR: Record<AssistantState, string> = {
   [S.THINKING]: colors.accentViolet,
   [S.CLARIFYING]: colors.accentViolet,
   [S.SPEAKING]: colors.accentAmber,
+  [S.CHAT_REPLY]: colors.accentMint,
   [S.MATCHING]: colors.accentViolet,
   [S.RESULTS]: colors.accentMint,
   [S.EMERGENCY]: colors.accentRose,

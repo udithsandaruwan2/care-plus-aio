@@ -7,6 +7,62 @@ import { speakSerah, stopSpeaking } from './useTts';
 
 const CONSENT_STATUS = 451;
 
+function applyTurnState(
+  result: Awaited<ReturnType<typeof api.voiceTurn>>,
+  store: ReturnType<typeof useAssistant.getState>,
+) {
+  if (result.clear_match) {
+    store.setMatch(null);
+  }
+
+  if (result.intent) {
+    const draft: Partial<IntentDraft> = { raw_text: result.intent.raw_text };
+    if (result.intent.condition) draft.condition = result.intent.condition;
+    if (result.intent.language) {
+      draft.language = result.intent.language as VoiceLanguage;
+    }
+    if (result.intent.languages?.length) {
+      draft.languages = result.intent.languages as IntentDraft['languages'];
+    }
+    if (result.intent.care_level) {
+      draft.care_level = result.intent.care_level as IntentDraft['care_level'];
+    }
+    if (result.intent.urgency) {
+      draft.urgency = result.intent.urgency as IntentDraft['urgency'];
+    }
+    store.setIntent(draft);
+  }
+
+  if (result.match) {
+    store.setState(AssistantState.MATCHING, { force: true });
+    store.setMatch(result.match);
+    store.setState(AssistantState.RESULTS, { force: true });
+    return;
+  }
+
+  if (result.route === 'CLARIFY') {
+    store.setState(AssistantState.CLARIFYING, { force: true });
+    return;
+  }
+  if (result.route === 'EMERGENCY') {
+    store.setState(AssistantState.EMERGENCY, { force: true });
+    return;
+  }
+  if (result.route === 'ACTION' || result.route === 'CHAT') {
+    if (store.match && !result.clear_match) {
+      store.setState(AssistantState.RESULTS, { force: true });
+    } else {
+      store.setState(AssistantState.CHAT_REPLY, { force: true });
+    }
+    return;
+  }
+  if (result.intent && !nextMissingField(result.intent as IntentDraft)) {
+    store.setState(AssistantState.SPEAKING, { force: true });
+  } else {
+    store.setState(AssistantState.IDLE, { force: true });
+  }
+}
+
 /**
  * Conversational turn: captions + audio → server ASR/router → Serah TTS + optional match.
  */
@@ -22,6 +78,7 @@ export function useVoiceTurn() {
   const runTurn = useCallback(
     async (opts: { text: string; audio: Blob | null; continueListening?: () => void }) => {
       const store = useAssistant.getState();
+      const userLine = opts.text.trim();
       setBusy(true);
       setError(null);
       store.setState(AssistantState.THINKING, { force: true });
@@ -54,55 +111,40 @@ export function useVoiceTurn() {
           store.setSessionId(result.session_id);
         }
 
-        if (result.clear_match) {
-          store.setMatch(null);
+        const lineText = userLine || result.transcript?.trim() || '';
+        if (lineText) {
+          store.appendChat({ role: 'user', text: lineText, route: result.route });
+        }
+        if (result.reply?.trim()) {
+          store.appendChat({ role: 'serah', text: result.reply, route: result.route });
         }
 
-        if (result.intent) {
-          const draft: Partial<IntentDraft> = { raw_text: result.intent.raw_text };
-          if (result.intent.condition) draft.condition = result.intent.condition;
-          if (result.intent.language) {
-            draft.language = result.intent.language as VoiceLanguage;
-          }
-          if (result.intent.languages?.length) {
-            draft.languages = result.intent.languages as IntentDraft['languages'];
-          }
-          if (result.intent.care_level) {
-            draft.care_level = result.intent.care_level as IntentDraft['care_level'];
-          }
-          if (result.intent.urgency) {
-            draft.urgency = result.intent.urgency as IntentDraft['urgency'];
-          }
-          store.setIntent(draft);
-        }
+        applyTurnState(result, store);
 
-        if (result.match) {
-          store.setMatch(result.match);
-          store.setState(AssistantState.RESULTS, { force: true });
-        } else if (result.route === 'CLARIFY') {
-          store.setState(AssistantState.CLARIFYING, { force: true });
-        } else if (result.route === 'EMERGENCY') {
-          store.setState(AssistantState.EMERGENCY, { force: true });
-        } else if (result.route === 'ACTION' || result.route === 'CHAT') {
-          // Keep RESULTS visible while chatting about / after matches.
-          if (store.match && !result.clear_match) {
-            store.setState(AssistantState.RESULTS, { force: true });
-          } else if (result.intent && !nextMissingField(result.intent as IntentDraft)) {
-            store.setState(AssistantState.SPEAKING, { force: true });
-          } else {
-            store.setState(AssistantState.IDLE, { force: true });
+        if (result.reply?.trim()) {
+          const current = useAssistant.getState().state;
+          if (
+            current !== AssistantState.RESULTS &&
+            current !== AssistantState.EMERGENCY &&
+            current !== AssistantState.MATCHING
+          ) {
+            store.setState(AssistantState.CHAT_REPLY, { force: true });
           }
-        } else if (result.intent && !nextMissingField(result.intent as IntentDraft)) {
-          store.setState(AssistantState.SPEAKING, { force: true });
-        } else {
-          store.setState(AssistantState.IDLE, { force: true });
         }
 
         await speakSerah(result.reply, result.reply_lang, {
           audioBase64: result.reply_audio_base64,
           audioMime: result.reply_audio_mime,
         });
-        opts.continueListening?.();
+
+        const after = useAssistant.getState();
+        if (opts.continueListening) {
+          opts.continueListening();
+        } else if (after.match && (result.route === 'CHAT' || result.route === 'ACTION')) {
+          after.setState(AssistantState.RESULTS, { force: true });
+        } else if (after.state === AssistantState.CHAT_REPLY && after.match) {
+          after.setState(AssistantState.RESULTS, { force: true });
+        }
       } catch (err) {
         setSerahReply(null);
         setAsrSource(null);
