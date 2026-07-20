@@ -390,6 +390,7 @@ export type CareRelationshipStatus = z.infer<typeof CareRelationshipStatus>;
 export const CareRelationship = z.object({
   id: z.number(),
   patient_email: z.string(),
+  patient_display_name: z.string().optional(),
   caregiver_id: z.number(),
   caregiver_name: z.string(),
   care_request: z.number().nullable().optional(),

@@ -19,9 +19,10 @@ function wsBase(): string {
  * the patient is on the home screen. Match payloads pushed from the API land
  * in the assistant store (and move FSM → RESULTS).
  */
-export function useMatchSocket() {
+export function useMatchSocket(opts?: { onCareRelationshipUpdated?: () => void }) {
   const { user } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
+  const onCareUpdated = opts?.onCareRelationshipUpdated;
 
   useEffect(() => {
     if (!user?.id) return;
@@ -43,6 +44,9 @@ export function useMatchSocket() {
           store.setMatch(msg.payload);
           store.setState(AssistantState.RESULTS, { force: true });
         }
+        if (msg.type === 'care_relationship.updated') {
+          onCareUpdated?.();
+        }
       } catch {
         /* ignore malformed frames */
       }
@@ -52,7 +56,7 @@ export function useMatchSocket() {
       ws.close();
       wsRef.current = null;
     };
-  }, [user?.id]);
+  }, [user?.id, onCareUpdated]);
 }
 
 /**

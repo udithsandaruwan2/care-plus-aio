@@ -424,6 +424,7 @@ class CareRequestCancelSerializer(serializers.Serializer):
 
 class CareRelationshipSerializer(serializers.ModelSerializer):
     patient_email = serializers.EmailField(source="patient.email", read_only=True)
+    patient_display_name = serializers.SerializerMethodField()
     caregiver_id = serializers.IntegerField(source="caregiver.id", read_only=True)
     caregiver_name = serializers.CharField(source="caregiver.display_name", read_only=True)
 
@@ -434,6 +435,7 @@ class CareRelationshipSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "patient_email",
+            "patient_display_name",
             "caregiver_id",
             "caregiver_name",
             "care_request",
@@ -444,6 +446,12 @@ class CareRelationshipSerializer(serializers.ModelSerializer):
             "end_reason",
         )
         read_only_fields = fields
+
+    def get_patient_display_name(self, obj) -> str:
+        profile = getattr(obj.patient, "patient_profile", None)
+        if profile and profile.display_name:
+            return profile.display_name
+        return obj.patient.email
 
 
 class CareRelationshipActionSerializer(serializers.Serializer):

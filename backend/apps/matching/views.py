@@ -661,7 +661,7 @@ class CareRelationshipListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = CareRelationship.objects.select_related(
-            "patient", "caregiver", "caregiver__user"
+            "patient", "patient__patient_profile", "caregiver", "caregiver__user"
         )
         if user.role == "patient":
             return qs.filter(patient=user)
@@ -678,7 +678,7 @@ class CareRelationshipCurrentView(APIView):
     def get(self, request):
         user = request.user
         qs = CareRelationship.objects.select_related(
-            "patient", "caregiver", "caregiver__user"
+            "patient", "patient__patient_profile", "caregiver", "caregiver__user"
         ).filter(status=CareRelationshipStatus.ACTIVE, is_primary=True)
         if user.role == "patient":
             rel = qs.filter(patient=user).first()
@@ -704,7 +704,7 @@ class CareRelationshipActionView(APIView):
 
         try:
             rel = CareRelationship.objects.select_related(
-                "patient", "caregiver", "caregiver__user"
+                "patient", "patient__patient_profile", "caregiver", "caregiver__user"
             ).get(pk=pk)
         except CareRelationship.DoesNotExist as exc:
             raise NotFound("Care relationship not found.") from exc

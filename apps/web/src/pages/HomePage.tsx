@@ -4,6 +4,8 @@ import { brand } from '@care-plus/ui-tokens';
 import { AssistantState, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { useAuth } from '../auth/AuthContext';
+import { useCurrentCareRelationship } from '../auth/useCurrentCareRelationship';
+import { ActiveCareLinkCard } from '../components/ActiveCareLinkCard';
 import { useCaregiverProfile } from '../auth/useCaregiverProfile';
 import { usePatientProfile } from '../auth/usePatientProfile';
 import { api } from '../auth/api';
@@ -74,7 +76,8 @@ export function HomePage() {
     ttsSource,
     stopSpeaking,
   } = useVoiceTurn();
-  useMatchSocket();
+  const care = useCurrentCareRelationship();
+  useMatchSocket({ onCareRelationshipUpdated: () => void care.refresh() });
 
   const endingRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
@@ -372,6 +375,14 @@ export function HomePage() {
             </button>
           )}
         </section>
+
+        {care.relationship && (user?.role === 'patient' || user?.role === 'caregiver') && (
+          <ActiveCareLinkCard
+            relationship={care.relationship}
+            role={user.role}
+            onEnded={() => void care.refresh()}
+          />
+        )}
 
         {import.meta.env.DEV && <StateStepper />}
 
