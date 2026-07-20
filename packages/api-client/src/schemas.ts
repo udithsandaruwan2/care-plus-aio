@@ -100,6 +100,7 @@ export const MatchHit = z.object({
   languages: z.array(z.string()),
   care_levels: z.array(z.string()),
   trust_score: z.number().nullable().optional(),
+  is_available: z.boolean().optional().default(true),
 });
 export type MatchHit = z.infer<typeof MatchHit>;
 
