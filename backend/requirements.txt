@@ -38,3 +38,6 @@ scipy==1.14.1
 # Local multilingual ASR (Care Plus own framework — not Gemini).
 # Downloads Whisper weights on first use into WHISPER_DOWNLOAD_ROOT.
 faster-whisper==1.1.1
+
+# Neural TTS fallback for Sinhala/Tamil when Gemini TTS quota is exhausted.
+edge-tts==7.2.8

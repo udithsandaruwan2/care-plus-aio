@@ -17,6 +17,7 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
         libgeos-dev \
         curl \
         ffmpeg \
+        espeak-ng \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

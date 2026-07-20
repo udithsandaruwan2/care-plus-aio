@@ -1,14 +1,17 @@
 """Text-to-speech backends — Care Plus pluggable TTS.
 
 ``TTS_BACKEND``:
-  - ``auto`` (default): Piper local (English when installed) → Gemini TTS → none
+  - ``auto`` (default): Piper (English) → Gemini TTS → Edge neural → espeak → none
   - ``piper``: local Piper only
   - ``gemini_tts``: Gemini speech models only
+  - ``edge``: Microsoft Edge neural voices (Sinhala/Tamil/English, no API key)
+  - ``espeak``: local espeak-ng (offline, robotic)
   - ``browser`` / ``none``: skip server audio (client speechSynthesis)
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 import shutil
@@ -29,6 +32,31 @@ _BCP47 = {
     "si-LK": "si-LK",
     "ta-LK": "ta-LK",
     "en-US": "en-US",
+}
+
+# Microsoft Edge neural voices (edge-tts) — strong Sinhala/Tamil without Gemini quota.
+_EDGE_VOICES = {
+    "si-LK": "si-LK-SameeraNeural",
+    "si": "si-LK-SameeraNeural",
+    "Sinhala": "si-LK-SameeraNeural",
+    "ta-LK": "ta-LK-SaranyaNeural",
+    "ta": "ta-LK-SaranyaNeural",
+    "Tamil": "ta-LK-SaranyaNeural",
+    "en-US": "en-US-JennyNeural",
+    "en": "en-US-JennyNeural",
+    "English": "en-US-JennyNeural",
+}
+
+_ESPEAK_LANG = {
+    "si-LK": "si",
+    "si": "si",
+    "Sinhala": "si",
+    "ta-LK": "ta",
+    "ta": "ta",
+    "Tamil": "ta",
+    "en-US": "en",
+    "en": "en",
+    "English": "en",
 }
 
 
@@ -217,6 +245,74 @@ def _gemini_tts_rest(text: str, lang: str, model_name: str, voice: str) -> TtsRe
     return TtsResult(audio=_pcm16_to_wav(data), mime="audio/wav", source="gemini_tts")
 
 
+def _edge_voice(lang: str) -> str:
+    bcp = _BCP47.get(lang, lang) or "en-US"
+    return _EDGE_VOICES.get(lang) or _EDGE_VOICES.get(bcp) or _EDGE_VOICES["en-US"]
+
+
+def synthesize_edge_tts(text: str, lang: str) -> TtsResult:
+    """Microsoft Edge neural TTS — Sinhala/Tamil/English without Gemini quota."""
+    if not text.strip():
+        return _empty("edge")
+    if not getattr(settings, "EDGE_TTS_ENABLED", True):
+        return _empty("edge")
+    try:
+        import edge_tts
+    except ImportError:
+        logger.warning("edge-tts not installed")
+        return _empty("edge")
+
+    voice = _edge_voice(lang)
+
+    async def _stream() -> bytes:
+        communicate = edge_tts.Communicate(text, voice)
+        chunks: list[bytes] = []
+        async for chunk in communicate.stream():
+            if chunk.get("type") == "audio":
+                chunks.append(chunk["data"])
+        return b"".join(chunks)
+
+    try:
+        audio = asyncio.run(_stream())
+    except Exception:
+        logger.exception("edge-tts failed")
+        return _empty("edge")
+    if not audio:
+        return _empty("edge")
+    return TtsResult(audio=audio, mime="audio/mpeg", source="edge")
+
+
+def synthesize_espeak(text: str, lang: str) -> TtsResult:
+    """Offline espeak-ng fallback (robotic but always available in Docker)."""
+    if not text.strip():
+        return _empty("espeak")
+    espeak = shutil.which("espeak-ng") or getattr(settings, "ESPEAK_BIN", "") or ""
+    if not espeak:
+        return _empty("espeak")
+    bcp = _BCP47.get(lang, lang) or "en-US"
+    es_lang = _ESPEAK_LANG.get(lang) or _ESPEAK_LANG.get(bcp) or "en"
+    out_wav = Path(tempfile.mktemp(suffix=".wav"))
+    try:
+        proc = subprocess.run(
+            [espeak, "-v", es_lang, "-w", str(out_wav), text],
+            capture_output=True,
+            check=False,
+            timeout=60,
+        )
+        if proc.returncode != 0 or not out_wav.is_file():
+            logger.warning("espeak-ng failed: %s", proc.stderr[-300:] if proc.stderr else "")
+            return _empty("espeak")
+        data = out_wav.read_bytes()
+        if not data:
+            return _empty("espeak")
+        return TtsResult(audio=data, mime="audio/wav", source="espeak")
+    except Exception:
+        logger.exception("espeak-ng TTS failed")
+        return _empty("espeak")
+    finally:
+        out_wav.unlink(missing_ok=True)
+
+
 def synthesize(text: str, reply_lang: str) -> TtsResult:
     """Route TTS per ``TTS_BACKEND``."""
     backend = (getattr(settings, "TTS_BACKEND", "auto") or "auto").strip().lower()
@@ -231,14 +327,37 @@ def synthesize(text: str, reply_lang: str) -> TtsResult:
     if backend == "gemini_tts":
         return synthesize_gemini_tts(text, lang)
 
-    # auto: piper (en) → gemini → none (browser fallback)
-    if lang.startswith("en"):
-        local = synthesize_piper(text, lang)
-        if local.audio:
-            return local
+    if backend == "edge":
+        return synthesize_edge_tts(text, lang)
+
+    if backend == "espeak":
+        return synthesize_espeak(text, lang)
+
+    # auto: language-aware chain — Edge neural for si/ta (no Gemini quota burn)
+    if lang.startswith("si") or lang.startswith("ta"):
+        neural = synthesize_edge_tts(text, lang)
+        if neural.audio:
+            return neural
+        cloud = synthesize_gemini_tts(text, lang)
+        if cloud.audio:
+            return cloud
+        offline = synthesize_espeak(text, lang)
+        if offline.audio:
+            return offline
+        return _empty("none")
+
+    local = synthesize_piper(text, lang)
+    if local.audio:
+        return local
+    neural = synthesize_edge_tts(text, lang)
+    if neural.audio:
+        return neural
     cloud = synthesize_gemini_tts(text, lang)
     if cloud.audio:
         return cloud
+    offline = synthesize_espeak(text, lang)
+    if offline.audio:
+        return offline
     return _empty("none")
 
 
