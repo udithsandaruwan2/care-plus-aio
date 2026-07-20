@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
-from apps.accounts.permissions import HasAIConsent, IsCaregiver, RolePermission
+from apps.accounts.permissions import HasAIConsent, IsCaregiver, IsPatient, RolePermission
 
 from .ahp import build_config, get_ahp_weights
 from .cf_model import cf_model_info, get_cf_model
@@ -33,6 +33,7 @@ from .serializers import (
     CaregiverProfileSerializer,
     MatchRequestSerializer,
     PatientProfileSerializer,
+    PatientProfileUpdateSerializer,
 )
 
 
@@ -173,6 +174,28 @@ class CaregiverMeView(APIView):
         ser.save()
         profile.refresh_from_db()
         return Response(CaregiverProfileSerializer(profile).data)
+
+
+class PatientMeView(APIView):
+    """GET/PATCH /api/v1/patients/me/ — patient onboarding profile (Step 22b)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+
+    def _profile(self, user) -> PatientProfile:
+        profile, _ = PatientProfile.objects.get_or_create(user=user)
+        return profile
+
+    def get(self, request):
+        profile = self._profile(request.user)
+        return Response(PatientProfileSerializer(profile).data)
+
+    def patch(self, request):
+        profile = self._profile(request.user)
+        ser = PatientProfileUpdateSerializer(profile, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        profile.refresh_from_db()
+        return Response(PatientProfileSerializer(profile).data)
 
 
 class PatientListView(generics.ListAPIView):

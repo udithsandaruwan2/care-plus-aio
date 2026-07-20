@@ -2,10 +2,12 @@ import {
   CaregiverDetail,
   CaregiverListResponse,
   CaregiverProfile,
+  ConditionListResponse,
   ConsentRow,
   ConsentState,
   HealthResponse,
   MatchResponse,
+  PatientProfile,
   RegisterResponse,
   TokenPair,
   User,
@@ -16,6 +18,7 @@ import {
   DialoguePolicy,
   type CaregiverListParams,
   type MatchInput,
+  type PatientProfileUpdate,
   type RegisterInput,
   type VoiceIntentInput,
 } from './schemas';
@@ -258,6 +261,15 @@ export function createApiClient(options: ApiClientOptions) {
         },
         (d) => CaregiverProfile.parse(d),
       ),
+    myPatientProfile: () => request('/patients/me/', {}, (d) => PatientProfile.parse(d)),
+    updateMyPatientProfile: (input: PatientProfileUpdate) =>
+      request(
+        '/patients/me/',
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => PatientProfile.parse(d),
+      ),
+    vocabConditions: () =>
+      request('/vocab/conditions/', {}, (d) => ConditionListResponse.parse(d)),
   };
 }
 

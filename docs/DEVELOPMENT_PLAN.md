@@ -290,7 +290,8 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 
 **Goal:** height, weight, blood type, city, languages, known conditions, medications, allergies, emergency contact.  
 **Tasks:** multi-step web form; validates against vocab; writes `PatientProfile` + health snapshot.  
-**✅ Acceptance:** new patient cannot request care until profile ≥80% complete (configurable).
+**✅ Acceptance:** new patient cannot request care until profile ≥80% complete (configurable).  
+**Done:** extended `PatientProfile`; `GET/PATCH /patients/me/` + completion metadata; `/onboarding` wizard; request CTA gated until `can_request_care`.
 
 ### Step 22c — Caregiver onboarding wizard
 
@@ -604,4 +605,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 22b — Patient onboarding wizard** (`feat/step22b-patient-onboarding`).
+**Step 22c — Caregiver onboarding wizard** (`feat/step22c-caregiver-onboarding`).

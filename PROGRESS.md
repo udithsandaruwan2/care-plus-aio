@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-20 — Step 22 CF blended into VEHMF. Next: Step 22b patient onboarding._
+_Last updated: 2026-07-20 — Step 22b patient onboarding wizard. Next: Step 22c caregiver onboarding._
 
 ---
 
@@ -85,7 +85,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 15h** — Unified loop: chat bubbles, CHAT_REPLY FSM, mic re-arm. Branch `feat/step15h-conversation-loop`.
 - ✅ **Step 21** — `Interaction` log (view/request/accept/complete/rate); implicit ALS `train_cf` + `seed_interactions`; Celery beat nightly; versioned `ml/artifacts/cf/`. Branch `feat/step21-cf-interactions`.
 - ✅ **Step 22** — ALS CF blended into VEHMF; `CF_ENABLED` flag zeroes β; NDCG/MAP tests; `cf_enabled`/`cf_version` on match payloads. Branch `feat/step22-cf-blend`.
-- 🔜 **Step 22b** — Patient onboarding wizard
+- ✅ **Step 22b** — Patient onboarding wizard; `GET/PATCH /patients/me/`; completion % gates request care. Branch `feat/step22b-patient-onboarding`.
+- 🔜 **Step 22c** — Caregiver onboarding wizard
 
 ### Expanded product tracks (from Old Care Plus)
 
@@ -94,7 +95,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M3b** Medical vocab + Serah chat    | 15b–15e | 15b ✅ · 15c–e ⬜ |
 | **M3c** Conversational dialogue loop  | 15f–15j | 15f–15j ✅        |
 | **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅        |
-| **M5** CF personalization             | 21–22   | ⬜                |
+| **M5** CF personalization             | 21–22   | 21–22 ✅          |
 | **M5b** Rich onboarding / OTP         | 22b–22f | ⬜                |
 | **M6** Hire lifecycle (`CareRequest`) | 23–28   | ⬜                |
 | **M7** Catalog + checkout + payments  | 29–33   | ⬜                |
@@ -128,6 +129,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 - **Step 15h** — Unified Neural Core loop: `CHAT_REPLY` FSM state, scrollable `ChatBubbles`, MATCHING→RESULTS transition, mic re-arms after Serah TTS in conversation mode. Branch `feat/step15h-conversation-loop`.
 - **Step 15j** — Dialogue AI policy: `DIALOGUE_CHAT_BACKEND` + Gemini chat rate limit; MATCH/REFINE stay VEHMF-only; `GET /voice/policy/`; turn `chat_source` + audit; docs in `DIALOGUE_POLICY.md`. Branch `feat/step15j-dialogue-policy`.
+- **Step 22b** — Patient onboarding: rich `PatientProfile` fields, `GET/PATCH /patients/me/`, completion % gate, `/onboarding` 3-step wizard, request CTA blocked until ≥80%. Branch `feat/step22b-patient-onboarding`.
 - **Step 22** — `get_cf_model()` wires ALS into `VEHMFEngine`; `CF_ENABLED=false` redistributes β; match + weights API expose CF metadata; offline NDCG/MAP regression tests. Branch `feat/step22-cf-blend`.
 - **Step 21** — `Interaction` model (view/request/accept/complete/rate); logging on match + caregiver detail; `seed_interactions` + `train_cf` (implicit ALS); versioned `ml/artifacts/cf/`; Celery beat nightly `matching.train_cf_model`. Branch `feat/step21-cf-interactions`.
 - **Step 15i** — Refine phrases → language/distance/specialty/care_level deltas; VEHMF hard filters + closer geo tilt; match cards show ↑↓ rank deltas + latency; `refined` flag. Branch `feat/step15i-post-match-refine`.

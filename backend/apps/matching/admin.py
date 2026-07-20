@@ -27,9 +27,17 @@ class CaregiverProfileAdmin(GISModelAdmin):
 
 @admin.register(PatientProfile)
 class PatientProfileAdmin(GISModelAdmin):
-    list_display = ("display_name", "user", "preferred_language", "care_level", "updated_at")
-    list_filter = ("preferred_language", "care_level")
-    search_fields = ("display_name", "user__email", "conditions")
+    list_display = (
+        "display_name",
+        "user",
+        "city",
+        "preferred_language",
+        "care_level",
+        "blood_type",
+        "updated_at",
+    )
+    list_filter = ("preferred_language", "care_level", "city", "blood_type")
+    search_fields = ("display_name", "user__email", "conditions", "city")
     readonly_fields = ("created_at", "updated_at")
 
 

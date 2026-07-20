@@ -4,6 +4,7 @@ import { brand } from '@care-plus/ui-tokens';
 import { AssistantState, STATE_COPY, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { useAuth } from '../auth/AuthContext';
+import { usePatientProfile } from '../auth/usePatientProfile';
 import { api } from '../auth/api';
 import { useMicAmplitude } from '../neural-core/useMicAmplitude';
 import { useAssistant } from '../assistant/store';
@@ -36,6 +37,7 @@ const NeuralCoreCanvas = lazy(() =>
 
 export function HomePage() {
   const { user, logout } = useAuth();
+  const { canRequestCare, completionPercent } = usePatientProfile();
   const [health, setHealth] = useState<string>('…');
   const [conversationOn, setConversationOn] = useState(false);
   const conversationOnRef = useRef(false);
@@ -197,6 +199,14 @@ export function HomePage() {
             >
               Browse
             </Link>
+            {user?.role === 'patient' && !canRequestCare && (
+              <Link
+                to="/onboarding"
+                className="rounded-lg border border-amber/40 px-3 py-1.5 text-sm text-amber transition hover:border-amber hover:bg-amber/10"
+              >
+                Profile {completionPercent}%
+              </Link>
+            )}
             {user?.role === 'caregiver' && (
               <Link
                 to="/presence"
@@ -297,7 +307,7 @@ export function HomePage() {
           </div>
 
           {match && (state === AssistantState.RESULTS || state === AssistantState.MATCHING) && (
-            <MatchResultCards match={match} />
+            <MatchResultCards match={match} canRequestCare={canRequestCare} />
           )}
 
           <button

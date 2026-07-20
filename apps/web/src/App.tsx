@@ -6,6 +6,7 @@ import { CaregiverDetailPage } from './pages/CaregiverDetailPage';
 import { CaregiverPresencePage } from './pages/CaregiverPresencePage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { PatientOnboardingPage } from './pages/PatientOnboardingPage';
 import { RegisterPage } from './pages/RegisterPage';
 
 export function App() {
@@ -18,6 +19,7 @@ export function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/caregivers" element={<BrowseCaregiversPage />} />
           <Route path="/caregivers/:id" element={<CaregiverDetailPage />} />
+          <Route path="/onboarding" element={<PatientOnboardingPage />} />
           <Route path="/presence" element={<CaregiverPresencePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
