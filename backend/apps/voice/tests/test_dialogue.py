@@ -3,13 +3,14 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import ConsentLog, ConsentScope
 from apps.voice.dialogue import _route, process_turn
+from apps.voice.replies import stub_for_situation
 
 User = get_user_model()
 
@@ -175,3 +176,14 @@ class ProcessTurnLanguageMergeTests(TestCase):
         self.assertEqual(out["situation"], "thanks")
         self.assertIsNone(out["match"])
         self.assertIn("welcome", out["reply"].lower())
+
+
+class ReplyGroundingTests(SimpleTestCase):
+    def test_post_match_chat_without_results_does_not_claim_visible_cards(self):
+        line = stub_for_situation("post_match_chat", "en-US", match=None)
+        self.assertIn("caregiver cards right now", line.lower())
+
+    def test_request_without_results_guides_to_browse_or_rematch(self):
+        line = stub_for_situation("request", "en-US", match=None)
+        self.assertIn("browse", line.lower())
+        self.assertIn("fresh match", line.lower())

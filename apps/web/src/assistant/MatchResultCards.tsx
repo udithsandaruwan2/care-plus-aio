@@ -5,6 +5,8 @@ import { ApiError } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { localizeExplanation, matchUi } from './locale';
 import type { UiVoiceLanguage } from './uiVoiceLanguage';
+import { useAssistant } from './store';
+import { speakSerah } from './useTts';
 
 function FactorBar({ label, value, className }: { label: string; value: number; className: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
@@ -89,6 +91,15 @@ function MatchCard({
         },
       });
       setSent(true);
+      const confirmation =
+        uiLanguage === 'Sinhala'
+          ? `${hit.display_name || 'මෙම caregiver'} වෙත ඉල්ලීම යැව්වා. ඔහු/ඇය පිළිතුරු දෙන තෙක් ඔබේ තත්ත්වය ගැන කෙටි update එකක් මට කියන්න.`
+          : uiLanguage === 'Tamil'
+            ? `${hit.display_name || 'இந்த பராமரிப்பாளர்'}-க்கு கோரிக்கை அனுப்பப்பட்டது. பதில் வரும் வரை உங்கள் நிலையைச் சுருக்கமாகச் சொல்லுங்கள்.`
+            : `Request sent to ${hit.display_name || 'this caregiver'}. While they respond, tell me a quick update on how you feel.`;
+      const store = useAssistant.getState();
+      store.appendChat({ role: 'serah', text: confirmation, route: 'ACTION' });
+      void speakSerah(confirmation, uiLanguage);
     } catch (err) {
       const msg =
         err instanceof ApiError && typeof err.body === 'object' && err.body

@@ -46,7 +46,8 @@ def stub_for_situation(
 ) -> str:
     """Deterministic spoken replies for each conversation situation."""
     top = None
-    if match and match.get("results"):
+    has_results = bool(match and match.get("results"))
+    if has_results:
         top = match["results"][0]
     name = (top or {}).get("display_name") or ""
 
@@ -102,6 +103,21 @@ def stub_for_situation(
         )
 
     if situation == "about_match":
+        if not has_results:
+            if _si(lang):
+                return (
+                    "දැනට active match list එකක් හමු වුනේ නැහැ. "
+                    "නව match එකක් හොයන්න කියන්න, නැත්නම් Browse පිටුවෙන් caregiver තෝරන්න."
+                )
+            if _ta(lang):
+                return (
+                    "இப்போது செயல்பாட்டில் உள்ள match பட்டியல் இல்லை. "
+                    "புதிய match தேடச் சொல்லலாம், அல்லது Browse பக்கத்தில் பராமரிப்பாளரைத் தேர்வுசெய்யலாம்."
+                )
+            return (
+                "I don’t have an active match list right now. "
+                "Ask me to run a new caregiver search, or pick someone from Browse."
+            )
         explanation = localize_explanation((top or {}).get("explanation") or "", lang)
         if _si(lang):
             return (
@@ -119,6 +135,21 @@ def stub_for_situation(
         )
 
     if situation == "request":
+        if not has_results:
+            if _si(lang):
+                return (
+                    "දැනට match cards නැහැ. Browse පිටුවෙන් caregiver profile එකක් තෝරා "
+                    "«Request this caregiver» ඔබන්න, නැත්නම් මට අලුත් match එකක් හොයන්න කියන්න."
+                )
+            if _ta(lang):
+                return (
+                    "இப்போது match cards இல்லை. Browse பக்கத்தில் ஒரு பராமரிப்பாளர் சுயவிவரத்தைத் தேர்ந்து "
+                    "«Request this caregiver» அழுத்துங்கள், அல்லது புதிய match தேடச் சொல்லுங்கள்."
+                )
+            return (
+                "I can’t see active match cards right now. "
+                "Use Browse to open a caregiver profile and tap Request, or ask me for a fresh match."
+            )
         if _si(lang):
             return (
                 f"{name or 'මේ පරිචාරක'} ඉල්ලීම යවන්න පුළුවන් — පැතිකඩෙන් "
@@ -158,6 +189,21 @@ def stub_for_situation(
         )
 
     if situation == "post_match_chat":
+        if not has_results:
+            if _si(lang):
+                return (
+                    "ඔබට cards නොපෙනෙනවා නම් ඒක හරි. "
+                    "මට අලුත් caregiver match එකක් හොයන්න කියන්න, නැත්නම් Browse එකට යමු."
+                )
+            if _ta(lang):
+                return (
+                    "கார்டுகள் தெரியவில்லை என்றால் பரவாயில்லை. "
+                    "புதிய caregiver match தேடச் சொல்லலாம், அல்லது Browse-க்கு செல்லலாம்."
+                )
+            return (
+                "If you can’t see caregiver cards right now, that’s okay. "
+                "Ask me for a fresh match, or use Browse to pick someone directly."
+            )
         if _si(lang):
             return (
                 "මම තාම matches පෙන්නලා තියෙනවා. ස්තුති කිව්වොත් හරි — "
@@ -209,6 +255,9 @@ def gemini_chat_reply(
     """Optional Gemini line; returns None to fall back to stub (or rate_limited stub)."""
     backend = resolve_chat_backend()
     if backend != "gemini":
+        return None
+    # Critical UX paths stay deterministic to avoid "it's on your screen" hallucinations.
+    if situation in {"about_match", "request", "post_match_chat"}:
         return None
 
     allowed, reason = gemini_chat_allowed(user_id)
