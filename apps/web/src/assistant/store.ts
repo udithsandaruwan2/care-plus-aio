@@ -17,6 +17,8 @@ type AssistantStore = {
   /** Latest VEHMF match payload (Step 20). */
   match: MatchResponse | null;
   matchError: string | null;
+  /** Server DialogueSession id (Step 15g). */
+  sessionId: number | null;
   /** Locks captions, ASR, and Serah reply language. */
   uiLanguage: UiVoiceLanguage;
 
@@ -29,6 +31,7 @@ type AssistantStore = {
   setInterim: (text: string) => void;
   setMatch: (match: MatchResponse | null) => void;
   setMatchError: (msg: string | null) => void;
+  setSessionId: (id: number | null) => void;
   setUiLanguage: (lang: UiVoiceLanguage) => void;
   reset: () => void;
 };
@@ -40,6 +43,7 @@ const initial = {
   interim: '',
   match: null as MatchResponse | null,
   matchError: null as string | null,
+  sessionId: null as number | null,
   uiLanguage: loadUiVoiceLanguage(),
 };
 
@@ -67,6 +71,7 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
 
   setMatch: (match) => set({ match, matchError: null }),
   setMatchError: (msg) => set({ matchError: msg }),
+  setSessionId: (id) => set({ sessionId: id }),
 
   setUiLanguage: (lang) => {
     saveUiVoiceLanguage(lang);

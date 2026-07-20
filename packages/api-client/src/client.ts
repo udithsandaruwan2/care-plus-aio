@@ -10,6 +10,8 @@ import {
   TokenPair,
   User,
   VoiceIntent,
+  VoiceSessionClearResponse,
+  VoiceSessionResponse,
   VoiceTurnResponse,
   type CaregiverListParams,
   type MatchInput,
@@ -193,6 +195,14 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => VoiceTurnResponse.parse(d),
       );
     },
+    voiceSession: () =>
+      request('/voice/session/', {}, (d) => VoiceSessionResponse.parse(d)),
+    clearVoiceSession: () =>
+      request(
+        '/voice/session/clear/',
+        { method: 'POST', body: JSON.stringify({}) },
+        (d) => VoiceSessionClearResponse.parse(d),
+      ),
     getConsent: () => request('/consent/', {}, (d) => ConsentState.parse(d)),
     setConsent: (scope: string, granted: boolean) =>
       request('/consent/', { method: 'POST', body: JSON.stringify({ scope, granted }) }, (d) =>

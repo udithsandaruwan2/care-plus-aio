@@ -50,6 +50,10 @@ export function useVoiceTurn() {
           store.setInterim('');
         }
 
+        if (result.session_id != null) {
+          store.setSessionId(result.session_id);
+        }
+
         if (result.clear_match) {
           store.setMatch(null);
         }

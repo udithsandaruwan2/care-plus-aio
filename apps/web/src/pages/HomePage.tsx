@@ -72,6 +72,7 @@ export function HomePage() {
 
   const endingRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
+  const [clearing, setClearing] = useState(false);
 
   const speech = useSpeechRecognition({
     lang: asrLang,
@@ -149,6 +150,21 @@ export function HomePage() {
     const ok = await grantConsent();
     if (ok) {
       await runTurn({ text: useAssistant.getState().transcript, audio: null });
+    }
+  }
+
+  async function onNewRequest() {
+    if (clearing || busy || listening) return;
+    setClearing(true);
+    stopSpeaking();
+    setConversationOn(false);
+    try {
+      await api.clearVoiceSession();
+    } catch {
+      // Still reset local state so the user can start fresh.
+    } finally {
+      reset();
+      setClearing(false);
     }
   }
 
@@ -304,6 +320,17 @@ export function HomePage() {
                   ? 'Continue talking'
                   : 'Tap to speak with Serah'}
           </button>
+
+          {(match || state === AssistantState.CLARIFYING || state === AssistantState.RESULTS) && (
+            <button
+              type="button"
+              onClick={() => void onNewRequest()}
+              disabled={clearing || busy || listening}
+              className="mt-2 rounded-full border border-hair px-5 py-2 text-xs text-muted transition hover:border-amber hover:text-amber disabled:opacity-50"
+            >
+              {clearing ? 'Clearing…' : 'New request'}
+            </button>
+          )}
         </section>
 
         {import.meta.env.DEV && <StateStepper />}
