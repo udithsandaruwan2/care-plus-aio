@@ -266,7 +266,8 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 
 ### Step 22 — Blend CF into VEHMF fusion
 
-**✅ Acceptance:** four-factor fusion; offline NDCG/MAP improves vs CBF-only; feature flag to disable CF.
+**✅ Acceptance:** four-factor fusion; offline NDCG/MAP improves vs CBF-only; feature flag to disable CF.  
+**Done:** `get_cf_model()` loads ALS into `VEHMFEngine`; `CF_ENABLED=false` zeroes β; match payload + `GET /match/weights/` expose `cf` metadata; NDCG/MAP regression tests.
 
 ---
 
@@ -579,4 +580,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 22 — Blend CF into VEHMF fusion** (`feat/step22-cf-blend`).
+**Step 22b — Patient onboarding wizard** (`feat/step22b-patient-onboarding`).

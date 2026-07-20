@@ -1,6 +1,7 @@
 """VEHMF matching engine — CBF + CF + Geo + Trust fusion + XAI (Step 19).
 
-Lean profile: in-process module. CF is a neutral stub until Step 21 trains ALS.
+Step 22 loads trained ALS CF when available; ``CF_ENABLED=false`` zeroes β and
+redistributes AHP weight across CBF/geo/trust.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 
 from .ahp import get_ahp_weights, normalize_weights
+from .cf_model import cf_model_info, get_cf_model, is_cf_active
 from .embeddings import get_embedder, intent_to_text
 from .faiss_index import CaregiverIndex, load_index
 from .models import CaregiverProfile
@@ -46,6 +48,25 @@ class MatchOutput:
     weights: tuple[float, float, float, float]
     query: str
     emergency: bool
+    cf_enabled: bool = False
+    cf_version: str | None = None
+
+
+def _effective_weights(W: np.ndarray, *, cf_active: bool) -> np.ndarray:
+    """Zero β and redistribute when CF is inactive (Step 22 feature flag)."""
+    W = np.asarray(W, dtype=np.float32)
+    if cf_active:
+        return W
+    out = W.copy()
+    cf_share = float(out[1])
+    out[1] = 0.0
+    mask = np.array([True, False, True, True])
+    rest = out[mask]
+    total = float(rest.sum())
+    if total <= 0:
+        return np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    out[mask] = rest + cf_share * (rest / total)
+    return out
 
 
 def _normalize(x: np.ndarray) -> np.ndarray:
@@ -58,26 +79,20 @@ def _normalize(x: np.ndarray) -> np.ndarray:
     return (x - x.min()) / rng
 
 
-class StubCFModel:
-    """Neutral collaborative scores until offline ALS lands (Step 21)."""
-
-    def predict(self, patient_id: int | None, caregiver_ids: Sequence[int]) -> np.ndarray:
-        return np.full(len(caregiver_ids), 0.5, dtype=np.float32)
-
-
 class VEHMFEngine:
     def __init__(
         self,
         ahp_weights: tuple[float, ...] | None = None,
         faiss_index: CaregiverIndex | None = None,
-        cf_model: StubCFModel | None = None,
+        cf_model=None,
     ):
         self.W = np.asarray(
             ahp_weights if ahp_weights is not None else get_ahp_weights(),
             dtype=np.float32,
         )
         self.index = faiss_index if faiss_index is not None else load_index()
-        self.cf_model = cf_model or StubCFModel()
+        self.cf_model = cf_model if cf_model is not None else get_cf_model()
+        self._cf_info = cf_model_info(self.cf_model)
 
     def predict(
         self,
@@ -101,6 +116,8 @@ class VEHMFEngine:
                 weights=tuple(float(w) for w in self.W),
                 query=query_text,
                 emergency=emergency,
+                cf_enabled=self._cf_info["enabled"],
+                cf_version=self._cf_info["version"],
             )
 
         W = (
@@ -115,6 +132,10 @@ class VEHMFEngine:
         if prefer_closer and weights is None and not emergency:
             W = np.asarray(normalize_weights([0.25, 0.05, 0.55, 0.15]), dtype=np.float32)
 
+        cf_active = is_cf_active(self.cf_model)
+        W = _effective_weights(W, cf_active=cf_active)
+        effective_weights = tuple(float(w) for w in W)
+
         # 1. CBF — FAISS inner product on L2-normalized vectors.
         qvec = get_embedder().embed([query_text])[0]
         pool = min(candidate_pool, self.index.size)
@@ -122,9 +143,11 @@ class VEHMFEngine:
         if not cbf_hits:
             return MatchOutput(
                 results=[],
-                weights=tuple(float(w) for w in W),
+                weights=effective_weights,
                 query=query_text,
                 emergency=emergency,
+                cf_enabled=cf_active,
+                cf_version=self._cf_info["version"],
             )
 
         caregiver_ids = [cid for cid, _ in cbf_hits]
@@ -142,16 +165,18 @@ class VEHMFEngine:
         if not ordered_ids:
             return MatchOutput(
                 results=[],
-                weights=tuple(float(w) for w in W),
+                weights=effective_weights,
                 query=query_text,
                 emergency=emergency,
+                cf_enabled=cf_active,
+                cf_version=self._cf_info["version"],
             )
 
         id_to_cbf = {cid: s for cid, s in cbf_hits}
         cbf_raw = np.array([id_to_cbf[cid] for cid in ordered_ids], dtype=np.float32)
         cbf = _normalize(cbf_raw)
 
-        # 2. CF — stub until Step 21.
+        # 2. CF — ALS when trained (Step 22), else neutral stub.
         cf = _normalize(self.cf_model.predict(patient_id, ordered_ids))
 
         # 3. Geo — distance → 0..1 (closer = higher).
@@ -193,9 +218,11 @@ class VEHMFEngine:
         if not eligible:
             return MatchOutput(
                 results=[],
-                weights=tuple(float(w) for w in W),
+                weights=effective_weights,
                 query=query_text,
                 emergency=emergency,
+                cf_enabled=cf_active,
+                cf_version=self._cf_info["version"],
             )
 
         eligible_arr = np.asarray(eligible, dtype=np.int64)
@@ -221,9 +248,11 @@ class VEHMFEngine:
 
         return MatchOutput(
             results=results,
-            weights=tuple(float(w) for w in W),
+            weights=effective_weights,
             query=query_text,
             emergency=emergency,
+            cf_enabled=cf_active,
+            cf_version=self._cf_info["version"],
         )
 
     def _geo_scores(

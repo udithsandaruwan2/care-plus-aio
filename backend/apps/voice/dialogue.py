@@ -266,6 +266,8 @@ def _run_vehmf(
         "latency_ms": latency_ms,
         "query": out.query,
         "emergency": out.emergency,
+        "cf_enabled": out.cf_enabled,
+        "cf_version": out.cf_version,
         "weights": {
             "cbf": round(out.weights[0], 6),
             "cf": round(out.weights[1], 6),

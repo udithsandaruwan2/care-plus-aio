@@ -179,6 +179,8 @@ EMBEDDING_MODEL = env("EMBEDDING_MODEL", default="intfloat/multilingual-e5-base"
 FAISS_ARTIFACT_DIR = env("FAISS_ARTIFACT_DIR", default="")
 # CF ALS artifacts (Step 21). Empty → ``<FAISS_ARTIFACT_DIR>/cf`` or ``ml/artifacts/cf``.
 CF_ARTIFACT_DIR = env("CF_ARTIFACT_DIR", default="")
+# Blend trained CF into VEHMF fusion (Step 22). Set false to zero β and use CBF/geo/trust only.
+CF_ENABLED = env.bool("CF_ENABLED", default=True)
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"

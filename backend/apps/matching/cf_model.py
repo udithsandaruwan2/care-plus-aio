@@ -6,9 +6,22 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 from django.conf import settings
+
+
+class CFModel(Protocol):
+    def predict(self, patient_id: int | None, caregiver_ids: Sequence[int]) -> np.ndarray: ...
+
+
+@dataclass(frozen=True)
+class StubCFModel:
+    """Neutral collaborative scores when CF is disabled or not yet trained."""
+
+    def predict(self, patient_id: int | None, caregiver_ids: Sequence[int]) -> np.ndarray:
+        return np.full(len(caregiver_ids), 0.5, dtype=np.float32)
 
 
 def cf_artifact_dir() -> Path:
@@ -107,3 +120,26 @@ def load_cf_model(*, force: bool = False) -> AlsCFModel | None:
     )
     _CACHE = model
     return model
+
+
+def get_cf_model() -> CFModel:
+    """Return the active CF model (ALS artifact) or a neutral stub."""
+    if not getattr(settings, "CF_ENABLED", True):
+        return StubCFModel()
+    return load_cf_model() or StubCFModel()
+
+
+def cf_model_info(model: CFModel) -> dict:
+    """Metadata for API responses and fusion diagnostics."""
+    if isinstance(model, AlsCFModel):
+        return {"enabled": True, "backend": "als", "version": model.version}
+    if isinstance(model, StubCFModel):
+        return {"enabled": False, "backend": "stub", "version": None}
+    return {"enabled": is_cf_active(model), "backend": "custom", "version": getattr(model, "version", None)}
+
+
+def is_cf_active(model: CFModel) -> bool:
+    """True when CF contributes to fusion (trained ALS or an injected model)."""
+    if not getattr(settings, "CF_ENABLED", True):
+        return False
+    return not isinstance(model, StubCFModel)
