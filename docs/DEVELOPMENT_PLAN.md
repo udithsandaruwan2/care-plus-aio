@@ -187,10 +187,11 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 **Done:** `apps.voice.refine` deltas; VEHMF hard filters + closer geo tilt; rank_delta/previous_rank on cards; refine reply notes filters.  
 **✅ Acceptance:** “only Tamil speakers within 5 km” updates cards; latency badge still shown.
 
-### Step 15j — Local / Gemini policy for dialogue
+### Step 15j — Local / Gemini policy for dialogue ✅ **DONE**
 
 **Goal:** clear AI split so cost and PDPA stay sane.  
 **Tasks:** document + env: `DIALOGUE_CHAT_BACKEND=gemini|stub`; MATCH/REFINE always local VEHMF; stub chat for CI/offline; rate-limit Gemini chat; audit every turn route.  
+**Done:** `docs/DIALOGUE_POLICY.md`; rate limit + `chat_source` on turns; `GET /voice/policy/`; audit metadata.  
 **✅ Acceptance:** with no `GEMINI_API_KEY`, CHAT still replies via stub; MATCH still returns real seed caregivers.
 
 ---
@@ -577,4 +578,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 15j — Local / Gemini dialogue policy**, or **Step 15h** loop polish / **Step 21** CF.
+**Step 15h — Unified Neural Core loop polish**, or **Step 21 — CF training** (`feat/step21-cf-interactions`).
