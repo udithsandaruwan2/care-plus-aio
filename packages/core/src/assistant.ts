@@ -5,6 +5,8 @@ export const AssistantState = {
   THINKING: 'THINKING',
   CLARIFYING: 'CLARIFYING',
   SPEAKING: 'SPEAKING',
+  /** Serah is replying in chat (TTS / bubble) without rematching. */
+  CHAT_REPLY: 'CHAT_REPLY',
   MATCHING: 'MATCHING',
   RESULTS: 'RESULTS',
   EMERGENCY: 'EMERGENCY',
@@ -44,6 +46,7 @@ export const STATE_COPY: Record<AssistantState, string> = {
   THINKING: 'Understanding…',
   CLARIFYING: 'One more detail…',
   SPEAKING: 'Here’s what I heard',
+  CHAT_REPLY: 'Serah is replying…',
   MATCHING: 'Finding your best match…',
   RESULTS: 'Matches ready',
   EMERGENCY: 'Health alert',
@@ -53,12 +56,13 @@ export const STATE_COPY: Record<AssistantState, string> = {
 export const TRANSITIONS: Record<AssistantState, AssistantState[]> = {
   IDLE: ['LISTENING', 'EMERGENCY'],
   LISTENING: ['LISTENING', 'THINKING', 'EMERGENCY', 'IDLE'],
-  THINKING: ['SPEAKING', 'CLARIFYING', 'EMERGENCY'],
-  CLARIFYING: ['LISTENING', 'EMERGENCY'],
-  SPEAKING: ['MATCHING', 'IDLE'],
-  MATCHING: ['RESULTS', 'EMERGENCY'],
-  RESULTS: ['IDLE', 'EMERGENCY'],
-  EMERGENCY: ['RESULTS', 'IDLE'],
+  THINKING: ['SPEAKING', 'CLARIFYING', 'CHAT_REPLY', 'MATCHING', 'RESULTS', 'EMERGENCY'],
+  CLARIFYING: ['LISTENING', 'CHAT_REPLY', 'EMERGENCY'],
+  SPEAKING: ['MATCHING', 'CHAT_REPLY', 'IDLE'],
+  CHAT_REPLY: ['LISTENING', 'MATCHING', 'RESULTS', 'CLARIFYING', 'IDLE', 'EMERGENCY'],
+  MATCHING: ['RESULTS', 'CHAT_REPLY', 'EMERGENCY'],
+  RESULTS: ['LISTENING', 'CHAT_REPLY', 'MATCHING', 'CLARIFYING', 'IDLE', 'EMERGENCY'],
+  EMERGENCY: ['RESULTS', 'IDLE', 'CHAT_REPLY'],
 };
 
 export function canTransition(from: AssistantState, to: AssistantState): boolean {
