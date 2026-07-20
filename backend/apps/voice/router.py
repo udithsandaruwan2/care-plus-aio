@@ -44,7 +44,7 @@ _GOODBYE = re.compile(
 
 _GREETING = re.compile(
     r"^(hi|hello|hey|good\s*(morning|afternoon|evening)|yo)\b|"
-    r"ආයුබෝවන්|ආයුබෝ|ayubowan|வணக்கம்|vanakkam",
+    r"ආයුබෝවන්|ආයුබෝ|හායි|ayubowan|வணக்கம்|vanakkam",
     re.I,
 )
 
@@ -141,6 +141,7 @@ def classify_turn(
     intent: dict,
     *,
     has_prior_match: bool = False,
+    has_history_match: bool = False,
 ) -> RouteDecision:
     """Return route + situation for this utterance."""
     raw = (text or "").strip()
@@ -169,10 +170,12 @@ def classify_turn(
     if _FAQ.search(raw) and not _MATCH_SEEK.search(raw):
         return RouteDecision("CHAT", "faq")
 
-    # 4) Post-match conversation about results
+    # 4) Questions about a prior match (session memory — cards may be off-screen)
+    if has_history_match and _ABOUT_MATCH.search(raw):
+        return RouteDecision("CHAT", "about_match")
+
+    # 5) Post-match conversation while caregiver cards are visible on screen
     if has_prior_match:
-        if _ABOUT_MATCH.search(raw):
-            return RouteDecision("CHAT", "about_match")
         if _ACTION.search(raw):
             return RouteDecision("ACTION", "request")
         if _REFINE.search(raw):
@@ -189,7 +192,7 @@ def classify_turn(
         # Default after match: stay in conversation, do NOT re-run VEHMF
         return RouteDecision("CHAT", "post_match_chat")
 
-    # 5) Pre-match / open dialogue
+    # 6) Pre-match / open dialogue
     if _NEW_SEARCH.search(raw):
         if _complete(intent):
             return RouteDecision("MATCH", "new_search")
@@ -208,9 +211,5 @@ def classify_turn(
         intent.get("condition") or intent.get("language") or intent.get("care_level")
     ):
         return RouteDecision("CLARIFY", "clarify")
-
-    # Complete chips leftover from earlier — without explicit seek, just chat
-    if _complete(intent):
-        return RouteDecision("CHAT", "general")
 
     return RouteDecision("CHAT", "general")

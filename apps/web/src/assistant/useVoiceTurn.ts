@@ -78,6 +78,7 @@ export function useVoiceTurn() {
   const runTurn = useCallback(
     async (opts: { text: string; audio: Blob | null; continueListening?: () => void }) => {
       const store = useAssistant.getState();
+      const hasVisibleMatch = Boolean(store.match?.results?.length);
       const userLine = opts.text.trim();
       setBusy(true);
       setError(null);
@@ -88,9 +89,9 @@ export function useVoiceTurn() {
         const result = await api.voiceTurn({
           text: opts.text,
           audio: opts.audio,
-          hasPriorMatch: Boolean(store.match),
+          hasPriorMatch: hasVisibleMatch,
           priorIntent: store.intent as Record<string, unknown>,
-          priorMatch: store.match as unknown as Record<string, unknown>,
+          priorMatch: hasVisibleMatch ? (store.match as unknown as Record<string, unknown>) : undefined,
           uiLanguage: store.uiLanguage,
         });
         setConsentNeeded(false);

@@ -177,6 +177,48 @@ class ProcessTurnLanguageMergeTests(TestCase):
         self.assertIsNone(out["match"])
         self.assertIn("welcome", out["reply"].lower())
 
+    def test_general_condition_statement_runs_match_when_slots_complete(self):
+        from apps.voice.asr import AsrResult
+
+        fake = AsrResult(
+            text="i have dengue",
+            source="client",
+            language_hint="English",
+            language_code="en",
+            languages=["English"],
+        )
+        prior = {
+            "condition": "",
+            "language": "English",
+            "care_level": "basic",
+            "languages": ["English"],
+        }
+        extracted = {
+            "condition": "dengue",
+            "language": "",
+            "languages": [],
+            "care_level": "",
+            "urgency": "routine",
+            "raw_text": "i have dengue",
+            "source": "stub",
+        }
+        with (
+            patch("apps.voice.dialogue.resolve_transcript", return_value=fake),
+            patch("apps.voice.dialogue.extract_intent", return_value=extracted),
+            patch(
+                "apps.voice.dialogue._run_vehmf",
+                return_value={"request_id": None, "results": [], "latency_ms": 1, "query": "dengue", "emergency": False, "cf_enabled": False, "cf_version": "", "weights": {"cbf": 1, "cf": 0, "geo": 0, "trust": 0}},
+            ),
+        ):
+            out = process_turn(
+                user=self.user,
+                client_text="i have dengue",
+                prior_intent=prior,
+                ui_language="English",
+            )
+        self.assertEqual(out["route"], "MATCH")
+        self.assertEqual(out["situation"], "match")
+
 
 class ReplyGroundingTests(SimpleTestCase):
     def test_post_match_chat_without_results_does_not_claim_visible_cards(self):

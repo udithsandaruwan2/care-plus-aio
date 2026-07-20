@@ -43,9 +43,34 @@ class RouterFixtureTests(SimpleTestCase):
         self.assertEqual(d.route, "REFINE")
 
     def test_about_match_why_number_one(self):
-        d = classify_turn("why is number one ranked high?", COMPLETE, has_prior_match=True)
+        d = classify_turn(
+            "why is number one ranked high?",
+            COMPLETE,
+            has_prior_match=True,
+            has_history_match=True,
+        )
         self.assertEqual(d.route, "CHAT")
         self.assertEqual(d.situation, "about_match")
+
+    def test_about_match_works_with_history_only(self):
+        d = classify_turn(
+            "why is number one ranked high?",
+            COMPLETE,
+            has_prior_match=False,
+            has_history_match=True,
+        )
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "about_match")
+
+    def test_history_only_does_not_force_post_match_default(self):
+        d = classify_turn(
+            "hmm interesting",
+            COMPLETE,
+            has_prior_match=False,
+            has_history_match=True,
+        )
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "general")
 
     def test_request_action(self):
         d = classify_turn("request the first one", COMPLETE, has_prior_match=True)

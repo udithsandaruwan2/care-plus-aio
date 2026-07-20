@@ -23,11 +23,8 @@ function getCtor(): SpeechRecognitionConstructor | null {
 }
 
 /**
- * Web Speech captions. Uses non-continuous mode so a natural pause ends the
- * utterance and triggers ``onEnd`` → conversational turn (THINKING / Serah).
- *
- * ``continuous: true`` was stranding users in LISTENING forever because Chrome
- * rarely auto-ends; the turn never reached the server.
+ * Web Speech captions. Runs in continuous mode and we end the turn ourselves
+ * after a short silence window, so brief pauses do not cut the user off.
  */
 export function useSpeechRecognition(handlers: Handlers): SpeechControls {
   const supported = useMemo(() => getCtor() !== null, []);
@@ -62,8 +59,8 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
 
     const rec = new Ctor();
     rec.lang = hRef.current.lang;
-    // One utterance per turn — pause ends recognition and fires onEnd.
-    rec.continuous = false;
+    // Keep listening across short pauses; we close the turn via silence timer.
+    rec.continuous = true;
     rec.interimResults = true;
     rec.maxAlternatives = 1;
 
@@ -82,8 +79,8 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
       }
       if (interim) hRef.current.onInterim(interim.trim());
 
-      // Some browsers linger after a final result; force-end after a short pause.
-      if (sawFinal) {
+      // End turn only after a real silence window, so users can speak naturally.
+      if (interim || sawFinal) {
         clearSilence();
         silenceTimer.current = setTimeout(() => {
           try {
@@ -91,7 +88,7 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
           } catch {
             /* already stopped */
           }
-        }, 900);
+        }, 1800);
       }
     };
 
