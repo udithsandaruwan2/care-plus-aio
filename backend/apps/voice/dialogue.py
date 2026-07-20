@@ -14,6 +14,11 @@ from .backends import extract_intent
 from .models import VoiceIntent
 from .replies import serah_reply
 from .router import classify_turn
+from .session import (
+    get_or_create_active_session,
+    open_questions_for_intent,
+    persist_session_after_turn,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -189,10 +194,7 @@ def _run_vehmf(user, intent: dict) -> dict:
     return payload
 
 
-def _latest_match_for_user(user) -> dict | None:
-    run = MatchRun.objects.filter(user=user).order_by("-created_at").first()
-    if not run:
-        return None
+def _match_payload_from_run(run: MatchRun) -> dict:
     rows = []
     for mr in run.results.select_related("caregiver", "caregiver__user").all():
         p = mr.caregiver
@@ -231,6 +233,13 @@ def _latest_match_for_user(user) -> dict | None:
     }
 
 
+def _latest_match_for_user(user) -> dict | None:
+    run = MatchRun.objects.filter(user=user).order_by("-created_at").first()
+    if not run:
+        return None
+    return _match_payload_from_run(run)
+
+
 def process_turn(
     *,
     user,
@@ -244,6 +253,8 @@ def process_turn(
 ) -> dict:
     """Full conversational turn used by ``POST /voice/turn/``."""
     ui = ui_language if ui_language in ("Sinhala", "Tamil", "English") else None
+    session = get_or_create_active_session(user, lang=ui or "")
+
     asr = resolve_transcript(
         client_text=client_text,
         audio=audio,
@@ -268,13 +279,18 @@ def process_turn(
                 "intent": None,
                 "match": None,
                 "clear_match": False,
+                "session_id": session.pk,
             },
             reply,
             reply_lang,
         )
 
-    # Merge with prior intent chips (clarify / refine continuity).
-    base = dict(prior_intent or {})
+    # Session chips → client prior → this turn's extraction (clarify / refine continuity).
+    base: dict = dict(session.intent_chips or {})
+    if prior_intent:
+        for key, val in prior_intent.items():
+            if val not in (None, "", []):
+                base[key] = val
     hint = ui or asr.language_hint
     extracted = extract_intent(text, hint)
     for key in ("condition", "language", "languages", "care_level", "urgency", "raw_text", "source"):
@@ -300,14 +316,24 @@ def process_turn(
             elif not base.get("language"):
                 base["language"] = asr_langs[0]
 
-    decision = classify_turn(text, base, has_prior_match=has_prior_match)
+    session_has_match = session.last_match_run_id is not None
+    effective_prior = bool(has_prior_match or session_has_match or prior_match)
+    decision = classify_turn(text, base, has_prior_match=effective_prior)
     route = decision.route
     situation = decision.situation
     reply_lang = _tts_lang(base.get("language") or ui, base.get("languages"))
 
-    # Context match for about_match / request / affirm replies
-    context_match = prior_match if isinstance(prior_match, dict) else None
-    if has_prior_match and context_match is None:
+    # Prefer this session's MatchRun, then client prior, then latest run.
+    context_match = None
+    if session.last_match_run_id:
+        run = session.last_match_run
+        if run is None:
+            run = MatchRun.objects.filter(pk=session.last_match_run_id).first()
+        if run is not None:
+            context_match = _match_payload_from_run(run)
+    if context_match is None and isinstance(prior_match, dict):
+        context_match = prior_match
+    if effective_prior and context_match is None:
         context_match = _latest_match_for_user(user)
 
     match_payload = None
@@ -326,7 +352,7 @@ def process_turn(
                     text=text,
                     lang=reply_lang,
                     situation="emergency",
-                    has_prior_match=has_prior_match,
+                    has_prior_match=effective_prior,
                 )
                 reply = f"{reply} (Matching briefly unavailable: {exc})"
                 route = "CHAT"
@@ -335,7 +361,7 @@ def process_turn(
                 text=text,
                 lang=reply_lang,
                 situation="emergency",
-                has_prior_match=has_prior_match,
+                has_prior_match=effective_prior,
             )
             route = "CHAT"
     elif route in ("MATCH", "REFINE"):
@@ -369,17 +395,39 @@ def process_turn(
             has_prior_match=True,
             match=context_match,
         )
-        # Keep existing cards visible
         match_payload = None
     else:
-        # CHAT (+ thanks/goodbye/about_match/…)
         reply = serah_reply(
             text=text,
             lang=reply_lang,
             situation=situation,
-            has_prior_match=has_prior_match,
+            has_prior_match=effective_prior,
             match=context_match,
         )
+
+    intent_out = {
+        "condition": base.get("condition") or "",
+        "language": base.get("language") or "",
+        "languages": base.get("languages") or [],
+        "care_level": base.get("care_level") or "",
+        "urgency": base.get("urgency") or "routine",
+        "raw_text": base.get("raw_text") or text,
+        "source": base.get("source") or asr.source,
+    }
+    match_run_id = None
+    if match_payload and match_payload.get("request_id"):
+        match_run_id = int(match_payload["request_id"])
+
+    persist_session_after_turn(
+        session,
+        intent=intent_out,
+        route=route,
+        situation=situation,
+        user_text=text,
+        reply=reply,
+        match_run_id=match_run_id,
+        clear_match=decision.clear_match,
+    )
 
     return _attach_tts(
         {
@@ -391,17 +439,11 @@ def process_turn(
             "asr_language_code": asr.language_code or "",
             "reply": reply,
             "reply_lang": reply_lang,
-            "intent": {
-                "condition": base.get("condition") or "",
-                "language": base.get("language") or "",
-                "languages": base.get("languages") or [],
-                "care_level": base.get("care_level") or "",
-                "urgency": base.get("urgency") or "routine",
-                "raw_text": base.get("raw_text") or text,
-                "source": base.get("source") or asr.source,
-            },
+            "intent": intent_out,
             "match": match_payload,
             "clear_match": decision.clear_match,
+            "session_id": session.pk,
+            "open_questions": open_questions_for_intent(intent_out),
         },
         reply,
         reply_lang,
