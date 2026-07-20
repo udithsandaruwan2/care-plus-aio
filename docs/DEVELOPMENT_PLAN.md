@@ -173,11 +173,11 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 **Done:** `DialogueSession` + `GET/POST /voice/session/` (+ clear); `process_turn` binds last MatchRun + chips; web **New request** clears server+client; `session_id` on turn response.  
 **✅ Acceptance:** after cards, asking “why is #1 ranked high?” keeps RESULTS visible and answers with that run’s XAI; “find someone else” triggers REFINE/MATCH.
 
-### Step 15h — Unified Neural Core conversation loop (UI)
+### Step 15h — Unified Neural Core conversation loop (UI) ✅ **DONE**
 
 **Goal:** one mic, continuous dialogue — not a separate Serah panel forever.  
 **Tasks:** after every turn, Serah speaks/shows a short reply; mic re-arms (or “Tap to continue”); LISTENING ↔ THINKING ↔ (SPEAKING|CHAT_REPLY|MATCHING|RESULTS); Goal Ring still fills on MATCH/REFINE; chat bubbles for Serah lines.  
-**✅ Partial:** `/voice/turn/` loop + language picker (සිංහල|தமிழ்|English) locks ASR + reply language; server TTS (`TTS_BACKEND=auto`: Piper→Gemini→browser) returns `reply_audio_base64`.
+**Done:** `CHAT_REPLY` FSM state; `ChatBubbles` thread in store; mic auto re-arms in conversation mode; MATCHING flash before RESULTS.  
 **✅ Acceptance:** user can: greet → ask diabetes tip (CHAT) → “find me a Sinhala caregiver” (MATCH → cards) → “someone closer” (REFINE) without leaving the home screen.
 
 ### Step 15i — Post-match conversational refine ✅ **DONE**
@@ -578,4 +578,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 15h — Unified Neural Core loop polish**, or **Step 21 — CF training** (`feat/step21-cf-interactions`).
+**Step 21 — Interaction log + CF training offline** (`feat/step21-cf-interactions`).
