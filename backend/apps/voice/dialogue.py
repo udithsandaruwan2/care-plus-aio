@@ -12,6 +12,7 @@ from apps.matching.push import push_match_results
 from .asr import resolve_transcript
 from .backends import extract_intent
 from .models import VoiceIntent
+from .refine import apply_deltas_to_intent, parse_refine_deltas
 from .replies import serah_reply
 from .router import classify_turn
 from .session import (
@@ -85,7 +86,7 @@ def _attach_tts(payload: dict, reply: str, reply_lang: str) -> dict:
     return payload
 
 
-def _match_reply(results: list[dict], lang: str) -> str:
+def _match_reply(results: list[dict], lang: str, *, refined: bool = False, deltas: dict | None = None) -> str:
     if not results:
         if lang.startswith("si"):
             return "තවම caregiver කෙනෙක් හොයාගත්තේ නැහැ. language හෝ care level එකතු කරන්න."
@@ -97,6 +98,30 @@ def _match_reply(results: list[dict], lang: str) -> str:
     score = int(round(float(top.get("score") or 0) * 100))
     explanation = (top.get("explanation") or "").strip()
     n = len(results)
+    refine_bits = []
+    if deltas:
+        if deltas.get("language"):
+            refine_bits.append(str(deltas["language"]))
+        if deltas.get("max_distance_km") is not None:
+            refine_bits.append(f"within {deltas['max_distance_km']:g} km")
+        if deltas.get("specialty"):
+            refine_bits.append(str(deltas["specialty"]))
+        if deltas.get("care_level"):
+            refine_bits.append(str(deltas["care_level"]))
+    filter_note = (", ".join(refine_bits)) if refine_bits else ""
+    if refined and filter_note:
+        if lang.startswith("si"):
+            return (
+                f"Refine කළා ({filter_note}). දැන් {n} දෙනෙක් — හොඳම {name} (score {score}). {explanation}"
+            )
+        if lang.startswith("ta"):
+            return (
+                f"Refine செய்தேன் ({filter_note}). இப்போது {n} பேர் — சிறந்தது {name} (score {score}). {explanation}"
+            )
+        return (
+            f"Updated shortlist ({filter_note}). Now {n} caregivers — best is {name} "
+            f"(score {score}). {explanation}"
+        )
     if lang.startswith("si"):
         return f"මට {n} දෙනෙක් හොයාගත්තා. හොඳම match එක {name} (score {score}). {explanation}"
     if lang.startswith("ta"):
@@ -104,12 +129,30 @@ def _match_reply(results: list[dict], lang: str) -> str:
     return f"I found {n} caregivers. Best match is {name} (score {score}). {explanation}"
 
 
-def _run_vehmf(user, intent: dict) -> dict:
+def _run_vehmf(
+    user,
+    intent: dict,
+    *,
+    prior_results: list[dict] | None = None,
+    refine: bool = False,
+) -> dict:
     emergency = intent.get("urgency") in ("urgent", "critical") or intent.get("_emergency")
     lon = lat = None
     profile = getattr(user, "patient_profile", None)
     if profile is not None and profile.location is not None:
         lon, lat = profile.location.x, profile.location.y
+
+    max_km = intent.get("max_distance_km")
+    try:
+        max_km_f = float(max_km) if max_km is not None else None
+    except (TypeError, ValueError):
+        max_km_f = None
+
+    specialty = (intent.get("specialty") or "").strip()
+    prefer_closer = bool(intent.get("prefer_closer"))
+    # Hard filters only when refine deltas explicitly asked for them.
+    hard_lang = bool(intent.get("_hard_language"))
+    hard_care = bool(intent.get("_hard_care_level"))
 
     t0 = time.perf_counter()
     out = run_match(
@@ -122,6 +165,11 @@ def _run_vehmf(user, intent: dict) -> dict:
         latitude=lat,
         top_k=5,
         emergency=bool(emergency),
+        max_distance_km=max_km_f,
+        specialty=specialty,
+        prefer_closer=prefer_closer,
+        hard_filter_language=hard_lang,
+        hard_filter_care_level=hard_care,
     )
     latency_ms = int((time.perf_counter() - t0) * 1000)
 
@@ -141,6 +189,11 @@ def _run_vehmf(user, intent: dict) -> dict:
             id__in=[r.caregiver_id for r in out.results]
         ).select_related("user")
     }
+    prev_ranks = {
+        int(r["caregiver_id"]): int(r["rank"])
+        for r in (prior_results or [])
+        if r.get("caregiver_id") is not None and r.get("rank") is not None
+    }
     result_rows = []
     for rank, hit in enumerate(out.results, start=1):
         MatchResult.objects.create(
@@ -156,26 +209,29 @@ def _run_vehmf(user, intent: dict) -> dict:
             distance_m=hit.distance_m,
         )
         p = profiles.get(hit.caregiver_id)
-        result_rows.append(
-            {
-                "caregiver_id": hit.caregiver_id,
-                "rank": rank,
-                "score": round(hit.score, 6),
-                "breakdown": {
-                    "cbf": round(hit.cbf, 6),
-                    "cf": round(hit.cf, 6),
-                    "geo": round(hit.geo, 6),
-                    "trust": round(hit.trust, 6),
-                },
-                "explanation": hit.explanation,
-                "distance_m": None if hit.distance_m is None else round(hit.distance_m, 1),
-                "display_name": p.display_name if p else "",
-                "specialties": p.specialties if p else [],
-                "languages": p.languages if p else [],
-                "care_levels": p.care_levels if p else [],
-                "trust_score": p.trust_score if p else None,
-            }
-        )
+        prev = prev_ranks.get(hit.caregiver_id)
+        row = {
+            "caregiver_id": hit.caregiver_id,
+            "rank": rank,
+            "score": round(hit.score, 6),
+            "breakdown": {
+                "cbf": round(hit.cbf, 6),
+                "cf": round(hit.cf, 6),
+                "geo": round(hit.geo, 6),
+                "trust": round(hit.trust, 6),
+            },
+            "explanation": hit.explanation,
+            "distance_m": None if hit.distance_m is None else round(hit.distance_m, 1),
+            "display_name": p.display_name if p else "",
+            "specialties": p.specialties if p else [],
+            "languages": p.languages if p else [],
+            "care_levels": p.care_levels if p else [],
+            "trust_score": p.trust_score if p else None,
+        }
+        if prev is not None:
+            row["previous_rank"] = prev
+            row["rank_delta"] = prev - rank  # positive = moved up
+        result_rows.append(row)
 
     payload = {
         "request_id": run.pk,
@@ -189,6 +245,7 @@ def _run_vehmf(user, intent: dict) -> dict:
             "trust": round(out.weights[3], 6),
         },
         "results": result_rows,
+        "refined": refine,
     }
     push_match_results(user.pk, payload)
     return payload
@@ -365,6 +422,10 @@ def process_turn(
             )
             route = "CHAT"
     elif route in ("MATCH", "REFINE"):
+        is_refine = route == "REFINE"
+        deltas = parse_refine_deltas(text) if is_refine else None
+        if deltas and deltas.applied():
+            base = apply_deltas_to_intent(base, deltas)
         VoiceIntent.objects.create(
             user=user,
             raw_text=base.get("raw_text", text),
@@ -376,9 +437,22 @@ def process_turn(
             source=base.get("source") or "stub",
         )
         try:
-            match_payload = _run_vehmf(user, base)
-            reply = _match_reply(match_payload.get("results") or [], reply_lang)
+            prior_rows = (context_match or {}).get("results") if is_refine else None
+            match_payload = _run_vehmf(
+                user,
+                base,
+                prior_results=prior_rows if isinstance(prior_rows, list) else None,
+                refine=is_refine,
+            )
+            reply = _match_reply(
+                match_payload.get("results") or [],
+                reply_lang,
+                refined=is_refine,
+                deltas=deltas.to_dict() if deltas else None,
+            )
             route = "MATCH"
+            if is_refine:
+                situation = "refine"
         except Exception as exc:
             logger.exception("VEHMF in dialogue turn failed")
             reply = f"Matching is briefly unavailable ({exc}). Try again in a moment."
@@ -414,6 +488,10 @@ def process_turn(
         "raw_text": base.get("raw_text") or text,
         "source": base.get("source") or asr.source,
     }
+    # Keep refine filters across turns on the session.
+    for key in ("specialty", "max_distance_km", "prefer_closer", "_hard_language", "_hard_care_level"):
+        if key in base and base[key] not in (None, "", False):
+            intent_out[key] = base[key]
     match_run_id = None
     if match_payload and match_payload.get("request_id"):
         match_run_id = int(match_payload["request_id"])
