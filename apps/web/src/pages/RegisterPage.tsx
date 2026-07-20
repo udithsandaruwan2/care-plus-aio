@@ -38,7 +38,7 @@ export function RegisterPage() {
     setBusy(true);
     try {
       await register(email.trim(), password, role);
-      navigate('/', { replace: true });
+      navigate(role === 'patient' ? '/onboarding' : '/', { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {

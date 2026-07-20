@@ -4,10 +4,12 @@ import type { CaregiverDetail } from '@care-plus/api-client';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { usePatientProfile } from '../auth/usePatientProfile';
 
 export function CaregiverDetailPage() {
   const { id } = useParams();
   const { logout } = useAuth();
+  const { canRequestCare } = usePatientProfile();
   const [profile, setProfile] = useState<CaregiverDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,12 @@ export function CaregiverDetailPage() {
   }, [id]);
 
   function onRequest() {
+    if (!canRequestCare) {
+      window.alert(
+        'Complete your patient profile (at least 80%) before requesting care. Go to /onboarding.',
+      );
+      return;
+    }
     window.alert('Request caregiver — hire flow lands in Step 23 (CareRequest).');
   }
 

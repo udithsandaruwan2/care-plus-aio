@@ -39,7 +39,13 @@ function RankChange({ hit }: { hit: MatchHit }) {
   return null;
 }
 
-function MatchCard({ hit }: { hit: MatchHit }) {
+function MatchCard({
+  hit,
+  canRequestCare,
+}: {
+  hit: MatchHit;
+  canRequestCare: boolean;
+}) {
   const km =
     hit.distance_m != null && Number.isFinite(hit.distance_m)
       ? `${(hit.distance_m / 1000).toFixed(1)} km`
@@ -89,13 +95,19 @@ function MatchCard({ hit }: { hit: MatchHit }) {
         </Link>
         <button
           type="button"
-          className="w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10"
+          disabled={!canRequestCare}
+          className="w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:border-hair disabled:text-muted"
           onClick={() => {
-            // Hire lifecycle lands in Step 23 (CareRequest).
-            window.alert('Request caregiver — coming in the hire flow (Step 23).');
+            if (!canRequestCare) {
+              window.alert(
+                'Complete your patient profile (at least 80%) before requesting care. Open Profile from the header or go to /onboarding.',
+              );
+              return;
+            }
+            window.alert('Request caregiver — hire flow lands in Step 23 (CareRequest).');
           }}
         >
-          Request this caregiver
+          {canRequestCare ? 'Request this caregiver' : 'Complete profile to request'}
         </button>
       </div>
     </article>
@@ -103,7 +115,13 @@ function MatchCard({ hit }: { hit: MatchHit }) {
 }
 
 /** Ranked VEHMF cards with score breakdown, XAI, and latency badge. */
-export function MatchResultCards({ match }: { match: MatchResponse }) {
+export function MatchResultCards({
+  match,
+  canRequestCare = true,
+}: {
+  match: MatchResponse;
+  canRequestCare?: boolean;
+}) {
   if (!match.results.length) {
     return <p className="mt-4 text-center text-sm text-muted">No caregivers matched yet.</p>;
   }
@@ -118,7 +136,11 @@ export function MatchResultCards({ match }: { match: MatchResponse }) {
         </span>
       </div>
       {match.results.map((hit) => (
-        <MatchCard key={`${match.request_id}-${hit.caregiver_id}`} hit={hit} />
+        <MatchCard
+          key={`${match.request_id}-${hit.caregiver_id}`}
+          hit={hit}
+          canRequestCare={canRequestCare}
+        />
       ))}
     </div>
   );

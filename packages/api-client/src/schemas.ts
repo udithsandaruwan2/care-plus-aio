@@ -256,3 +256,63 @@ export const CaregiverListParams = z.object({
   page_size: z.number().int().optional(),
 });
 export type CaregiverListParams = z.infer<typeof CaregiverListParams>;
+
+export const PatientProfile = z.object({
+  id: z.number(),
+  email: z.string(),
+  display_name: z.string(),
+  longitude: z.number().nullable(),
+  latitude: z.number().nullable(),
+  city: z.string().optional().default(''),
+  preferred_language: z.string(),
+  languages: z.array(z.string()).optional().default([]),
+  conditions: z.array(z.string()).optional().default([]),
+  care_level: z.string(),
+  height_cm: z.number().nullable().optional(),
+  weight_kg: z.number().nullable().optional(),
+  blood_type: z.string().optional().default(''),
+  medications: z.array(z.string()).optional().default([]),
+  allergies: z.array(z.string()).optional().default([]),
+  emergency_contact_name: z.string().optional().default(''),
+  emergency_contact_phone: z.string().optional().default(''),
+  completion_percent: z.number().int(),
+  can_request_care: z.boolean(),
+  missing_fields: z.array(z.string()).optional().default([]),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type PatientProfile = z.infer<typeof PatientProfile>;
+
+export const PatientProfileUpdate = z.object({
+  display_name: z.string().optional(),
+  city: z.string().optional(),
+  longitude: z.number().optional(),
+  latitude: z.number().optional(),
+  preferred_language: z.string().optional(),
+  languages: z.array(z.string()).optional(),
+  conditions: z.array(z.string()).optional(),
+  care_level: z.string().optional(),
+  height_cm: z.number().int().optional(),
+  weight_kg: z.number().optional(),
+  blood_type: z.string().optional(),
+  medications: z.array(z.string()).optional(),
+  allergies: z.array(z.string()).optional(),
+  emergency_contact_name: z.string().optional(),
+  emergency_contact_phone: z.string().optional(),
+});
+export type PatientProfileUpdate = z.infer<typeof PatientProfileUpdate>;
+
+export const ConditionTerm = z.object({
+  slug: z.string(),
+  canonical_en: z.string(),
+  synonyms: z.record(z.array(z.string())).optional().default({}),
+  active: z.boolean().optional(),
+  version: z.number().optional(),
+});
+export type ConditionTerm = z.infer<typeof ConditionTerm>;
+
+export const ConditionListResponse = z.object({
+  count: z.number(),
+  results: z.array(ConditionTerm),
+});
+export type ConditionListResponse = z.infer<typeof ConditionListResponse>;

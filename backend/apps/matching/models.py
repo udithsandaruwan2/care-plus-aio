@@ -21,6 +21,18 @@ class CareLevel(models.TextChoices):
     ADVANCED = "advanced", "Advanced"
 
 
+class BloodType(models.TextChoices):
+    A_POS = "A+", "A+"
+    A_NEG = "A-", "A-"
+    B_POS = "B+", "B+"
+    B_NEG = "B-", "B-"
+    AB_POS = "AB+", "AB+"
+    AB_NEG = "AB-", "AB-"
+    O_POS = "O+", "O+"
+    O_NEG = "O-", "O-"
+    UNKNOWN = "unknown", "Unknown"
+
+
 class Language(models.TextChoices):
     SINHALA = "Sinhala", "Sinhala"
     TAMIL = "Tamil", "Tamil"
@@ -77,11 +89,22 @@ class PatientProfile(models.Model):
     )
     display_name = models.CharField(max_length=120, blank=True, default="")
     location = gis_models.PointField(geography=True, srid=4326, null=True, blank=True)
+    city = models.CharField(max_length=64, blank=True, default="", db_index=True)
     preferred_language = models.CharField(
         max_length=16, choices=Language.choices, default=Language.ENGLISH
     )
+    languages = ArrayField(models.CharField(max_length=16), default=list, blank=True)
     conditions = ArrayField(models.CharField(max_length=64), default=list, blank=True)
     care_level = models.CharField(max_length=16, choices=CareLevel.choices, default=CareLevel.BASIC)
+    height_cm = models.PositiveSmallIntegerField(null=True, blank=True)
+    weight_kg = models.FloatField(null=True, blank=True)
+    blood_type = models.CharField(
+        max_length=8, choices=BloodType.choices, blank=True, default=""
+    )
+    medications = ArrayField(models.CharField(max_length=120), default=list, blank=True)
+    allergies = ArrayField(models.CharField(max_length=120), default=list, blank=True)
+    emergency_contact_name = models.CharField(max_length=120, blank=True, default="")
+    emergency_contact_phone = models.CharField(max_length=32, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

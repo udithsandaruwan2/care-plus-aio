@@ -181,6 +181,8 @@ FAISS_ARTIFACT_DIR = env("FAISS_ARTIFACT_DIR", default="")
 CF_ARTIFACT_DIR = env("CF_ARTIFACT_DIR", default="")
 # Blend trained CF into VEHMF fusion (Step 22). Set false to zero β and use CBF/geo/trust only.
 CF_ENABLED = env.bool("CF_ENABLED", default=True)
+# Minimum patient profile completion % before requesting care (Step 22b).
+PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"

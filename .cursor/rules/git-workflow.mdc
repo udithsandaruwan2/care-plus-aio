@@ -56,6 +56,17 @@ git push -u origin HEAD   # first push on a branch; then git push
 - Push after completing a step/feature, and at other necessary times (device
   switch, end of session, before asking the user to review).
 
+## PR after push (required — Udith)
+
+**Every time** work is pushed on a feature branch, the agent must **without being asked again**:
+
+1. `gh pr create` into `main` (clear summary + test plan).
+2. Rebase on `origin/main` if needed; **resolve merge conflicts** on the branch.
+3. `gh pr merge --merge --admin` (use `--admin` if CI is red on pre-existing lint noise).
+4. `git checkout main && git pull` and delete the merged local branch.
+
+Do not stop at “PR link ready” — finish through **merge** unless the user explicitly says they will merge themselves.
+
 ## Merge
 
 - When the branch is **complete** (acceptance checks pass) **or** at another
