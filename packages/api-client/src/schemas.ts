@@ -101,6 +101,10 @@ export const MatchHit = z.object({
   care_levels: z.array(z.string()),
   trust_score: z.number().nullable().optional(),
   is_available: z.boolean().optional().default(true),
+  /** Previous rank before a refine rematch (Step 15i). */
+  previous_rank: z.number().nullable().optional(),
+  /** previous_rank - rank; positive means moved up. */
+  rank_delta: z.number().nullable().optional(),
 });
 export type MatchHit = z.infer<typeof MatchHit>;
 
@@ -111,6 +115,7 @@ export const MatchResponse = z.object({
   emergency: z.boolean(),
   weights: MatchBreakdown,
   results: z.array(MatchHit),
+  refined: z.boolean().optional().default(false),
 });
 export type MatchResponse = z.infer<typeof MatchResponse>;
 

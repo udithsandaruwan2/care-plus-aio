@@ -14,19 +14,50 @@ function FactorBar({ label, value, className }: { label: string; value: number; 
   );
 }
 
+function RankChange({ hit }: { hit: MatchHit }) {
+  if (hit.rank_delta == null || hit.previous_rank == null || hit.rank_delta === 0) {
+    if (hit.previous_rank == null && hit.rank_delta == null) return null;
+    if (hit.rank_delta === 0) {
+      return <span className="ml-1 font-mono text-[10px] text-muted">· same</span>;
+    }
+  }
+  const delta = hit.rank_delta ?? 0;
+  if (delta > 0) {
+    return (
+      <span className="ml-1 font-mono text-[10px] text-mint" title={`was #${hit.previous_rank}`}>
+        ↑{delta}
+      </span>
+    );
+  }
+  if (delta < 0) {
+    return (
+      <span className="ml-1 font-mono text-[10px] text-amber" title={`was #${hit.previous_rank}`}>
+        ↓{Math.abs(delta)}
+      </span>
+    );
+  }
+  return null;
+}
+
 function MatchCard({ hit }: { hit: MatchHit }) {
   const km =
     hit.distance_m != null && Number.isFinite(hit.distance_m)
       ? `${(hit.distance_m / 1000).toFixed(1)} km`
       : null;
+  const changed = hit.previous_rank != null && hit.previous_rank !== hit.rank;
 
   return (
-    <article className="animate-[fadeIn_320ms_ease] rounded-2xl border border-hair bg-panel/80 p-4 text-left backdrop-blur-md">
+    <article
+      className={`animate-[fadeIn_320ms_ease] rounded-2xl border bg-panel/80 p-4 text-left backdrop-blur-md ${
+        changed ? 'border-mint/50 ring-1 ring-mint/20' : 'border-hair'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-display text-sm text-mist">
             <span className="mr-2 font-mono text-cyan">#{hit.rank}</span>
             {hit.display_name}
+            <RankChange hit={hit} />
           </p>
           <p className="mt-0.5 text-xs text-muted">
             {(hit.specialties || []).slice(0, 3).join(' · ') || 'General care'}
@@ -79,13 +110,15 @@ export function MatchResultCards({ match }: { match: MatchResponse }) {
   return (
     <div className="mt-6 w-full max-w-md space-y-3">
       <div className="flex items-center justify-between gap-2 px-1">
-        <p className="font-display text-sm tracking-wide text-mist">Best matches</p>
+        <p className="font-display text-sm tracking-wide text-mist">
+          {match.refined ? 'Updated matches' : 'Best matches'}
+        </p>
         <span className="rounded-full border border-mint/40 px-2.5 py-0.5 font-mono text-[11px] text-mint">
           {match.latency_ms} ms
         </span>
       </div>
       {match.results.map((hit) => (
-        <MatchCard key={hit.caregiver_id} hit={hit} />
+        <MatchCard key={`${match.request_id}-${hit.caregiver_id}`} hit={hit} />
       ))}
     </div>
   );
