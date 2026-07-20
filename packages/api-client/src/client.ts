@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import {
   CaregiverDetail,
   CaregiverListResponse,
@@ -12,6 +13,8 @@ import {
   Lead,
   LeadCreate,
   LeadListResponse,
+  CarePackage,
+  CatalogAddOn,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -366,6 +369,16 @@ export function createApiClient(options: ApiClientOptions) {
         },
         (d) => Lead.parse(d),
       ),
+    listCarePackages: (careLevel?: string) => {
+      const qs = careLevel ? `?care_level=${encodeURIComponent(careLevel)}` : '';
+      return request(`/catalog/packages/${qs}`, {}, (d) =>
+        z.array(CarePackage).parse(d),
+      );
+    },
+    listCatalogAddOns: (category?: string) => {
+      const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+      return request(`/catalog/addons/${qs}`, {}, (d) => z.array(CatalogAddOn).parse(d));
+    },
   };
 }
 
