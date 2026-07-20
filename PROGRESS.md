@@ -7,7 +7,7 @@
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-20 — Step 20e availability + soft presence done. Next: 15g session memory / M5 CF (21)._
+_Last updated: 2026-07-20 — Step 15g dialogue session memory done. Next: 15h polish / 15i refine / M5 CF._
 
 ---
 
@@ -78,15 +78,16 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 20c** — `/caregivers` browse UI (chips + Leaflet map). Branch `feat/step20c-browse-ui`.
 - ✅ **Step 20d** — Caregiver public detail `/caregivers/:id` + audited API. Branch `feat/step20d-caregiver-detail`.
 - ✅ **Step 20e** — Availability flag + soft presence (`GET/PATCH /caregivers/me/`, match hides unavailable, `/presence`). Branch `feat/step20e-availability`.
-- ⬜ **M3c Steps 15g–15j** — Session memory / refine polish remaining (15f router shipped)
-- 🔜 **Step 15g** — Session memory across turns (or M5 CF Step 21)
+- ✅ **Step 15g** — DialogueSession memory + New request clear. Branch `feat/step15g-session-memory`.
+- ⬜ **M3c Steps 15h–15j** — Unified loop polish / post-match refine / dialogue policy
+- 🔜 **Step 15i** — Post-match conversational refine (or 15h polish / M5 CF)
 
 ### Expanded product tracks (from Old Care Plus)
 
 | Milestone | Steps | Status |
 |-----------|-------|--------|
 | **M3b** Medical vocab + Serah chat | 15b–15e | 15b ✅ · 15c–e ⬜ |
-| **M3c** Conversational dialogue loop | 15f–15j | 15f ✅ · 15g–j ░ |
+| **M3c** Conversational dialogue loop | 15f–15j | 15f–15g ✅ · 15h–j ░ |
 | **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅ |
 | **M5** CF personalization | 21–22 | ⬜ |
 | **M5b** Rich onboarding / OTP | 22b–22f | ⬜ |
@@ -120,6 +121,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 15g** — `DialogueSession` stores chips, route history, last N turns, last `MatchRun`; turn response includes `session_id`; `GET /voice/session/` + `POST /voice/session/clear/`; Home **New request** clears server+client memory. Branch `feat/step15g-session-memory`.
 - **Step 20e** — Soft presence: VEHMF hides unavailable from top-N; `GET/PATCH /caregivers/me/`; web `/presence` toggle; browse already filters `?available=`. Branch `feat/step20e-availability`.
 - **Step 15f natural conversation router** — After matches, “thank you” / ස්තූතියි / நன்றி stay CHAT (no re-match); situations for goodbye, affirm, about_match, refine, action, emergency; situational Serah stubs + Gemini guidance. Branch `feat/dialogue-natural-conversation`.
 - **Fix voice turn 401 / empty ASR** — JWT refresh on 401; MediaRecorder flush; clearer empty-mic vs bad-ASR Serah replies; multi-commit branch `fix/voice-turn-401-empty-asr`.

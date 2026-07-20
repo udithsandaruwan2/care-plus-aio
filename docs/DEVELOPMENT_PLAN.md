@@ -166,10 +166,11 @@ Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** b
 **Done:** `apps.voice.router.classify_turn` with multilingual situations (thanks/goodbye/affirm/greeting/smalltalk/faq/advice/about_match/refine/match/clarify/emergency/action/cancel); post-match never re-runs VEHMF unless explicit seek/refine; `situation` + `clear_match` on `/voice/turn/`.  
 **✅ Acceptance:** fixture phrases map to correct routes (≥90% on a small labeled set); MATCH never returns Gemini-picked IDs.
 
-### Step 15g — Conversation session + memory
+### Step 15g — Conversation session + memory ✅ **DONE**
 
 **Goal:** multi-turn context without losing chips/results.  
 **Tasks:** `DialogueSession` (user, lang, route history, last `MatchRun`, open questions); store last N turns; FSM stays on RESULTS while chatting about matches; “New request” clears session.  
+**Done:** `DialogueSession` + `GET/POST /voice/session/` (+ clear); `process_turn` binds last MatchRun + chips; web **New request** clears server+client; `session_id` on turn response.  
 **✅ Acceptance:** after cards, asking “why is #1 ranked high?” keeps RESULTS visible and answers with that run’s XAI; “find someone else” triggers REFINE/MATCH.
 
 ### Step 15h — Unified Neural Core conversation loop (UI)
@@ -575,4 +576,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 15g — Session memory across turns**, or **Step 21 — CF training** (`feat/step21-cf-interactions`).
+**Step 15i — Post-match conversational refine**, or **Step 15h** unified loop polish / **Step 21** CF.

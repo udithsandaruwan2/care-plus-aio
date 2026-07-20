@@ -140,8 +140,34 @@ export const VoiceTurnResponse = z.object({
   intent: VoiceTurnIntent.nullable(),
   match: MatchResponse.nullable().optional(),
   clear_match: z.boolean().optional().default(false),
+  session_id: z.number().nullable().optional(),
+  open_questions: z.array(z.string()).optional().default([]),
 });
 export type VoiceTurnResponse = z.infer<typeof VoiceTurnResponse>;
+
+export const DialogueSessionSnapshot = z.object({
+  id: z.number(),
+  lang: z.string(),
+  intent_chips: z.record(z.string(), z.unknown()).optional().default({}),
+  open_questions: z.array(z.string()).optional().default([]),
+  route_history: z.array(z.record(z.string(), z.unknown())).optional().default([]),
+  turns: z.array(z.record(z.string(), z.unknown())).optional().default([]),
+  last_match_run_id: z.number().nullable().optional(),
+  updated_at: z.string().optional(),
+});
+export type DialogueSessionSnapshot = z.infer<typeof DialogueSessionSnapshot>;
+
+export const VoiceSessionResponse = z.object({
+  active: z.boolean(),
+  session: DialogueSessionSnapshot.nullable().optional(),
+});
+export type VoiceSessionResponse = z.infer<typeof VoiceSessionResponse>;
+
+export const VoiceSessionClearResponse = z.object({
+  cleared: z.number(),
+  active: z.boolean(),
+});
+export type VoiceSessionClearResponse = z.infer<typeof VoiceSessionClearResponse>;
 
 export const MatchInput = z.object({
   condition: z.string().optional(),
