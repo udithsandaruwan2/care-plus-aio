@@ -200,6 +200,12 @@ export function HomePage() {
           </div>
           <div className="flex shrink-0 gap-2">
             <Link
+              to="/catalog"
+              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+            >
+              Packages
+            </Link>
+            <Link
               to="/contact"
               className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
             >

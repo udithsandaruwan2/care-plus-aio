@@ -451,6 +451,31 @@ export const LeadListResponse = z.object({
 });
 export type LeadListResponse = z.infer<typeof LeadListResponse>;
 
+export const CarePackage = z.object({
+  id: z.number(),
+  slug: z.string(),
+  name: z.string(),
+  description: z.string().optional().default(''),
+  care_level: z.enum(['basic', 'intermediate', 'advanced']),
+  price_lkr: z.union([z.string(), z.number()]),
+  default_days: z.number().int(),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().optional(),
+});
+export type CarePackage = z.infer<typeof CarePackage>;
+
+export const CatalogAddOn = z.object({
+  id: z.number(),
+  slug: z.string(),
+  name: z.string(),
+  description: z.string().optional().default(''),
+  category: z.enum(['hospital', 'food', 'transport', 'supplies', 'other']),
+  price_lkr: z.union([z.string(), z.number()]),
+  is_active: z.boolean().optional(),
+  sort_order: z.number().int().optional(),
+});
+export type CatalogAddOn = z.infer<typeof CatalogAddOn>;
+
 export const ConditionTerm = z.object({
   slug: z.string(),
   canonical_en: z.string(),

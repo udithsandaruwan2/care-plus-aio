@@ -10,6 +10,7 @@ api_v1 = [
     path("", include("apps.matching.urls")),
     path("", include("apps.vocab.urls")),
     path("", include("apps.leads.urls")),
+    path("", include("apps.catalog.urls")),
 ]
 
 urlpatterns = [

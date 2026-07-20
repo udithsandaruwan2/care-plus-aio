@@ -7,6 +7,7 @@ import { CaregiverOnboardingPage } from './pages/CaregiverOnboardingPage';
 import { CaregiverPresencePage } from './pages/CaregiverPresencePage';
 import { CareRequestsPage } from './pages/CareRequestsPage';
 import { ContactPage } from './pages/ContactPage';
+import { CatalogPage } from './pages/CatalogPage';
 import { HomePage } from './pages/HomePage';
 import { LeadsPage } from './pages/LeadsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -20,6 +21,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/catalog" element={<CatalogPage />} />
         <Route element={<RequireAuth />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/caregivers" element={<BrowseCaregiversPage />} />
