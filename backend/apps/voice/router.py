@@ -88,9 +88,10 @@ _ABOUT_MATCH = re.compile(
 _REFINE = re.compile(
     r"\b(closer|nearer|nearby|another|different|else|other|"
     r"only\s*(tamil|sinhala|english)|"
-    r"(tamil|sinhala|english)\s*only|"
+    r"(tamil|sinhala|english)\s*(only|speakers?)|"
     r"female|male|woman|man|"
-    r"within\s*\d+|less\s*than\s*\d+\s*km|"
+    r"within\s*\d+|under\s*\d+|less\s*than\s*\d+\s*km|"
+    r"\d+\s*km|"
     r"cheaper|more\s*experienced|advanced|basic\s*only)\b|"
     r"කිට්ටු|ලංකට|වෙනත්|අනෙක්|வேறு|மற்றொரு|அருகில்|பெண்|ஆண்",
     re.I,
