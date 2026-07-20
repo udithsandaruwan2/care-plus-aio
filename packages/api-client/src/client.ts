@@ -1,6 +1,7 @@
 import {
   CaregiverDetail,
   CaregiverListResponse,
+  CaregiverProfile,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -233,6 +234,17 @@ export function createApiClient(options: ApiClientOptions) {
     },
     caregiver: (id: number) =>
       request(`/caregivers/${id}/`, {}, (d) => CaregiverDetail.parse(d)),
+    myCaregiverProfile: () =>
+      request('/caregivers/me/', {}, (d) => CaregiverProfile.parse(d)),
+    setMyAvailability: (is_available: boolean) =>
+      request(
+        '/caregivers/me/',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ is_available }),
+        },
+        (d) => CaregiverProfile.parse(d),
+      ),
   };
 }
 

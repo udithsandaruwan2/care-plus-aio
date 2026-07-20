@@ -1,6 +1,7 @@
 import time
 
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,7 +13,7 @@ from django.db.models import Q
 
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
-from apps.accounts.permissions import HasAIConsent, RolePermission
+from apps.accounts.permissions import HasAIConsent, IsCaregiver, RolePermission
 
 from .ahp import build_config, get_ahp_weights
 from .embeddings import get_embedder, intent_to_text
@@ -20,6 +21,7 @@ from .engine import run_match
 from .faiss_index import load_index
 from .models import CaregiverProfile, MatchResult, MatchRun, PatientProfile
 from .serializers import (
+    CaregiverAvailabilitySerializer,
     CaregiverDetailSerializer,
     CaregiverProfileSerializer,
     MatchRequestSerializer,
@@ -130,6 +132,33 @@ class CaregiverDetailView(generics.RetrieveAPIView):
         )
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+
+class CaregiverMeView(APIView):
+    """GET/PATCH /api/v1/caregivers/me/ — own profile + soft presence toggle (Step 20e)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsCaregiver]
+
+    def _profile(self, user) -> CaregiverProfile:
+        try:
+            return user.caregiver_profile
+        except CaregiverProfile.DoesNotExist as exc:
+            raise NotFound(
+                "Caregiver profile not found. Ask an admin to seed your profile, "
+                "or complete onboarding when it ships."
+            ) from exc
+
+    def get(self, request):
+        profile = self._profile(request.user)
+        return Response(CaregiverProfileSerializer(profile).data)
+
+    def patch(self, request):
+        profile = self._profile(request.user)
+        ser = CaregiverAvailabilitySerializer(profile, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        profile.refresh_from_db()
+        return Response(CaregiverProfileSerializer(profile).data)
 
 
 class PatientListView(generics.ListAPIView):
@@ -321,6 +350,7 @@ class MatchView(APIView):
                     "languages": p.languages if p else [],
                     "care_levels": p.care_levels if p else [],
                     "trust_score": p.trust_score if p else None,
+                    "is_available": bool(p.is_available) if p else False,
                 }
             )
 

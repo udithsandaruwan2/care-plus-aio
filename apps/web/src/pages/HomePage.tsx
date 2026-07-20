@@ -176,6 +176,14 @@ export function HomePage() {
             >
               Browse
             </Link>
+            {user?.role === 'caregiver' && (
+              <Link
+                to="/presence"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-mint hover:text-mint"
+              >
+                Presence
+              </Link>
+            )}
             <button
               type="button"
               onClick={logout}

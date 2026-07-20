@@ -122,10 +122,15 @@ class VEHMFEngine:
         caregiver_ids = [cid for cid, _ in cbf_hits]
         cbf_raw = np.array([score for _, score in cbf_hits], dtype=np.float32)
 
+        # Soft presence (Step 20e): unavailable caregivers stay in the FAISS index
+        # but are hidden from match top-N (browse can still show them via ?available=0).
         profiles = {
-            p.id: p for p in CaregiverProfile.objects.filter(id__in=caregiver_ids, is_active=True)
+            p.id: p
+            for p in CaregiverProfile.objects.filter(
+                id__in=caregiver_ids, is_active=True, is_available=True
+            )
         }
-        # Keep FAISS order but drop missing/inactive.
+        # Keep FAISS order but drop missing/inactive/unavailable.
         ordered_ids = [cid for cid in caregiver_ids if cid in profiles]
         if not ordered_ids:
             return MatchOutput(

@@ -102,6 +102,14 @@ class PatientProfileSerializer(serializers.ModelSerializer):
         return obj.location.y if obj.location else None
 
 
+class CaregiverAvailabilitySerializer(serializers.ModelSerializer):
+    """PATCH body for caregiver soft presence (Step 20e)."""
+
+    class Meta:
+        model = CaregiverProfile
+        fields = ("is_available",)
+
+
 class MatchRequestSerializer(serializers.Serializer):
     condition = serializers.CharField(required=False, allow_blank=True, max_length=120)
     language = serializers.CharField(required=False, allow_blank=True, max_length=16)

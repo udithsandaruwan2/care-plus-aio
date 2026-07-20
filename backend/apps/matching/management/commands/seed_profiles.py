@@ -121,7 +121,8 @@ class Command(BaseCommand):
                 embedding=[],
                 bio=f"Community caregiver based near {city_name}.",
                 is_active=True,
-                is_available=True,
+                # Soft presence demo: ~every 10th seed caregiver starts unavailable.
+                is_available=(i % 10 != 0),
             )
             created += 1
         return created
