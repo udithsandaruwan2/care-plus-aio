@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
 
-from .models import CaregiverProfile, MatchResult, MatchRun, PatientProfile
+from .models import CaregiverProfile, Interaction, MatchResult, MatchRun, PatientProfile
 
 
 @admin.register(CaregiverProfile)
@@ -76,3 +76,11 @@ class MatchRunAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Interaction)
+class InteractionAdmin(admin.ModelAdmin):
+    list_display = ("id", "patient", "caregiver", "kind", "weight", "rating", "created_at")
+    list_filter = ("kind",)
+    search_fields = ("patient__email", "caregiver__display_name")
+    readonly_fields = ("created_at",)

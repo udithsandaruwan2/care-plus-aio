@@ -140,3 +140,55 @@ class MatchResult(models.Model):
 
     def __str__(self):
         return f"#{self.rank} caregiver={self.caregiver_id} score={self.score:.3f}"
+
+
+class InteractionKind(models.TextChoices):
+    VIEW = "view", "View"
+    REQUEST = "request", "Request"
+    ACCEPT = "accept", "Accept"
+    COMPLETE = "complete", "Complete"
+    RATE = "rate", "Rate"
+
+
+# Implicit-feedback confidence weights for ALS (Step 21).
+INTERACTION_WEIGHTS: dict[str, float] = {
+    InteractionKind.VIEW: 1.0,
+    InteractionKind.REQUEST: 3.0,
+    InteractionKind.ACCEPT: 5.0,
+    InteractionKind.COMPLETE: 8.0,
+    InteractionKind.RATE: 1.0,
+}
+
+
+class Interaction(models.Model):
+    """Patient ↔ caregiver event log feeding offline CF training (Step 21)."""
+
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="caregiver_interactions",
+    )
+    caregiver = models.ForeignKey(
+        CaregiverProfile,
+        on_delete=models.CASCADE,
+        related_name="patient_interactions",
+    )
+    kind = models.CharField(max_length=16, choices=InteractionKind.choices, db_index=True)
+    weight = models.FloatField(default=1.0)
+    rating = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["patient", "caregiver"], name="interaction_patient_cg_idx"),
+            models.Index(fields=["kind", "-created_at"], name="interaction_kind_created_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.kind} patient={self.patient_id} caregiver={self.caregiver_id}"

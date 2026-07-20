@@ -126,6 +126,15 @@ CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TASK_ALWAYS_EAGER = False
 CELERY_TASK_EAGER_PROPAGATES = True
 
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    "train-cf-nightly": {
+        "task": "matching.train_cf_model",
+        "schedule": crontab(hour=2, minute=0),
+    },
+}
+
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
 GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
@@ -168,6 +177,8 @@ EMBEDDING_BACKEND = env("EMBEDDING_BACKEND", default="hash")
 EMBEDDING_MODEL = env("EMBEDDING_MODEL", default="intfloat/multilingual-e5-base")
 # Empty → ``<repo>/ml/artifacts`` when present, else ``backend/var/faiss``.
 FAISS_ARTIFACT_DIR = env("FAISS_ARTIFACT_DIR", default="")
+# CF ALS artifacts (Step 21). Empty → ``<FAISS_ARTIFACT_DIR>/cf`` or ``ml/artifacts/cf``.
+CF_ARTIFACT_DIR = env("CF_ARTIFACT_DIR", default="")
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"

@@ -31,6 +31,10 @@ google-genai==1.14.0
 numpy==2.1.3
 faiss-cpu==1.9.0.post1
 
+# Personalization / CF (Step 21) — implicit ALS on interaction log.
+implicit==0.7.2
+scipy==1.14.1
+
 # Local multilingual ASR (Care Plus own framework — not Gemini).
 # Downloads Whisper weights on first use into WHISPER_DOWNLOAD_ROOT.
 faster-whisper==1.1.1
