@@ -6,6 +6,7 @@ import logging
 import time
 
 from apps.matching.engine import run_match
+from apps.matching.interactions import record_match_interactions
 from apps.matching.models import CaregiverProfile, MatchResult, MatchRun
 from apps.matching.push import push_match_results
 
@@ -253,6 +254,12 @@ def _run_vehmf(
             row["previous_rank"] = prev
             row["rank_delta"] = prev - rank  # positive = moved up
         result_rows.append(row)
+
+    record_match_interactions(
+        user,
+        [r.caregiver_id for r in out.results],
+        source="voice_match",
+    )
 
     payload = {
         "request_id": run.pk,
