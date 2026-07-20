@@ -3,6 +3,9 @@ import {
   CaregiverListResponse,
   CaregiverMeProfile,
   CaregiverProfile,
+  CareRequest,
+  CareRequestCreate,
+  CareRequestListResponse,
   ConditionListResponse,
   ConsentRow,
   ConsentState,
@@ -19,6 +22,7 @@ import {
   DialoguePolicy,
   type CaregiverListParams,
   type CaregiverProfileUpdate,
+  type CareRequestCreate,
   type MatchInput,
   type PatientProfileUpdate,
   type RegisterInput,
@@ -278,6 +282,22 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     vocabConditions: () =>
       request('/vocab/conditions/', {}, (d) => ConditionListResponse.parse(d)),
+    listCareRequests: (page?: number) => {
+      const qs = page != null ? `?page=${page}` : '';
+      return request(`/care-requests/${qs}`, {}, (d) => CareRequestListResponse.parse(d));
+    },
+    createCareRequest: (input: CareRequestCreate) =>
+      request(
+        '/care-requests/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => CareRequest.parse(d),
+      ),
+    cancelCareRequest: (id: number) =>
+      request(
+        `/care-requests/${id}/action/`,
+        { method: 'PATCH', body: JSON.stringify({ action: 'cancel' }) },
+        (d) => CareRequest.parse(d),
+      ),
   };
 }
 

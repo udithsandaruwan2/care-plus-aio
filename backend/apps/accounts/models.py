@@ -122,6 +122,8 @@ class AuditAction(models.TextChoices):
     GRANT_CONSENT = "grant_consent", "Grant processing consent"
     REVOKE_CONSENT = "revoke_consent", "Revoke processing consent"
     LOGIN = "login", "User login"
+    CREATE_CARE_REQUEST = "create_care_request", "Patient created care request"
+    CANCEL_CARE_REQUEST = "cancel_care_request", "Patient cancelled care request"
 
 
 class AuditLog(models.Model):

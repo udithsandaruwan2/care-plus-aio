@@ -133,6 +133,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "matching.train_cf_model",
         "schedule": crontab(hour=2, minute=0),
     },
+    "expire-care-requests-hourly": {
+        "task": "matching.expire_care_requests",
+        "schedule": crontab(minute=15),
+    },
 }
 
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────
@@ -186,6 +190,8 @@ PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", defau
 # Caregiver onboarding + auto-approval (Step 22c).
 CAREGIVER_AUTO_APPROVE = env.bool("CAREGIVER_AUTO_APPROVE", default=True)
 CAREGIVER_PROFILE_MIN_COMPLETION = env.int("CAREGIVER_PROFILE_MIN_COMPLETION", default=80)
+# Pending care requests auto-expire after this many hours (Step 23).
+CARE_REQUEST_TTL_HOURS = env.int("CARE_REQUEST_TTL_HOURS", default=72)
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"

@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
+import { ApiError } from '@care-plus/api-client';
+import { api } from '../auth/api';
 
 function FactorBar({ label, value, className }: { label: string; value: number; className: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
@@ -42,15 +45,60 @@ function RankChange({ hit }: { hit: MatchHit }) {
 function MatchCard({
   hit,
   canRequestCare,
+  matchRunId,
 }: {
   hit: MatchHit;
   canRequestCare: boolean;
+  matchRunId: number;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
   const km =
     hit.distance_m != null && Number.isFinite(hit.distance_m)
       ? `${(hit.distance_m / 1000).toFixed(1)} km`
       : null;
   const changed = hit.previous_rank != null && hit.previous_rank !== hit.rank;
+
+  async function onRequest() {
+    if (!canRequestCare) {
+      window.alert(
+        'Complete your patient profile (at least 80%) before requesting care. Open Profile from the header or go to /onboarding.',
+      );
+      return;
+    }
+    if (sent || busy) return;
+    const message = window.prompt('Optional message for the caregiver:') ?? '';
+    setBusy(true);
+    try {
+      await api.createCareRequest({
+        caregiver_id: hit.caregiver_id,
+        message: message.trim() || undefined,
+        match_run_id: matchRunId,
+        match_snapshot: {
+          rank: hit.rank,
+          score: hit.score,
+          breakdown: hit.breakdown,
+          explanation: hit.explanation,
+          distance_m: hit.distance_m ?? null,
+        },
+      });
+      setSent(true);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError && typeof err.body === 'object' && err.body
+          ? String(
+              (err.body as Record<string, unknown>).detail ||
+                (err.body as Record<string, unknown>)[0] ||
+                'Request failed.',
+            )
+          : err instanceof Error
+            ? err.message
+            : 'Request failed.';
+      window.alert(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <article
@@ -95,19 +143,17 @@ function MatchCard({
         </Link>
         <button
           type="button"
-          disabled={!canRequestCare}
+          disabled={!canRequestCare || busy || sent || hit.is_available === false}
           className="w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:border-hair disabled:text-muted"
-          onClick={() => {
-            if (!canRequestCare) {
-              window.alert(
-                'Complete your patient profile (at least 80%) before requesting care. Open Profile from the header or go to /onboarding.',
-              );
-              return;
-            }
-            window.alert('Request caregiver — hire flow lands in Step 23 (CareRequest).');
-          }}
+          onClick={() => void onRequest()}
         >
-          {canRequestCare ? 'Request this caregiver' : 'Complete profile to request'}
+          {sent
+            ? 'Request sent'
+            : busy
+              ? 'Sending…'
+              : canRequestCare
+                ? 'Request this caregiver'
+                : 'Complete profile to request'}
         </button>
       </div>
     </article>
@@ -140,6 +186,7 @@ export function MatchResultCards({
           key={`${match.request_id}-${hit.caregiver_id}`}
           hit={hit}
           canRequestCare={canRequestCare}
+          matchRunId={match.request_id}
         />
       ))}
     </div>

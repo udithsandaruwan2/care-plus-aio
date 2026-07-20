@@ -337,6 +337,48 @@ export const PatientProfileUpdate = z.object({
 });
 export type PatientProfileUpdate = z.infer<typeof PatientProfileUpdate>;
 
+export const CareRequestStatus = z.enum([
+  'draft',
+  'pending',
+  'accepted',
+  'rejected',
+  'cancelled',
+  'expired',
+]);
+export type CareRequestStatus = z.infer<typeof CareRequestStatus>;
+
+export const CareRequest = z.object({
+  id: z.number(),
+  patient_email: z.string(),
+  caregiver_id: z.number(),
+  caregiver_name: z.string(),
+  status: CareRequestStatus,
+  message: z.string().optional().default(''),
+  match_run: z.number().nullable().optional(),
+  match_snapshot: z.record(z.string(), z.unknown()).optional().default({}),
+  expires_at: z.string(),
+  responded_at: z.string().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type CareRequest = z.infer<typeof CareRequest>;
+
+export const CareRequestListResponse = z.object({
+  count: z.number(),
+  next: z.string().nullable().optional(),
+  previous: z.string().nullable().optional(),
+  results: z.array(CareRequest),
+});
+export type CareRequestListResponse = z.infer<typeof CareRequestListResponse>;
+
+export const CareRequestCreate = z.object({
+  caregiver_id: z.number(),
+  message: z.string().optional(),
+  match_run_id: z.number().optional(),
+  match_snapshot: z.record(z.string(), z.unknown()).optional(),
+});
+export type CareRequestCreate = z.infer<typeof CareRequestCreate>;
+
 export const ConditionTerm = z.object({
   slug: z.string(),
   canonical_en: z.string(),
