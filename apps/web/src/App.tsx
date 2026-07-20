@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
 import { BrowseCaregiversPage } from './pages/BrowseCaregiversPage';
 import { CaregiverDetailPage } from './pages/CaregiverDetailPage';
+import { CaregiverOnboardingPage } from './pages/CaregiverOnboardingPage';
 import { CaregiverPresencePage } from './pages/CaregiverPresencePage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -20,6 +21,7 @@ export function App() {
           <Route path="/caregivers" element={<BrowseCaregiversPage />} />
           <Route path="/caregivers/:id" element={<CaregiverDetailPage />} />
           <Route path="/onboarding" element={<PatientOnboardingPage />} />
+          <Route path="/caregiver-onboarding" element={<CaregiverOnboardingPage />} />
           <Route path="/presence" element={<CaregiverPresencePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

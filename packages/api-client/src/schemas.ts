@@ -218,6 +218,41 @@ export const CaregiverProfile = z.object({
 });
 export type CaregiverProfile = z.infer<typeof CaregiverProfile>;
 
+export const CaregiverMeProfile = CaregiverProfile.extend({
+  nic_id: z.string().optional().default(''),
+  years_experience: z.number().int().nullable().optional(),
+  service_radius_km: z.number().optional().default(25),
+  certification_docs: z
+    .array(z.record(z.string(), z.unknown()))
+    .optional()
+    .default([]),
+  is_approved: z.boolean().optional().default(false),
+  completion_percent: z.number().int(),
+  onboarding_complete: z.boolean(),
+  is_match_eligible: z.boolean(),
+  missing_fields: z.array(z.string()).optional().default([]),
+  updated_at: z.string().optional(),
+});
+export type CaregiverMeProfile = z.infer<typeof CaregiverMeProfile>;
+
+export const CaregiverProfileUpdate = z.object({
+  display_name: z.string().optional(),
+  nic_id: z.string().optional(),
+  city: z.string().optional(),
+  longitude: z.number().optional(),
+  latitude: z.number().optional(),
+  languages: z.array(z.string()).optional(),
+  specialties: z.array(z.string()).optional(),
+  care_levels: z.array(z.string()).optional(),
+  certifications: z.array(z.string()).optional(),
+  years_experience: z.number().int().optional(),
+  service_radius_km: z.number().optional(),
+  bio: z.string().optional(),
+  certification_docs: z.array(z.record(z.string(), z.unknown())).optional(),
+  is_available: z.boolean().optional(),
+});
+export type CaregiverProfileUpdate = z.infer<typeof CaregiverProfileUpdate>;
+
 export const CaregiverDetail = CaregiverProfile.extend({
   approximate_area: z.string().optional().default(''),
   reviews_teaser: z

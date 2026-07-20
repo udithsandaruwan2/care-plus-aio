@@ -48,6 +48,8 @@ class AvailabilityMatchTests(TestCase):
             care_levels=["intermediate"],
             trust_score=trust,
             bio=name,
+            is_active=True,
+            is_approved=True,
             is_available=available,
         )
 
@@ -83,6 +85,8 @@ class CaregiverMeApiTests(APITestCase):
             languages=["English"],
             care_levels=["basic"],
             trust_score=0.8,
+            is_active=True,
+            is_approved=True,
             is_available=True,
         )
         self.patient = User.objects.create_user(

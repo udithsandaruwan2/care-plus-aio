@@ -63,7 +63,17 @@ class CaregiverProfile(models.Model):
     embedding = ArrayField(models.FloatField(), default=list, blank=True)
     bio = models.TextField(blank=True, default="")
     city = models.CharField(max_length=64, blank=True, default="", db_index=True)
-    is_active = models.BooleanField(default=True)
+    # Step 22c — onboarding + approval before appearing in match/browse.
+    nic_id = models.CharField(max_length=20, blank=True, default="")
+    years_experience = models.PositiveSmallIntegerField(null=True, blank=True)
+    service_radius_km = models.FloatField(
+        default=25.0,
+        validators=[MinValueValidator(1.0), MaxValueValidator(200.0)],
+    )
+    # Placeholder metadata until Step 22d file uploads land.
+    certification_docs = models.JSONField(default=list, blank=True)
+    is_approved = models.BooleanField(default=False, db_index=True)
+    is_active = models.BooleanField(default=False)
     # Soft presence — browse/match can filter on this (Step 20b / 20e).
     is_available = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

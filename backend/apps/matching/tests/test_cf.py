@@ -44,6 +44,8 @@ class InteractionLogTests(TestCase):
                     specialties=["diabetes"],
                     languages=["English"],
                     trust_score=0.7,
+                    is_active=True,
+                    is_approved=True,
                 )
             )
 

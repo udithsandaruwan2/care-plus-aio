@@ -53,6 +53,8 @@ class DialogueSessionMemoryTests(TestCase):
             languages=["Sinhala"],
             care_levels=["intermediate"],
             trust_score=0.9,
+            is_active=True,
+            is_approved=True,
         )
         MatchResult.objects.create(
             run=run,
