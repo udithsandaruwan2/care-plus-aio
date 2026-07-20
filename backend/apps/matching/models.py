@@ -296,3 +296,58 @@ class CareRequest(models.Model):
 
     def __str__(self):
         return f"CareRequest#{self.pk} {self.status} patient={self.patient_id} cg={self.caregiver_id}"
+
+
+class CareRelationshipStatus(models.TextChoices):
+    PENDING_PAYMENT = "pending_payment", "Pending payment"
+    ACTIVE = "active", "Active"
+    ENDED = "ended", "Ended"
+
+
+class CareRelationship(models.Model):
+    """Active care link between patient and caregiver (Step 24 provisional → Step 25)."""
+
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="care_relationships_as_patient",
+    )
+    caregiver = models.ForeignKey(
+        CaregiverProfile,
+        on_delete=models.CASCADE,
+        related_name="care_relationships_as_caregiver",
+    )
+    care_request = models.OneToOneField(
+        CareRequest,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="relationship",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=CareRelationshipStatus.choices,
+        default=CareRelationshipStatus.PENDING_PAYMENT,
+        db_index=True,
+    )
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-started_at",)
+        indexes = [
+            models.Index(
+                fields=["patient", "status", "-started_at"],
+                name="cr_rel_patient_status_idx",
+            ),
+            models.Index(
+                fields=["caregiver", "status", "-started_at"],
+                name="cr_rel_cg_status_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"CareRelationship#{self.pk} {self.status} "
+            f"patient={self.patient_id} cg={self.caregiver_id}"
+        )

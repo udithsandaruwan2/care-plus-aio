@@ -5,7 +5,7 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
 from django.db.models import Q
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,7 +20,7 @@ from .embeddings import get_embedder, intent_to_text
 from .engine import run_match
 from .faiss_index import load_index
 from .interactions import log_interaction, record_match_interactions
-from .care_requests import cancel_care_request, create_care_request
+from .care_requests import accept_care_request, cancel_care_request, create_care_request, reject_care_request
 from .caregiver_profile import activate_caregiver_if_ready
 from .models import (
     CareRequest,
@@ -35,7 +35,7 @@ from .serializers import (
     CaregiverMeSerializer,
     CaregiverProfileSerializer,
     CaregiverProfileUpdateSerializer,
-    CareRequestCancelSerializer,
+    CareRequestActionSerializer,
     CareRequestCreateSerializer,
     CareRequestSerializer,
     MatchRequestSerializer,
@@ -447,7 +447,9 @@ class CareRequestListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = (
-            CareRequest.objects.select_related("patient", "caregiver", "caregiver__user")
+            CareRequest.objects.select_related(
+                "patient", "caregiver", "caregiver__user", "relationship"
+            )
             .all()
             .order_by("-created_at")
         )
@@ -489,12 +491,6 @@ class CareRequestListCreateView(generics.ListCreateAPIView):
                 raise
             raise DRFValidationError(str(exc)) from exc
 
-        log_interaction(
-            request.user,
-            caregiver,
-            InteractionKind.REQUEST,
-            metadata={"care_request_id": care_request.pk},
-        )
         record_audit(
             actor=request.user,
             action=AuditAction.CREATE_CARE_REQUEST,
@@ -521,7 +517,9 @@ class CareRequestDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = CareRequest.objects.select_related("patient", "caregiver", "caregiver__user")
+        qs = CareRequest.objects.select_related(
+            "patient", "caregiver", "caregiver__user", "relationship"
+        )
         if user.role == "patient":
             return qs.filter(patient=user)
         if user.role == "caregiver":
@@ -530,26 +528,46 @@ class CareRequestDetailView(generics.RetrieveAPIView):
 
 
 class CareRequestActionView(APIView):
-    """PATCH /api/v1/care-requests/<id>/ — patient cancel while pending (Step 23)."""
+    """PATCH /api/v1/care-requests/<id>/action/ — cancel / accept / reject."""
 
-    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    permission_classes = [permissions.IsAuthenticated]
 
     def patch(self, request, pk: int):
-        ser = CareRequestCancelSerializer(data=request.data)
+        ser = CareRequestActionSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        action = ser.validated_data["action"]
+
+        if action == "cancel":
+            if request.user.role != "patient":
+                raise PermissionDenied("Only patients can cancel care requests.")
+            return self._cancel(request, pk)
+
+        if action in ("accept", "reject"):
+            if request.user.role != "caregiver":
+                raise PermissionDenied("Only caregivers can accept or reject care requests.")
+            if action == "accept":
+                return self._accept(request, pk)
+            return self._reject(request, pk, reason=ser.validated_data.get("reason", ""))
+
+        raise ValidationError({"action": "Unsupported action."})
+
+    def _get_care_request(self, pk: int):
+        return CareRequest.objects.select_related(
+            "patient", "caregiver", "caregiver__user"
+        ).get(pk=pk)
+
+    def _cancel(self, request, pk: int):
         try:
-            care_request = CareRequest.objects.select_related("caregiver").get(
-                pk=pk, patient=request.user
-            )
+            care_request = self._get_care_request(pk)
         except CareRequest.DoesNotExist as exc:
             raise NotFound("Care request not found.") from exc
+        if care_request.patient_id != request.user.pk:
+            raise NotFound("Care request not found.")
 
         try:
             care_request = cancel_care_request(care_request, patient=request.user)
         except Exception as exc:
-            from rest_framework.exceptions import ValidationError as DRFValidationError
-
-            raise DRFValidationError(str(exc)) from exc
+            raise ValidationError(str(exc)) from exc
 
         record_audit(
             actor=request.user,
@@ -558,6 +576,61 @@ class CareRequestActionView(APIView):
             target_type="care_request",
             target_id=care_request.pk,
             metadata={"caregiver_id": care_request.caregiver_id},
+            async_=False,
+        )
+        return Response(CareRequestSerializer(care_request).data)
+
+    def _accept(self, request, pk: int):
+        try:
+            care_request = self._get_care_request(pk)
+        except CareRequest.DoesNotExist as exc:
+            raise NotFound("Care request not found.") from exc
+        if care_request.caregiver.user_id != request.user.pk:
+            raise NotFound("Care request not found.")
+
+        try:
+            care_request, relationship = accept_care_request(
+                care_request, caregiver_user=request.user
+            )
+        except Exception as exc:
+            raise ValidationError(str(exc)) from exc
+
+        record_audit(
+            actor=request.user,
+            action=AuditAction.ACCEPT_CARE_REQUEST,
+            request=request,
+            target_type="care_request",
+            target_id=care_request.pk,
+            metadata={
+                "patient_id": care_request.patient_id,
+                "relationship_id": relationship.pk,
+            },
+            async_=False,
+        )
+        return Response(CareRequestSerializer(care_request).data)
+
+    def _reject(self, request, pk: int, *, reason: str):
+        try:
+            care_request = self._get_care_request(pk)
+        except CareRequest.DoesNotExist as exc:
+            raise NotFound("Care request not found.") from exc
+        if care_request.caregiver.user_id != request.user.pk:
+            raise NotFound("Care request not found.")
+
+        try:
+            care_request = reject_care_request(
+                care_request, caregiver_user=request.user, reason=reason
+            )
+        except Exception as exc:
+            raise ValidationError(str(exc)) from exc
+
+        record_audit(
+            actor=request.user,
+            action=AuditAction.REJECT_CARE_REQUEST,
+            request=request,
+            target_type="care_request",
+            target_id=care_request.pk,
+            metadata={"patient_id": care_request.patient_id, "reason": reason.strip()},
             async_=False,
         )
         return Response(CareRequestSerializer(care_request).data)

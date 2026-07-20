@@ -42,6 +42,31 @@ export function CareRequestsPage() {
     }
   }, [user?.role, load]);
 
+  async function onAccept(id: number) {
+    setBusyId(id);
+    try {
+      const updated = await api.acceptCareRequest(id);
+      setRows((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not accept request.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function onReject(id: number) {
+    const reason = window.prompt('Optional reason for the patient:') ?? '';
+    setBusyId(id);
+    try {
+      const updated = await api.rejectCareRequest(id, reason.trim() || undefined);
+      setRows((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not reject request.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function onCancel(id: number) {
     setBusyId(id);
     try {
@@ -142,8 +167,28 @@ export function CareRequestsPage() {
                 </p>
               )}
               {isCaregiver && row.status === 'pending' && (
-                <p className="mt-3 text-xs text-amber">
-                  Accept / reject actions ship in Step 24.
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busyId === row.id}
+                    onClick={() => void onAccept(row.id)}
+                    className="rounded-lg border border-mint/50 px-3 py-1.5 text-xs text-mint transition hover:bg-mint/10 disabled:opacity-50"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyId === row.id}
+                    onClick={() => void onReject(row.id)}
+                    className="rounded-lg border border-rose/40 px-3 py-1.5 text-xs text-rose transition hover:bg-rose/10 disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
+              {row.status === 'accepted' && row.relationship_id != null && (
+                <p className="mt-3 text-xs text-mint">
+                  Provisional care link #{row.relationship_id} — payment step ships in M7.
                 </p>
               )}
             </li>

@@ -358,6 +358,7 @@ export const CareRequest = z.object({
   match_snapshot: z.record(z.string(), z.unknown()).optional().default({}),
   expires_at: z.string(),
   responded_at: z.string().nullable().optional(),
+  relationship_id: z.number().nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });

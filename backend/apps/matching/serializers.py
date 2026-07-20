@@ -348,6 +348,7 @@ class CareRequestSerializer(serializers.ModelSerializer):
     patient_email = serializers.EmailField(source="patient.email", read_only=True)
     caregiver_id = serializers.IntegerField(source="caregiver.id", read_only=True)
     caregiver_name = serializers.CharField(source="caregiver.display_name", read_only=True)
+    relationship_id = serializers.SerializerMethodField()
 
     class Meta:
         from .models import CareRequest
@@ -364,10 +365,17 @@ class CareRequestSerializer(serializers.ModelSerializer):
             "match_snapshot",
             "expires_at",
             "responded_at",
+            "relationship_id",
             "created_at",
             "updated_at",
         )
         read_only_fields = fields
+
+    def get_relationship_id(self, obj) -> int | None:
+        rel = getattr(obj, "relationship", None)
+        if rel is not None:
+            return rel.pk
+        return None
 
 
 class CareRequestCreateSerializer(serializers.Serializer):
@@ -395,6 +403,11 @@ class CareRequestCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Match run not found.") from exc
         self.context["match_run"] = run
         return value
+
+
+class CareRequestActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["cancel", "accept", "reject"])
+    reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
 
 
 class CareRequestCancelSerializer(serializers.Serializer):
