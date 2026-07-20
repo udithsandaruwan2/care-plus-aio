@@ -11,6 +11,7 @@ from apps.common.envutil import refresh_env
 from .backends import extract_intent
 from .dialogue import process_turn
 from .models import DialogueSession, VoiceIntent
+from .policy import policy_snapshot
 from .serializers import VoiceIntentInputSerializer, VoiceIntentSerializer
 from .session import clear_active_sessions
 
@@ -128,6 +129,9 @@ class VoiceTurnView(APIView):
                 "ui_language": ui_language,
                 "has_match": bool(result.get("match")),
                 "session_id": result.get("session_id"),
+                "chat_source": result.get("chat_source"),
+                "chat_backend": result.get("chat_backend"),
+                "match_engine": result.get("match_engine") or "",
             },
         )
         return Response(result, status=status.HTTP_200_OK)
@@ -180,3 +184,12 @@ class VoiceSessionView(APIView):
                 },
             }
         )
+
+
+class VoiceDialoguePolicyView(APIView):
+    """GET /api/v1/voice/policy/ — dialogue AI split (Step 15j)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response(policy_snapshot())

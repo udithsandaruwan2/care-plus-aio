@@ -1,12 +1,22 @@
-"""Situation-aware Serah replies (stub + Gemini chat)."""
+"""Situation-aware Serah replies (stub + optional rate-limited Gemini chat)."""
 
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 
 from django.conf import settings
 
+from .policy import gemini_chat_allowed, resolve_chat_backend
+
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class SerahLine:
+    text: str
+    """stub | gemini | rate_limited — never used for caregiver ranking."""
+    source: str
 
 
 def _si(lang: str) -> bool:
@@ -184,15 +194,18 @@ def gemini_chat_reply(
     situation: str,
     has_prior_match: bool,
     match: dict | None = None,
-) -> str | None:
-    """Optional Gemini line; returns None to fall back to stub."""
-    from apps.common.envutil import refresh_env
+    user_id: int | None = None,
+) -> SerahLine | None:
+    """Optional Gemini line; returns None to fall back to stub (or rate_limited stub)."""
+    backend = resolve_chat_backend()
+    if backend != "gemini":
+        return None
 
-    refresh_env()
-    backend = (getattr(settings, "DIALOGUE_CHAT_BACKEND", "") or "").strip()
-    if not backend:
-        backend = "gemini" if settings.GEMINI_API_KEY else "stub"
-    if backend != "gemini" or not settings.GEMINI_API_KEY:
+    allowed, reason = gemini_chat_allowed(user_id)
+    if not allowed:
+        if reason == "rate_limited":
+            stub = stub_for_situation(situation, lang, text=text, match=match)
+            return SerahLine(text=stub, source="rate_limited")
         return None
 
     top_name = ""
@@ -226,6 +239,7 @@ def gemini_chat_reply(
             (
                 "You are Serah, Care Plus voice assistant for Sri Lanka. "
                 "Reply in 1–2 short spoken sentences. Never invent caregiver names or rankings. "
+                "Never pick or re-rank caregivers — VEHMF does that locally. "
                 f"Situation={situation}. has_prior_match={has_prior_match}. "
                 f"Guidance: {guidance} "
                 f"Prefer reply language matching BCP-47 {lang}. "
@@ -234,7 +248,9 @@ def gemini_chat_reply(
             generation_config={"temperature": 0.35},
         )
         out = (resp.text or "").strip()
-        return out or None
+        if out:
+            return SerahLine(text=out, source="gemini")
+        return None
     except Exception:
         logger.exception("Serah situational chat failed")
         return None
@@ -247,14 +263,19 @@ def serah_reply(
     situation: str,
     has_prior_match: bool = False,
     match: dict | None = None,
-) -> str:
+    user_id: int | None = None,
+) -> SerahLine:
     cloud = gemini_chat_reply(
         text,
         lang,
         situation=situation,
         has_prior_match=has_prior_match,
         match=match,
+        user_id=user_id,
     )
-    if cloud:
+    if cloud is not None:
         return cloud
-    return stub_for_situation(situation, lang, text=text, match=match)
+    return SerahLine(
+        text=stub_for_situation(situation, lang, text=text, match=match),
+        source="stub",
+    )

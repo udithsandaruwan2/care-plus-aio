@@ -2,6 +2,7 @@
 
 > **Status:** Living architecture (v0.2) — companion to [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) and
 > [PRODUCT_VISION.md](PRODUCT_VISION.md) (Old Care Plus → full product mapping).
+> Dialogue AI split: [DIALOGUE_POLICY.md](DIALOGUE_POLICY.md) (Step 15j).
 > **Purpose:** The single source of truth for _what_ Care Plus is, _how_ the layers
 > interact at the memory/network level, and the _exact data flows_ that connect the
 > Hybrid Voice NLP, the VEHMF matching engine, and the real-time health monitors.

@@ -147,6 +147,9 @@ export const VoiceTurnResponse = z.object({
   clear_match: z.boolean().optional().default(false),
   session_id: z.number().nullable().optional(),
   open_questions: z.array(z.string()).optional().default([]),
+  chat_source: z.string().optional().default(''),
+  chat_backend: z.string().optional().default(''),
+  match_engine: z.string().optional().default(''),
 });
 export type VoiceTurnResponse = z.infer<typeof VoiceTurnResponse>;
 
@@ -173,6 +176,16 @@ export const VoiceSessionClearResponse = z.object({
   active: z.boolean(),
 });
 export type VoiceSessionClearResponse = z.infer<typeof VoiceSessionClearResponse>;
+
+export const DialoguePolicy = z.object({
+  chat_backend: z.string(),
+  match_engine: z.string(),
+  gemini_ranks_caregivers: z.boolean(),
+  gemini_rate_limit: z.number(),
+  gemini_rate_window_sec: z.number(),
+  has_gemini_key: z.boolean(),
+});
+export type DialoguePolicy = z.infer<typeof DialoguePolicy>;
 
 export const MatchInput = z.object({
   condition: z.string().optional(),

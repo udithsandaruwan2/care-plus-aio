@@ -20,6 +20,27 @@ from .session import (
     open_questions_for_intent,
     persist_session_after_turn,
 )
+from .policy import resolve_chat_backend
+
+
+def _serah(
+    *,
+    user,
+    text: str,
+    lang: str,
+    situation: str,
+    has_prior_match: bool = False,
+    match: dict | None = None,
+) -> tuple[str, str]:
+    line = serah_reply(
+        text=text,
+        lang=lang,
+        situation=situation,
+        has_prior_match=has_prior_match,
+        match=match,
+        user_id=getattr(user, "pk", None),
+    )
+    return line.text, line.source
 
 logger = logging.getLogger(__name__)
 
@@ -337,6 +358,9 @@ def process_turn(
                 "match": None,
                 "clear_match": False,
                 "session_id": session.pk,
+                "chat_source": "stub",
+                "chat_backend": resolve_chat_backend(),
+                "match_engine": "",
             },
             reply,
             reply_lang,
@@ -394,6 +418,7 @@ def process_turn(
         context_match = _latest_match_for_user(user)
 
     match_payload = None
+    chat_source = "none"
     if route == "EMERGENCY":
         base["_emergency"] = True
         base["urgency"] = "urgent"
@@ -403,9 +428,11 @@ def process_turn(
                 reply = _match_reply(match_payload.get("results") or [], reply_lang)
                 route = "MATCH"
                 situation = "emergency_match"
+                chat_source = "vehmf"
             except Exception as exc:
                 logger.exception("Emergency VEHMF failed")
-                reply = serah_reply(
+                reply, chat_source = _serah(
+                    user=user,
                     text=text,
                     lang=reply_lang,
                     situation="emergency",
@@ -414,7 +441,8 @@ def process_turn(
                 reply = f"{reply} (Matching briefly unavailable: {exc})"
                 route = "CHAT"
         else:
-            reply = serah_reply(
+            reply, chat_source = _serah(
+                user=user,
                 text=text,
                 lang=reply_lang,
                 situation="emergency",
@@ -451,6 +479,7 @@ def process_turn(
                 deltas=deltas.to_dict() if deltas else None,
             )
             route = "MATCH"
+            chat_source = "vehmf"
             if is_refine:
                 situation = "refine"
         except Exception as exc:
@@ -459,10 +488,13 @@ def process_turn(
             route = "CHAT"
             situation = "match_error"
             match_payload = None
+            chat_source = "none"
     elif route == "CLARIFY":
         reply = _clarify_reply(base, reply_lang)
+        chat_source = "stub"
     elif route == "ACTION":
-        reply = serah_reply(
+        reply, chat_source = _serah(
+            user=user,
             text=text,
             lang=reply_lang,
             situation="request",
@@ -471,7 +503,8 @@ def process_turn(
         )
         match_payload = None
     else:
-        reply = serah_reply(
+        reply, chat_source = _serah(
+            user=user,
             text=text,
             lang=reply_lang,
             situation=situation,
@@ -522,6 +555,9 @@ def process_turn(
             "clear_match": decision.clear_match,
             "session_id": session.pk,
             "open_questions": open_questions_for_intent(intent_out),
+            "chat_source": chat_source,
+            "chat_backend": resolve_chat_backend(),
+            "match_engine": "vehmf" if match_payload else "",
         },
         reply,
         reply_lang,
