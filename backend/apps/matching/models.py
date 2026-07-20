@@ -277,6 +277,8 @@ class CareRequest(models.Model):
     match_snapshot = models.JSONField(default=dict, blank=True)
     expires_at = models.DateTimeField(db_index=True)
     responded_at = models.DateTimeField(null=True, blank=True)
+    # Step 28 — mid-TTL reminder (email/push) sent once at ~N/2.
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

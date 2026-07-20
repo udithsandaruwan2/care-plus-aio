@@ -102,11 +102,12 @@ class CareRequestAdmin(admin.ModelAdmin):
         "caregiver",
         "status",
         "expires_at",
+        "reminder_sent_at",
         "created_at",
     )
     list_filter = ("status",)
     search_fields = ("patient__email", "caregiver__display_name", "message")
-    readonly_fields = ("created_at", "updated_at", "responded_at")
+    readonly_fields = ("created_at", "updated_at", "responded_at", "reminder_sent_at")
 
 
 @admin.register(CareRelationship)
