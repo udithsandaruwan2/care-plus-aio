@@ -156,6 +156,9 @@ PIPER_EN_MODEL = env("PIPER_EN_MODEL", default="en_US-lessac-medium.onnx")
 DIALOGUE_CHAT_BACKEND = env(
     "DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
 )
+# Gemini chat only (MATCH/REFINE always local VEHMF). 0 disables Gemini chat.
+DIALOGUE_GEMINI_RATE_LIMIT = env.int("DIALOGUE_GEMINI_RATE_LIMIT", default=30)
+DIALOGUE_GEMINI_RATE_WINDOW_SEC = env.int("DIALOGUE_GEMINI_RATE_WINDOW_SEC", default=3600)
 # Future local LLM endpoint (leave blank)
 LOCAL_LLM_URL = env("LOCAL_LLM_URL", default="")
 

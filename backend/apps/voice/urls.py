@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    VoiceDialoguePolicyView,
     VoiceIntentHistoryView,
     VoiceIntentView,
     VoiceSessionClearView,
@@ -14,4 +15,5 @@ urlpatterns = [
     path("voice/turn/", VoiceTurnView.as_view(), name="voice_turn"),
     path("voice/session/", VoiceSessionView.as_view(), name="voice_session"),
     path("voice/session/clear/", VoiceSessionClearView.as_view(), name="voice_session_clear"),
+    path("voice/policy/", VoiceDialoguePolicyView.as_view(), name="voice_dialogue_policy"),
 ]

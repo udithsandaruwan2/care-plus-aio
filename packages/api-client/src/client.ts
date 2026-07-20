@@ -13,6 +13,7 @@ import {
   VoiceSessionClearResponse,
   VoiceSessionResponse,
   VoiceTurnResponse,
+  DialoguePolicy,
   type CaregiverListParams,
   type MatchInput,
   type RegisterInput,
@@ -203,6 +204,8 @@ export function createApiClient(options: ApiClientOptions) {
         { method: 'POST', body: JSON.stringify({}) },
         (d) => VoiceSessionClearResponse.parse(d),
       ),
+    dialoguePolicy: () =>
+      request('/voice/policy/', {}, (d) => DialoguePolicy.parse(d)),
     getConsent: () => request('/consent/', {}, (d) => ConsentState.parse(d)),
     setConsent: (scope: string, granted: boolean) =>
       request('/consent/', { method: 'POST', body: JSON.stringify({ scope, granted }) }, (d) =>
