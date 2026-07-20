@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-07-20 — Step 15h unified conversation loop done. M3c complete. Next: M5 CF (21)._
+_Last updated: 2026-07-20 — Step 21 CF interaction log + offline ALS training done. Next: Step 22 blend CF into VEHMF._
 
 ---
 
@@ -83,7 +83,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 15i** — Post-match refine deltas → VEHMF filters + rank-change UI. Branch `feat/step15i-post-match-refine`.
 - ✅ **Step 15j** — Dialogue AI policy (stub/gemini chat, VEHMF-only match, rate limit). Branch `feat/step15j-dialogue-policy`.
 - ✅ **Step 15h** — Unified loop: chat bubbles, CHAT_REPLY FSM, mic re-arm. Branch `feat/step15h-conversation-loop`.
-- 🔜 **Step 21** — Interaction log + CF training offline
+- ✅ **Step 21** — `Interaction` log (view/request/accept/complete/rate); implicit ALS `train_cf` + `seed_interactions`; Celery beat nightly; versioned `ml/artifacts/cf/`. Branch `feat/step21-cf-interactions`.
+- 🔜 **Step 22** — Blend CF into VEHMF fusion
 
 ### Expanded product tracks (from Old Care Plus)
 
@@ -126,6 +127,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 - **Step 15h** — Unified Neural Core loop: `CHAT_REPLY` FSM state, scrollable `ChatBubbles`, MATCHING→RESULTS transition, mic re-arms after Serah TTS in conversation mode. Branch `feat/step15h-conversation-loop`.
 - **Step 15j** — Dialogue AI policy: `DIALOGUE_CHAT_BACKEND` + Gemini chat rate limit; MATCH/REFINE stay VEHMF-only; `GET /voice/policy/`; turn `chat_source` + audit; docs in `DIALOGUE_POLICY.md`. Branch `feat/step15j-dialogue-policy`.
+- **Step 21** — `Interaction` model (view/request/accept/complete/rate); logging on match + caregiver detail; `seed_interactions` + `train_cf` (implicit ALS); versioned `ml/artifacts/cf/`; Celery beat nightly `matching.train_cf_model`. Branch `feat/step21-cf-interactions`.
 - **Step 15i** — Refine phrases → language/distance/specialty/care_level deltas; VEHMF hard filters + closer geo tilt; match cards show ↑↓ rank deltas + latency; `refined` flag. Branch `feat/step15i-post-match-refine`.
 - **Step 15g** — `DialogueSession` stores chips, route history, last N turns, last `MatchRun`; turn response includes `session_id`; `GET /voice/session/` + `POST /voice/session/clear/`; Home **New request** clears server+client memory. Branch `feat/step15g-session-memory`.
 - **Step 20e** — Soft presence: VEHMF hides unavailable from top-N; `GET/PATCH /caregivers/me/`; web `/presence` toggle; browse already filters `?available=`. Branch `feat/step20e-availability`.

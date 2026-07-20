@@ -88,7 +88,7 @@ Full mapping: [PRODUCT_VISION.md](PRODUCT_VISION.md).
 | **M16 · Compliance & hardening** | 68–71 | Encryption, erasure, TLS, load tests |
 | **M17 · Ship** | 72–75 | CI/CD, deploy, stores, launch checklist |
 
-**Current position:** Steps **1–20 done** (voice → VEHMF cards). **Next:** 20b browse, or **15b→15j** for vocab + conversational loop, or 21 CF.  
+**Current position:** Steps **1–21 done** (voice → VEHMF + CF training offline). **Next:** Step 22 blend CF into fusion, or 20b browse polish, or 15c–e Serah chat.  
 Prefer closing marketplace/hire when shipping product; run **M3c (15f–15j)** before polish so the mic feels like a real assistant, not a one-shot form.
 
 ---
@@ -261,7 +261,8 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 ### Step 21 — Interaction log + CF training offline
 
 **Tasks:** `Interaction` (view/request/accept/complete/rate); `ml/train_cf.py` (`implicit` ALS); Celery beat nightly; artifact versioning.  
-**✅ Acceptance:** trains on seed interactions; produces per-user scores.
+**✅ Acceptance:** trains on seed interactions; produces per-user scores.  
+**Done:** `Interaction` model + logging on match/detail; `seed_interactions` / `train_cf`; `AlsCFModel` + versioned `ml/artifacts/cf/`; Celery `matching.train_cf_model` + beat service.
 
 ### Step 22 — Blend CF into VEHMF fusion
 
@@ -578,4 +579,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 21 — Interaction log + CF training offline** (`feat/step21-cf-interactions`).
+**Step 22 — Blend CF into VEHMF fusion** (`feat/step22-cf-blend`).

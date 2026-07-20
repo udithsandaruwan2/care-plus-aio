@@ -19,7 +19,14 @@ from .ahp import build_config, get_ahp_weights
 from .embeddings import get_embedder, intent_to_text
 from .engine import run_match
 from .faiss_index import load_index
-from .models import CaregiverProfile, MatchResult, MatchRun, PatientProfile
+from .interactions import log_interaction, record_match_interactions
+from .models import (
+    CaregiverProfile,
+    InteractionKind,
+    MatchResult,
+    MatchRun,
+    PatientProfile,
+)
 from .serializers import (
     CaregiverAvailabilitySerializer,
     CaregiverDetailSerializer,
@@ -130,6 +137,13 @@ class CaregiverDetailView(generics.RetrieveAPIView):
             },
             async_=False,
         )
+        if hasattr(request.user, "patient_profile"):
+            log_interaction(
+                request.user,
+                instance,
+                InteractionKind.VIEW,
+                metadata={"source": "caregiver_detail"},
+            )
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -353,6 +367,12 @@ class MatchView(APIView):
                     "is_available": bool(p.is_available) if p else False,
                 }
             )
+
+        record_match_interactions(
+            request.user,
+            [r.caregiver_id for r in out.results],
+            source="match_api",
+        )
 
         payload = {
             "request_id": run.pk,
