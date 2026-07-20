@@ -14,15 +14,15 @@ _Last updated: 2026-07-20 — Step 22 CF blended into VEHMF. Next: Step 22b pati
 
 ## Git workflow (cross-device)
 
-| Rule | Detail |
-|------|--------|
-| **Author** | Always **Udith Sandaruwan** `<developer.udithsandaruwan@gmail.com>` — never `Care Plus Dev` / agent |
-| **How** | Terminal only: `git add` → `git -c user.name=… -c user.email=… commit` → `git push` → `gh pr …` |
-| **Branch** | One branch per feature/step (`feat/stepN-<slug>`, `fix/…`, `chore/…`) off `main` |
-| **Commits** | Many focused commits per branch OK |
-| **Push** | Always push after development (and when switching devices / end of session) |
-| **Merge** | When the branch is complete (or when necessary): PR → merge into `main` |
-| **Next feature** | New branch from updated `main` — never pile features on one branch |
+| Rule             | Detail                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| **Author**       | Always **Udith Sandaruwan** `<developer.udithsandaruwan@gmail.com>` — never `Care Plus Dev` / agent |
+| **How**          | Terminal only: `git add` → `git -c user.name=… -c user.email=… commit` → `git push` → `gh pr …`     |
+| **Branch**       | One branch per feature/step (`feat/stepN-<slug>`, `fix/…`, `chore/…`) off `main`                    |
+| **Commits**      | Many focused commits per branch OK                                                                  |
+| **Push**         | Always push after development (and when switching devices / end of session)                         |
+| **Merge**        | When the branch is complete (or when necessary): PR → merge into `main`                             |
+| **Next feature** | New branch from updated `main` — never pile features on one branch                                  |
 
 Rules file: `.cursor/rules/git-workflow.mdc` (includes identity + terminal commit recipe).
 
@@ -62,11 +62,11 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ### Done foundations
 
-- ✅ **M0** Steps 1–5 — Foundations  
-- ✅ **M1** Steps 6–8 — Auth, consent, audit  
-- ✅ **M2** Steps 9–12 — Web shell + Neural Core  
-- ✅ **M3** Steps 13–15 — Voice → intent → chips/ring  
-- ✅ **M4** Step 16 — Domain profiles + Sri Lanka seed  
+- ✅ **M0** Steps 1–5 — Foundations
+- ✅ **M1** Steps 6–8 — Auth, consent, audit
+- ✅ **M2** Steps 9–12 — Web shell + Neural Core
+- ✅ **M3** Steps 13–15 — Voice → intent → chips/ring
+- ✅ **M4** Step 16 — Domain profiles + Sri Lanka seed
 
 ### Active track — research match loop
 
@@ -89,25 +89,25 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ### Expanded product tracks (from Old Care Plus)
 
-| Milestone | Steps | Status |
-|-----------|-------|--------|
-| **M3b** Medical vocab + Serah chat | 15b–15e | 15b ✅ · 15c–e ⬜ |
-| **M3c** Conversational dialogue loop | 15f–15j | 15f–15j ✅ |
-| **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅ |
-| **M5** CF personalization | 21–22 | ⬜ |
-| **M5b** Rich onboarding / OTP | 22b–22f | ⬜ |
-| **M6** Hire lifecycle (`CareRequest`) | 23–28 | ⬜ |
-| **M7** Catalog + checkout + payments | 29–33 | ⬜ |
-| **M8** Medical records | 34–37 | ⬜ |
-| **M9** Messaging + notifications | 38–41 | ⬜ |
-| **M10** Reviews → trust | 42–44 | ⬜ |
-| **M11** Health monitoring + emergency | 45–49 | ⬜ |
-| **M12** Scheduling + Redlock | 50–53 | ⬜ |
-| **M13** Admin console | 54–58 | ⬜ |
-| **M14** i18n + a11y | 59–61 | ⬜ |
-| **M15** Mobile Expo | 62–67 | ⬜ |
-| **M16** Compliance | 68–71 | ⬜ |
-| **M17** Ship | 72–75 | ⬜ |
+| Milestone                             | Steps   | Status            |
+| ------------------------------------- | ------- | ----------------- |
+| **M3b** Medical vocab + Serah chat    | 15b–15e | 15b ✅ · 15c–e ⬜ |
+| **M3c** Conversational dialogue loop  | 15f–15j | 15f–15j ✅        |
+| **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅        |
+| **M5** CF personalization             | 21–22   | ⬜                |
+| **M5b** Rich onboarding / OTP         | 22b–22f | ⬜                |
+| **M6** Hire lifecycle (`CareRequest`) | 23–28   | ⬜                |
+| **M7** Catalog + checkout + payments  | 29–33   | ⬜                |
+| **M8** Medical records                | 34–37   | ⬜                |
+| **M9** Messaging + notifications      | 38–41   | ⬜                |
+| **M10** Reviews → trust               | 42–44   | ⬜                |
+| **M11** Health monitoring + emergency | 45–49   | ⬜                |
+| **M12** Scheduling + Redlock          | 50–53   | ⬜                |
+| **M13** Admin console                 | 54–58   | ⬜                |
+| **M14** i18n + a11y                   | 59–61   | ⬜                |
+| **M15** Mobile Expo                   | 62–67   | ⬜                |
+| **M16** Compliance                    | 68–71   | ⬜                |
+| **M17** Ship                          | 72–75   | ⬜                |
 
 **Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
 
@@ -115,12 +115,12 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## What works today (user-facing)
 
-- Register / login (JWT), consent gate, Neural Core voice UI  
-- Speak (si/ta/en) → structured intent → chips + Goal Ring; clarify loop  
-- Seeded caregivers + CBF preview + **full VEHMF `POST /match/`** (ranked + breakdown + XAI)  
-- AHP weights + emergency override  
-- **Match result cards** + JWT `ws/match/{patient_id}/` push; FSM → RESULTS  
-- **Not yet:** multi-turn “talk like Serah” (chat vs match router) — see M3c  
+- Register / login (JWT), consent gate, Neural Core voice UI
+- Speak (si/ta/en) → structured intent → chips + Goal Ring; clarify loop
+- Seeded caregivers + CBF preview + **full VEHMF `POST /match/`** (ranked + breakdown + XAI)
+- AHP weights + emergency override
+- **Match result cards** + JWT `ws/match/{patient_id}/` push; FSM → RESULTS
+- **Not yet:** multi-turn “talk like Serah” (chat vs match router) — see M3c
 
 ---
 
