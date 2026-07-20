@@ -225,3 +225,74 @@ class Interaction(models.Model):
 
     def __str__(self):
         return f"{self.kind} patient={self.patient_id} caregiver={self.caregiver_id}"
+
+
+class CareRequestStatus(models.TextChoices):
+    DRAFT = "draft", "Draft"
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    REJECTED = "rejected", "Rejected"
+    CANCELLED = "cancelled", "Cancelled"
+    EXPIRED = "expired", "Expired"
+
+
+# Statuses that block a new request for the same patient↔caregiver pair.
+ACTIVE_CARE_REQUEST_STATUSES = frozenset(
+    {
+        CareRequestStatus.DRAFT,
+        CareRequestStatus.PENDING,
+        CareRequestStatus.ACCEPTED,
+    }
+)
+
+
+class CareRequest(models.Model):
+    """Patient hire request to a caregiver (Step 23)."""
+
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="care_requests_sent",
+    )
+    caregiver = models.ForeignKey(
+        CaregiverProfile,
+        on_delete=models.CASCADE,
+        related_name="care_requests_received",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=CareRequestStatus.choices,
+        default=CareRequestStatus.PENDING,
+        db_index=True,
+    )
+    message = models.TextField(blank=True, default="")
+    match_run = models.ForeignKey(
+        MatchRun,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="care_requests",
+    )
+    # Snapshot of VEHMF scores / intent at request time.
+    match_snapshot = models.JSONField(default=dict, blank=True)
+    expires_at = models.DateTimeField(db_index=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["caregiver", "status", "-created_at"], name="cr_cg_status_idx"),
+            models.Index(fields=["patient", "status", "-created_at"], name="cr_pt_status_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["patient", "caregiver"],
+                condition=models.Q(status=CareRequestStatus.PENDING),
+                name="unique_pending_care_request",
+            ),
+        ]
+
+    def __str__(self):
+        return f"CareRequest#{self.pk} {self.status} patient={self.patient_id} cg={self.caregiver_id}"

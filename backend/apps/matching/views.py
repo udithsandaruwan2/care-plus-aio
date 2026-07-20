@@ -20,7 +20,10 @@ from .embeddings import get_embedder, intent_to_text
 from .engine import run_match
 from .faiss_index import load_index
 from .interactions import log_interaction, record_match_interactions
+from .care_requests import cancel_care_request, create_care_request
+from .caregiver_profile import activate_caregiver_if_ready
 from .models import (
+    CareRequest,
     CaregiverProfile,
     InteractionKind,
     MatchResult,
@@ -32,11 +35,13 @@ from .serializers import (
     CaregiverMeSerializer,
     CaregiverProfileSerializer,
     CaregiverProfileUpdateSerializer,
+    CareRequestCancelSerializer,
+    CareRequestCreateSerializer,
+    CareRequestSerializer,
     MatchRequestSerializer,
     PatientProfileSerializer,
     PatientProfileUpdateSerializer,
 )
-from .caregiver_profile import activate_caregiver_if_ready
 
 
 class CaregiverPagination(PageNumberPagination):
@@ -424,3 +429,135 @@ class MatchView(APIView):
 
         push_match_results(request.user.pk, payload)
         return Response(payload, status=status.HTTP_201_CREATED)
+
+
+class CareRequestPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 50
+
+
+class CareRequestListCreateView(generics.ListCreateAPIView):
+    """GET/POST /api/v1/care-requests/ — patient outgoing / caregiver inbox (Step 23)."""
+
+    serializer_class = CareRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = CareRequestPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = (
+            CareRequest.objects.select_related("patient", "caregiver", "caregiver__user")
+            .all()
+            .order_by("-created_at")
+        )
+        if user.role == "patient":
+            return qs.filter(patient=user)
+        if user.role == "caregiver":
+            return qs.filter(caregiver__user=user)
+        return qs.none()
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated(), IsPatient()]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return CareRequestCreateSerializer
+        return CareRequestSerializer
+
+    def create(self, request, *args, **kwargs):
+        ser = CareRequestCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        caregiver = ser.context["caregiver"]
+        match_run = ser.context.get("match_run")
+        try:
+            care_request = create_care_request(
+                patient=request.user,
+                caregiver=caregiver,
+                message=ser.validated_data.get("message", ""),
+                match_run=match_run,
+                match_snapshot=ser.validated_data.get("match_snapshot") or {},
+            )
+        except Exception as exc:
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+
+            if isinstance(exc, DRFValidationError):
+                raise
+            if hasattr(exc, "detail"):
+                raise
+            raise DRFValidationError(str(exc)) from exc
+
+        log_interaction(
+            request.user,
+            caregiver,
+            InteractionKind.REQUEST,
+            metadata={"care_request_id": care_request.pk},
+        )
+        record_audit(
+            actor=request.user,
+            action=AuditAction.CREATE_CARE_REQUEST,
+            request=request,
+            target_type="care_request",
+            target_id=care_request.pk,
+            metadata={
+                "caregiver_id": caregiver.pk,
+                "caregiver_name": caregiver.display_name,
+                "match_run_id": match_run.pk if match_run else None,
+            },
+            async_=False,
+        )
+        out = CareRequestSerializer(care_request)
+        return Response(out.data, status=status.HTTP_201_CREATED)
+
+
+class CareRequestDetailView(generics.RetrieveAPIView):
+    """GET /api/v1/care-requests/<id>/ — detail for patient or caregiver."""
+
+    serializer_class = CareRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = CareRequest.objects.select_related("patient", "caregiver", "caregiver__user")
+        if user.role == "patient":
+            return qs.filter(patient=user)
+        if user.role == "caregiver":
+            return qs.filter(caregiver__user=user)
+        return qs.none()
+
+
+class CareRequestActionView(APIView):
+    """PATCH /api/v1/care-requests/<id>/ — patient cancel while pending (Step 23)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+
+    def patch(self, request, pk: int):
+        ser = CareRequestCancelSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            care_request = CareRequest.objects.select_related("caregiver").get(
+                pk=pk, patient=request.user
+            )
+        except CareRequest.DoesNotExist as exc:
+            raise NotFound("Care request not found.") from exc
+
+        try:
+            care_request = cancel_care_request(care_request, patient=request.user)
+        except Exception as exc:
+            from rest_framework.exceptions import ValidationError as DRFValidationError
+
+            raise DRFValidationError(str(exc)) from exc
+
+        record_audit(
+            actor=request.user,
+            action=AuditAction.CANCEL_CARE_REQUEST,
+            request=request,
+            target_type="care_request",
+            target_id=care_request.pk,
+            metadata={"caregiver_id": care_request.caregiver_id},
+            async_=False,
+        )
+        return Response(CareRequestSerializer(care_request).data)

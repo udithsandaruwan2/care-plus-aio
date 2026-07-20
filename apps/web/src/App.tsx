@@ -5,6 +5,7 @@ import { BrowseCaregiversPage } from './pages/BrowseCaregiversPage';
 import { CaregiverDetailPage } from './pages/CaregiverDetailPage';
 import { CaregiverOnboardingPage } from './pages/CaregiverOnboardingPage';
 import { CaregiverPresencePage } from './pages/CaregiverPresencePage';
+import { CareRequestsPage } from './pages/CareRequestsPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { PatientOnboardingPage } from './pages/PatientOnboardingPage';
@@ -22,6 +23,7 @@ export function App() {
           <Route path="/caregivers/:id" element={<CaregiverDetailPage />} />
           <Route path="/onboarding" element={<PatientOnboardingPage />} />
           <Route path="/caregiver-onboarding" element={<CaregiverOnboardingPage />} />
+          <Route path="/requests" element={<CareRequestsPage />} />
           <Route path="/presence" element={<CaregiverPresencePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

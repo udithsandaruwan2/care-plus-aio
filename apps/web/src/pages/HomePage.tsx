@@ -209,12 +209,28 @@ export function HomePage() {
                 Profile {completionPercent}%
               </Link>
             )}
+            {user?.role === 'patient' && (
+              <Link
+                to="/requests"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+              >
+                Requests
+              </Link>
+            )}
             {user?.role === 'caregiver' && !isMatchEligible && (
               <Link
                 to="/caregiver-onboarding"
                 className="rounded-lg border border-amber/40 px-3 py-1.5 text-sm text-amber transition hover:border-amber hover:bg-amber/10"
               >
                 Profile {cgCompletion}%
+              </Link>
+            )}
+            {user?.role === 'caregiver' && (
+              <Link
+                to="/requests"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+              >
+                Inbox
               </Link>
             )}
             {user?.role === 'caregiver' && (

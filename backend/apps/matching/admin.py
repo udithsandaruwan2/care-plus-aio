@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
 
-from .models import CaregiverProfile, Interaction, MatchResult, MatchRun, PatientProfile
+from .models import CaregiverProfile, CareRequest, Interaction, MatchResult, MatchRun, PatientProfile
 
 
 @admin.register(CaregiverProfile)
@@ -92,3 +92,18 @@ class InteractionAdmin(admin.ModelAdmin):
     list_filter = ("kind",)
     search_fields = ("patient__email", "caregiver__display_name")
     readonly_fields = ("created_at",)
+
+
+@admin.register(CareRequest)
+class CareRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "patient",
+        "caregiver",
+        "status",
+        "expires_at",
+        "created_at",
+    )
+    list_filter = ("status",)
+    search_fields = ("patient__email", "caregiver__display_name", "message")
+    readonly_fields = ("created_at", "updated_at", "responded_at")

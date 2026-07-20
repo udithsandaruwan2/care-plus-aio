@@ -342,3 +342,60 @@ class MatchRequestSerializer(serializers.Serializer):
         if (lon is None) ^ (lat is None):
             raise serializers.ValidationError("longitude and latitude must be provided together.")
         return attrs
+
+
+class CareRequestSerializer(serializers.ModelSerializer):
+    patient_email = serializers.EmailField(source="patient.email", read_only=True)
+    caregiver_id = serializers.IntegerField(source="caregiver.id", read_only=True)
+    caregiver_name = serializers.CharField(source="caregiver.display_name", read_only=True)
+
+    class Meta:
+        from .models import CareRequest
+
+        model = CareRequest
+        fields = (
+            "id",
+            "patient_email",
+            "caregiver_id",
+            "caregiver_name",
+            "status",
+            "message",
+            "match_run",
+            "match_snapshot",
+            "expires_at",
+            "responded_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class CareRequestCreateSerializer(serializers.Serializer):
+    caregiver_id = serializers.IntegerField()
+    message = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+    match_run_id = serializers.IntegerField(required=False, allow_null=True)
+    match_snapshot = serializers.JSONField(required=False)
+
+    def validate_caregiver_id(self, value):
+        try:
+            caregiver = CaregiverProfile.objects.get(pk=value)
+        except CaregiverProfile.DoesNotExist as exc:
+            raise serializers.ValidationError("Caregiver not found.") from exc
+        self.context["caregiver"] = caregiver
+        return value
+
+    def validate_match_run_id(self, value):
+        if value is None:
+            return value
+        from .models import MatchRun
+
+        try:
+            run = MatchRun.objects.get(pk=value)
+        except MatchRun.DoesNotExist as exc:
+            raise serializers.ValidationError("Match run not found.") from exc
+        self.context["match_run"] = run
+        return value
+
+
+class CareRequestCancelSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["cancel"])

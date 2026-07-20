@@ -1,0 +1,155 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import type { CareRequest } from '@care-plus/api-client';
+import { AtmosphereShell } from '../components/AtmosphereShell';
+import { api } from '../auth/api';
+import { useAuth } from '../auth/AuthContext';
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Pending',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+  cancelled: 'Cancelled',
+  expired: 'Expired',
+  draft: 'Draft',
+};
+
+export function CareRequestsPage() {
+  const { user, logout } = useAuth();
+  const [rows, setRows] = useState<CareRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    api
+      .listCareRequests()
+      .then((data) => setRows(data.results))
+      .catch((err) => {
+        setRows([]);
+        setError(err instanceof Error ? err.message : 'Could not load requests.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'patient' || user?.role === 'caregiver') {
+      load();
+    } else {
+      setLoading(false);
+    }
+  }, [user?.role, load]);
+
+  async function onCancel(id: number) {
+    setBusyId(id);
+    try {
+      const updated = await api.cancelCareRequest(id);
+      setRows((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not cancel request.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const isPatient = user?.role === 'patient';
+  const isCaregiver = user?.role === 'caregiver';
+
+  return (
+    <AtmosphereShell>
+      <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">
+              {isCaregiver ? 'Inbox' : 'Care requests'}
+            </p>
+            <h1 className="mt-2 font-display text-3xl font-semibold text-mist">
+              {isCaregiver ? 'Patient requests' : 'Your requests'}
+            </h1>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              to="/"
+              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-cyan hover:text-cyan"
+            >
+              Neural Core
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-rose hover:text-rose"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+
+        {!isPatient && !isCaregiver && (
+          <p className="mt-8 text-sm text-muted">Only patients and caregivers can view care requests.</p>
+        )}
+
+        {loading && <p className="mt-8 text-sm text-muted">Loading…</p>}
+        {error && (
+          <p className="mt-8 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
+            {error}
+          </p>
+        )}
+
+        {!loading && (isPatient || isCaregiver) && rows.length === 0 && (
+          <p className="mt-8 text-sm text-muted">
+            {isCaregiver
+              ? 'No requests yet — patients can send requests from match results or caregiver profiles.'
+              : 'No requests yet — request a caregiver from match results or their profile.'}
+          </p>
+        )}
+
+        <ul className="mt-8 space-y-3">
+          {rows.map((row) => (
+            <li
+              key={row.id}
+              className="rounded-2xl border border-hair bg-panel/70 p-5 backdrop-blur-md"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-display text-lg text-mist">
+                    {isCaregiver ? row.patient_email : row.caregiver_name}
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    {STATUS_LABEL[row.status] || row.status}
+                    {row.expires_at && row.status === 'pending'
+                      ? ` · expires ${new Date(row.expires_at).toLocaleString()}`
+                      : ''}
+                  </p>
+                </div>
+                {isPatient && row.status === 'pending' && (
+                  <button
+                    type="button"
+                    disabled={busyId === row.id}
+                    onClick={() => void onCancel(row.id)}
+                    className="rounded-lg border border-hair px-3 py-1 text-xs text-muted hover:border-rose hover:text-rose disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+              {row.message && <p className="mt-3 text-sm text-mist/90">{row.message}</p>}
+              {row.match_snapshot?.score != null && (
+                <p className="mt-2 font-mono text-xs text-cyan">
+                  Match score {Math.round(Number(row.match_snapshot.score) * 100)}%
+                  {row.match_snapshot.rank != null ? ` · rank #${row.match_snapshot.rank}` : ''}
+                </p>
+              )}
+              {isCaregiver && row.status === 'pending' && (
+                <p className="mt-3 text-xs text-amber">
+                  Accept / reject actions ship in Step 24.
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </main>
+    </AtmosphereShell>
+  );
+}

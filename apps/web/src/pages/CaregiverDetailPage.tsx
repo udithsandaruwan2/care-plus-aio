@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { CaregiverDetail } from '@care-plus/api-client';
+import { ApiError } from '@care-plus/api-client';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
@@ -8,11 +9,14 @@ import { usePatientProfile } from '../auth/usePatientProfile';
 
 export function CaregiverDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const { canRequestCare } = usePatientProfile();
   const [profile, setProfile] = useState<CaregiverDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [requesting, setRequesting] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
 
   useEffect(() => {
     const pk = Number(id);
@@ -44,13 +48,34 @@ export function CaregiverDetailPage() {
   }, [id]);
 
   function onRequest() {
+    if (!profile || requesting || requestSent) return;
     if (!canRequestCare) {
       window.alert(
         'Complete your patient profile (at least 80%) before requesting care. Go to /onboarding.',
       );
       return;
     }
-    window.alert('Request caregiver — hire flow lands in Step 23 (CareRequest).');
+    const message = window.prompt('Optional message for the caregiver:') ?? '';
+    setRequesting(true);
+    void api
+      .createCareRequest({
+        caregiver_id: profile.id,
+        message: message.trim() || undefined,
+      })
+      .then(() => {
+        setRequestSent(true);
+        navigate('/requests');
+      })
+      .catch((err) => {
+        const msg =
+          err instanceof ApiError && typeof err.body === 'object' && err.body
+            ? String((err.body as Record<string, unknown>).detail || 'Request failed.')
+            : err instanceof Error
+              ? err.message
+              : 'Request failed.';
+        window.alert(msg);
+      })
+      .finally(() => setRequesting(false));
   }
 
   return (
@@ -146,13 +171,19 @@ export function CaregiverDetailPage() {
               <button
                 type="button"
                 onClick={onRequest}
-                disabled={profile.is_available === false}
+                disabled={profile.is_available === false || requesting || requestSent}
                 className="mt-8 w-full rounded-full bg-cyan/90 px-5 py-3 text-sm font-medium text-void transition hover:bg-cyan disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Request this caregiver
+                {requestSent
+                  ? 'Request sent'
+                  : requesting
+                    ? 'Sending request…'
+                    : 'Request this caregiver'}
               </button>
               <p className="mt-2 text-center text-[11px] text-muted">
-                Hire / CareRequest flow ships in Step 23.
+                <Link to="/requests" className="text-cyan hover:underline">
+                  View your care requests
+                </Link>
               </p>
             </div>
 
