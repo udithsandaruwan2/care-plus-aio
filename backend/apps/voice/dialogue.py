@@ -61,6 +61,21 @@ def _route(text: str, intent: dict, has_prior_match: bool) -> str:
     return classify_turn(text, intent, has_prior_match=has_prior_match).route
 
 
+def _match_has_results(match: dict | None) -> bool:
+    return bool(match and isinstance(match.get("results"), list) and match["results"])
+
+
+def _load_session_match(session) -> dict | None:
+    if not session.last_match_run_id:
+        return None
+    run = session.last_match_run
+    if run is None:
+        run = MatchRun.objects.filter(pk=session.last_match_run_id).first()
+    if run is None:
+        return None
+    return _match_payload_from_run(run)
+
+
 def _clarify_reply(intent: dict, lang: str) -> str:
     if lang.startswith("si"):
         if not intent.get("condition"):
@@ -369,24 +384,47 @@ def process_turn(
                 base["language"] = asr_langs[0]
 
     session_has_match = session.last_match_run_id is not None
-    effective_prior = bool(has_prior_match or session_has_match or prior_match)
-    decision = classify_turn(text, base, has_prior_match=effective_prior)
+    session_match = _load_session_match(session) if session_has_match else None
+
+    visible_match = None
+    if _match_has_results(prior_match if isinstance(prior_match, dict) else None):
+        visible_match = prior_match
+    elif has_prior_match and _match_has_results(session_match):
+        visible_match = session_match
+
+    history_match = visible_match
+    if history_match is None and _match_has_results(session_match):
+        history_match = session_match
+    if history_match is None and _match_has_results(prior_match if isinstance(prior_match, dict) else None):
+        history_match = prior_match
+
+    has_visible_match = _match_has_results(visible_match)
+    has_history_match = _match_has_results(history_match)
+    effective_prior = has_visible_match
+
+    decision = classify_turn(
+        text,
+        base,
+        has_prior_match=has_visible_match,
+        has_history_match=has_history_match,
+    )
     route = decision.route
     situation = decision.situation
     reply_lang = _tts_lang(base.get("language") or ui, base.get("languages"))
 
-    # Prefer this session's MatchRun, then client prior, then latest run.
-    context_match = None
-    if session.last_match_run_id:
-        run = session.last_match_run
-        if run is None:
-            run = MatchRun.objects.filter(pk=session.last_match_run_id).first()
-        if run is not None:
-            context_match = _match_payload_from_run(run)
-    if context_match is None and isinstance(prior_match, dict):
-        context_match = prior_match
-    if effective_prior and context_match is None:
-        context_match = _latest_match_for_user(user)
+    context_match = visible_match or history_match
+    just_captured_condition = bool(extracted.get("condition"))
+    if (
+        route == "CHAT"
+        and situation == "general"
+        and not has_visible_match
+        and just_captured_condition
+        and base.get("condition")
+        and base.get("language")
+        and base.get("care_level")
+    ):
+        route = "MATCH"
+        situation = "match"
 
     match_payload = None
     chat_source = "none"
@@ -469,8 +507,8 @@ def process_turn(
             text=text,
             lang=reply_lang,
             situation="request",
-            has_prior_match=True,
-            match=context_match,
+            has_prior_match=has_visible_match,
+            match=visible_match or history_match,
         )
         match_payload = None
     else:
