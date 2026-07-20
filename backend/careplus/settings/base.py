@@ -138,6 +138,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "matching.expire_care_requests",
         "schedule": crontab(minute=15),
     },
+    "remind-care-requests-hourly": {
+        "task": "matching.remind_care_requests",
+        "schedule": crontab(minute=45),
+    },
 }
 
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────
@@ -193,8 +197,10 @@ PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", defau
 # Caregiver onboarding + auto-approval (Step 22c).
 CAREGIVER_AUTO_APPROVE = env.bool("CAREGIVER_AUTO_APPROVE", default=True)
 CAREGIVER_PROFILE_MIN_COMPLETION = env.int("CAREGIVER_PROFILE_MIN_COMPLETION", default=80)
-# Pending care requests auto-expire after this many hours (Step 23).
+# Pending care requests auto-expire after this many hours (Step 23 / 28).
 CARE_REQUEST_TTL_HOURS = env.int("CARE_REQUEST_TTL_HOURS", default=72)
+# Step 28 — email patient + caregiver on mid-TTL reminder and auto-expiry.
+CARE_REQUEST_NOTIFY_EMAIL_ENABLED = env.bool("CARE_REQUEST_NOTIFY_EMAIL_ENABLED", default=True)
 # Step 25 — block a second active primary caregiver for the same patient.
 ONE_PRIMARY_CAREGIVER = env.bool("ONE_PRIMARY_CAREGIVER", default=True)
 # Step 27 — auto-ack email when a marketing lead is submitted.

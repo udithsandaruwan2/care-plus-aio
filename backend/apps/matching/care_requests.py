@@ -181,10 +181,7 @@ def reject_care_request(
 
 
 def expire_stale_care_requests() -> int:
-    """Mark pending requests past expires_at as expired."""
-    now = timezone.now()
-    updated = CareRequest.objects.filter(
-        status=CareRequestStatus.PENDING,
-        expires_at__lt=now,
-    ).update(status=CareRequestStatus.EXPIRED, responded_at=now, updated_at=now)
-    return updated
+    """Mark pending requests past expires_at as expired (with email/WS notice)."""
+    from .care_request_lifecycle import expire_stale_care_requests_with_notice
+
+    return expire_stale_care_requests_with_notice()
