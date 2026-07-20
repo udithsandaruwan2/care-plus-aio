@@ -17,6 +17,7 @@ from .ahp import get_ahp_weights, normalize_weights
 from .cf_model import cf_model_info, get_cf_model, is_cf_active
 from .embeddings import get_embedder, intent_to_text
 from .faiss_index import CaregiverIndex, load_index
+from .i18n import format_match_explanation
 from .models import CaregiverProfile
 
 _XAI = {
@@ -241,7 +242,7 @@ class VEHMFEngine:
                     cf=float(row[1]),
                     geo=float(row[2]),
                     trust=float(row[3]),
-                    explanation=f"Matched because: {_XAI[contributor]}.",
+                    explanation=format_match_explanation(contributor, "en"),
                     distance_m=distances.get(cid),
                 )
             )
