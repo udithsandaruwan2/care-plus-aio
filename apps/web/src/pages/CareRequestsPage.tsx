@@ -67,6 +67,31 @@ export function CareRequestsPage() {
     }
   }
 
+  async function onActivateRelationship(relationshipId: number) {
+    setBusyId(relationshipId);
+    try {
+      await api.activateCareRelationship(relationshipId);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start active care.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function onEndRelationship(relationshipId: number) {
+    const reason = window.prompt('Optional reason for ending care:') ?? '';
+    setBusyId(relationshipId);
+    try {
+      await api.endCareRelationship(relationshipId, reason.trim() || undefined);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not end care relationship.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function onCancel(id: number) {
     setBusyId(id);
     try {
@@ -186,10 +211,36 @@ export function CareRequestsPage() {
                   </button>
                 </div>
               )}
-              {row.status === 'accepted' && row.relationship_id != null && (
-                <p className="mt-3 text-xs text-mint">
-                  Provisional care link #{row.relationship_id} — payment step ships in M7.
-                </p>
+              {row.relationship_id != null && row.relationship_status === 'pending_payment' && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <p className="text-xs text-amber">
+                    Care link ready — start active care when you are both ready (payment ships in M7).
+                  </p>
+                  <button
+                    type="button"
+                    disabled={busyId === row.relationship_id}
+                    onClick={() => void onActivateRelationship(row.relationship_id!)}
+                    className="w-fit rounded-lg border border-mint/50 px-3 py-1.5 text-xs text-mint transition hover:bg-mint/10 disabled:opacity-50"
+                  >
+                    Start active care
+                  </button>
+                </div>
+              )}
+              {row.relationship_id != null && row.relationship_status === 'active' && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <p className="text-xs text-mint">Active care link #{row.relationship_id}</p>
+                  <button
+                    type="button"
+                    disabled={busyId === row.relationship_id}
+                    onClick={() => void onEndRelationship(row.relationship_id!)}
+                    className="w-fit rounded-lg border border-rose/40 px-3 py-1.5 text-xs text-rose transition hover:bg-rose/10 disabled:opacity-50"
+                  >
+                    End care
+                  </button>
+                </div>
+              )}
+              {row.relationship_id != null && row.relationship_status === 'ended' && (
+                <p className="mt-3 text-xs text-muted">Care link ended · history retained</p>
               )}
             </li>
           ))}

@@ -194,6 +194,8 @@ CAREGIVER_AUTO_APPROVE = env.bool("CAREGIVER_AUTO_APPROVE", default=True)
 CAREGIVER_PROFILE_MIN_COMPLETION = env.int("CAREGIVER_PROFILE_MIN_COMPLETION", default=80)
 # Pending care requests auto-expire after this many hours (Step 23).
 CARE_REQUEST_TTL_HOURS = env.int("CARE_REQUEST_TTL_HOURS", default=72)
+# Step 25 — block a second active primary caregiver for the same patient.
+ONE_PRIMARY_CAREGIVER = env.bool("ONE_PRIMARY_CAREGIVER", default=True)
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"

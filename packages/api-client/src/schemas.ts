@@ -359,6 +359,10 @@ export const CareRequest = z.object({
   expires_at: z.string(),
   responded_at: z.string().nullable().optional(),
   relationship_id: z.number().nullable().optional(),
+  relationship_status: z
+    .enum(['pending_payment', 'active', 'ended'])
+    .nullable()
+    .optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -379,6 +383,31 @@ export const CareRequestCreate = z.object({
   match_snapshot: z.record(z.string(), z.unknown()).optional(),
 });
 export type CareRequestCreate = z.infer<typeof CareRequestCreate>;
+
+export const CareRelationshipStatus = z.enum(['pending_payment', 'active', 'ended']);
+export type CareRelationshipStatus = z.infer<typeof CareRelationshipStatus>;
+
+export const CareRelationship = z.object({
+  id: z.number(),
+  patient_email: z.string(),
+  caregiver_id: z.number(),
+  caregiver_name: z.string(),
+  care_request: z.number().nullable().optional(),
+  status: CareRelationshipStatus,
+  is_primary: z.boolean(),
+  started_at: z.string(),
+  ended_at: z.string().nullable().optional(),
+  end_reason: z.string().optional().default(''),
+});
+export type CareRelationship = z.infer<typeof CareRelationship>;
+
+export const CareRelationshipListResponse = z.object({
+  count: z.number(),
+  next: z.string().nullable().optional(),
+  previous: z.string().nullable().optional(),
+  results: z.array(CareRelationship),
+});
+export type CareRelationshipListResponse = z.infer<typeof CareRelationshipListResponse>;
 
 export const ConditionTerm = z.object({
   slug: z.string(),

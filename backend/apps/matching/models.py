@@ -332,6 +332,8 @@ class CareRelationship(models.Model):
     )
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
+    end_reason = models.TextField(blank=True, default="")
+    is_primary = models.BooleanField(default=True, db_index=True)
 
     class Meta:
         ordering = ("-started_at",)
@@ -343,6 +345,13 @@ class CareRelationship(models.Model):
             models.Index(
                 fields=["caregiver", "status", "-started_at"],
                 name="cr_rel_cg_status_idx",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["patient"],
+                condition=models.Q(status="active", is_primary=True),
+                name="unique_primary_active_care_relationship",
             ),
         ]
 
