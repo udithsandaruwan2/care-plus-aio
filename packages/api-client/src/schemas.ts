@@ -476,6 +476,47 @@ export const CatalogAddOn = z.object({
 });
 export type CatalogAddOn = z.infer<typeof CatalogAddOn>;
 
+export const OrderStatus = z.enum(['awaiting_payment', 'paid', 'cancelled', 'expired']);
+export type OrderStatus = z.infer<typeof OrderStatus>;
+
+export const OrderLineKind = z.enum(['package', 'addon']);
+export type OrderLineKind = z.infer<typeof OrderLineKind>;
+
+export const OrderLineItem = z.object({
+  id: z.number(),
+  kind: OrderLineKind,
+  catalog_id: z.number(),
+  slug: z.string(),
+  name: z.string(),
+  unit_price_lkr: z.union([z.string(), z.number()]),
+  quantity: z.number().int(),
+  line_total_lkr: z.union([z.string(), z.number()]),
+});
+export type OrderLineItem = z.infer<typeof OrderLineItem>;
+
+export const Order = z.object({
+  id: z.number(),
+  care_request_id: z.number(),
+  patient_id: z.number(),
+  status: OrderStatus,
+  days: z.number().int(),
+  currency: z.string(),
+  subtotal_lkr: z.union([z.string(), z.number()]),
+  total_lkr: z.union([z.string(), z.number()]),
+  lines: z.array(OrderLineItem),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type Order = z.infer<typeof Order>;
+
+export const CheckoutCreate = z.object({
+  care_request_id: z.number().int(),
+  package_id: z.number().int(),
+  addon_ids: z.array(z.number().int()).optional(),
+  days: z.number().int().optional().nullable(),
+});
+export type CheckoutCreate = z.infer<typeof CheckoutCreate>;
+
 export const ConditionTerm = z.object({
   slug: z.string(),
   canonical_en: z.string(),
