@@ -4,12 +4,7 @@ import type { CarePackage, CatalogAddOn } from '@care-plus/api-client';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
-
-function formatLkr(value: string | number): string {
-  const n = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(n)) return String(value);
-  return `LKR ${n.toLocaleString('en-LK', { minimumFractionDigits: 0 })}`;
-}
+import { formatLkr } from '../lib/formatLkr';
 
 /** Browse LKR care packages and add-ons (Step 29). */
 export function CatalogPage() {
@@ -41,7 +36,8 @@ export function CatalogPage() {
             <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">Catalog</p>
             <h1 className="mt-2 font-display text-3xl font-semibold text-mist">Care packages</h1>
             <p className="mt-2 text-sm text-muted">
-              LKR packages and add-ons. Checkout binds these in Step 30.
+              LKR packages and add-ons. After a caregiver accepts your request, checkout from Care
+              requests.
             </p>
           </div>
           <div className="flex gap-2">
