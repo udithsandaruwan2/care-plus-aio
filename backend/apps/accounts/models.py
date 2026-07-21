@@ -129,6 +129,9 @@ class AuditAction(models.TextChoices):
     ACTIVATE_CARE_RELATIONSHIP = "activate_care_relationship", "Care relationship activated"
     END_CARE_RELATIONSHIP = "end_care_relationship", "Care relationship ended"
     CREATE_ORDER = "create_order", "Patient created checkout order"
+    CREATE_PAYMENT_INTENT = "create_payment_intent", "Patient created payment intent"
+    CONFIRM_PAYMENT = "confirm_payment", "Payment confirmed (mock or webhook)"
+    PAYMENT_WEBHOOK = "payment_webhook", "Payment provider webhook received"
 
 
 class AuditLog(models.Model):
