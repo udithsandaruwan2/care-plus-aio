@@ -503,6 +503,8 @@ export const Order = z.object({
   currency: z.string(),
   subtotal_lkr: z.union([z.string(), z.number()]),
   total_lkr: z.union([z.string(), z.number()]),
+  receipt_email_sent: z.boolean().optional(),
+  receipt_sent_at: z.string().nullable().optional(),
   lines: z.array(OrderLineItem),
   created_at: z.string(),
   updated_at: z.string(),
