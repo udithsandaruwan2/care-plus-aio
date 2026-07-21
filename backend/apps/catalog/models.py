@@ -1,5 +1,6 @@
-"""Care packages and add-ons priced in LKR (Step 29)."""
+"""Care packages, add-ons, and checkout orders priced in LKR (Steps 29–30)."""
 
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -71,3 +72,94 @@ class AddOn(models.Model):
 
     def __str__(self):
         return f"{self.name} [{self.category}] (LKR {self.price_lkr})"
+
+
+class OrderStatus(models.TextChoices):
+    AWAITING_PAYMENT = "awaiting_payment", "Awaiting payment"
+    PAID = "paid", "Paid"
+    CANCELLED = "cancelled", "Cancelled"
+    EXPIRED = "expired", "Expired"
+
+
+class OrderLineKind(models.TextChoices):
+    PACKAGE = "package", "Care package"
+    ADDON = "addon", "Add-on"
+
+
+class Order(models.Model):
+    """Priced checkout bound to an accepted CareRequest (Step 30)."""
+
+    care_request = models.ForeignKey(
+        "matching.CareRequest",
+        on_delete=models.PROTECT,
+        related_name="orders",
+    )
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="orders",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=OrderStatus.choices,
+        default=OrderStatus.AWAITING_PAYMENT,
+        db_index=True,
+    )
+    days = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    currency = models.CharField(max_length=3, default="LKR")
+    subtotal_lkr = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    total_lkr = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["patient", "status", "-created_at"], name="order_pt_status_idx"),
+            models.Index(fields=["care_request", "status"], name="order_cr_status_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["care_request"],
+                condition=models.Q(status="awaiting_payment"),
+                name="unique_awaiting_payment_order_per_request",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Order#{self.pk} {self.status} LKR {self.total_lkr}"
+
+
+class OrderLineItem(models.Model):
+    """Persisted price snapshot for a package or add-on line."""
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="lines")
+    kind = models.CharField(max_length=16, choices=OrderLineKind.choices)
+    catalog_id = models.PositiveIntegerField()
+    slug = models.SlugField(max_length=64)
+    name = models.CharField(max_length=120)
+    unit_price_lkr = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    quantity = models.PositiveSmallIntegerField(default=1, validators=[MinValueValidator(1)])
+    line_total_lkr = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+
+    class Meta:
+        ordering = ("id",)
+
+    def __str__(self):
+        return f"{self.kind}:{self.slug} x{self.quantity} = LKR {self.line_total_lkr}"
