@@ -16,6 +16,7 @@ import {
   CarePackage,
   CatalogAddOn,
   Order,
+  PaymentIntent,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -389,6 +390,20 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     getOrder: (id: number) =>
       request(`/orders/${id}/`, {}, (d) => Order.parse(d)),
+    createPaymentIntent: (orderId: number) =>
+      request(
+        `/orders/${orderId}/payment-intent/`,
+        { method: 'POST', body: JSON.stringify({}) },
+        (d) => PaymentIntent.parse(d),
+      ),
+    getPaymentIntent: (orderId: number) =>
+      request(`/orders/${orderId}/payment-intent/`, {}, (d) => PaymentIntent.parse(d)),
+    confirmMockPayment: (providerIntentId: string) =>
+      request(
+        `/payments/mock/${encodeURIComponent(providerIntentId)}/confirm/`,
+        { method: 'POST', body: JSON.stringify({}) },
+        (d) => PaymentIntent.parse(d),
+      ),
   };
 }
 
