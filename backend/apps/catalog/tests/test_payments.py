@@ -125,10 +125,23 @@ class PaymentIntentFlowTests(APITestCase):
         order.refresh_from_db()
         self.assertEqual(order.status, OrderStatus.PAID)
 
+        from apps.matching.models import CareRelationship, CareRelationshipStatus
+
+        rel = CareRelationship.objects.get(care_request_id=self.req_id)
+        self.assertEqual(rel.status, CareRelationshipStatus.ACTIVE)
+        self.caregiver.refresh_from_db()
+        self.assertFalse(self.caregiver.is_available)
+
         self.assertTrue(
             AuditLog.objects.filter(
                 actor=self.patient,
                 action=AuditAction.CONFIRM_PAYMENT,
+            ).exists()
+        )
+        self.assertTrue(
+            AuditLog.objects.filter(
+                actor=self.patient,
+                action=AuditAction.ACTIVATE_CARE_RELATIONSHIP,
             ).exists()
         )
 
@@ -239,6 +252,12 @@ class PayHereWebhookTests(APITestCase):
         self.assertTrue(
             AuditLog.objects.filter(action=AuditAction.PAYMENT_WEBHOOK).exists()
         )
+        from apps.matching.models import CareRelationship, CareRelationshipStatus
+
+        rel = CareRelationship.objects.get(care_request_id=self.req_id)
+        self.assertEqual(rel.status, CareRelationshipStatus.ACTIVE)
+        self.caregiver.refresh_from_db()
+        self.assertFalse(self.caregiver.is_available)
 
     def test_tampered_webhook_signature_rejected(self):
         resp = self.client.post(
