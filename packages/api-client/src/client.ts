@@ -15,6 +15,7 @@ import {
   LeadListResponse,
   CarePackage,
   CatalogAddOn,
+  Order,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -31,6 +32,7 @@ import {
   type CaregiverListParams,
   type CaregiverProfileUpdate,
   type CareRequestCreate,
+  type CheckoutCreate,
   type LeadCreate,
   type MatchInput,
   type PatientProfileUpdate,
@@ -379,6 +381,14 @@ export function createApiClient(options: ApiClientOptions) {
       const qs = category ? `?category=${encodeURIComponent(category)}` : '';
       return request(`/catalog/addons/${qs}`, {}, (d) => z.array(CatalogAddOn).parse(d));
     },
+    createCheckout: (input: CheckoutCreate) =>
+      request(
+        '/checkout/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => Order.parse(d),
+      ),
+    getOrder: (id: number) =>
+      request(`/orders/${id}/`, {}, (d) => Order.parse(d)),
   };
 }
 
