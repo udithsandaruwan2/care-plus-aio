@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import AddOn, CarePackage
+from .models import AddOn, CarePackage, Order, OrderLineItem
 
 
 class CarePackageSerializer(serializers.ModelSerializer):
@@ -34,3 +34,52 @@ class AddOnSerializer(serializers.ModelSerializer):
             "sort_order",
         )
         read_only_fields = fields
+
+
+class OrderLineItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderLineItem
+        fields = (
+            "id",
+            "kind",
+            "catalog_id",
+            "slug",
+            "name",
+            "unit_price_lkr",
+            "quantity",
+            "line_total_lkr",
+        )
+        read_only_fields = fields
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    lines = OrderLineItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = (
+            "id",
+            "care_request_id",
+            "patient_id",
+            "status",
+            "days",
+            "currency",
+            "subtotal_lkr",
+            "total_lkr",
+            "lines",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class CheckoutCreateSerializer(serializers.Serializer):
+    care_request_id = serializers.IntegerField(min_value=1)
+    package_id = serializers.IntegerField(min_value=1)
+    addon_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
+    days = serializers.IntegerField(min_value=1, required=False, allow_null=True)
