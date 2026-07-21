@@ -83,10 +83,12 @@ def create_payment_intent(*, patient, order_id: int) -> PaymentIntent:
 
 @transaction.atomic
 def apply_payment_success(*, payment_intent: PaymentIntent, source: str) -> PaymentIntent:
-    """Mark intent succeeded and order paid. Does NOT activate CareRelationship (Step 32)."""
+    """Mark intent succeeded, order paid, and activate CareRelationship (Step 32)."""
     del source  # reserved for audit metadata at the view layer
     intent = PaymentIntent.objects.select_for_update().get(pk=payment_intent.pk)
     if intent.status == PaymentIntentStatus.SUCCEEDED:
+        order = Order.objects.get(pk=intent.order_id)
+        _activate_relationship_for_paid_order(order)
         return intent
 
     order = Order.objects.select_for_update().get(pk=intent.order_id)
@@ -95,6 +97,7 @@ def apply_payment_success(*, payment_intent: PaymentIntent, source: str) -> Paym
         if intent.confirmed_at is None:
             intent.confirmed_at = timezone.now()
         intent.save(update_fields=["status", "confirmed_at", "updated_at"])
+        _activate_relationship_for_paid_order(order)
         return intent
 
     if order.status != OrderStatus.AWAITING_PAYMENT:
@@ -117,7 +120,48 @@ def apply_payment_success(*, payment_intent: PaymentIntent, source: str) -> Paym
 
     order.status = OrderStatus.PAID
     order.save(update_fields=["status", "updated_at"])
+    _activate_relationship_for_paid_order(order)
     return intent
+
+
+def _activate_relationship_for_paid_order(order: Order) -> None:
+    """Activate pending_payment relationship; sync caregiver availability via activate_relationship."""
+    from apps.accounts.audit import record_audit
+    from apps.accounts.models import AuditAction
+    from apps.matching.care_relationships import activate_relationship, relationship_payload
+    from apps.matching.models import CareRelationship, CareRelationshipStatus
+    from apps.matching.push import push_care_relationship_update
+
+    try:
+        rel = (
+            CareRelationship.objects.select_related("patient", "caregiver", "caregiver__user")
+            .select_for_update()
+            .get(care_request_id=order.care_request_id)
+        )
+    except CareRelationship.DoesNotExist:
+        return
+
+    if rel.status != CareRelationshipStatus.PENDING_PAYMENT:
+        return
+
+    rel = activate_relationship(rel, actor=order.patient)
+    record_audit(
+        actor=order.patient,
+        action=AuditAction.ACTIVATE_CARE_RELATIONSHIP,
+        request=None,
+        target_type="care_relationship",
+        target_id=rel.pk,
+        metadata={
+            "patient_id": rel.patient_id,
+            "caregiver_id": rel.caregiver_id,
+            "order_id": order.pk,
+            "source": "payment_success",
+        },
+        async_=False,
+    )
+    payload = relationship_payload(rel, event="activated")
+    push_care_relationship_update(rel.patient_id, payload)
+    push_care_relationship_update(rel.caregiver.user_id, payload)
 
 
 @transaction.atomic

@@ -67,18 +67,6 @@ export function CareRequestsPage() {
     }
   }
 
-  async function onActivateRelationship(relationshipId: number) {
-    setBusyId(relationshipId);
-    try {
-      await api.activateCareRelationship(relationshipId);
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start active care.');
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   async function onEndRelationship(relationshipId: number) {
     const reason = window.prompt('Optional reason for ending care:') ?? '';
     setBusyId(relationshipId);
@@ -213,17 +201,23 @@ export function CareRequestsPage() {
               )}
               {row.relationship_id != null && row.relationship_status === 'pending_payment' && (
                 <div className="mt-3 flex flex-col gap-2">
-                  <p className="text-xs text-amber">
-                    Care link ready — start active care when you are both ready (payment ships in M7).
-                  </p>
-                  <button
-                    type="button"
-                    disabled={busyId === row.relationship_id}
-                    onClick={() => void onActivateRelationship(row.relationship_id!)}
-                    className="w-fit rounded-lg border border-mint/50 px-3 py-1.5 text-xs text-mint transition hover:bg-mint/10 disabled:opacity-50"
-                  >
-                    Start active care
-                  </button>
+                  {isPatient ? (
+                    <>
+                      <p className="text-xs text-amber">
+                        Caregiver accepted — choose a package and pay to activate care.
+                      </p>
+                      <Link
+                        to={`/requests/${row.id}/checkout`}
+                        className="w-fit rounded-lg border border-mint/50 px-3 py-1.5 text-xs text-mint transition hover:bg-mint/10"
+                      >
+                        Complete payment
+                      </Link>
+                    </>
+                  ) : (
+                    <p className="text-xs text-amber">
+                      Waiting for the patient to complete payment before care activates.
+                    </p>
+                  )}
                 </div>
               )}
               {row.relationship_id != null && row.relationship_status === 'active' && (
