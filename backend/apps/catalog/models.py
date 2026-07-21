@@ -117,6 +117,9 @@ class Order(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0)],
     )
+    # Step 33 — idempotent receipt email after paid.
+    receipt_email_sent = models.BooleanField(default=False)
+    receipt_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

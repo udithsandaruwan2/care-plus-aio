@@ -12,6 +12,7 @@ export function OrderSuccessPage() {
   const { logout } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openingReceipt, setOpeningReceipt] = useState(false);
   const id = Number(orderId);
 
   useEffect(() => {
@@ -22,6 +23,21 @@ export function OrderSuccessPage() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Could not load order.'));
   }, [id]);
 
+  async function openReceipt() {
+    setOpeningReceipt(true);
+    try {
+      const html = await api.getOrderReceiptHtml(id);
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not open receipt.');
+    } finally {
+      setOpeningReceipt(false);
+    }
+  }
+
   return (
     <AtmosphereShell>
       <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
@@ -30,8 +46,9 @@ export function OrderSuccessPage() {
             <p className="font-display text-sm uppercase tracking-[0.2em] text-mint">Paid</p>
             <h1 className="mt-2 font-display text-3xl font-semibold text-mist">Payment successful</h1>
             <p className="mt-2 text-sm text-muted">
-              Your care link is now active. Your caregiver has been marked unavailable for new
-              matches while this relationship continues.
+              Your care link is now active. A receipt with the LKR breakdown has been emailed to
+              you. Your caregiver is marked unavailable for new matches while this relationship
+              continues.
             </p>
           </div>
           <button
@@ -52,6 +69,9 @@ export function OrderSuccessPage() {
         {order && (
           <div className="mt-8">
             <OrderSummary order={order} />
+            {order.receipt_email_sent && (
+              <p className="mt-3 text-xs text-mint">Receipt emailed to your account address.</p>
+            )}
           </div>
         )}
 
@@ -62,6 +82,14 @@ export function OrderSuccessPage() {
           >
             Neural Core
           </Link>
+          <button
+            type="button"
+            disabled={openingReceipt || !Number.isFinite(id)}
+            onClick={() => void openReceipt()}
+            className="rounded-lg border border-cyan/50 px-4 py-2.5 text-sm text-cyan transition hover:bg-cyan/10 disabled:opacity-50"
+          >
+            {openingReceipt ? 'Opening…' : 'View receipt'}
+          </button>
           <Link
             to="/requests"
             className="rounded-lg border border-hair px-4 py-2.5 text-sm text-muted hover:border-cyan hover:text-cyan"

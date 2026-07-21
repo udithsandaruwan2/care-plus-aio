@@ -390,6 +390,8 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     getOrder: (id: number) =>
       request(`/orders/${id}/`, {}, (d) => Order.parse(d)),
+    getOrderReceiptHtml: (id: number) =>
+      request(`/orders/${id}/receipt/`, {}, (d) => String(d)),
     createPaymentIntent: (orderId: number) =>
       request(
         `/orders/${orderId}/payment-intent/`,

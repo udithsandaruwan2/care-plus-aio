@@ -2,18 +2,20 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError as DRFValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.http import HttpResponse
 
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
 from apps.accounts.permissions import IsPatient
 
 from .checkout import create_checkout_order
-from .models import AddOn, CarePackage, Order, PaymentIntent
+from .models import AddOn, CarePackage, Order, OrderStatus, PaymentIntent
 from .payments.service import (
     confirm_mock_payment,
     create_payment_intent,
     handle_payhere_webhook,
 )
+from .receipts import format_receipt_html
 from .serializers import (
     AddOnSerializer,
     CarePackageSerializer,
@@ -105,6 +107,31 @@ class OrderDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Order.objects.filter(patient=self.request.user).prefetch_related("lines")
+
+
+class OrderReceiptView(APIView):
+    """GET /api/v1/orders/<id>/receipt/ — HTML receipt for print/download (Step 33)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+
+    def get(self, request, pk: int):
+        try:
+            order = (
+                Order.objects.prefetch_related("lines")
+                .select_related("patient")
+                .get(pk=pk, patient=request.user)
+            )
+        except Order.DoesNotExist as exc:
+            raise NotFound("Order not found.") from exc
+        if order.status != OrderStatus.PAID:
+            raise DRFValidationError("Receipt is available after the order is paid.")
+        intent = (
+            PaymentIntent.objects.filter(order=order, status="succeeded")
+            .order_by("-confirmed_at")
+            .first()
+        )
+        html = format_receipt_html(order=order, payment_intent=intent)
+        return HttpResponse(html, content_type="text/html; charset=utf-8")
 
 
 class PaymentIntentView(APIView):
