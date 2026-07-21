@@ -15,8 +15,12 @@ import {
   LeadListResponse,
   CarePackage,
   CatalogAddOn,
+  MedicalRecordAttachment,
+  MedicalRecordDetail,
+  MedicalRecordList,
   Order,
   PaymentIntent,
+  SignedDownloadUrl,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -36,6 +40,7 @@ import {
   type CheckoutCreate,
   type LeadCreate,
   type MatchInput,
+  type MedicalRecordCreateInput,
   type PatientProfileUpdate,
   type RegisterInput,
   type VoiceIntentInput,
@@ -405,6 +410,41 @@ export function createApiClient(options: ApiClientOptions) {
         `/payments/mock/${encodeURIComponent(providerIntentId)}/confirm/`,
         { method: 'POST', body: JSON.stringify({}) },
         (d) => PaymentIntent.parse(d),
+      ),
+    listMedicalRecords: (params?: { patient_id?: number }) => {
+      const qs = params?.patient_id != null ? `?patient_id=${params.patient_id}` : '';
+      return request(`/medical-records/${qs}`, {}, (d) => z.array(MedicalRecordList).parse(d));
+    },
+    createMedicalRecord: (input: MedicalRecordCreateInput) => {
+      const form = new FormData();
+      form.append('condition_slug', input.condition_slug);
+      form.append('title', input.title);
+      if (input.description != null) form.append('description', input.description);
+      if (input.sensitive_notes != null) form.append('sensitive_notes', input.sensitive_notes);
+      if (input.recorded_at != null) form.append('recorded_at', input.recorded_at);
+      if (input.file instanceof Blob) form.append('file', input.file);
+      return request(
+        '/medical-records/',
+        { method: 'POST', body: form, headers: {} },
+        (d) => MedicalRecordDetail.parse(d),
+      );
+    },
+    getMedicalRecord: (id: number) =>
+      request(`/medical-records/${id}/`, {}, (d) => MedicalRecordDetail.parse(d)),
+    uploadMedicalRecordAttachment: (recordId: number, file: Blob, filename?: string) => {
+      const form = new FormData();
+      form.append('file', file, filename ?? 'attachment');
+      return request(
+        `/medical-records/${recordId}/attachments/`,
+        { method: 'POST', body: form, headers: {} },
+        (d) => MedicalRecordAttachment.parse(d),
+      );
+    },
+    getMedicalRecordAttachmentDownloadUrl: (attachmentId: number) =>
+      request(
+        `/medical-records/attachments/${attachmentId}/download-url/`,
+        { method: 'POST', body: JSON.stringify({}) },
+        (d) => SignedDownloadUrl.parse(d),
       ),
   };
 }

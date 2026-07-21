@@ -259,6 +259,27 @@ STORAGES = {
     },
 }
 
+# Step 35 — medical record uploads (local media; signed download URLs in API).
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+MEDICAL_RECORD_MAX_UPLOAD_BYTES = env.int("MEDICAL_RECORD_MAX_UPLOAD_BYTES", default=10 * 1024 * 1024)
+MEDICAL_RECORD_ALLOWED_MIMES = env.list(
+    "MEDICAL_RECORD_ALLOWED_MIMES",
+    default=[
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "text/plain",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ],
+)
+MEDICAL_RECORD_DOWNLOAD_URL_TTL_SECONDS = env.int(
+    "MEDICAL_RECORD_DOWNLOAD_URL_TTL_SECONDS",
+    default=3600,
+)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
