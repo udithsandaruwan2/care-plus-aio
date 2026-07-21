@@ -100,7 +100,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M5** CF personalization             | 21–22   | 21–22 ✅          |
 | **M5b** Rich onboarding / OTP         | 22b–22f | ⬜                |
 | **M6** Hire lifecycle (`CareRequest`) | 23–28   | ⬜                |
-| **M7** Catalog + checkout + payments  | 29–33   | 🟡 29–30 done    |
+| **M7** Catalog + checkout + payments  | 29–33   | 🟡 29–31 done    |
 | **M8** Medical records                | 34–37   | ⬜                |
 | **M9** Messaging + notifications      | 38–41   | ⬜                |
 | **M10** Reviews → trust               | 42–44   | ⬜                |
