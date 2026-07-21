@@ -163,3 +163,75 @@ class OrderLineItem(models.Model):
 
     def __str__(self):
         return f"{self.kind}:{self.slug} x{self.quantity} = LKR {self.line_total_lkr}"
+
+
+class PaymentProviderName(models.TextChoices):
+    MOCK = "mock", "Mock (dev)"
+    PAYHERE = "payhere", "PayHere"
+
+
+class PaymentIntentStatus(models.TextChoices):
+    REQUIRES_PAYMENT = "requires_payment", "Requires payment"
+    PROCESSING = "processing", "Processing"
+    SUCCEEDED = "succeeded", "Succeeded"
+    FAILED = "failed", "Failed"
+    CANCELLED = "cancelled", "Cancelled"
+
+
+class PaymentIntent(models.Model):
+    """Provider-backed payment attempt for an Order (Step 31).
+
+    Orders are never marked paid without a confirmed intent (mock confirm or
+    verified webhook). Relationship activation stays in Step 32.
+    """
+
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="payment_intents")
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="payment_intents",
+    )
+    provider = models.CharField(
+        max_length=16,
+        choices=PaymentProviderName.choices,
+        db_index=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=PaymentIntentStatus.choices,
+        default=PaymentIntentStatus.REQUIRES_PAYMENT,
+        db_index=True,
+    )
+    amount_lkr = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    currency = models.CharField(max_length=3, default="LKR")
+    provider_intent_id = models.CharField(max_length=64, unique=True, db_index=True)
+    idempotency_key = models.CharField(max_length=64, unique=True)
+    client_payload = models.JSONField(default=dict, blank=True)
+    provider_response = models.JSONField(default=dict, blank=True)
+    webhook_payload = models.JSONField(default=dict, blank=True)
+    failure_code = models.CharField(max_length=64, blank=True, default="")
+    failure_message = models.TextField(blank=True, default="")
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["order", "status", "-created_at"], name="pi_order_status_idx"),
+            models.Index(fields=["patient", "-created_at"], name="pi_patient_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order"],
+                condition=models.Q(status__in=["requires_payment", "processing"]),
+                name="unique_open_payment_intent_per_order",
+            ),
+        ]
+
+    def __str__(self):
+        return f"PaymentIntent#{self.pk} {self.provider} {self.status}"
