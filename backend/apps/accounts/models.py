@@ -132,6 +132,7 @@ class AuditAction(models.TextChoices):
     CREATE_PAYMENT_INTENT = "create_payment_intent", "Patient created payment intent"
     CONFIRM_PAYMENT = "confirm_payment", "Payment confirmed (mock or webhook)"
     PAYMENT_WEBHOOK = "payment_webhook", "Payment provider webhook received"
+    RECEIPT_SENT = "receipt_sent", "Payment receipt emailed to patient"
 
 
 class AuditLog(models.Model):
