@@ -57,9 +57,10 @@ class OrderAdmin(admin.ModelAdmin):
         "days",
         "total_lkr",
         "currency",
+        "receipt_email_sent",
         "created_at",
     )
-    list_filter = ("status", "currency")
+    list_filter = ("status", "currency", "receipt_email_sent")
     search_fields = ("patient__email",)
     readonly_fields = (
         "care_request",
@@ -69,6 +70,8 @@ class OrderAdmin(admin.ModelAdmin):
         "currency",
         "subtotal_lkr",
         "total_lkr",
+        "receipt_email_sent",
+        "receipt_sent_at",
         "created_at",
         "updated_at",
     )

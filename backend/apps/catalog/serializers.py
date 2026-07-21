@@ -66,6 +66,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "currency",
             "subtotal_lkr",
             "total_lkr",
+            "receipt_email_sent",
+            "receipt_sent_at",
             "lines",
             "created_at",
             "updated_at",
