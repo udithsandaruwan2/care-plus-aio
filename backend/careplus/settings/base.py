@@ -212,6 +212,14 @@ EMAIL_BACKEND = env(
     default="django.core.mail.backends.console.EmailBackend",
 )
 
+# Step 31 — payment providers (mock | payhere). Never mark paid without confirm/webhook.
+PAYMENT_PROVIDER = env("PAYMENT_PROVIDER", default="mock")
+MOCK_PAYMENT_CONFIRM_ENABLED = env.bool("MOCK_PAYMENT_CONFIRM_ENABLED", default=True)
+PAYHERE_MERCHANT_ID = env("PAYHERE_MERCHANT_ID", default="")
+PAYHERE_MERCHANT_SECRET = env("PAYHERE_MERCHANT_SECRET", default="")
+PAYHERE_SANDBOX = env.bool("PAYHERE_SANDBOX", default=True)
+PAYHERE_NOTIFY_URL = env("PAYHERE_NOTIFY_URL", default="")
+
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"
 AHP_WEIGHTS_PATH = env("AHP_WEIGHTS_PATH", default="")
