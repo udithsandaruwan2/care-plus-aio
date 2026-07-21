@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AddOn, CarePackage, Order, OrderLineItem
+from .models import AddOn, CarePackage, Order, OrderLineItem, PaymentIntent
 
 
 class OrderLineItemInline(admin.TabularInline):
@@ -73,3 +73,38 @@ class OrderAdmin(admin.ModelAdmin):
         "updated_at",
     )
     inlines = [OrderLineItemInline]
+
+
+@admin.register(PaymentIntent)
+class PaymentIntentAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "order",
+        "patient",
+        "provider",
+        "status",
+        "amount_lkr",
+        "provider_intent_id",
+        "confirmed_at",
+        "created_at",
+    )
+    list_filter = ("provider", "status")
+    search_fields = ("provider_intent_id", "patient__email", "idempotency_key")
+    readonly_fields = (
+        "order",
+        "patient",
+        "provider",
+        "status",
+        "amount_lkr",
+        "currency",
+        "provider_intent_id",
+        "idempotency_key",
+        "client_payload",
+        "provider_response",
+        "webhook_payload",
+        "failure_code",
+        "failure_message",
+        "confirmed_at",
+        "created_at",
+        "updated_at",
+    )

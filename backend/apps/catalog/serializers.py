@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import AddOn, CarePackage, Order, OrderLineItem
+from .models import AddOn, CarePackage, Order, OrderLineItem, PaymentIntent
 
 
 class CarePackageSerializer(serializers.ModelSerializer):
@@ -83,3 +83,26 @@ class CheckoutCreateSerializer(serializers.Serializer):
         default=list,
     )
     days = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+
+
+class PaymentIntentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentIntent
+        fields = (
+            "id",
+            "order_id",
+            "patient_id",
+            "provider",
+            "status",
+            "amount_lkr",
+            "currency",
+            "provider_intent_id",
+            "idempotency_key",
+            "client_payload",
+            "failure_code",
+            "failure_message",
+            "confirmed_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
