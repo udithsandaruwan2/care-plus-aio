@@ -128,6 +128,7 @@ class AuditAction(models.TextChoices):
     REJECT_CARE_REQUEST = "reject_care_request", "Caregiver rejected care request"
     ACTIVATE_CARE_RELATIONSHIP = "activate_care_relationship", "Care relationship activated"
     END_CARE_RELATIONSHIP = "end_care_relationship", "Care relationship ended"
+    CREATE_ORDER = "create_order", "Patient created checkout order"
 
 
 class AuditLog(models.Model):
