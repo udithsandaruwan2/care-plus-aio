@@ -101,7 +101,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M5b** Rich onboarding / OTP         | 22b–22f | ⬜                |
 | **M6** Hire lifecycle (`CareRequest`) | 23–28   | ⬜                |
 | **M7** Catalog + checkout + payments  | 29–33   | ✅                |
-| **M8** Medical records                | 34–37   | ⬜                |
+| **M8** Medical records                | 34–37   | 🟡 34 done       |
 | **M9** Messaging + notifications      | 38–41   | ⬜                |
 | **M10** Reviews → trust               | 42–44   | ⬜                |
 | **M11** Health monitoring + emergency | 45–49   | ⬜                |
