@@ -83,12 +83,12 @@ def create_payment_intent(*, patient, order_id: int) -> PaymentIntent:
 
 @transaction.atomic
 def apply_payment_success(*, payment_intent: PaymentIntent, source: str) -> PaymentIntent:
-    """Mark intent succeeded, order paid, and activate CareRelationship (Step 32)."""
-    del source  # reserved for audit metadata at the view layer
+    """Mark intent succeeded, order paid, activate CareRelationship, send receipt (Steps 32–33)."""
     intent = PaymentIntent.objects.select_for_update().get(pk=payment_intent.pk)
     if intent.status == PaymentIntentStatus.SUCCEEDED:
         order = Order.objects.get(pk=intent.order_id)
         _activate_relationship_for_paid_order(order)
+        _send_receipt_safe(order=order, payment_intent=intent, source=source)
         return intent
 
     order = Order.objects.select_for_update().get(pk=intent.order_id)
@@ -98,6 +98,7 @@ def apply_payment_success(*, payment_intent: PaymentIntent, source: str) -> Paym
             intent.confirmed_at = timezone.now()
         intent.save(update_fields=["status", "confirmed_at", "updated_at"])
         _activate_relationship_for_paid_order(order)
+        _send_receipt_safe(order=order, payment_intent=intent, source=source)
         return intent
 
     if order.status != OrderStatus.AWAITING_PAYMENT:
@@ -121,7 +122,21 @@ def apply_payment_success(*, payment_intent: PaymentIntent, source: str) -> Paym
     order.status = OrderStatus.PAID
     order.save(update_fields=["status", "updated_at"])
     _activate_relationship_for_paid_order(order)
+    _send_receipt_safe(order=order, payment_intent=intent, source=source)
     return intent
+
+
+def _send_receipt_safe(*, order: Order, payment_intent: PaymentIntent, source: str) -> None:
+    import logging
+
+    from apps.catalog.receipts import send_order_receipt
+
+    try:
+        send_order_receipt(order=order, payment_intent=payment_intent, source=source)
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "Receipt email failed for order=%s", order.pk
+        )
 
 
 def _activate_relationship_for_paid_order(order: Order) -> None:
