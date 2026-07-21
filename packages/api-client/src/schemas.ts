@@ -517,6 +517,34 @@ export const CheckoutCreate = z.object({
 });
 export type CheckoutCreate = z.infer<typeof CheckoutCreate>;
 
+export const PaymentIntentStatus = z.enum([
+  'requires_payment',
+  'processing',
+  'succeeded',
+  'failed',
+  'cancelled',
+]);
+export type PaymentIntentStatus = z.infer<typeof PaymentIntentStatus>;
+
+export const PaymentIntent = z.object({
+  id: z.number(),
+  order_id: z.number(),
+  patient_id: z.number(),
+  provider: z.enum(['mock', 'payhere']),
+  status: PaymentIntentStatus,
+  amount_lkr: z.union([z.string(), z.number()]),
+  currency: z.string(),
+  provider_intent_id: z.string(),
+  idempotency_key: z.string(),
+  client_payload: z.record(z.unknown()).optional().default({}),
+  failure_code: z.string().optional().default(''),
+  failure_message: z.string().optional().default(''),
+  confirmed_at: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type PaymentIntent = z.infer<typeof PaymentIntent>;
+
 export const ConditionTerm = z.object({
   slug: z.string(),
   canonical_en: z.string(),
