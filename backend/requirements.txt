@@ -41,3 +41,6 @@ faster-whisper==1.1.1
 
 # Neural TTS fallback for Sinhala/Tamil when Gemini TTS quota is exhausted.
 edge-tts==7.2.8
+
+# Medical record field encryption (Step 34)
+cryptography>=49.0.0,<50

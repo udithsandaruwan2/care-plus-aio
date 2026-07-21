@@ -55,6 +55,7 @@ LOCAL_APPS = [
     "apps.vocab",
     "apps.leads",
     "apps.catalog",
+    "apps.medical_records",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -221,6 +222,10 @@ PAYHERE_SANDBOX = env.bool("PAYHERE_SANDBOX", default=True)
 PAYHERE_NOTIFY_URL = env("PAYHERE_NOTIFY_URL", default="")
 # Step 33 — email LKR receipt after successful payment.
 RECEIPT_EMAIL_ENABLED = env.bool("RECEIPT_EMAIL_ENABLED", default=True)
+
+# Step 34 — app-level AES for sensitive medical record fields (Fernet key).
+# Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"
