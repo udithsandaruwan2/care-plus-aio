@@ -561,3 +561,50 @@ export const ConditionListResponse = z.object({
   results: z.array(ConditionTerm),
 });
 export type ConditionListResponse = z.infer<typeof ConditionListResponse>;
+
+export const MedicalRecordAttachment = z.object({
+  id: z.number(),
+  record_id: z.number(),
+  original_name: z.string(),
+  content_type: z.string(),
+  size_bytes: z.number(),
+  uploaded_at: z.string(),
+});
+export type MedicalRecordAttachment = z.infer<typeof MedicalRecordAttachment>;
+
+export const MedicalRecordList = z.object({
+  id: z.number(),
+  patient_id: z.number(),
+  condition_slug: z.string(),
+  condition_name: z.string(),
+  title: z.string(),
+  description: z.string().optional().default(''),
+  recorded_at: z.string().nullable().optional(),
+  attachment_count: z.number(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type MedicalRecordList = z.infer<typeof MedicalRecordList>;
+
+export const MedicalRecordDetail = MedicalRecordList.extend({
+  sensitive_notes: z.string().optional().default(''),
+  attachments: z.array(MedicalRecordAttachment).optional().default([]),
+});
+export type MedicalRecordDetail = z.infer<typeof MedicalRecordDetail>;
+
+export const MedicalRecordCreateInput = z.object({
+  condition_slug: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  sensitive_notes: z.string().optional(),
+  recorded_at: z.string().nullable().optional(),
+  file: z.unknown().optional(),
+});
+export type MedicalRecordCreateInput = z.infer<typeof MedicalRecordCreateInput>;
+
+export const SignedDownloadUrl = z.object({
+  attachment_id: z.number(),
+  url: z.string(),
+  expires_in: z.number(),
+});
+export type SignedDownloadUrl = z.infer<typeof SignedDownloadUrl>;
