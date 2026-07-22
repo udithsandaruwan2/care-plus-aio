@@ -21,6 +21,7 @@ import {
   Message,
   MessageReadResult,
   MessageThread,
+  NotificationPreferences,
   Order,
   PaymentIntent,
   SignedDownloadUrl,
@@ -45,6 +46,7 @@ import {
   type MatchInput,
   type MedicalRecordCreateInput,
   type MedicalRecordUpdateInput,
+  type NotificationPreferencesUpdate,
   type PatientProfileUpdate,
   type RegisterInput,
   type VoiceIntentInput,
@@ -240,6 +242,14 @@ export function createApiClient(options: ApiClientOptions) {
     setConsent: (scope: string, granted: boolean) =>
       request('/consent/', { method: 'POST', body: JSON.stringify({ scope, granted }) }, (d) =>
         ConsentRow.parse(d),
+      ),
+    getNotificationPreferences: () =>
+      request('/notification-preferences/', {}, (d) => NotificationPreferences.parse(d)),
+    updateNotificationPreferences: (input: NotificationPreferencesUpdate) =>
+      request(
+        '/notification-preferences/',
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => NotificationPreferences.parse(d),
       ),
     match: (input: MatchInput) =>
       request(
