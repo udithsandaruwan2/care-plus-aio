@@ -18,6 +18,9 @@ import {
   MedicalRecordAttachment,
   MedicalRecordDetail,
   MedicalRecordList,
+  Message,
+  MessageReadResult,
+  MessageThread,
   Order,
   PaymentIntent,
   SignedDownloadUrl,
@@ -454,6 +457,33 @@ export function createApiClient(options: ApiClientOptions) {
         `/medical-records/attachments/${attachmentId}/download-url/`,
         { method: 'POST', body: JSON.stringify({}) },
         (d) => SignedDownloadUrl.parse(d),
+      ),
+    currentMessageThread: () =>
+      request('/message-threads/current/', {}, (d) =>
+        d == null ? null : MessageThread.parse(d),
+      ),
+    listMessages: (threadId: number, params?: { after_id?: number; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.after_id != null) qs.set('after_id', String(params.after_id));
+      if (params?.limit != null) qs.set('limit', String(params.limit));
+      const q = qs.toString();
+      return request(
+        `/message-threads/${threadId}/messages/${q ? `?${q}` : ''}`,
+        {},
+        (d) => z.array(Message).parse(d),
+      );
+    },
+    sendMessage: (threadId: number, body: string) =>
+      request(
+        `/message-threads/${threadId}/messages/`,
+        { method: 'POST', body: JSON.stringify({ body }) },
+        (d) => Message.parse(d),
+      ),
+    markMessagesRead: (threadId: number, lastReadMessageId: number) =>
+      request(
+        `/message-threads/${threadId}/read/`,
+        { method: 'POST', body: JSON.stringify({ last_read_message_id: lastReadMessageId }) },
+        (d) => MessageReadResult.parse(d),
       ),
   };
 }
