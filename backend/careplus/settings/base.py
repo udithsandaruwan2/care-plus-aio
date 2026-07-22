@@ -209,6 +209,9 @@ ONE_PRIMARY_CAREGIVER = env.bool("ONE_PRIMARY_CAREGIVER", default=True)
 # Step 27 — auto-ack email when a marketing lead is submitted.
 LEAD_ACK_EMAIL_ENABLED = env.bool("LEAD_ACK_EMAIL_ENABLED", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@careplus.local")
+# Step 40 — templated notification emails (checkout links, etc.).
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:5173")
+NOTIFICATION_EMAIL_ENABLED = env.bool("NOTIFICATION_EMAIL_ENABLED", default=True)
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",

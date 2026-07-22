@@ -199,6 +199,16 @@ def apply_payment_failure(
         intent.webhook_payload = webhook_payload
         update_fields.append("webhook_payload")
     intent.save(update_fields=update_fields)
+
+    from apps.accounts.notifications.dispatch import notify_anomaly_alert_email
+
+    patient = intent.patient
+    detail = failure_message or failure_code or "Payment could not be completed."
+    notify_anomaly_alert_email(
+        user=patient,
+        alert_title="Payment failed",
+        detail=f"Payment intent #{intent.pk}: {detail}",
+    )
     return intent
 
 
