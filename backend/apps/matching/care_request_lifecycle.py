@@ -51,9 +51,17 @@ def _payload(request: CareRequest, *, event: str) -> dict:
 
 def notify_care_request_reminder(request: CareRequest) -> None:
     """Email + WebSocket nudge for a still-pending request at ~N/2."""
+    from apps.accounts.notification_preferences import is_notification_enabled
+
     payload = _payload(request, event="reminder")
-    push_care_request_update(request.patient_id, payload)
-    push_care_request_update(request.caregiver.user_id, payload)
+    if is_notification_enabled(
+        request.patient, channel="push", event_key="care_request_reminder"
+    ):
+        push_care_request_update(request.patient_id, payload)
+    if is_notification_enabled(
+        request.caregiver.user, channel="push", event_key="care_request_reminder"
+    ):
+        push_care_request_update(request.caregiver.user_id, payload)
 
     if not _email_enabled():
         return
@@ -74,23 +82,37 @@ def notify_care_request_reminder(request: CareRequest) -> None:
         f"— Care Plus\n"
     )
     try:
-        send_mail(subject, patient_body, _from_email(), [request.patient.email], fail_silently=False)
-        send_mail(
-            subject,
-            caregiver_body,
-            _from_email(),
-            [request.caregiver.user.email],
-            fail_silently=False,
-        )
+        if is_notification_enabled(
+            request.patient, channel="email", event_key="care_request_reminder"
+        ):
+            send_mail(subject, patient_body, _from_email(), [request.patient.email], fail_silently=False)
+        if is_notification_enabled(
+            request.caregiver.user, channel="email", event_key="care_request_reminder"
+        ):
+            send_mail(
+                subject,
+                caregiver_body,
+                _from_email(),
+                [request.caregiver.user.email],
+                fail_silently=False,
+            )
     except Exception:
         logger.exception("Care request reminder email failed for request=%s", request.pk)
 
 
 def notify_care_request_expired(request: CareRequest) -> None:
     """Email + WebSocket when a pending request auto-expires."""
+    from apps.accounts.notification_preferences import is_notification_enabled
+
     payload = _payload(request, event="expired")
-    push_care_request_update(request.patient_id, payload)
-    push_care_request_update(request.caregiver.user_id, payload)
+    if is_notification_enabled(
+        request.patient, channel="push", event_key="care_request_expired"
+    ):
+        push_care_request_update(request.patient_id, payload)
+    if is_notification_enabled(
+        request.caregiver.user, channel="push", event_key="care_request_expired"
+    ):
+        push_care_request_update(request.caregiver.user_id, payload)
 
     if not _email_enabled():
         return
@@ -108,14 +130,20 @@ def notify_care_request_expired(request: CareRequest) -> None:
         f"— Care Plus\n"
     )
     try:
-        send_mail(subject, patient_body, _from_email(), [request.patient.email], fail_silently=False)
-        send_mail(
-            subject,
-            caregiver_body,
-            _from_email(),
-            [request.caregiver.user.email],
-            fail_silently=False,
-        )
+        if is_notification_enabled(
+            request.patient, channel="email", event_key="care_request_expired"
+        ):
+            send_mail(subject, patient_body, _from_email(), [request.patient.email], fail_silently=False)
+        if is_notification_enabled(
+            request.caregiver.user, channel="email", event_key="care_request_expired"
+        ):
+            send_mail(
+                subject,
+                caregiver_body,
+                _from_email(),
+                [request.caregiver.user.email],
+                fail_silently=False,
+            )
     except Exception:
         logger.exception("Care request expiry email failed for request=%s", request.pk)
 

@@ -102,7 +102,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M6** Hire lifecycle (`CareRequest`) | 23–28   | ⬜                |
 | **M7** Catalog + checkout + payments  | 29–33   | ✅                |
 | **M8** Medical records                | 34–37   | ✅ done          |
-| **M9** Messaging + notifications      | 38–41   | 🟡 38 done       |
+| **M9** Messaging + notifications      | 38–41   | 🟡 38–39 done    |
 | **M10** Reviews → trust               | 42–44   | ⬜                |
 | **M11** Health monitoring + emergency | 45–49   | ⬜                |
 | **M12** Scheduling + Redlock          | 50–53   | ⬜                |

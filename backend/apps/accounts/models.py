@@ -114,6 +114,24 @@ class ConsentLog(models.Model):
         return state
 
 
+class NotificationPreference(models.Model):
+    """Per-user email/push toggles by notification event (Step 39)."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_preference",
+    )
+    channels = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self):
+        return f"NotificationPreference user={self.user_id}"
+
+
 class AuditAction(models.TextChoices):
     """Well-known audit action codes (HIPAA/PDPA access trail)."""
 

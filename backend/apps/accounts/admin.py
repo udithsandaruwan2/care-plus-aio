@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import AuditLog, ConsentLog, User
+from .models import AuditLog, ConsentLog, NotificationPreference, User
 
 
 @admin.register(User)
@@ -50,6 +50,13 @@ class ConsentLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(NotificationPreference)
+class NotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ("user", "updated_at")
+    search_fields = ("user__email",)
+    readonly_fields = ("updated_at",)
 
 
 @admin.register(AuditLog)

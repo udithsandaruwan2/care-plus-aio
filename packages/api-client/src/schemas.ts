@@ -80,6 +80,32 @@ export const ConsentRow = z.object({
 });
 export type ConsentRow = z.infer<typeof ConsentRow>;
 
+export const NotificationEventPreference = z.object({
+  key: z.string(),
+  label: z.string(),
+  description: z.string(),
+  category: z.enum(['security', 'transactional', 'marketing']),
+  locked: z.boolean(),
+  email: z.boolean(),
+  push: z.boolean(),
+});
+export type NotificationEventPreference = z.infer<typeof NotificationEventPreference>;
+
+export const NotificationPreferences = z.object({
+  channels: z.object({
+    email: z.record(z.boolean()),
+    push: z.record(z.boolean()),
+  }),
+  events: z.array(NotificationEventPreference),
+});
+export type NotificationPreferences = z.infer<typeof NotificationPreferences>;
+
+export const NotificationPreferencesUpdate = z.object({
+  email: z.record(z.boolean()).optional(),
+  push: z.record(z.boolean()).optional(),
+});
+export type NotificationPreferencesUpdate = z.infer<typeof NotificationPreferencesUpdate>;
+
 export const MatchBreakdown = z.object({
   cbf: z.number(),
   cf: z.number(),

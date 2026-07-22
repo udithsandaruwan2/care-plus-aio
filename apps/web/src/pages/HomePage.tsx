@@ -297,6 +297,14 @@ export function HomePage() {
                 Presence
               </Link>
             )}
+            {user && (
+              <Link
+                to="/settings/notifications"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-amber hover:text-amber"
+              >
+                Notifications
+              </Link>
+            )}
             <button
               type="button"
               onClick={logout}
