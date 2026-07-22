@@ -3,11 +3,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .audit import record_audit
-from .models import AuditAction, AuditLog, ConsentLog, ConsentScope
+from .models import AuditAction, AuditLog, ConsentLog, ConsentScope, NotificationPreference
 from .permissions import HasAIConsent, RolePermission
 from .serializers import (
     AuditLogSerializer,
     ConsentLogSerializer,
+    NotificationPreferenceUpdateSerializer,
     RegisterSerializer,
     UserSerializer,
 )
@@ -74,6 +75,38 @@ class ConsentGateCheckView(APIView):
 
     def get(self, request):
         return Response({"ok": True, "scope": ConsentScope.AI_PROCESSING.value})
+
+
+class NotificationPreferenceView(APIView):
+    """GET/PATCH /notification-preferences/ — email/push toggles per event."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .notification_preferences import merge_preferences, preferences_payload
+
+        pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        merged = merge_preferences(pref.channels)
+        return Response(preferences_payload(merged))
+
+    def patch(self, request):
+        from .notification_preferences import (
+            apply_preference_patch,
+            merge_preferences,
+            preferences_payload,
+        )
+
+        ser = NotificationPreferenceUpdateSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        current = merge_preferences(pref.channels)
+        try:
+            merged = apply_preference_patch(current, ser.validated_data)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        pref.channels = merged
+        pref.save(update_fields=["channels", "updated_at"])
+        return Response(preferences_payload(merged))
 
 
 class AuditLogListView(generics.ListAPIView):

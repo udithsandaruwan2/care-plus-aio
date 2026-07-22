@@ -43,6 +43,11 @@ class ConsentLogSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class NotificationPreferenceUpdateSerializer(serializers.Serializer):
+    email = serializers.DictField(child=serializers.BooleanField(), required=False)
+    push = serializers.DictField(child=serializers.BooleanField(), required=False)
+
+
 class AuditLogSerializer(serializers.ModelSerializer):
     actor_email = serializers.EmailField(source="actor.email", read_only=True, allow_null=True)
 

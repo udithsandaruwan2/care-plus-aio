@@ -132,6 +132,13 @@ def send_order_receipt(*, order: Order, payment_intent=None, source: str = "") -
         logger.warning("Order %s has no patient email; skipping receipt.", order.pk)
         return False
 
+    from apps.accounts.notification_preferences import is_notification_enabled
+
+    if not is_notification_enabled(
+        order.patient, channel="email", event_key="payment_receipt"
+    ):
+        return False
+
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@careplus.local")
     subject = f"Care Plus receipt — Order #{order.pk}"
     body = format_receipt_text(order=order, payment_intent=payment_intent, source=source)

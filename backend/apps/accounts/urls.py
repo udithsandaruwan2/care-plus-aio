@@ -8,6 +8,7 @@ from .views import (
     ConsentView,
     DemoViewHealthView,
     MeView,
+    NotificationPreferenceView,
     RegisterView,
 )
 
@@ -19,6 +20,11 @@ urlpatterns = [
     path("auth/admin-only/", AdminOnlyView.as_view(), name="admin_only"),
     path("consent/", ConsentView.as_view(), name="consent"),
     path("consent/gate-check/", ConsentGateCheckView.as_view(), name="consent_gate_check"),
+    path(
+        "notification-preferences/",
+        NotificationPreferenceView.as_view(),
+        name="notification_preferences",
+    ),
     path("audit/", AuditLogListView.as_view(), name="audit_list"),
     path("audit/demo-view-health/", DemoViewHealthView.as_view(), name="audit_demo_view_health"),
 ]
