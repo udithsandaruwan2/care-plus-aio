@@ -17,6 +17,7 @@ import { OrderPayPage } from './pages/OrderPayPage';
 import { OrderSuccessPage } from './pages/OrderSuccessPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
+import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
 import { PatientOnboardingPage } from './pages/PatientOnboardingPage';
 import { RegisterPage } from './pages/RegisterPage';
 
@@ -37,6 +38,7 @@ export function App() {
           <Route path="/requests" element={<CareRequestsPage />} />
           <Route path="/records" element={<MedicalRecordsPage />} />
           <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
           <Route path="/requests/:careRequestId/checkout" element={<CheckoutPage />} />
           <Route path="/orders/:orderId/pay" element={<OrderPayPage />} />
           <Route path="/orders/:orderId/success" element={<OrderSuccessPage />} />
