@@ -45,16 +45,22 @@ export function ActiveCareLinkCard({ relationship, role, onEnded }: Props) {
             to={`/caregivers/${relationship.caregiver_id}`}
             className="rounded-lg border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10"
           >
-            Message / profile
+            Profile
           </Link>
         ) : (
           <Link
             to="/requests"
             className="rounded-lg border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10"
           >
-            Message / requests
+            Requests
           </Link>
         )}
+        <Link
+          to="/messages"
+          className="rounded-lg border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10"
+        >
+          Messages
+        </Link>
         <Link
           to="/records"
           className="rounded-lg border border-hair px-3 py-1.5 text-xs text-muted transition hover:border-violet hover:text-violet"
