@@ -26,6 +26,7 @@ class MedicalRecord(models.Model):
     description = models.TextField(blank=True, default="")
     sensitive_notes_ciphertext = models.TextField(blank=True, default="")
     recorded_at = models.DateField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

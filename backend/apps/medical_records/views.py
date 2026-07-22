@@ -21,9 +21,16 @@ from .serializers import (
     MedicalRecordCreateSerializer,
     MedicalRecordDetailSerializer,
     MedicalRecordListSerializer,
+    MedicalRecordUpdateSerializer,
     SignedDownloadUrlSerializer,
 )
-from .services import create_medical_record, records_queryset_for_user, upload_attachment
+from .services import (
+    create_medical_record,
+    records_queryset_for_user,
+    soft_delete_medical_record,
+    update_medical_record,
+    upload_attachment,
+)
 
 
 class MedicalRecordListCreateView(generics.ListCreateAPIView):
@@ -63,6 +70,7 @@ class MedicalRecordListCreateView(generics.ListCreateAPIView):
                 sensitive_notes=data.get("sensitive_notes", ""),
                 recorded_at=data.get("recorded_at"),
                 upload_file=upload_file,
+                request=request,
             )
         except PermissionDenied:
             raise
@@ -76,21 +84,61 @@ class MedicalRecordListCreateView(generics.ListCreateAPIView):
         return Response(out.data, status=status.HTTP_201_CREATED)
 
 
-class MedicalRecordDetailView(generics.RetrieveAPIView):
-    """GET /medical-records/<id>/ — audited detail with decrypted notes."""
+class MedicalRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """GET/PATCH/DELETE /medical-records/<id>/ — audited detail; patient update/soft-delete."""
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = MedicalRecordDetailSerializer
     lookup_url_kwarg = "pk"
+    http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         return records_queryset_for_user(self.request.user)
+
+    def get_permissions(self):
+        if self.request.method in ("PATCH", "DELETE"):
+            return [permissions.IsAuthenticated(), IsPatient()]
+        return super().get_permissions()
 
     def retrieve(self, request, *args, **kwargs):
         record = self.get_object()
         record = read_medical_record(user=request.user, record=record, request=request)
         serializer = self.get_serializer(record)
         return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        record = self.get_object()
+        ser = MedicalRecordUpdateSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        try:
+            record = update_medical_record(
+                record=record,
+                patient=request.user,
+                condition_slug=data.get("condition_slug"),
+                title=data.get("title"),
+                description=data.get("description"),
+                sensitive_notes=data.get("sensitive_notes"),
+                recorded_at=data.get("recorded_at", ...),
+                request=request,
+            )
+        except PermissionDenied:
+            raise
+        except DRFValidationError:
+            raise
+        except Exception as exc:
+            raise DRFValidationError(str(exc)) from exc
+
+        record = read_medical_record(user=request.user, record=record, request=request)
+        return Response(MedicalRecordDetailSerializer(record).data)
+
+    def destroy(self, request, *args, **kwargs):
+        record = self.get_object()
+        try:
+            soft_delete_medical_record(record=record, patient=request.user, request=request)
+        except PermissionDenied:
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MedicalRecordAttachmentUploadView(APIView):
@@ -101,7 +149,9 @@ class MedicalRecordAttachmentUploadView(APIView):
 
     def post(self, request, pk: int):
         try:
-            record = MedicalRecord.objects.get(pk=pk, patient=request.user)
+            record = MedicalRecord.objects.get(
+                pk=pk, patient=request.user, deleted_at__isnull=True
+            )
         except MedicalRecord.DoesNotExist as exc:
             raise NotFound("Medical record not found.") from exc
 

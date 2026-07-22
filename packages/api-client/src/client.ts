@@ -41,6 +41,7 @@ import {
   type LeadCreate,
   type MatchInput,
   type MedicalRecordCreateInput,
+  type MedicalRecordUpdateInput,
   type PatientProfileUpdate,
   type RegisterInput,
   type VoiceIntentInput,
@@ -431,6 +432,14 @@ export function createApiClient(options: ApiClientOptions) {
     },
     getMedicalRecord: (id: number) =>
       request(`/medical-records/${id}/`, {}, (d) => MedicalRecordDetail.parse(d)),
+    updateMedicalRecord: (id: number, input: MedicalRecordUpdateInput) =>
+      request(
+        `/medical-records/${id}/`,
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => MedicalRecordDetail.parse(d),
+      ),
+    deleteMedicalRecord: (id: number) =>
+      request(`/medical-records/${id}/`, { method: 'DELETE' }, () => undefined),
     uploadMedicalRecordAttachment: (recordId: number, file: Blob, filename?: string) => {
       const form = new FormData();
       form.append('file', file, filename ?? 'attachment');

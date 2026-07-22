@@ -15,6 +15,7 @@ import { LoginPage } from './pages/LoginPage';
 import { OrderFailedPage } from './pages/OrderFailedPage';
 import { OrderPayPage } from './pages/OrderPayPage';
 import { OrderSuccessPage } from './pages/OrderSuccessPage';
+import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { PatientOnboardingPage } from './pages/PatientOnboardingPage';
 import { RegisterPage } from './pages/RegisterPage';
 
@@ -33,6 +34,7 @@ export function App() {
           <Route path="/onboarding" element={<PatientOnboardingPage />} />
           <Route path="/caregiver-onboarding" element={<CaregiverOnboardingPage />} />
           <Route path="/requests" element={<CareRequestsPage />} />
+          <Route path="/records" element={<MedicalRecordsPage />} />
           <Route path="/requests/:careRequestId/checkout" element={<CheckoutPage />} />
           <Route path="/orders/:orderId/pay" element={<OrderPayPage />} />
           <Route path="/orders/:orderId/success" element={<OrderSuccessPage />} />

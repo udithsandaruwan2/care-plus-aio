@@ -12,6 +12,8 @@ from .models import MedicalRecord
 
 
 def can_read_medical_record(user, record: MedicalRecord) -> bool:
+    if record.deleted_at is not None:
+        return False
     role = getattr(user, "role", None)
     if role in (Role.ADMIN, Role.AUDITOR):
         return True

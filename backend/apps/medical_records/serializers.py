@@ -63,6 +63,14 @@ class MedicalRecordCreateSerializer(serializers.Serializer):
     recorded_at = serializers.DateField(required=False, allow_null=True)
 
 
+class MedicalRecordUpdateSerializer(serializers.Serializer):
+    condition_slug = serializers.SlugField(max_length=64, required=False)
+    title = serializers.CharField(max_length=200, required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    sensitive_notes = serializers.CharField(required=False, allow_blank=True)
+    recorded_at = serializers.DateField(required=False, allow_null=True)
+
+
 class SignedDownloadUrlSerializer(serializers.Serializer):
     attachment_id = serializers.IntegerField()
     url = serializers.CharField()
