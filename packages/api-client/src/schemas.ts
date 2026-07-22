@@ -617,3 +617,34 @@ export const SignedDownloadUrl = z.object({
   expires_in: z.number(),
 });
 export type SignedDownloadUrl = z.infer<typeof SignedDownloadUrl>;
+
+export const MessageThread = z.object({
+  id: z.number(),
+  relationship_id: z.number(),
+  patient_id: z.number(),
+  caregiver_id: z.number(),
+  partner_label: z.string(),
+  unread_count: z.number(),
+  created_at: z.string(),
+});
+export type MessageThread = z.infer<typeof MessageThread>;
+
+export const Message = z.object({
+  id: z.number(),
+  thread_id: z.number(),
+  sender_id: z.number(),
+  sender_role: z.string(),
+  body: z.string(),
+  created_at: z.string(),
+  read_at: z.string().nullable().optional(),
+  is_mine: z.boolean(),
+});
+export type Message = z.infer<typeof Message>;
+
+export const MessageReadResult = z.object({
+  thread_id: z.number(),
+  last_read_message_id: z.number(),
+  reader_id: z.number(),
+  updated_count: z.number(),
+});
+export type MessageReadResult = z.infer<typeof MessageReadResult>;

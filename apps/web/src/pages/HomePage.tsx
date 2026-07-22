@@ -243,6 +243,14 @@ export function HomePage() {
             )}
             {user?.role === 'patient' && (
               <Link
+                to="/messages"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+              >
+                Messages
+              </Link>
+            )}
+            {user?.role === 'patient' && (
+              <Link
                 to="/records"
                 className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-violet hover:text-violet"
               >
@@ -263,6 +271,14 @@ export function HomePage() {
                 className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
               >
                 Inbox
+              </Link>
+            )}
+            {user?.role === 'caregiver' && (
+              <Link
+                to="/messages"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
+              >
+                Messages
               </Link>
             )}
             {user?.role === 'caregiver' && (
