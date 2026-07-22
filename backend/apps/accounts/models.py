@@ -133,6 +133,9 @@ class AuditAction(models.TextChoices):
     CONFIRM_PAYMENT = "confirm_payment", "Payment confirmed (mock or webhook)"
     PAYMENT_WEBHOOK = "payment_webhook", "Payment provider webhook received"
     RECEIPT_SENT = "receipt_sent", "Payment receipt emailed to patient"
+    CREATE_MEDICAL_RECORD = "create_medical_record", "Patient created medical record"
+    UPDATE_MEDICAL_RECORD = "update_medical_record", "Patient updated medical record"
+    DELETE_MEDICAL_RECORD = "delete_medical_record", "Patient soft-deleted medical record"
 
 
 class AuditLog(models.Model):

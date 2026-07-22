@@ -99,10 +99,13 @@ def attachment_download_path(token: str) -> str:
 
 def get_attachment_or_404(attachment_id: int) -> MedicalRecordAttachment:
     try:
-        return MedicalRecordAttachment.objects.select_related(
+        attachment = MedicalRecordAttachment.objects.select_related(
             "record",
             "record__condition",
             "record__patient",
         ).get(pk=attachment_id)
     except MedicalRecordAttachment.DoesNotExist as exc:
         raise ValidationError("Attachment not found.") from exc
+    if attachment.record.deleted_at is not None:
+        raise ValidationError("Attachment not found.")
+    return attachment
