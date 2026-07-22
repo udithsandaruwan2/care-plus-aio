@@ -602,6 +602,15 @@ export const MedicalRecordCreateInput = z.object({
 });
 export type MedicalRecordCreateInput = z.infer<typeof MedicalRecordCreateInput>;
 
+export const MedicalRecordUpdateInput = z.object({
+  condition_slug: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  sensitive_notes: z.string().optional(),
+  recorded_at: z.string().nullable().optional(),
+});
+export type MedicalRecordUpdateInput = z.infer<typeof MedicalRecordUpdateInput>;
+
 export const SignedDownloadUrl = z.object({
   attachment_id: z.number(),
   url: z.string(),
