@@ -81,6 +81,14 @@ NOTIFICATION_EVENTS: dict[str, NotificationEventSpec] = {
         category="transactional",
         default_push=False,
     ),
+    "payment_due": NotificationEventSpec(
+        key="payment_due",
+        label="Payment due reminders",
+        description="Checkout reminders after a caregiver accepts your request.",
+        category="transactional",
+        default_push=True,
+        default_email=True,
+    ),
     "marketing_newsletter": NotificationEventSpec(
         key="marketing_newsletter",
         label="Care Plus newsletter",

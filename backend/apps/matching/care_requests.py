@@ -86,6 +86,9 @@ def create_care_request(
         caregiver.user_id,
         _care_request_payload(care_request, event="created"),
     )
+    from apps.accounts.notifications.dispatch import notify_care_request_received_email
+
+    notify_care_request_received_email(care_request)
     return care_request
 
 
@@ -150,6 +153,14 @@ def accept_care_request(request: CareRequest, *, caregiver_user) -> tuple[CareRe
     payload["relationship_id"] = relationship.pk
     payload["relationship_status"] = relationship.status
     push_care_request_update(request.patient_id, payload)
+
+    from apps.accounts.notifications.dispatch import (
+        notify_care_request_accepted_email,
+        notify_payment_due_email,
+    )
+
+    notify_care_request_accepted_email(request, relationship=relationship)
+    notify_payment_due_email(request)
     return request, relationship
 
 
