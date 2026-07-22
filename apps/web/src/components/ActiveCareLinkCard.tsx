@@ -56,7 +56,7 @@ export function ActiveCareLinkCard({ relationship, role, onEnded }: Props) {
           </Link>
         )}
         <Link
-          to="/requests"
+          to="/records"
           className="rounded-lg border border-hair px-3 py-1.5 text-xs text-muted transition hover:border-violet hover:text-violet"
         >
           Care records

@@ -241,6 +241,14 @@ export function HomePage() {
                 Requests
               </Link>
             )}
+            {user?.role === 'patient' && (
+              <Link
+                to="/records"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-violet hover:text-violet"
+              >
+                Records
+              </Link>
+            )}
             {user?.role === 'caregiver' && !isMatchEligible && (
               <Link
                 to="/caregiver-onboarding"
@@ -255,6 +263,14 @@ export function HomePage() {
                 className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
               >
                 Inbox
+              </Link>
+            )}
+            {user?.role === 'caregiver' && (
+              <Link
+                to="/records"
+                className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-violet hover:text-violet"
+              >
+                Records
               </Link>
             )}
             {user?.role === 'caregiver' && (
