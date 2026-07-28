@@ -47,3 +47,6 @@ cryptography>=49.0.0,<50
 
 # Web Push (Step 41) — VAPID browser notifications
 pywebpush==2.0.1
+
+# Mobile push (Step 49) — FCM/APNs via Firebase Admin SDK
+firebase-admin==6.8.0

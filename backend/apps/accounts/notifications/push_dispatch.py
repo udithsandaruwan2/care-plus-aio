@@ -47,6 +47,35 @@ def queue_web_push(
     return True
 
 
+def queue_mobile_push(
+    *,
+    user,
+    event_key: str,
+    title: str,
+    body: str,
+    data: dict[str, str] | None = None,
+) -> bool:
+    """Enqueue mobile push when FCM/APNs credentials + device tokens are present."""
+    from apps.accounts.mobile_push import mobile_push_configured
+
+    if not mobile_push_configured():
+        return False
+    if not is_notification_enabled(user, channel="push", event_key=event_key):
+        return False
+    if not user.mobile_push_devices.filter(enabled=True).exists():
+        return False
+    from .tasks import send_mobile_push_notification
+
+    send_mobile_push_notification.delay(
+        user_id=user.pk,
+        event_key=event_key,
+        title=title,
+        body=body,
+        data=data or {},
+    )
+    return True
+
+
 def notify_care_request_received_push(request) -> bool:
     caregiver_user = request.caregiver.user
     patient_label = (
@@ -69,4 +98,26 @@ def notify_care_request_accepted_push(request) -> bool:
         title="Care request accepted",
         body=f"{request.caregiver.display_name} accepted your request. Complete checkout to start care.",
         url=f"{frontend_base_url()}/requests/{request.pk}/checkout",
+    )
+
+
+def notify_health_critical_mobile(
+    *,
+    user,
+    event_id: int,
+    caregiver_id: int | None = None,
+    match_run_id: int | None = None,
+) -> bool:
+    """Push urgent health anomaly alert to mobile device(s)."""
+    return queue_mobile_push(
+        user=user,
+        event_key="health_critical",
+        title="Critical health alert",
+        body="We detected a critical health pattern and dispatched an emergency caregiver match.",
+        data={
+            "event_type": "health_critical",
+            "event_id": str(event_id),
+            "caregiver_id": str(caregiver_id or ""),
+            "match_run_id": str(match_run_id or ""),
+        },
     )

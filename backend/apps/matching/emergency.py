@@ -6,6 +6,7 @@ import time
 
 from django.db import transaction
 
+from apps.accounts.notifications.push_dispatch import notify_health_critical_mobile
 from apps.health_monitoring.models import HealthEvent
 
 from .engine import run_match
@@ -126,6 +127,12 @@ def emergency_rematch_for_health_event(event: HealthEvent) -> dict:
         },
     }
     push_match_results(patient.pk, payload)
+    notify_health_critical_mobile(
+        user=patient,
+        event_id=event.pk,
+        caregiver_id=selected.caregiver_id,
+        match_run_id=run.pk,
+    )
     event.rematch_run = run
     event.handled_at = run.created_at
     event.payload = {**(event.payload or {}), "dispatched": True}
