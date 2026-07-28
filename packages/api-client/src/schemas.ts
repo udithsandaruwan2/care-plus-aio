@@ -310,12 +310,13 @@ export const CaregiverDetail = CaregiverProfile.extend({
         id: z.number().optional(),
         rating: z.number().optional(),
         comment: z.string().optional(),
-        author: z.string().optional(),
+        created_at: z.string().optional(),
       }),
     )
     .optional()
     .default([]),
   review_count: z.number().int().optional().default(0),
+  review_average: z.number().nullable().optional(),
 });
 export type CaregiverDetail = z.infer<typeof CaregiverDetail>;
 

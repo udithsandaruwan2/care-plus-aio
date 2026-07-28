@@ -134,6 +134,7 @@ class ReviewApiTests(APITestCase):
         detail = self.client.get(reverse("v1:caregiver_detail", kwargs={"pk": self.caregiver.pk}))
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
         self.assertEqual(detail.data["review_count"], 1)
+        self.assertEqual(detail.data["review_average"], 5.0)
         self.assertEqual(len(detail.data["reviews_teaser"]), 1)
         self.assertEqual(detail.data["reviews_teaser"][0]["rating"], 5)
 
@@ -150,4 +151,5 @@ class ReviewApiTests(APITestCase):
         detail = self.client.get(reverse("v1:caregiver_detail", kwargs={"pk": self.caregiver.pk}))
         self.assertEqual(detail.status_code, status.HTTP_200_OK)
         self.assertEqual(detail.data["review_count"], 0)
+        self.assertIsNone(detail.data["review_average"])
         self.assertEqual(detail.data["reviews_teaser"], [])

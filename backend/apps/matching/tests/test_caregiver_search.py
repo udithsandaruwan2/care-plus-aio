@@ -133,6 +133,7 @@ class CaregiverSearchApiTests(APITestCase):
         self.assertEqual(resp.data["display_name"], "Colombo Diabetes CG")
         self.assertEqual(resp.data["approximate_area"], "Colombo")
         self.assertEqual(resp.data["review_count"], 0)
+        self.assertIsNone(resp.data["review_average"])
         self.assertIn("certifications", resp.data)
         self.assertTrue(
             AuditLog.objects.filter(

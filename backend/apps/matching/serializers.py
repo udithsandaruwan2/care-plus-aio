@@ -1,4 +1,5 @@
 from django.contrib.gis.geos import Point
+from django.db.models import Avg
 from rest_framework import serializers
 
 from apps.vocab.models import ConditionTerm
@@ -158,12 +159,14 @@ class CaregiverDetailSerializer(CaregiverProfileSerializer):
     approximate_area = serializers.SerializerMethodField()
     reviews_teaser = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
+    review_average = serializers.SerializerMethodField()
 
     class Meta(CaregiverProfileSerializer.Meta):
         fields = CaregiverProfileSerializer.Meta.fields + (
             "approximate_area",
             "reviews_teaser",
             "review_count",
+            "review_average",
         )
 
     def get_approximate_area(self, obj):
@@ -186,6 +189,16 @@ class CaregiverDetailSerializer(CaregiverProfileSerializer):
 
     def get_review_count(self, obj):
         return Review.objects.filter(caregiver=obj, status=ReviewStatus.APPROVED).count()
+
+    def get_review_average(self, obj):
+        value = (
+            Review.objects.filter(caregiver=obj, status=ReviewStatus.APPROVED).aggregate(
+                avg=Avg("rating")
+            )["avg"]
+        )
+        if value is None:
+            return None
+        return round(float(value), 2)
 
     def get_longitude(self, obj):
         # Fuzz to ~1 km for public detail (browse map still uses list coords).
