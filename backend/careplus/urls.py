@@ -13,6 +13,7 @@ api_v1 = [
     path("", include("apps.catalog.urls")),
     path("", include("apps.medical_records.urls")),
     path("", include("apps.messaging.urls")),
+    path("", include("apps.health_monitoring.urls")),
 ]
 
 urlpatterns = [
