@@ -106,6 +106,29 @@ export const NotificationPreferencesUpdate = z.object({
 });
 export type NotificationPreferencesUpdate = z.infer<typeof NotificationPreferencesUpdate>;
 
+export const VapidPublicKey = z.object({
+  public_key: z.string(),
+  configured: z.boolean(),
+});
+export type VapidPublicKey = z.infer<typeof VapidPublicKey>;
+
+export const PushSubscriptionInput = z.object({
+  endpoint: z.string(),
+  keys: z.object({
+    p256dh: z.string(),
+    auth: z.string(),
+  }),
+  user_agent: z.string().optional(),
+});
+export type PushSubscriptionInput = z.infer<typeof PushSubscriptionInput>;
+
+export const PushSubscriptionResult = z.object({
+  id: z.number(),
+  endpoint: z.string(),
+  created: z.boolean(),
+});
+export type PushSubscriptionResult = z.infer<typeof PushSubscriptionResult>;
+
 export const MatchBreakdown = z.object({
   cbf: z.number(),
   cf: z.number(),

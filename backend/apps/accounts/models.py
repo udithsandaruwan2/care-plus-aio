@@ -132,6 +132,28 @@ class NotificationPreference(models.Model):
         return f"NotificationPreference user={self.user_id}"
 
 
+class PushSubscription(models.Model):
+    """Browser Web Push subscription (VAPID) for a user (Step 41)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions",
+    )
+    endpoint = models.URLField(max_length=2048, unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    user_agent = models.CharField(max_length=512, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self):
+        return f"PushSubscription#{self.pk} user={self.user_id}"
+
+
 class AuditAction(models.TextChoices):
     """Well-known audit action codes (HIPAA/PDPA access trail)."""
 
