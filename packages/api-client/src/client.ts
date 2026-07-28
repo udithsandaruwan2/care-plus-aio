@@ -3,15 +3,12 @@ import {
   CaregiverDetail,
   CaregiverListResponse,
   CaregiverMeProfile,
-  CaregiverProfile,
   CareRequest,
-  CareRequestCreate,
   CareRequestListResponse,
   CareRelationship,
   CareRelationshipListResponse,
   ConditionListResponse,
   Lead,
-  LeadCreate,
   LeadListResponse,
   CarePackage,
   CatalogAddOn,
@@ -23,6 +20,7 @@ import {
   Message,
   MessageReadResult,
   MessageThread,
+  MobilePushDeviceResult,
   NotificationPreferences,
   Order,
   PaymentIntent,
@@ -51,6 +49,7 @@ import {
   type MedicalRecordCreateInput,
   type MedicalRecordUpdateInput,
   type HealthMetricIngestInput,
+  type MobilePushDeviceInput,
   type NotificationPreferencesUpdate,
   type PatientProfileUpdate,
   type PushSubscriptionInput,
@@ -269,6 +268,18 @@ export function createApiClient(options: ApiClientOptions) {
       request(
         '/push/subscriptions/',
         { method: 'DELETE', body: JSON.stringify({ endpoint }) },
+        (d) => z.object({ deleted: z.number() }).parse(d),
+      ),
+    registerMobilePushDevice: (input: MobilePushDeviceInput) =>
+      request(
+        '/push/mobile/devices/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => MobilePushDeviceResult.parse(d),
+      ),
+    unregisterMobilePushDevice: (token: string) =>
+      request(
+        '/push/mobile/devices/',
+        { method: 'DELETE', body: JSON.stringify({ token }) },
         (d) => z.object({ deleted: z.number() }).parse(d),
       ),
     ingestHealthMetric: (input: HealthMetricIngestInput) =>
