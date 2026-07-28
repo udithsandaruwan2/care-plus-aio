@@ -154,6 +154,41 @@ class PushSubscription(models.Model):
         return f"PushSubscription#{self.pk} user={self.user_id}"
 
 
+class MobilePushPlatform(models.TextChoices):
+    FCM = "fcm", "Firebase Cloud Messaging"
+    APNS = "apns", "Apple Push Notification service"
+
+
+class MobilePushDevice(models.Model):
+    """Mobile push token for Expo/native apps (Step 49)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mobile_push_devices",
+    )
+    token = models.CharField(max_length=512, unique=True)
+    platform = models.CharField(
+        max_length=16,
+        choices=MobilePushPlatform.choices,
+        default=MobilePushPlatform.FCM,
+    )
+    device_id = models.CharField(max_length=128, blank=True, default="")
+    app_version = models.CharField(max_length=64, blank=True, default="")
+    enabled = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+        indexes = [
+            models.Index(fields=["user", "enabled", "-updated_at"], name="mpd_user_enabled_ts_idx"),
+        ]
+
+    def __str__(self):
+        return f"MobilePushDevice#{self.pk} user={self.user_id} {self.platform}"
+
+
 class AuditAction(models.TextChoices):
     """Well-known audit action codes (HIPAA/PDPA access trail)."""
 

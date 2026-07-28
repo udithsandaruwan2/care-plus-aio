@@ -179,6 +179,22 @@ export const HealthMetricWindow = z.object({
 });
 export type HealthMetricWindow = z.infer<typeof HealthMetricWindow>;
 
+export const MobilePushDeviceInput = z.object({
+  token: z.string().min(1),
+  platform: z.enum(['fcm', 'apns']).optional().default('fcm'),
+  device_id: z.string().optional(),
+  app_version: z.string().optional(),
+});
+export type MobilePushDeviceInput = z.infer<typeof MobilePushDeviceInput>;
+
+export const MobilePushDeviceResult = z.object({
+  id: z.number(),
+  token: z.string(),
+  platform: z.enum(['fcm', 'apns']),
+  created: z.boolean(),
+});
+export type MobilePushDeviceResult = z.infer<typeof MobilePushDeviceResult>;
+
 export const MatchBreakdown = z.object({
   cbf: z.number(),
   cf: z.number(),

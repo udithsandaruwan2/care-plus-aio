@@ -74,6 +74,14 @@ NOTIFICATION_EVENTS: dict[str, NotificationEventSpec] = {
         default_push=True,
         default_email=False,
     ),
+    "health_critical": NotificationEventSpec(
+        key="health_critical",
+        label="Critical health alerts",
+        description="Urgent anomaly alerts and emergency rematch notifications.",
+        category="transactional",
+        default_push=True,
+        default_email=True,
+    ),
     "payment_receipt": NotificationEventSpec(
         key="payment_receipt",
         label="Payment receipts",

@@ -8,6 +8,7 @@ from .views import (
     ConsentView,
     DemoViewHealthView,
     MeView,
+    MobilePushDeviceView,
     NotificationPreferenceView,
     PushSubscriptionView,
     RegisterView,
@@ -29,6 +30,7 @@ urlpatterns = [
     ),
     path("push/vapid-public-key/", VapidPublicKeyView.as_view(), name="vapid_public_key"),
     path("push/subscriptions/", PushSubscriptionView.as_view(), name="push_subscriptions"),
+    path("push/mobile/devices/", MobilePushDeviceView.as_view(), name="mobile_push_devices"),
     path("audit/", AuditLogListView.as_view(), name="audit_list"),
     path("audit/demo-view-health/", DemoViewHealthView.as_view(), name="audit_demo_view_health"),
 ]

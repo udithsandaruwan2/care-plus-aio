@@ -226,6 +226,8 @@ WEB_PUSH_ENABLED = env.bool("WEB_PUSH_ENABLED", default=True)
 VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", default="")
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
 VAPID_SUBJECT = env("VAPID_SUBJECT", default="mailto:noreply@careplus.local")
+# Step 49 — mobile push alerts via Firebase Admin SDK.
+FCM_CREDENTIALS_JSON = env("FCM_CREDENTIALS_JSON", default="")
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",

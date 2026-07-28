@@ -106,3 +106,43 @@ def send_web_push_notification(
     if stale_ids:
         PushSubscription.objects.filter(pk__in=stale_ids).delete()
     return {"sent": sent, "removed": len(stale_ids), "user_id": user_id, "event_key": event_key}
+
+
+@shared_task(name="accounts.send_mobile_push_notification")
+def send_mobile_push_notification(
+    user_id: int,
+    event_key: str,
+    title: str,
+    body: str,
+    data: dict | None = None,
+) -> dict:
+    """Deliver mobile push via FCM/APNs tokens."""
+    from apps.accounts.mobile_push import mobile_push_configured, send_mobile_push
+    from apps.accounts.models import MobilePushDevice
+    from apps.accounts.notification_preferences import is_notification_enabled
+
+    if not mobile_push_configured():
+        return {"sent": 0, "reason": "fcm_not_configured"}
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return {"sent": 0, "reason": "user_not_found"}
+    if not is_notification_enabled(user, channel="push", event_key=event_key):
+        return {"sent": 0, "reason": "disabled"}
+
+    sent = 0
+    stale_ids: list[int] = []
+    for dev in MobilePushDevice.objects.filter(user=user, enabled=True):
+        ok = send_mobile_push(
+            token=dev.token,
+            title=title,
+            body=body,
+            data={str(k): str(v) for k, v in (data or {}).items()},
+        )
+        if ok:
+            sent += 1
+        else:
+            stale_ids.append(dev.pk)
+    if stale_ids:
+        MobilePushDevice.objects.filter(pk__in=stale_ids).update(enabled=False)
+    return {"sent": sent, "disabled": len(stale_ids), "user_id": user_id, "event_key": event_key}

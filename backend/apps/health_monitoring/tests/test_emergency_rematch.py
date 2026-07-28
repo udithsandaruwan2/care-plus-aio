@@ -76,8 +76,9 @@ class EmergencyRematchTests(TestCase):
             recorded_at=self.now - timedelta(minutes=minutes_ago),
         )
 
+    @patch("apps.matching.emergency.notify_health_critical_mobile")
     @patch("apps.matching.emergency.push_match_results")
-    def test_health_critical_event_triggers_emergency_ws_push(self, push_mock):
+    def test_health_critical_event_triggers_emergency_ws_push(self, push_mock, mobile_mock):
         self._glucose(215, 7)
         self._glucose(205, 4)
         self._glucose(210, 1)
@@ -95,4 +96,5 @@ class EmergencyRematchTests(TestCase):
         self.assertTrue(payload["emergency"])
         self.assertEqual(payload["results"][0]["caregiver_id"], self.cg_advanced.pk)
         self.assertEqual(payload["emergency_context"]["event_id"], event.pk)
+        mobile_mock.assert_called_once()
 

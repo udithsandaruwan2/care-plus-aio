@@ -61,6 +61,13 @@ class PushSubscriptionSerializer(serializers.Serializer):
         return {"p256dh": p256dh, "auth": auth}
 
 
+class MobilePushDeviceSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=512)
+    platform = serializers.ChoiceField(choices=["fcm", "apns"], required=False, default="fcm")
+    device_id = serializers.CharField(max_length=128, required=False, allow_blank=True, default="")
+    app_version = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
+
+
 class AuditLogSerializer(serializers.ModelSerializer):
     actor_email = serializers.EmailField(source="actor.email", read_only=True, allow_null=True)
 

@@ -8,6 +8,7 @@ from .models import (
     AuditLog,
     ConsentLog,
     ConsentScope,
+    MobilePushDevice,
     NotificationPreference,
     PushSubscription,
 )
@@ -15,6 +16,7 @@ from .permissions import HasAIConsent, RolePermission
 from .serializers import (
     AuditLogSerializer,
     ConsentLogSerializer,
+    MobilePushDeviceSerializer,
     NotificationPreferenceUpdateSerializer,
     PushSubscriptionSerializer,
     RegisterSerializer,
@@ -167,6 +169,38 @@ class PushSubscriptionView(APIView):
         if not endpoint:
             return Response({"detail": "endpoint is required."}, status=status.HTTP_400_BAD_REQUEST)
         deleted, _ = PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+        return Response({"deleted": deleted})
+
+
+class MobilePushDeviceView(APIView):
+    """POST/DELETE /push/mobile/devices/ — register/remove mobile device token."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        ser = MobilePushDeviceSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        row, created = MobilePushDevice.objects.update_or_create(
+            token=data["token"],
+            defaults={
+                "user": request.user,
+                "platform": data.get("platform", "fcm"),
+                "device_id": data.get("device_id", ""),
+                "app_version": data.get("app_version", ""),
+                "enabled": True,
+            },
+        )
+        return Response(
+            {"id": row.pk, "token": row.token, "platform": row.platform, "created": created},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request):
+        token = (request.data.get("token") or request.query_params.get("token") or "").strip()
+        if not token:
+            return Response({"detail": "token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        deleted, _ = MobilePushDevice.objects.filter(user=request.user, token=token).delete()
         return Response({"deleted": deleted})
 
 
