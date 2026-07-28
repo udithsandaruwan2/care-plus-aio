@@ -103,7 +103,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M7** Catalog + checkout + payments  | 29–33   | ✅                |
 | **M8** Medical records                | 34–37   | ✅ done          |
 | **M9** Messaging + notifications      | 38–41   | ✅ done          |
-| **M10** Reviews → trust               | 42–44   | ⬜                |
+| **M10** Reviews → trust               | 42–44   | 🟡 42 done       |
 | **M11** Health monitoring + emergency | 45–49   | ⬜                |
 | **M12** Scheduling + Redlock          | 50–53   | ⬜                |
 | **M13** Admin console                 | 54–58   | ⬜                |
