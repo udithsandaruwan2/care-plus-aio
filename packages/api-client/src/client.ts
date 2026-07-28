@@ -18,6 +18,8 @@ import {
   MedicalRecordAttachment,
   MedicalRecordDetail,
   MedicalRecordList,
+  HealthMetric,
+  HealthMetricWindow,
   Message,
   MessageReadResult,
   MessageThread,
@@ -48,6 +50,7 @@ import {
   type MatchInput,
   type MedicalRecordCreateInput,
   type MedicalRecordUpdateInput,
+  type HealthMetricIngestInput,
   type NotificationPreferencesUpdate,
   type PatientProfileUpdate,
   type PushSubscriptionInput,
@@ -268,6 +271,20 @@ export function createApiClient(options: ApiClientOptions) {
         { method: 'DELETE', body: JSON.stringify({ endpoint }) },
         (d) => z.object({ deleted: z.number() }).parse(d),
       ),
+    ingestHealthMetric: (input: HealthMetricIngestInput) =>
+      request(
+        '/health/metrics/ingest/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => HealthMetric.parse(d),
+      ),
+    healthMetricWindow: (params: { kind: string; hours?: number; patient_id?: number }) => {
+      const qs = new URLSearchParams();
+      qs.set('kind', params.kind);
+      if (params.hours != null) qs.set('hours', String(params.hours));
+      if (params.patient_id != null) qs.set('patient_id', String(params.patient_id));
+      const q = qs.toString();
+      return request(`/health/metrics/window/?${q}`, {}, (d) => HealthMetricWindow.parse(d));
+    },
     match: (input: MatchInput) =>
       request(
         '/match/',

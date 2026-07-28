@@ -129,6 +129,56 @@ export const PushSubscriptionResult = z.object({
 });
 export type PushSubscriptionResult = z.infer<typeof PushSubscriptionResult>;
 
+export const HealthMetric = z.object({
+  id: z.number(),
+  patient: z.number(),
+  kind: z.enum(['heart_rate', 'blood_glucose', 'spo2']),
+  value: z.number(),
+  unit: z.string().optional().default(''),
+  source: z.string().optional().default('manual'),
+  recorded_at: z.string(),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
+  created_at: z.string(),
+});
+export type HealthMetric = z.infer<typeof HealthMetric>;
+
+export const HealthMetricIngestInput = z.object({
+  patient_id: z.number().optional(),
+  kind: z.enum(['heart_rate', 'blood_glucose', 'spo2']),
+  value: z.number(),
+  unit: z.string().optional(),
+  source: z.string().optional(),
+  recorded_at: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+export type HealthMetricIngestInput = z.infer<typeof HealthMetricIngestInput>;
+
+export const HealthMetricWindow = z.object({
+  kind: z.string(),
+  window_hours: z.number(),
+  count: z.number(),
+  min: z.number().nullable().optional(),
+  max: z.number().nullable().optional(),
+  avg: z.number().nullable().optional(),
+  latest: z
+    .object({
+      value: z.number(),
+      unit: z.string().optional().default(''),
+      source: z.string().optional().default('manual'),
+      recorded_at: z.string(),
+    })
+    .nullable()
+    .optional(),
+  series: z.array(
+    z.object({
+      bucket: z.string(),
+      avg: z.number().nullable().optional(),
+      count: z.number(),
+    }),
+  ),
+});
+export type HealthMetricWindow = z.infer<typeof HealthMetricWindow>;
+
 export const MatchBreakdown = z.object({
   cbf: z.number(),
   cf: z.number(),
