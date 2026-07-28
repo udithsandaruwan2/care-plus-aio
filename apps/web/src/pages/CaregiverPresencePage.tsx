@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CaregiverProfile } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { PageHeader } from '../components/ui/PageHeader';
 
 /** Caregiver soft presence — toggle is_available (Step 20e). */
 export function CaregiverPresencePage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<CaregiverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,31 +59,12 @@ export function CaregiverPresencePage() {
   const available = profile?.is_available !== false;
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-lg flex-col px-6 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">Presence</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-mist">
-              Availability
-            </h1>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/"
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-cyan hover:text-cyan"
-            >
-              Neural Core
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted transition hover:border-rose hover:text-rose"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
+        <PageHeader
+        eyebrow="Presence"
+        title="Availability"
+        subtitle="Toggle whether you appear available for new matches."
+      />
 
         {loading && <p className="mt-10 text-sm text-muted">Loading…</p>}
 
@@ -144,7 +125,6 @@ export function CaregiverPresencePage() {
             </Link>
           </section>
         )}
-      </main>
-    </AtmosphereShell>
+      </div>
   );
 }

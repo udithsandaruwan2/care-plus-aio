@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { PaymentIntent } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
-import { useAuth } from '../auth/AuthContext';
+import { PageHeader } from '../components/ui/PageHeader';
 
 /** Payment failure / incomplete — retry path back to pay. */
 export function OrderFailedPage() {
   const { orderId } = useParams<{ orderId: string }>();
-  const { logout } = useAuth();
+  
   const [intent, setIntent] = useState<PaymentIntent | null>(null);
   const id = Number(orderId);
 
@@ -21,24 +20,12 @@ export function OrderFailedPage() {
   }, [id]);
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-rose">Failed</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-mist">Payment not completed</h1>
-            <p className="mt-2 text-sm text-muted">
-              Your order is still awaiting payment. You can try again when ready.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-rose hover:text-rose"
-          >
-            Sign out
-          </button>
-        </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
+        <PageHeader
+        eyebrow="Failed"
+        title="Payment not completed"
+        subtitle="Your order is still awaiting payment. You can try again when ready."
+      />
 
         {intent?.failure_message && (
           <p className="mt-8 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
@@ -61,7 +48,6 @@ export function OrderFailedPage() {
             Back to requests
           </Link>
         </div>
-      </main>
-    </AtmosphereShell>
+      </div>
   );
 }

@@ -1,10 +1,11 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
 import type { Message, MessageThread } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useMessageSocket } from '../messaging/useMessageSocket';
+import { Link, Navigate } from 'react-router-dom';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Button } from '../components/ui/Button';
 
 const POLL_MS = 4000;
 
@@ -14,7 +15,7 @@ function formatTime(value: string): string {
 }
 
 export function MessagesPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [thread, setThread] = useState<MessageThread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,42 +136,22 @@ export function MessagesPage() {
   }
 
   if (user && !isPatient && !isCaregiver) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/platform" replace />;
   }
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">Messaging</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-mist">
-              {thread?.partner_label ?? 'Care chat'}
-            </h1>
-            <p className="mt-2 text-sm text-muted">
-              {thread
-                ? wsConnected
-                  ? 'Connected · messages arrive in realtime'
-                  : 'Polling for new messages'
-                : 'Start care with a linked partner to message here.'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/"
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-cyan hover:text-cyan"
-            >
-              Neural Core
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-rose hover:text-rose"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
+      <PageHeader
+        eyebrow="Messaging"
+        title={thread?.partner_label ?? 'Care chat'}
+        subtitle={
+          thread
+            ? wsConnected
+              ? 'Connected: messages arrive in realtime.'
+              : 'Realtime unavailable: polling for new messages.'
+            : 'Start care with a linked partner to unlock messaging.'
+        }
+      />
 
         {error && (
           <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
@@ -181,9 +162,19 @@ export function MessagesPage() {
         {loading && <p className="mt-8 text-sm text-muted">Loading conversation…</p>}
 
         {!loading && !thread && (
-          <p className="mt-8 text-sm text-muted">
-            No active care relationship — accept a request and complete checkout to unlock messaging.
-          </p>
+          <div className="mt-8 rounded-2xl border border-hair bg-panel/50 p-5">
+            <p className="text-sm text-muted">
+              No active care relationship yet. Accept a request and complete checkout to unlock messaging.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link to="/caregivers">
+                <Button>Browse caregivers</Button>
+              </Link>
+              <Link to="/requests">
+                <Button tone="ghost">Open requests</Button>
+              </Link>
+            </div>
+          </div>
         )}
 
         {thread && (
@@ -239,7 +230,6 @@ export function MessagesPage() {
             </div>
           </>
         )}
-      </main>
-    </AtmosphereShell>
+    </div>
   );
 }

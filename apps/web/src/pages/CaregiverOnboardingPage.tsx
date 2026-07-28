@@ -1,10 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import type { CaregiverMeProfile, ConditionTerm } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
-
 const LANGUAGES = ['Sinhala', 'Tamil', 'English'] as const;
 const CARE_LEVELS = ['basic', 'intermediate', 'advanced'] as const;
 const CERTIFICATIONS = [
@@ -148,7 +146,7 @@ export function CaregiverOnboardingPage() {
   ]);
 
   if (user?.role !== 'caregiver') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/platform" replace />;
   }
 
   function onCityChange(name: string) {
@@ -204,8 +202,7 @@ export function CaregiverOnboardingPage() {
   }
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-2xl flex-col px-6 py-10">
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
         <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">
           Caregiver onboarding
         </p>
@@ -214,7 +211,7 @@ export function CaregiverOnboardingPage() {
         <p className="mt-2 text-sm text-muted">
           Profile {completion}% complete — need 80% to appear in patient match results.
         </p>
-        <motionStepChips steps={steps} step={step} />
+        <MotionStepChips steps={steps} step={step} />
 
         {loading ? (
           <p className="mt-8 text-muted">Loading your profile…</p>
@@ -279,17 +276,17 @@ export function CaregiverOnboardingPage() {
                   </div>
                 </Field>
                 <Field label="Specialties (medical vocabulary)">
-                  <motionSpecialtyGrid
+                  <MotionSpecialtyGrid
                     conditions={conditions}
                     selected={selectedSpecialties}
                     toggle={toggleSpecialty}
                   />
                 </Field>
                 <Field label="Care levels you support">
-                  <motionCareLevelRow levels={careLevels} toggle={toggleCareLevel} />
+                  <MotionCareLevelRow levels={careLevels} toggle={toggleCareLevel} />
                 </Field>
                 <Field label="Certifications">
-                  <motionCertGrid certs={certifications} toggle={toggleCertification} />
+                  <MotionCertGrid certs={certifications} toggle={toggleCertification} />
                 </Field>
                 <Field label="Years of experience">
                   <input
@@ -374,12 +371,11 @@ export function CaregiverOnboardingPage() {
         )}
 
         <p className="mt-6 text-center text-sm text-muted">
-          <Link to="/" className="text-cyan hover:underline">
-            Back to Neural Core
+          <Link to="/platform" className="text-cyan hover:underline">
+            Back to home
           </Link>
         </p>
-      </main>
-    </AtmosphereShell>
+      </div>
   );
 }
 
@@ -403,7 +399,7 @@ function OnboardingProgressBar({ completion }: { completion: number }) {
   );
 }
 
-function motionStepChips({ steps, step }: { steps: string[]; step: number }) {
+function MotionStepChips({ steps, step }: { steps: string[]; step: number }) {
   return (
     <div className="mt-3 flex flex-wrap gap-2">
       {steps.map((label, i) => (
@@ -420,7 +416,7 @@ function motionStepChips({ steps, step }: { steps: string[]; step: number }) {
   );
 }
 
-function motionSpecialtyGrid({
+function MotionSpecialtyGrid({
   conditions,
   selected,
   toggle,
@@ -449,7 +445,7 @@ function motionSpecialtyGrid({
   );
 }
 
-function motionCareLevelRow({
+function MotionCareLevelRow({
   levels,
   toggle,
 }: {
@@ -476,7 +472,7 @@ function motionCareLevelRow({
   );
 }
 
-function motionCertGrid({
+function MotionCertGrid({
   certs,
   toggle,
 }: {

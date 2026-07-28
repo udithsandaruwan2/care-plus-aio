@@ -1,11 +1,11 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { PageHeader } from '../components/ui/PageHeader';
 import type {
   ConditionTerm,
   MedicalRecordDetail,
   MedicalRecordList,
 } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useCurrentCareRelationship } from '../auth/useCurrentCareRelationship';
@@ -47,7 +47,7 @@ const emptyForm = (): RecordFormState => ({
 });
 
 export function MedicalRecordsPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const care = useCurrentCareRelationship();
   const isPatient = user?.role === 'patient';
   const isCaregiver = user?.role === 'caregiver';
@@ -123,7 +123,7 @@ export function MedicalRecordsPage() {
   }, [selectedId, loadDetail]);
 
   if (user && user.role !== 'patient' && user.role !== 'caregiver') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/platform" replace />;
   }
 
   const partnerLabel =
@@ -236,49 +236,18 @@ export function MedicalRecordsPage() {
   }
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-violet">
-              {isCaregiver ? 'Patient health' : 'Records vault'}
-            </p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-mist">
-              {isCaregiver ? 'Care records' : 'My medical records'}
-            </h1>
-            {isCaregiver && partnerLabel && (
-              <p className="mt-2 text-sm text-muted">
-                Viewing records for <span className="text-mist">{partnerLabel}</span> while your care
-                link is active. Every view is audited.
-              </p>
-            )}
-            {isCaregiver && !care.loading && !care.relationship && (
-              <p className="mt-2 text-sm text-amber">
-                No active care relationship — records appear only while you are linked to a patient.
-              </p>
-            )}
-            {isPatient && (
-              <p className="mt-2 text-sm text-muted">
-                Store clinical notes and attachments. Linked caregivers can read while care is active.
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/"
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-cyan hover:text-cyan"
-            >
-              Neural Core
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-rose hover:text-rose"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
+      <PageHeader
+        eyebrow={isCaregiver ? 'Patient health' : 'Records'}
+        title={isCaregiver ? 'Care records' : 'My medical records'}
+        subtitle={
+          isCaregiver
+            ? partnerLabel
+              ? `Viewing records for ${partnerLabel}. Every access is audited.`
+              : 'No active care relationship. Records appear only while linked to a patient.'
+            : 'Store clinical notes and attachments. Linked caregivers can read while care is active.'
+        }
+      />
 
         {isCaregiver && (
           <p className="mt-4 rounded-xl border border-violet/30 bg-violet/5 px-4 py-3 text-xs text-violet">
@@ -588,7 +557,6 @@ export function MedicalRecordsPage() {
             )}
           </section>
         )}
-      </main>
-    </AtmosphereShell>
+    </div>
   );
 }

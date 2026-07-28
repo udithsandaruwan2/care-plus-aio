@@ -6,6 +6,8 @@ export default {
       colors: {
         void: 'var(--cp-bg-void)',
         panel: 'var(--cp-bg-panel)',
+        elevated: 'var(--cp-bg-elevated)',
+        soft: 'var(--cp-bg-soft)',
         cyan: 'var(--cp-accent-cyan)',
         violet: 'var(--cp-accent-violet)',
         mint: 'var(--cp-accent-mint)',
@@ -14,6 +16,8 @@ export default {
         mist: 'var(--cp-text-primary)',
         muted: 'var(--cp-text-muted)',
         hair: 'var(--cp-border-hair)',
+        strong: 'var(--cp-border-strong)',
+        inverse: 'var(--cp-text-inverse)',
       },
       fontFamily: {
         display: ['var(--cp-font-display)'],

@@ -61,22 +61,31 @@ function MatchCard({
   const explanation = localizeExplanation(hit.explanation, uiLanguage);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [message, setMessage] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const km =
     hit.distance_m != null && Number.isFinite(hit.distance_m)
       ? `${(hit.distance_m / 1000).toFixed(1)} km`
       : null;
   const changed = hit.previous_rank != null && hit.previous_rank !== hit.rank;
 
-  async function onRequest() {
+  function startRequest() {
     if (!canRequestCare) {
-      window.alert(
-        'Complete your patient profile (at least 80%) before requesting care. Open Profile from the header or go to /onboarding.',
+      setFormError(
+        'Complete your patient profile (at least 80%) before requesting care. Open Account or go to /onboarding.',
       );
       return;
     }
     if (sent || busy) return;
-    const message = window.prompt('Optional message for the caregiver:') ?? '';
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  async function onRequest() {
+    if (!canRequestCare || sent || busy) return;
     setBusy(true);
+    setFormError(null);
     try {
       await api.createCareRequest({
         caregiver_id: hit.caregiver_id,
@@ -91,6 +100,7 @@ function MatchCard({
         },
       });
       setSent(true);
+      setShowForm(false);
       const confirmation =
         uiLanguage === 'Sinhala'
           ? `${hit.display_name || 'මෙම caregiver'} වෙත ඉල්ලීම යැව්වා. ඔහු/ඇය පිළිතුරු දෙන තෙක් ඔබේ තත්ත්වය ගැන කෙටි update එකක් මට කියන්න.`
@@ -111,7 +121,7 @@ function MatchCard({
           : err instanceof Error
             ? err.message
             : 'Request failed.';
-      window.alert(msg);
+      setFormError(msg);
     } finally {
       setBusy(false);
     }
@@ -158,32 +168,62 @@ function MatchCard({
         >
           {ui.viewProfile}
         </Link>
-        <button
-          type="button"
-          disabled={!canRequestCare || busy || sent || hit.is_available === false}
-          className="w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:border-hair disabled:text-muted"
-          onClick={() => void onRequest()}
-        >
-          {sent
-            ? uiLanguage === 'Sinhala'
-              ? 'ඉල්ලීම යැවිණි'
-              : uiLanguage === 'Tamil'
-                ? 'கோரிக்கை அனுப்பப்பட்டது'
-                : 'Request sent'
-            : busy
+        {!showForm && (
+          <button
+            type="button"
+            disabled={!canRequestCare || busy || sent || hit.is_available === false}
+            className="w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:border-hair disabled:text-muted"
+            onClick={startRequest}
+          >
+            {sent
               ? uiLanguage === 'Sinhala'
-                ? 'යවමින්…'
+                ? 'ඉල්ලීම යැවිණි'
                 : uiLanguage === 'Tamil'
-                  ? 'அனுப்புகிறது…'
-                  : 'Sending…'
-              : canRequestCare
-                ? ui.request
-                : uiLanguage === 'Sinhala'
-                  ? 'ඉල්ලීමට පැතිකඩ සම්පූර්ණ කරන්න'
+                  ? 'கோரிக்கை அனுப்பப்பட்டது'
+                  : 'Request sent'
+              : busy
+                ? uiLanguage === 'Sinhala'
+                  ? 'යවමින්…'
                   : uiLanguage === 'Tamil'
-                    ? 'கோரிக்கைக்கு சுயவிவரம் நிரம்பவும்'
-                    : 'Complete profile to request'}
-        </button>
+                    ? 'அனுப்புகிறது…'
+                    : 'Sending…'
+                : canRequestCare
+                  ? ui.request
+                  : uiLanguage === 'Sinhala'
+                    ? 'ඉල්ලීමට පැතිකඩ සම්පූර්ණ කරන්න'
+                    : uiLanguage === 'Tamil'
+                      ? 'கோரிக்கைக்கு சுயவிவரம் நிரம்பவும்'
+                      : 'Complete profile to request'}
+          </button>
+        )}
+        {showForm && !sent && (
+          <div className="space-y-2 rounded-xl border border-hair bg-soft/40 p-3">
+            <input
+              className="w-full rounded-lg border border-hair bg-elevated px-3 py-2 text-xs text-mist outline-none"
+              placeholder="Optional message for the caregiver"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void onRequest()}
+                className="rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan"
+              >
+                {busy ? 'Sending…' : 'Send request'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        {formError && <p className="text-[11px] text-rose">{formError}</p>}
       </div>
     </article>
   );

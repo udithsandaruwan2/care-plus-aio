@@ -77,7 +77,7 @@ export function useWebPush(): WebPushState {
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapid.public_key),
+          applicationServerKey: urlBase64ToUint8Array(vapid.public_key) as BufferSource,
         });
       }
       const json = sub.toJSON();
