@@ -29,6 +29,7 @@ from .care_relationships import (
 from .care_requests import accept_care_request, cancel_care_request, create_care_request, reject_care_request
 from .caregiver_profile import activate_caregiver_if_ready
 from .models import (
+    CaregiverAvailabilitySlot,
     CareRequest,
     CaregiverProfile,
     CareRelationship,
@@ -45,6 +46,8 @@ from .serializers import (
     CaregiverMeSerializer,
     CaregiverProfileSerializer,
     CaregiverProfileUpdateSerializer,
+    CaregiverAvailabilitySlotCreateSerializer,
+    CaregiverAvailabilitySlotSerializer,
     CareRequestActionSerializer,
     CareRequestCreateSerializer,
     CareRequestSerializer,
@@ -201,6 +204,82 @@ class CaregiverMeView(APIView):
         profile = activate_caregiver_if_ready(profile)
         profile.refresh_from_db()
         return Response(CaregiverMeSerializer(profile).data)
+
+
+class CaregiverAvailabilitySlotListCreateView(APIView):
+    """GET/POST /caregivers/me/availability-slots/ — caregiver weekly schedule."""
+
+    permission_classes = [permissions.IsAuthenticated, IsCaregiver]
+
+    def _profile(self, user) -> CaregiverProfile:
+        profile, _ = CaregiverProfile.objects.get_or_create(
+            user=user,
+            defaults={
+                "display_name": user.first_name or user.email.split("@")[0],
+                "location": Point(79.8612, 6.9271, srid=4326),
+                "city": "",
+                "is_active": False,
+                "is_approved": False,
+            },
+        )
+        return profile
+
+    def get(self, request):
+        profile = self._profile(request.user)
+        rows = profile.availability_slots.all().order_by("weekday", "start_time")
+        return Response(CaregiverAvailabilitySlotSerializer(rows, many=True).data)
+
+    def post(self, request):
+        profile = self._profile(request.user)
+        ser = CaregiverAvailabilitySlotCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        row = CaregiverAvailabilitySlot.objects.create(caregiver=profile, **ser.validated_data)
+        return Response(CaregiverAvailabilitySlotSerializer(row).data, status=status.HTTP_201_CREATED)
+
+
+class CaregiverAvailabilitySlotDetailView(APIView):
+    """PATCH/DELETE /caregivers/me/availability-slots/<id>/."""
+
+    permission_classes = [permissions.IsAuthenticated, IsCaregiver]
+
+    def _get_slot(self, *, request, pk: int) -> CaregiverAvailabilitySlot:
+        try:
+            row = CaregiverAvailabilitySlot.objects.select_related("caregiver", "caregiver__user").get(
+                pk=pk
+            )
+        except CaregiverAvailabilitySlot.DoesNotExist as exc:
+            raise NotFound("Availability slot not found.") from exc
+        if row.caregiver.user_id != request.user.pk:
+            raise PermissionDenied("Cannot modify another caregiver's slot.")
+        return row
+
+    def patch(self, request, pk: int):
+        row = self._get_slot(request=request, pk=pk)
+        ser = CaregiverAvailabilitySlotCreateSerializer(row, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(CaregiverAvailabilitySlotSerializer(row).data)
+
+    def delete(self, request, pk: int):
+        row = self._get_slot(request=request, pk=pk)
+        row.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CaregiverAvailabilityPublicListView(generics.ListAPIView):
+    """GET /caregivers/<id>/availability-slots/ — patient visible free weekly slots."""
+
+    serializer_class = CaregiverAvailabilitySlotSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        caregiver_id = self.kwargs["pk"]
+        return CaregiverAvailabilitySlot.objects.filter(
+            caregiver_id=caregiver_id,
+            caregiver__is_active=True,
+            caregiver__is_available=True,
+            is_active=True,
+        ).order_by("weekday", "start_time")
 
 
 class PatientMeView(APIView):

@@ -3,6 +3,7 @@ import {
   CaregiverDetail,
   CaregiverListResponse,
   CaregiverMeProfile,
+  CaregiverAvailabilitySlot,
   CareRequest,
   CareRequestListResponse,
   CareRelationship,
@@ -41,6 +42,7 @@ import {
   VoiceTurnResponse,
   DialoguePolicy,
   type CaregiverListParams,
+  type CaregiverAvailabilitySlotInput,
   type CaregiverProfileUpdate,
   type CareRequestCreate,
   type CheckoutCreate,
@@ -281,6 +283,32 @@ export function createApiClient(options: ApiClientOptions) {
         '/push/mobile/devices/',
         { method: 'DELETE', body: JSON.stringify({ token }) },
         (d) => z.object({ deleted: z.number() }).parse(d),
+      ),
+    listMyAvailabilitySlots: () =>
+      request('/caregivers/me/availability-slots/', {}, (d) =>
+        z.array(CaregiverAvailabilitySlot).parse(d),
+      ),
+    createMyAvailabilitySlot: (input: CaregiverAvailabilitySlotInput) =>
+      request(
+        '/caregivers/me/availability-slots/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => CaregiverAvailabilitySlot.parse(d),
+      ),
+    updateMyAvailabilitySlot: (id: number, input: Partial<CaregiverAvailabilitySlotInput>) =>
+      request(
+        `/caregivers/me/availability-slots/${id}/`,
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => CaregiverAvailabilitySlot.parse(d),
+      ),
+    deleteMyAvailabilitySlot: (id: number) =>
+      request(
+        `/caregivers/me/availability-slots/${id}/`,
+        { method: 'DELETE' },
+        (d) => z.any().optional().parse(d),
+      ),
+    listCaregiverAvailabilitySlots: (caregiverId: number) =>
+      request(`/caregivers/${caregiverId}/availability-slots/`, {}, (d) =>
+        z.array(CaregiverAvailabilitySlot).parse(d),
       ),
     ingestHealthMetric: (input: HealthMetricIngestInput) =>
       request(

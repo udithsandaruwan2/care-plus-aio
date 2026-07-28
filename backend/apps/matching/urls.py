@@ -3,6 +3,9 @@ from django.urls import path
 from .views import (
     AhpWeightsView,
     CaregiverDetailView,
+    CaregiverAvailabilityPublicListView,
+    CaregiverAvailabilitySlotDetailView,
+    CaregiverAvailabilitySlotListCreateView,
     CaregiverListView,
     CaregiverMeView,
     CareRelationshipActionView,
@@ -22,7 +25,22 @@ from .views import (
 urlpatterns = [
     path("caregivers/", CaregiverListView.as_view(), name="caregiver_list"),
     path("caregivers/me/", CaregiverMeView.as_view(), name="caregiver_me"),
+    path(
+        "caregivers/me/availability-slots/",
+        CaregiverAvailabilitySlotListCreateView.as_view(),
+        name="caregiver_availability_slot_list",
+    ),
+    path(
+        "caregivers/me/availability-slots/<int:pk>/",
+        CaregiverAvailabilitySlotDetailView.as_view(),
+        name="caregiver_availability_slot_detail",
+    ),
     path("caregivers/<int:pk>/", CaregiverDetailView.as_view(), name="caregiver_detail"),
+    path(
+        "caregivers/<int:pk>/availability-slots/",
+        CaregiverAvailabilityPublicListView.as_view(),
+        name="caregiver_availability_public_list",
+    ),
     path("patients/", PatientListView.as_view(), name="patient_list"),
     path("patients/me/", PatientMeView.as_view(), name="patient_me"),
     path("care-requests/", CareRequestListCreateView.as_view(), name="care_request_list"),

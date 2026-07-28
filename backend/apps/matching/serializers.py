@@ -5,7 +5,15 @@ from rest_framework import serializers
 from apps.vocab.models import ConditionTerm
 
 from .caregiver_profile import caregiver_profile_completion
-from .models import CaregiverProfile, Language, PatientProfile, Review, ReviewStatus
+from .models import (
+    AvailabilityWeekday,
+    CaregiverAvailabilitySlot,
+    CaregiverProfile,
+    Language,
+    PatientProfile,
+    Review,
+    ReviewStatus,
+)
 from .patient_profile import patient_profile_completion
 
 
@@ -364,6 +372,45 @@ class MatchRequestSerializer(serializers.Serializer):
         lon, lat = attrs.get("longitude"), attrs.get("latitude")
         if (lon is None) ^ (lat is None):
             raise serializers.ValidationError("longitude and latitude must be provided together.")
+        return attrs
+
+
+class CaregiverAvailabilitySlotSerializer(serializers.ModelSerializer):
+    weekday_label = serializers.CharField(source="get_weekday_display", read_only=True)
+
+    class Meta:
+        model = CaregiverAvailabilitySlot
+        fields = (
+            "id",
+            "caregiver",
+            "weekday",
+            "weekday_label",
+            "start_time",
+            "end_time",
+            "timezone",
+            "is_active",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "caregiver", "created_at", "updated_at", "weekday_label")
+
+
+class CaregiverAvailabilitySlotCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CaregiverAvailabilitySlot
+        fields = ("weekday", "start_time", "end_time", "timezone", "is_active")
+
+    def validate_weekday(self, value):
+        allowed = {c.value for c in AvailabilityWeekday}
+        if value not in allowed:
+            raise serializers.ValidationError("weekday must be between 0 (Mon) and 6 (Sun).")
+        return value
+
+    def validate(self, attrs):
+        start = attrs.get("start_time")
+        end = attrs.get("end_time")
+        if start is not None and end is not None and start >= end:
+            raise serializers.ValidationError("end_time must be after start_time.")
         return attrs
 
 
