@@ -145,6 +145,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "matching.remind_care_requests",
         "schedule": crontab(minute=45),
     },
+    "recompute-caregiver-trust-nightly": {
+        "task": "matching.recompute_all_caregiver_trust",
+        "schedule": crontab(hour=3, minute=30),
+    },
 }
 
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────

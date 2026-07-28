@@ -108,6 +108,8 @@ class ReviewApiTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_admin_approves_review_and_detail_shows_it(self):
+        self.caregiver.trust_score = 0.2
+        self.caregiver.save(update_fields=["trust_score"])
         review = Review.objects.create(
             relationship=self.rel,
             patient=self.patient,
@@ -125,6 +127,8 @@ class ReviewApiTests(APITestCase):
         review.refresh_from_db()
         self.assertEqual(review.status, ReviewStatus.APPROVED)
         self.assertEqual(review.moderator_id, self.admin.pk)
+        self.caregiver.refresh_from_db()
+        self.assertGreater(self.caregiver.trust_score, 0.2)
 
         self.client.force_authenticate(self.patient)
         detail = self.client.get(reverse("v1:caregiver_detail", kwargs={"pk": self.caregiver.pk}))
