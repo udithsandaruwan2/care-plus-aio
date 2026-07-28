@@ -27,3 +27,19 @@ def remind_care_requests() -> dict:
 
     count = send_pending_care_request_reminders()
     return {"reminded": count}
+
+
+@shared_task(name="matching.recompute_caregiver_trust")
+def recompute_caregiver_trust(caregiver_id: int) -> dict:
+    """Recompute one caregiver trust score after review moderation."""
+    from .trust import recompute_caregiver_trust as recompute_one
+
+    return recompute_one(caregiver_id)
+
+
+@shared_task(name="matching.recompute_all_caregiver_trust")
+def recompute_all_caregiver_trust() -> dict:
+    """Batch recompute trust scores for all caregivers."""
+    from .trust import recompute_all_caregiver_trust as recompute_all
+
+    return recompute_all()

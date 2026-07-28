@@ -840,4 +840,8 @@ class ReviewModerationView(APIView):
         row.moderator = request.user
         row.moderated_at = timezone.now()
         row.save(update_fields=["status", "moderation_reason", "moderator", "moderated_at", "updated_at"])
+        if row.status == ReviewStatus.APPROVED:
+            from .trust import recompute_caregiver_trust
+
+            recompute_caregiver_trust(row.caregiver_id)
         return Response(ReviewSerializer(row).data)
