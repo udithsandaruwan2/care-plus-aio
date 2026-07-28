@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import AuditLog, ConsentLog, NotificationPreference, User
+from .models import AuditLog, ConsentLog, NotificationPreference, PushSubscription, User
 
 
 @admin.register(User)
@@ -57,6 +57,13 @@ class NotificationPreferenceAdmin(admin.ModelAdmin):
     list_display = ("user", "updated_at")
     search_fields = ("user__email",)
     readonly_fields = ("updated_at",)
+
+
+@admin.register(PushSubscription)
+class PushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("user", "endpoint", "updated_at")
+    search_fields = ("user__email", "endpoint")
+    readonly_fields = ("created_at", "updated_at")
 
 
 @admin.register(AuditLog)

@@ -48,6 +48,19 @@ class NotificationPreferenceUpdateSerializer(serializers.Serializer):
     push = serializers.DictField(child=serializers.BooleanField(), required=False)
 
 
+class PushSubscriptionSerializer(serializers.Serializer):
+    endpoint = serializers.URLField(max_length=2048)
+    keys = serializers.DictField(child=serializers.CharField(max_length=255))
+    user_agent = serializers.CharField(max_length=512, required=False, allow_blank=True, default="")
+
+    def validate_keys(self, value):
+        p256dh = (value.get("p256dh") or "").strip()
+        auth = (value.get("auth") or "").strip()
+        if not p256dh or not auth:
+            raise serializers.ValidationError("keys.p256dh and keys.auth are required.")
+        return {"p256dh": p256dh, "auth": auth}
+
+
 class AuditLogSerializer(serializers.ModelSerializer):
     actor_email = serializers.EmailField(source="actor.email", read_only=True, allow_null=True)
 

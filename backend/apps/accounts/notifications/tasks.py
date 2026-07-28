@@ -63,3 +63,46 @@ def send_notification_email(
         "event_key": event_key,
         "language": language,
     }
+
+
+@shared_task(name="accounts.send_web_push_notification")
+def send_web_push_notification(
+    user_id: int,
+    event_key: str,
+    title: str,
+    body: str,
+    url: str = "/",
+) -> dict:
+    """Deliver browser Web Push to all of the user's subscriptions."""
+    from apps.accounts.models import PushSubscription
+    from apps.accounts.notification_preferences import is_notification_enabled
+    from apps.accounts.webpush import send_web_push, vapid_configured
+
+    if not vapid_configured():
+        return {"sent": 0, "reason": "vapid_not_configured"}
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return {"sent": 0, "reason": "user_not_found"}
+
+    if not is_notification_enabled(user, channel="push", event_key=event_key):
+        return {"sent": 0, "reason": "disabled"}
+
+    payload = {"title": title, "body": body, "url": url}
+    sent = 0
+    stale_ids: list[int] = []
+    for sub in PushSubscription.objects.filter(user=user):
+        ok = send_web_push(
+            endpoint=sub.endpoint,
+            p256dh=sub.p256dh,
+            auth=sub.auth,
+            payload=payload,
+        )
+        if ok:
+            sent += 1
+        else:
+            stale_ids.append(sub.pk)
+    if stale_ids:
+        PushSubscription.objects.filter(pk__in=stale_ids).delete()
+    return {"sent": sent, "removed": len(stale_ids), "user_id": user_id, "event_key": event_key}

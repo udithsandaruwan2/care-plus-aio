@@ -87,8 +87,10 @@ def create_care_request(
         _care_request_payload(care_request, event="created"),
     )
     from apps.accounts.notifications.dispatch import notify_care_request_received_email
+    from apps.accounts.notifications.push_dispatch import notify_care_request_received_push
 
     notify_care_request_received_email(care_request)
+    notify_care_request_received_push(care_request)
     return care_request
 
 
@@ -158,9 +160,11 @@ def accept_care_request(request: CareRequest, *, caregiver_user) -> tuple[CareRe
         notify_care_request_accepted_email,
         notify_payment_due_email,
     )
+    from apps.accounts.notifications.push_dispatch import notify_care_request_accepted_push
 
     notify_care_request_accepted_email(request, relationship=relationship)
     notify_payment_due_email(request)
+    notify_care_request_accepted_push(request)
     return request, relationship
 
 

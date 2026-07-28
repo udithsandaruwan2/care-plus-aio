@@ -3,12 +3,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .audit import record_audit
-from .models import AuditAction, AuditLog, ConsentLog, ConsentScope, NotificationPreference
+from .models import (
+    AuditAction,
+    AuditLog,
+    ConsentLog,
+    ConsentScope,
+    NotificationPreference,
+    PushSubscription,
+)
 from .permissions import HasAIConsent, RolePermission
 from .serializers import (
     AuditLogSerializer,
     ConsentLogSerializer,
     NotificationPreferenceUpdateSerializer,
+    PushSubscriptionSerializer,
     RegisterSerializer,
     UserSerializer,
 )
@@ -107,6 +115,59 @@ class NotificationPreferenceView(APIView):
         pref.channels = merged
         pref.save(update_fields=["channels", "updated_at"])
         return Response(preferences_payload(merged))
+
+
+class VapidPublicKeyView(APIView):
+    """GET /push/vapid-public-key/ — public key for browser subscribe."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .webpush import vapid_configured, vapid_public_key
+
+        key = vapid_public_key()
+        return Response(
+            {
+                "public_key": key,
+                "configured": vapid_configured(),
+            }
+        )
+
+
+class PushSubscriptionView(APIView):
+    """POST /push/subscriptions/ — register browser push subscription.
+    DELETE /push/subscriptions/ — remove by endpoint.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        ser = PushSubscriptionSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        keys = data["keys"]
+        endpoint = data["endpoint"]
+        ua = data.get("user_agent") or request.META.get("HTTP_USER_AGENT", "")[:512]
+        sub, created = PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={
+                "user": request.user,
+                "p256dh": keys["p256dh"],
+                "auth": keys["auth"],
+                "user_agent": ua,
+            },
+        )
+        return Response(
+            {"id": sub.pk, "endpoint": sub.endpoint, "created": created},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request):
+        endpoint = (request.data.get("endpoint") or request.query_params.get("endpoint") or "").strip()
+        if not endpoint:
+            return Response({"detail": "endpoint is required."}, status=status.HTTP_400_BAD_REQUEST)
+        deleted, _ = PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+        return Response({"deleted": deleted})
 
 
 class AuditLogListView(generics.ListAPIView):

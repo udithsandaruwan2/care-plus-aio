@@ -9,7 +9,9 @@ from .views import (
     DemoViewHealthView,
     MeView,
     NotificationPreferenceView,
+    PushSubscriptionView,
     RegisterView,
+    VapidPublicKeyView,
 )
 
 urlpatterns = [
@@ -25,6 +27,8 @@ urlpatterns = [
         NotificationPreferenceView.as_view(),
         name="notification_preferences",
     ),
+    path("push/vapid-public-key/", VapidPublicKeyView.as_view(), name="vapid_public_key"),
+    path("push/subscriptions/", PushSubscriptionView.as_view(), name="push_subscriptions"),
     path("audit/", AuditLogListView.as_view(), name="audit_list"),
     path("audit/demo-view-health/", DemoViewHealthView.as_view(), name="audit_demo_view_health"),
 ]
