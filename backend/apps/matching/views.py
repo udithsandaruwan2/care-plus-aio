@@ -4,6 +4,7 @@ from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -36,6 +37,8 @@ from .models import (
     MatchResult,
     MatchRun,
     PatientProfile,
+    Review,
+    ReviewStatus,
 )
 from .serializers import (
     CaregiverDetailSerializer,
@@ -50,6 +53,9 @@ from .serializers import (
     MatchRequestSerializer,
     PatientProfileSerializer,
     PatientProfileUpdateSerializer,
+    ReviewCreateSerializer,
+    ReviewModerationSerializer,
+    ReviewSerializer,
 )
 
 
@@ -759,3 +765,79 @@ class CareRelationshipActionView(APIView):
         push_care_relationship_update(rel.patient_id, payload)
         push_care_relationship_update(rel.caregiver.user_id, payload)
         return Response(CareRelationshipSerializer(rel).data)
+
+
+class ReviewListCreateView(generics.ListCreateAPIView):
+    """GET/POST /api/v1/reviews/ — patient creates pending review; admins list all."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        qs = Review.objects.select_related("patient", "caregiver", "relationship", "moderator")
+        user = self.request.user
+        if user.role == "admin":
+            return qs
+        if user.role == "patient":
+            return qs.filter(patient=user)
+        if user.role == "caregiver":
+            return qs.filter(caregiver__user=user, status=ReviewStatus.APPROVED)
+        return qs.none()
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return ReviewCreateSerializer
+        return ReviewSerializer
+
+    def create(self, request, *args, **kwargs):
+        if request.user.role != "patient":
+            raise PermissionDenied("Only patients can submit reviews.")
+        ser = ReviewCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        relationship_id = ser.validated_data["relationship_id"]
+        rating = ser.validated_data["rating"]
+        comment = ser.validated_data.get("comment", "").strip()
+        try:
+            rel = CareRelationship.objects.select_related("caregiver").get(pk=relationship_id)
+        except CareRelationship.DoesNotExist as exc:
+            raise NotFound("Care relationship not found.") from exc
+        if rel.patient_id != request.user.pk:
+            raise NotFound("Care relationship not found.")
+        if rel.status != CareRelationshipStatus.ENDED:
+            raise ValidationError("Review is allowed only after the care relationship is completed.")
+        if Review.objects.filter(relationship=rel).exists():
+            raise ValidationError("A review for this relationship already exists.")
+
+        row = Review.objects.create(
+            relationship=rel,
+            patient=request.user,
+            caregiver=rel.caregiver,
+            rating=rating,
+            comment=comment,
+            status=ReviewStatus.PENDING,
+        )
+        return Response(
+            ReviewSerializer(row).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ReviewModerationView(APIView):
+    """PATCH /api/v1/reviews/<id>/moderate/ — admin approve/reject review."""
+
+    permission_classes = [permissions.IsAuthenticated, RolePermission]
+    allowed_roles = ("admin",)
+
+    def patch(self, request, pk: int):
+        ser = ReviewModerationSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            row = Review.objects.select_related("caregiver").get(pk=pk)
+        except Review.DoesNotExist as exc:
+            raise NotFound("Review not found.") from exc
+        row.status = ser.validated_data["status"]
+        row.moderation_reason = ser.validated_data.get("moderation_reason", "").strip()
+        row.moderator = request.user
+        row.moderated_at = timezone.now()
+        row.save(update_fields=["status", "moderation_reason", "moderator", "moderated_at", "updated_at"])
+        return Response(ReviewSerializer(row).data)

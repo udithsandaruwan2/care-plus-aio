@@ -362,3 +362,63 @@ class CareRelationship(models.Model):
             f"CareRelationship#{self.pk} {self.status} "
             f"patient={self.patient_id} cg={self.caregiver_id}"
         )
+
+
+class ReviewStatus(models.TextChoices):
+    PENDING = "pending", "Pending moderation"
+    APPROVED = "approved", "Approved"
+    REJECTED = "rejected", "Rejected"
+
+
+class Review(models.Model):
+    """Patient feedback for a completed care relationship (Step 42)."""
+
+    relationship = models.OneToOneField(
+        CareRelationship,
+        on_delete=models.CASCADE,
+        related_name="review",
+    )
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reviews_written",
+    )
+    caregiver = models.ForeignKey(
+        CaregiverProfile,
+        on_delete=models.CASCADE,
+        related_name="reviews_received",
+    )
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    comment = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=16,
+        choices=ReviewStatus.choices,
+        default=ReviewStatus.PENDING,
+        db_index=True,
+    )
+    moderator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviews_moderated",
+    )
+    moderated_at = models.DateTimeField(null=True, blank=True)
+    moderation_reason = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["caregiver", "status", "-created_at"], name="review_cg_status_idx"),
+            models.Index(fields=["patient", "-created_at"], name="review_pt_created_idx"),
+        ]
+
+    def __str__(self):
+        return (
+            f"Review#{self.pk} {self.status} rating={self.rating} "
+            f"patient={self.patient_id} cg={self.caregiver_id}"
+        )
