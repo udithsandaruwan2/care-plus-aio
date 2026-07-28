@@ -40,6 +40,7 @@ from .models import (
     PatientProfile,
     Review,
     ReviewStatus,
+    Shift,
 )
 from .serializers import (
     CaregiverDetailSerializer,
@@ -59,7 +60,10 @@ from .serializers import (
     ReviewCreateSerializer,
     ReviewModerationSerializer,
     ReviewSerializer,
+    ShiftCreateSerializer,
+    ShiftSerializer,
 )
+from .shifts import book_shift, cancel_shift, shifts_queryset_for_user
 
 
 class CaregiverPagination(PageNumberPagination):
@@ -925,3 +929,71 @@ class ReviewModerationView(APIView):
 
             recompute_caregiver_trust(row.caregiver_id)
         return Response(ReviewSerializer(row).data)
+
+
+class ShiftListCreateView(APIView):
+    """GET/POST /api/v1/shifts/ — list my shifts / book (Redlock-protected)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated(), IsPatient()]
+        return super().get_permissions()
+
+    def get(self, request):
+        rows = shifts_queryset_for_user(request.user).order_by("-starts_at")[:100]
+        return Response(ShiftSerializer(rows, many=True).data)
+
+    def post(self, request):
+        ser = ShiftCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        shift = book_shift(
+            patient=request.user,
+            caregiver_id=data["caregiver_id"],
+            starts_at=data["starts_at"],
+            ends_at=data["ends_at"],
+            notes=data.get("notes", ""),
+            availability_slot_id=data.get("availability_slot_id"),
+            timezone_name=data.get("timezone") or "Asia/Colombo",
+        )
+        record_audit(
+            actor=request.user,
+            action=AuditAction.BOOK_SHIFT,
+            request=request,
+            target_type="shift",
+            target_id=shift.pk,
+            metadata={
+                "caregiver_id": shift.caregiver_id,
+                "starts_at": shift.starts_at.isoformat(),
+                "ends_at": shift.ends_at.isoformat(),
+            },
+        )
+        return Response(ShiftSerializer(shift).data, status=status.HTTP_201_CREATED)
+
+
+class ShiftDetailView(APIView):
+    """GET/DELETE /api/v1/shifts/<id>/ — detail / cancel booking."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk: int):
+        qs = shifts_queryset_for_user(request.user)
+        try:
+            shift = qs.get(pk=pk)
+        except Shift.DoesNotExist as exc:
+            raise NotFound("Shift not found.") from exc
+        return Response(ShiftSerializer(shift).data)
+
+    def delete(self, request, pk: int):
+        shift = cancel_shift(actor=request.user, shift_id=pk)
+        record_audit(
+            actor=request.user,
+            action=AuditAction.CANCEL_SHIFT,
+            request=request,
+            target_type="shift",
+            target_id=shift.pk,
+            metadata={"status": shift.status},
+        )
+        return Response(ShiftSerializer(shift).data)

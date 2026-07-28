@@ -470,3 +470,58 @@ class CaregiverAvailabilitySlot(models.Model):
             f"Slot#{self.pk} cg={self.caregiver_id} day={self.weekday} "
             f"{self.start_time}-{self.end_time}"
         )
+
+
+class ShiftStatus(models.TextChoices):
+    BOOKED = "booked", "Booked"
+    CANCELLED = "cancelled", "Cancelled"
+
+
+class Shift(models.Model):
+    """Dated care shift booking protected by Redis schedule lock (Step 51)."""
+
+    caregiver = models.ForeignKey(
+        CaregiverProfile,
+        on_delete=models.CASCADE,
+        related_name="shifts",
+    )
+    patient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="shifts",
+    )
+    availability_slot = models.ForeignKey(
+        CaregiverAvailabilitySlot,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="shifts",
+    )
+    starts_at = models.DateTimeField(db_index=True)
+    ends_at = models.DateTimeField(db_index=True)
+    timezone = models.CharField(max_length=64, default="Asia/Colombo")
+    status = models.CharField(
+        max_length=16,
+        choices=ShiftStatus.choices,
+        default=ShiftStatus.BOOKED,
+        db_index=True,
+    )
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-starts_at",)
+        indexes = [
+            models.Index(
+                fields=["caregiver", "status", "starts_at", "ends_at"],
+                name="shift_cg_window_idx",
+            ),
+            models.Index(
+                fields=["patient", "status", "starts_at"],
+                name="shift_pt_status_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Shift#{self.pk} cg={self.caregiver_id} {self.starts_at}-{self.ends_at} ({self.status})"

@@ -27,6 +27,7 @@ import {
   PaymentIntent,
   PushSubscriptionResult,
   SignedDownloadUrl,
+  Shift,
   VapidPublicKey,
   ConsentRow,
   ConsentState,
@@ -56,6 +57,7 @@ import {
   type PatientProfileUpdate,
   type PushSubscriptionInput,
   type RegisterInput,
+  type ShiftCreateInput,
   type VoiceIntentInput,
 } from './schemas';
 
@@ -310,6 +312,13 @@ export function createApiClient(options: ApiClientOptions) {
       request(`/caregivers/${caregiverId}/availability-slots/`, {}, (d) =>
         z.array(CaregiverAvailabilitySlot).parse(d),
       ),
+    listShifts: () =>
+      request('/shifts/', {}, (d) => z.array(Shift).parse(d)),
+    createShift: (input: ShiftCreateInput) =>
+      request('/shifts/', { method: 'POST', body: JSON.stringify(input) }, (d) => Shift.parse(d)),
+    getShift: (id: number) => request(`/shifts/${id}/`, {}, (d) => Shift.parse(d)),
+    cancelShift: (id: number) =>
+      request(`/shifts/${id}/`, { method: 'DELETE' }, (d) => Shift.parse(d)),
     ingestHealthMetric: (input: HealthMetricIngestInput) =>
       request(
         '/health/metrics/ingest/',

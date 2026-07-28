@@ -13,6 +13,7 @@ from .models import (
     PatientProfile,
     Review,
     ReviewStatus,
+    Shift,
 )
 from .patient_profile import patient_profile_completion
 
@@ -566,3 +567,41 @@ class ReviewCreateSerializer(serializers.Serializer):
 class ReviewModerationSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=[ReviewStatus.APPROVED, ReviewStatus.REJECTED])
     moderation_reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+
+class ShiftSerializer(serializers.ModelSerializer):
+    caregiver_name = serializers.CharField(source="caregiver.display_name", read_only=True)
+    patient_email = serializers.EmailField(source="patient.email", read_only=True)
+
+    class Meta:
+        model = Shift
+        fields = (
+            "id",
+            "caregiver",
+            "caregiver_name",
+            "patient",
+            "patient_email",
+            "availability_slot",
+            "starts_at",
+            "ends_at",
+            "timezone",
+            "status",
+            "notes",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class ShiftCreateSerializer(serializers.Serializer):
+    caregiver_id = serializers.IntegerField(min_value=1)
+    starts_at = serializers.DateTimeField()
+    ends_at = serializers.DateTimeField()
+    availability_slot_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    notes = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+    timezone = serializers.CharField(required=False, allow_blank=True, max_length=64)
+
+    def validate(self, attrs):
+        if attrs["ends_at"] <= attrs["starts_at"]:
+            raise serializers.ValidationError("ends_at must be after starts_at.")
+        return attrs
