@@ -24,7 +24,9 @@ import {
   NotificationPreferences,
   Order,
   PaymentIntent,
+  PushSubscriptionResult,
   SignedDownloadUrl,
+  VapidPublicKey,
   ConsentRow,
   ConsentState,
   HealthResponse,
@@ -48,6 +50,7 @@ import {
   type MedicalRecordUpdateInput,
   type NotificationPreferencesUpdate,
   type PatientProfileUpdate,
+  type PushSubscriptionInput,
   type RegisterInput,
   type VoiceIntentInput,
 } from './schemas';
@@ -250,6 +253,20 @@ export function createApiClient(options: ApiClientOptions) {
         '/notification-preferences/',
         { method: 'PATCH', body: JSON.stringify(input) },
         (d) => NotificationPreferences.parse(d),
+      ),
+    getVapidPublicKey: () =>
+      request('/push/vapid-public-key/', {}, (d) => VapidPublicKey.parse(d)),
+    subscribeWebPush: (input: PushSubscriptionInput) =>
+      request(
+        '/push/subscriptions/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => PushSubscriptionResult.parse(d),
+      ),
+    unsubscribeWebPush: (endpoint: string) =>
+      request(
+        '/push/subscriptions/',
+        { method: 'DELETE', body: JSON.stringify({ endpoint }) },
+        (d) => z.object({ deleted: z.number() }).parse(d),
       ),
     match: (input: MatchInput) =>
       request(

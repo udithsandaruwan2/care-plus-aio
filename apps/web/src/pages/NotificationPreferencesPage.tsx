@@ -4,6 +4,7 @@ import type { NotificationEventPreference } from '@care-plus/api-client';
 import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { useWebPush } from '../push/useWebPush';
 
 const CATEGORY_LABEL: Record<string, string> = {
   security: 'Security (always on)',
@@ -23,6 +24,7 @@ function groupByCategory(events: NotificationEventPreference[]) {
 
 export function NotificationPreferencesPage() {
   const { user, logout } = useAuth();
+  const push = useWebPush();
   const [events, setEvents] = useState<NotificationEventPreference[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,6 +107,49 @@ export function NotificationPreferencesPage() {
             Signed in as <span className="text-mist">{user.email}</span>
           </p>
         )}
+
+        <section className="mt-6 rounded-2xl border border-cyan/30 bg-cyan/5 p-5">
+          <h2 className="font-display text-lg text-mist">Browser push</h2>
+          <p className="mt-1 text-xs text-muted">
+            Allow Care Plus to notify you in this browser when a care request arrives (requires
+            permission + VAPID keys on the server).
+          </p>
+          {!push.supported && (
+            <p className="mt-3 text-sm text-amber">This browser does not support Web Push.</p>
+          )}
+          {push.supported && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <p className="text-xs text-muted">
+                {push.subscribed
+                  ? 'Push enabled on this device'
+                  : push.configured
+                    ? 'Push available — enable to receive alerts'
+                    : 'Server VAPID keys not configured yet'}
+                {push.permission === 'denied' ? ' · permission blocked in browser' : ''}
+              </p>
+              {push.subscribed ? (
+                <button
+                  type="button"
+                  disabled={push.busy}
+                  onClick={() => void push.disable()}
+                  className="rounded-lg border border-hair px-3 py-1.5 text-xs text-muted hover:border-rose hover:text-rose disabled:opacity-50"
+                >
+                  {push.busy ? '…' : 'Disable'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={push.busy || !push.configured}
+                  onClick={() => void push.enable()}
+                  className="rounded-lg border border-cyan/40 bg-cyan/10 px-3 py-1.5 text-xs text-cyan disabled:opacity-50"
+                >
+                  {push.busy ? '…' : 'Enable browser push'}
+                </button>
+              )}
+            </div>
+          )}
+          {push.error && <p className="mt-2 text-xs text-rose">{push.error}</p>}
+        </section>
 
         {error && (
           <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
