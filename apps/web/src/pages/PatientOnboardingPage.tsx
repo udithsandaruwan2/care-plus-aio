@@ -1,10 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import type { ConditionTerm, PatientProfile } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
-
 const LANGUAGES = ['Sinhala', 'Tamil', 'English'] as const;
 const CARE_LEVELS = ['basic', 'intermediate', 'advanced'] as const;
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'unknown'] as const;
@@ -143,7 +141,7 @@ export function PatientOnboardingPage() {
   ]);
 
   if (user?.role !== 'patient') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/platform" replace />;
   }
 
   function onCityChange(name: string) {
@@ -187,8 +185,7 @@ export function PatientOnboardingPage() {
   }
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-2xl flex-col px-6 py-10">
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
         <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">Patient onboarding</p>
         <h1 className="mt-2 font-display text-3xl font-semibold text-mist">{steps[step]}</h1>
         <OnboardingProgressBar completion={completion} />
@@ -239,7 +236,7 @@ export function PatientOnboardingPage() {
                   </select>
                 </Field>
                 <Field label="Languages spoken">
-                  <motionLanguageRow languages={languages} toggleLanguage={toggleLanguage} />
+                  <MotionLanguageRow languages={languages} toggleLanguage={toggleLanguage} />
                 </Field>
                 <Field label="City">
                   <select
@@ -259,7 +256,7 @@ export function PatientOnboardingPage() {
 
             {step === 1 && (
               <>
-                <motionHealthFields
+                <MotionHealthFields
                   heightCm={heightCm}
                   setHeightCm={setHeightCm}
                   weightKg={weightKg}
@@ -365,12 +362,11 @@ export function PatientOnboardingPage() {
         )}
 
         <p className="mt-6 text-center text-sm text-muted">
-          <Link to="/" className="text-cyan hover:underline">
-            Back to Neural Core
+          <Link to="/platform" className="text-cyan hover:underline">
+            Back to home
           </Link>
         </p>
-      </main>
-    </AtmosphereShell>
+      </div>
   );
 }
 
@@ -394,7 +390,7 @@ function OnboardingProgressBar({ completion }: { completion: number }) {
   );
 }
 
-function motionLanguageRow({
+function MotionLanguageRow({
   languages,
   toggleLanguage,
 }: {
@@ -421,7 +417,7 @@ function motionLanguageRow({
   );
 }
 
-function motionHealthFields({
+function MotionHealthFields({
   heightCm,
   setHeightCm,
   weightKg,

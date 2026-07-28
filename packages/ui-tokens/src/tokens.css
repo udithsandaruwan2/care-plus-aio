@@ -2,17 +2,44 @@
  * Aurora Neural CSS custom properties.
  * Import via `@care-plus/ui-tokens/css` or Tailwind theme extension.
  */
-:root {
-  --cp-bg-void: #05060a;
-  --cp-bg-panel: rgba(18, 22, 34, 0.6);
-  --cp-border-hair: rgba(148, 163, 184, 0.14);
+:root,
+[data-theme='dark'] {
+  --cp-bg-void: #070b14;
+  --cp-bg-panel: rgba(18, 24, 40, 0.72);
+  --cp-bg-elevated: rgba(26, 34, 56, 0.82);
+  --cp-bg-soft: rgba(11, 16, 28, 0.62);
+  --cp-border-hair: rgba(148, 163, 184, 0.22);
+  --cp-border-strong: rgba(148, 163, 184, 0.34);
   --cp-accent-cyan: #22d3ee;
   --cp-accent-violet: #8b5cf6;
   --cp-accent-mint: #34d399;
   --cp-accent-amber: #f59e0b;
   --cp-accent-rose: #fb7185;
   --cp-text-primary: #e5edff;
-  --cp-text-muted: #8a94ad;
+  --cp-text-muted: #9aa7c2;
+  --cp-text-inverse: #09101f;
+  --cp-shadow-soft: 0 20px 45px -25px rgba(2, 8, 23, 0.75);
+}
+
+[data-theme='light'] {
+  --cp-bg-void: #f2f5fb;
+  --cp-bg-panel: rgba(255, 255, 255, 0.86);
+  --cp-bg-elevated: rgba(255, 255, 255, 0.96);
+  --cp-bg-soft: rgba(241, 245, 255, 0.72);
+  --cp-border-hair: rgba(15, 23, 42, 0.1);
+  --cp-border-strong: rgba(15, 23, 42, 0.2);
+  --cp-accent-cyan: #0891b2;
+  --cp-accent-violet: #7c3aed;
+  --cp-accent-mint: #059669;
+  --cp-accent-amber: #c2410c;
+  --cp-accent-rose: #dc2626;
+  --cp-text-primary: #101828;
+  --cp-text-muted: #4b5565;
+  --cp-text-inverse: #f8fafc;
+  --cp-shadow-soft: 0 20px 45px -28px rgba(15, 23, 42, 0.2);
+}
+
+:root {
   --cp-font-display: 'Space Grotesk', 'Sora', system-ui, sans-serif;
   --cp-font-body: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, sans-serif;
   --cp-duration-fast: 150ms;

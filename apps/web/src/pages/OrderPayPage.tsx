@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Order, PaymentIntent } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { OrderSummary } from '../components/OrderSummary';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { PageHeader } from '../components/ui/PageHeader';
 
 /** Order summary + mock / PayHere pay CTA (Step 32). No fake card fields in mock mode. */
 export function OrderPayPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [intent, setIntent] = useState<PaymentIntent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,32 +86,20 @@ export function OrderPayPage() {
   const mode = (intent?.client_payload?.mode as string | undefined) ?? intent?.provider;
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">Payment</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-mist">Pay for care</h1>
-            <p className="mt-2 text-sm text-muted">
-              Review your order, then confirm payment. No card details needed in mock mode.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/requests"
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-cyan hover:text-cyan"
-            >
-              Requests
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-rose hover:text-rose"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
+        <PageHeader
+        eyebrow="Payment"
+        title="Pay for care"
+        subtitle="Review your order, then confirm payment. No card details needed in mock mode."
+        actions={
+          <Link
+            to="/requests"
+            className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted hover:border-cyan hover:text-cyan"
+          >
+            Back to requests
+          </Link>
+        }
+      />
 
         {user?.role !== 'patient' && (
           <p className="mt-8 text-sm text-muted">Only patients can pay for care orders.</p>
@@ -163,7 +151,6 @@ export function OrderPayPage() {
             )}
           </div>
         )}
-      </main>
-    </AtmosphereShell>
+      </div>
   );
 }

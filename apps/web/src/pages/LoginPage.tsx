@@ -1,9 +1,12 @@
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { brand } from '@care-plus/ui-tokens';
 import { ApiError } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { useAuth } from '../auth/AuthContext';
+import { readBookingIntent } from '../booking/intent';
+import { BackLink } from '../components/ui/BackLink';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { PageHeader } from '../components/ui/PageHeader';
 
 function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -20,14 +23,14 @@ export function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? '/';
+  const from = (location.state as { from?: string } | null)?.from ?? '/platform';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/platform" replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -35,7 +38,12 @@ export function LoginPage() {
     setBusy(true);
     try {
       await login(email.trim(), password);
-      navigate(from, { replace: true });
+      const intent = readBookingIntent();
+      if (intent && (from === '/platform' || from === '/app')) {
+        navigate(`/caregivers/${intent.caregiverId}?book=1`, { replace: true });
+      } else {
+        navigate(from === '/app' ? '/platform' : from, { replace: true });
+      }
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -44,55 +52,49 @@ export function LoginPage() {
   }
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-md flex-col justify-center px-6 py-16">
-        <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">{brand.theme}</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-mist">Sign in</h1>
-        <p className="mt-2 text-sm text-muted">Use your Care Plus account to continue.</p>
+    <div className="mx-auto max-w-md">
+      <BackLink to="/">Home</BackLink>
+      <div className="mt-4">
+        <PageHeader
+          eyebrow="Care Plus"
+          title="Sign in"
+          subtitle="Use your Care Plus account to continue booking and care management."
+        />
+      </div>
 
-        <form
-          onSubmit={onSubmit}
-          className="mt-8 space-y-4 rounded-2xl border border-hair bg-panel p-6 backdrop-blur-md"
-        >
-          <label className="block space-y-1.5">
-            <span className="text-xs uppercase tracking-wide text-muted">Email</span>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-hair bg-void/60 px-3 py-2 text-mist outline-none ring-cyan focus:ring-1"
-            />
-          </label>
-          <label className="block space-y-1.5">
-            <span className="text-xs uppercase tracking-wide text-muted">Password</span>
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-hair bg-void/60 px-3 py-2 text-mist outline-none ring-cyan focus:ring-1"
-            />
-          </label>
-          {error && <p className="text-sm text-rose">{error}</p>}
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-lg bg-cyan/90 px-4 py-2.5 font-medium text-void transition hover:bg-cyan disabled:opacity-60"
-          >
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+      <form onSubmit={onSubmit} className="mt-8 space-y-4">
+        <label className="block space-y-1.5">
+          <span className="text-xs uppercase tracking-wide text-muted">Email</span>
+          <Input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-xs uppercase tracking-wide text-muted">Password</span>
+          <Input
+            type="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+        {error && <p className="text-sm text-rose">{error}</p>}
+        <Button type="submit" disabled={busy} className="w-full">
+          {busy ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
 
-        <p className="mt-6 text-center text-sm text-muted">
-          No account?{' '}
-          <Link to="/register" className="text-cyan hover:underline">
-            Create one
-          </Link>
-        </p>
-      </main>
-    </AtmosphereShell>
+      <p className="mt-6 text-center text-sm text-muted">
+        No account?{' '}
+        <Link to="/register" className="text-cyan hover:underline">
+          Create one
+        </Link>
+      </p>
+    </div>
   );
 }

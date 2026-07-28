@@ -77,7 +77,7 @@ class CaregiverListView(generics.ListAPIView):
     """
 
     serializer_class = CaregiverProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     pagination_class = CaregiverPagination
 
     def get_queryset(self):
@@ -143,7 +143,7 @@ class CaregiverDetailView(generics.RetrieveAPIView):
     """GET /api/v1/caregivers/<id>/ — public caregiver profile (Step 20d)."""
 
     serializer_class = CaregiverDetailSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     lookup_field = "pk"
 
     def get_queryset(self):
@@ -151,25 +151,26 @@ class CaregiverDetailView(generics.RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        record_audit(
-            actor=request.user,
-            action=AuditAction.VIEW_CAREGIVER,
-            request=request,
-            target_type="caregiver_profile",
-            target_id=instance.pk,
-            metadata={
-                "display_name": instance.display_name,
-                "city": instance.city,
-            },
-            async_=False,
-        )
-        if hasattr(request.user, "patient_profile"):
-            log_interaction(
-                request.user,
-                instance,
-                InteractionKind.VIEW,
-                metadata={"source": "caregiver_detail"},
+        if request.user.is_authenticated:
+            record_audit(
+                actor=request.user,
+                action=AuditAction.VIEW_CAREGIVER,
+                request=request,
+                target_type="caregiver_profile",
+                target_id=instance.pk,
+                metadata={
+                    "display_name": instance.display_name,
+                    "city": instance.city,
+                },
+                async_=False,
             )
+            if hasattr(request.user, "patient_profile"):
+                log_interaction(
+                    request.user,
+                    instance,
+                    InteractionKind.VIEW,
+                    metadata={"source": "caregiver_detail"},
+                )
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -270,7 +271,7 @@ class CaregiverAvailabilityPublicListView(generics.ListAPIView):
     """GET /caregivers/<id>/availability-slots/ — patient visible free weekly slots."""
 
     serializer_class = CaregiverAvailabilitySlotSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         caregiver_id = self.kwargs["pk"]

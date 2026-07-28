@@ -28,4 +28,7 @@ body {
   color: var(--cp-text-primary);
   background: var(--cp-bg-void);
   -webkit-font-smoothing: antialiased;
+  transition:
+    background-color var(--cp-duration-base) ease,
+    color var(--cp-duration-base) ease;
 }

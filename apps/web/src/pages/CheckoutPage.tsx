@@ -1,16 +1,16 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { CarePackage, CatalogAddOn } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { formatLkr } from '../lib/formatLkr';
+import { PageHeader } from '../components/ui/PageHeader';
 
 /** Select package + add-ons + days, create Order, go to pay (Step 32). */
 export function CheckoutPage() {
   const { careRequestId } = useParams<{ careRequestId: string }>();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [packages, setPackages] = useState<CarePackage[]>([]);
   const [addons, setAddons] = useState<CatalogAddOn[]>([]);
   const [packageId, setPackageId] = useState<number | null>(null);
@@ -79,32 +79,20 @@ export function CheckoutPage() {
       : 0;
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">Checkout</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-mist">Choose care package</h1>
-            <p className="mt-2 text-sm text-muted">
-              Request #{Number.isFinite(requestId) ? requestId : '—'} · priced in LKR
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/requests"
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-cyan hover:text-cyan"
-            >
-              Requests
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-rose hover:text-rose"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
+        <PageHeader
+        eyebrow="Checkout"
+        title="Choose care package"
+        subtitle={`Request #${Number.isFinite(requestId) ? requestId : '—'} · priced in LKR`}
+        actions={
+          <Link
+            to="/requests"
+            className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted hover:border-cyan hover:text-cyan"
+          >
+            Back to requests
+          </Link>
+        }
+      />
 
         {user?.role !== 'patient' && (
           <p className="mt-8 text-sm text-muted">Only patients can complete checkout.</p>
@@ -212,7 +200,6 @@ export function CheckoutPage() {
             </button>
           </form>
         )}
-      </main>
-    </AtmosphereShell>
+      </div>
   );
 }

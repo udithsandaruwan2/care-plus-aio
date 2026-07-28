@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import type { NotificationEventPreference } from '@care-plus/api-client';
-import { AtmosphereShell } from '../components/AtmosphereShell';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useWebPush } from '../push/useWebPush';
+import { PageHeader } from '../components/ui/PageHeader';
 
 const CATEGORY_LABEL: Record<string, string> = {
   security: 'Security (always on)',
@@ -23,7 +22,7 @@ function groupByCategory(events: NotificationEventPreference[]) {
 }
 
 export function NotificationPreferencesPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const push = useWebPush();
   const [events, setEvents] = useState<NotificationEventPreference[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,34 +72,12 @@ export function NotificationPreferencesPage() {
   const categoryOrder = ['security', 'transactional', 'marketing'];
 
   return (
-    <AtmosphereShell>
-      <main className="mx-auto flex min-h-full max-w-3xl flex-col px-6 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-amber">Settings</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-mist">
-              Notification preferences
-            </h1>
-            <p className="mt-2 text-sm text-muted">
-              Choose email and push alerts per event. Security alerts cannot be turned off.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/"
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-cyan hover:text-cyan"
-            >
-              Neural Core
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-hair px-3 py-1.5 text-sm text-muted hover:border-rose hover:text-rose"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+    <div className="mx-auto flex w-full max-w-3xl flex-col">
+      <PageHeader
+        eyebrow="Settings"
+        title="Notification preferences"
+        subtitle="Choose email and push alerts per event. Security alerts cannot be turned off."
+      />
 
         {user && (
           <p className="mt-4 text-xs text-muted">
@@ -213,7 +190,6 @@ export function NotificationPreferencesPage() {
               </section>
             );
           })}
-      </main>
-    </AtmosphereShell>
+    </div>
   );
 }
