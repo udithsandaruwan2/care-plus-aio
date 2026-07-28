@@ -195,6 +195,29 @@ export const MobilePushDeviceResult = z.object({
 });
 export type MobilePushDeviceResult = z.infer<typeof MobilePushDeviceResult>;
 
+export const CaregiverAvailabilitySlot = z.object({
+  id: z.number(),
+  caregiver: z.number(),
+  weekday: z.number().int().min(0).max(6),
+  weekday_label: z.string().optional(),
+  start_time: z.string(),
+  end_time: z.string(),
+  timezone: z.string().optional().default('Asia/Colombo'),
+  is_active: z.boolean().optional().default(true),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type CaregiverAvailabilitySlot = z.infer<typeof CaregiverAvailabilitySlot>;
+
+export const CaregiverAvailabilitySlotInput = z.object({
+  weekday: z.number().int().min(0).max(6),
+  start_time: z.string(),
+  end_time: z.string(),
+  timezone: z.string().optional(),
+  is_active: z.boolean().optional(),
+});
+export type CaregiverAvailabilitySlotInput = z.infer<typeof CaregiverAvailabilitySlotInput>;
+
 export const MatchBreakdown = z.object({
   cbf: z.number(),
   cf: z.number(),
