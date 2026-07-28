@@ -7,6 +7,12 @@ import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { usePatientProfile } from '../auth/usePatientProfile';
 
+function formatReviewDate(value?: string) {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+}
+
 export function CaregiverDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -190,16 +196,26 @@ export function CaregiverDetailPage() {
             <div className="rounded-2xl border border-hair bg-panel/50 p-5">
               <p className="font-display text-sm tracking-wide text-mist">Reviews</p>
               {profile.review_count > 0 && profile.reviews_teaser?.length ? (
-                <ul className="mt-3 space-y-3">
+                <>
+                  <p className="mt-2 text-sm text-mint">
+                    {profile.review_average?.toFixed(1) ?? '—'} / 5 · {profile.review_count}{' '}
+                    review{profile.review_count === 1 ? '' : 's'}
+                  </p>
+                  <ul className="mt-3 space-y-3">
                   {profile.reviews_teaser.map((r, i) => (
-                    <li key={r.id ?? i} className="text-sm text-muted">
-                      {r.comment || 'Rated caregiver'}
+                    <li key={r.id ?? i} className="rounded-xl border border-hair/80 bg-void/30 px-3 py-2">
+                      <p className="text-xs text-amber">{'★'.repeat(Math.max(1, Math.min(5, Math.round(r.rating || 0))))}</p>
+                      <p className="mt-1 text-sm text-muted">{r.comment || 'Rated caregiver.'}</p>
+                      {r.created_at && (
+                        <p className="mt-1 text-[11px] text-muted">Reviewed {formatReviewDate(r.created_at)}</p>
+                      )}
                     </li>
                   ))}
-                </ul>
+                  </ul>
+                </>
               ) : (
                 <p className="mt-2 text-sm text-muted">
-                  No reviews yet — patient reviews land in M10.
+                  No approved reviews yet. Completed patients can leave feedback after care ends.
                 </p>
               )}
             </div>
