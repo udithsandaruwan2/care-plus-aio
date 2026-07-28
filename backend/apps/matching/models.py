@@ -422,3 +422,51 @@ class Review(models.Model):
             f"Review#{self.pk} {self.status} rating={self.rating} "
             f"patient={self.patient_id} cg={self.caregiver_id}"
         )
+
+
+class AvailabilityWeekday(models.IntegerChoices):
+    MONDAY = 0, "Monday"
+    TUESDAY = 1, "Tuesday"
+    WEDNESDAY = 2, "Wednesday"
+    THURSDAY = 3, "Thursday"
+    FRIDAY = 4, "Friday"
+    SATURDAY = 5, "Saturday"
+    SUNDAY = 6, "Sunday"
+
+
+class CaregiverAvailabilitySlot(models.Model):
+    """Weekly recurring caregiver availability window (Step 50)."""
+
+    caregiver = models.ForeignKey(
+        CaregiverProfile,
+        on_delete=models.CASCADE,
+        related_name="availability_slots",
+    )
+    weekday = models.PositiveSmallIntegerField(choices=AvailabilityWeekday.choices, db_index=True)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    timezone = models.CharField(max_length=64, default="Asia/Colombo")
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("weekday", "start_time")
+        indexes = [
+            models.Index(
+                fields=["caregiver", "is_active", "weekday", "start_time"],
+                name="cg_slot_lookup_idx",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["caregiver", "weekday", "start_time", "end_time"],
+                name="uniq_cg_slot_window",
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"Slot#{self.pk} cg={self.caregiver_id} day={self.weekday} "
+            f"{self.start_time}-{self.end_time}"
+        )
