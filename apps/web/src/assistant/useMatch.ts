@@ -19,10 +19,14 @@ function wsBase(): string {
  * the patient is on the home screen. Match payloads pushed from the API land
  * in the assistant store (and move FSM → RESULTS).
  */
-export function useMatchSocket(opts?: { onCareRelationshipUpdated?: () => void }) {
+export function useMatchSocket(opts?: {
+  onCareRelationshipUpdated?: () => void;
+  onEmergencyMatch?: (payload: MatchResponse) => void;
+}) {
   const { user } = useAuth();
   const wsRef = useRef<WebSocket | null>(null);
   const onCareUpdated = opts?.onCareRelationshipUpdated;
+  const onEmergencyMatch = opts?.onEmergencyMatch;
 
   useEffect(() => {
     if (!user?.id) return;
@@ -42,7 +46,12 @@ export function useMatchSocket(opts?: { onCareRelationshipUpdated?: () => void }
         if (msg.type === 'match.results' && msg.payload) {
           const store = useAssistant.getState();
           store.setMatch(msg.payload);
-          store.setState(AssistantState.RESULTS, { force: true });
+          if ((msg.payload as { emergency_context?: unknown }).emergency_context) {
+            store.setState(AssistantState.EMERGENCY, { force: true });
+            onEmergencyMatch?.(msg.payload);
+          } else {
+            store.setState(AssistantState.RESULTS, { force: true });
+          }
         }
         if (msg.type === 'care_relationship.updated') {
           onCareUpdated?.();
@@ -56,7 +65,7 @@ export function useMatchSocket(opts?: { onCareRelationshipUpdated?: () => void }
       ws.close();
       wsRef.current = null;
     };
-  }, [user?.id, onCareUpdated]);
+  }, [user?.id, onCareUpdated, onEmergencyMatch]);
 }
 
 /**
