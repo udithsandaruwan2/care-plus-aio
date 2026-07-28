@@ -194,17 +194,19 @@ export function MatchResultCards({
   match,
   canRequestCare = true,
   uiLanguage = 'English',
+  id,
 }: {
   match: MatchResponse;
   canRequestCare?: boolean;
   uiLanguage?: UiVoiceLanguage;
+  id?: string;
 }) {
   const ui = matchUi(uiLanguage);
   if (!match.results.length) {
     return <p className="mt-4 text-center text-sm text-muted">{ui.noMatches}</p>;
   }
   return (
-    <div className="mt-6 w-full max-w-md space-y-3">
+    <div id={id} className="mt-6 w-full max-w-md space-y-3">
       <div className="flex items-center justify-between gap-2 px-1">
         <p className="font-display text-sm tracking-wide text-mist">
           {match.refined

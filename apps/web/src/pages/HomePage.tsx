@@ -44,6 +44,7 @@ export function HomePage() {
   const { canRequestCare, completionPercent } = usePatientProfile();
   const { isMatchEligible, completionPercent: cgCompletion } = useCaregiverProfile();
   const [health, setHealth] = useState<string>('…');
+  const [emergencyMatchId, setEmergencyMatchId] = useState<number | null>(null);
   const [conversationOn, setConversationOn] = useState(false);
   const conversationOnRef = useRef(false);
   conversationOnRef.current = conversationOn;
@@ -77,7 +78,10 @@ export function HomePage() {
     stopSpeaking,
   } = useVoiceTurn();
   const care = useCurrentCareRelationship();
-  useMatchSocket({ onCareRelationshipUpdated: () => void care.refresh() });
+  useMatchSocket({
+    onCareRelationshipUpdated: () => void care.refresh(),
+    onEmergencyMatch: (payload) => setEmergencyMatchId(payload.request_id),
+  });
 
   const endingRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
@@ -129,6 +133,7 @@ export function HomePage() {
   }, []);
 
   const listening = mic.active || speech.listening;
+  const emergencyActive = state === AssistantState.EMERGENCY && emergencyMatchId != null;
 
   async function toggleMic() {
     if (listening || busy) {
@@ -332,6 +337,20 @@ export function HomePage() {
         </p>
 
         <section className="relative mx-auto mt-4 flex w-full max-w-lg flex-col items-center">
+          {emergencyActive && (
+            <div className="mb-3 w-full rounded-2xl border border-rose/50 bg-rose/10 p-4 text-left backdrop-blur">
+              <p className="font-display text-sm tracking-wide text-rose">EMERGENCY alert</p>
+              <p className="mt-1 text-xs text-muted">
+                Serah detected a critical health signal and pushed your nearest advanced caregiver.
+              </p>
+              <a
+                href="#emergency-match"
+                className="mt-3 inline-block rounded-full border border-rose/40 px-3 py-1.5 text-xs text-rose transition hover:bg-rose/10"
+              >
+                View emergency match
+              </a>
+            </div>
+          )}
           <button
             type="button"
             onClick={toggleMic}
@@ -396,8 +415,16 @@ export function HomePage() {
             <EntityChips intent={intent} uiLanguage={uiLanguage} />
           </div>
 
-          {match && (state === AssistantState.RESULTS || state === AssistantState.MATCHING) && (
-            <MatchResultCards match={match} canRequestCare={canRequestCare} uiLanguage={uiLanguage} />
+          {match &&
+            (state === AssistantState.RESULTS ||
+              state === AssistantState.MATCHING ||
+              state === AssistantState.EMERGENCY) && (
+              <MatchResultCards
+                id={emergencyActive ? 'emergency-match' : undefined}
+                match={match}
+                canRequestCare={canRequestCare}
+                uiLanguage={uiLanguage}
+              />
           )}
 
           <button
@@ -416,6 +443,7 @@ export function HomePage() {
                 ? 'Serah is speaking…'
                 : state === AssistantState.CLARIFYING ||
                     state === AssistantState.RESULTS ||
+                    state === AssistantState.EMERGENCY ||
                     state === AssistantState.CHAT_REPLY
                   ? 'Continue talking'
                   : 'Tap to speak with Serah'}
@@ -424,6 +452,7 @@ export function HomePage() {
           {(match ||
             state === AssistantState.CLARIFYING ||
             state === AssistantState.RESULTS ||
+            state === AssistantState.EMERGENCY ||
             state === AssistantState.CHAT_REPLY) && (
             <button
               type="button"
