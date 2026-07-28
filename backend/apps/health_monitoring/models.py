@@ -63,6 +63,14 @@ class HealthEvent(models.Model):
     window_start = models.DateTimeField()
     window_end = models.DateTimeField(db_index=True)
     sample_count = models.PositiveIntegerField(default=0)
+    handled_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    rematch_run = models.ForeignKey(
+        "matching.MatchRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="health_events",
+    )
     payload = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
