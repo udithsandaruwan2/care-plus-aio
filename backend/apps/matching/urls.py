@@ -15,6 +15,8 @@ from .views import (
     MatchView,
     PatientListView,
     PatientMeView,
+    ReviewListCreateView,
+    ReviewModerationView,
 )
 
 urlpatterns = [
@@ -44,4 +46,6 @@ urlpatterns = [
     path("match/", MatchView.as_view(), name="match"),
     path("match/cbf/", CbfPreviewView.as_view(), name="match_cbf_preview"),
     path("match/weights/", AhpWeightsView.as_view(), name="match_ahp_weights"),
+    path("reviews/", ReviewListCreateView.as_view(), name="review_list"),
+    path("reviews/<int:pk>/moderate/", ReviewModerationView.as_view(), name="review_moderate"),
 ]

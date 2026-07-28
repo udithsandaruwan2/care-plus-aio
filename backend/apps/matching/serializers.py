@@ -4,7 +4,7 @@ from rest_framework import serializers
 from apps.vocab.models import ConditionTerm
 
 from .caregiver_profile import caregiver_profile_completion
-from .models import CaregiverProfile, Language, PatientProfile
+from .models import CaregiverProfile, Language, PatientProfile, Review, ReviewStatus
 from .patient_profile import patient_profile_completion
 
 
@@ -171,11 +171,21 @@ class CaregiverDetailSerializer(CaregiverProfileSerializer):
         return city or "Sri Lanka"
 
     def get_reviews_teaser(self, obj):
-        # Full Review model lands in M10 — empty teaser keeps the UI contract stable.
-        return []
+        rows = (
+            Review.objects.filter(caregiver=obj, status=ReviewStatus.APPROVED)
+            .order_by("-created_at")[:3]
+        )
+        return [
+            {
+                "rating": r.rating,
+                "comment": r.comment,
+                "created_at": r.created_at,
+            }
+            for r in rows
+        ]
 
     def get_review_count(self, obj):
-        return 0
+        return Review.objects.filter(caregiver=obj, status=ReviewStatus.APPROVED).count()
 
     def get_longitude(self, obj):
         # Fuzz to ~1 km for public detail (browse map still uses list coords).
@@ -457,3 +467,42 @@ class CareRelationshipSerializer(serializers.ModelSerializer):
 class CareRelationshipActionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=["activate", "end"])
     reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    patient_email = serializers.EmailField(source="patient.email", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = (
+            "id",
+            "relationship",
+            "patient_email",
+            "caregiver_id",
+            "rating",
+            "comment",
+            "status",
+            "moderation_reason",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "patient_email",
+            "caregiver_id",
+            "status",
+            "moderation_reason",
+            "created_at",
+            "updated_at",
+        )
+
+
+class ReviewCreateSerializer(serializers.Serializer):
+    relationship_id = serializers.IntegerField(min_value=1)
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+    comment = serializers.CharField(required=False, allow_blank=True, max_length=2000)
+
+
+class ReviewModerationSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=[ReviewStatus.APPROVED, ReviewStatus.REJECTED])
+    moderation_reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
