@@ -211,6 +211,8 @@ class AuditAction(models.TextChoices):
     CREATE_MEDICAL_RECORD = "create_medical_record", "Patient created medical record"
     UPDATE_MEDICAL_RECORD = "update_medical_record", "Patient updated medical record"
     DELETE_MEDICAL_RECORD = "delete_medical_record", "Patient soft-deleted medical record"
+    BOOK_SHIFT = "book_shift", "Patient booked a caregiver shift"
+    CANCEL_SHIFT = "cancel_shift", "Shift booking cancelled"
 
 
 class AuditLog(models.Model):

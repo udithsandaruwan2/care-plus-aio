@@ -218,6 +218,33 @@ export const CaregiverAvailabilitySlotInput = z.object({
 });
 export type CaregiverAvailabilitySlotInput = z.infer<typeof CaregiverAvailabilitySlotInput>;
 
+export const Shift = z.object({
+  id: z.number(),
+  caregiver: z.number(),
+  caregiver_name: z.string().optional(),
+  patient: z.number(),
+  patient_email: z.string().email().optional(),
+  availability_slot: z.number().nullable().optional(),
+  starts_at: z.string(),
+  ends_at: z.string(),
+  timezone: z.string().optional().default('Asia/Colombo'),
+  status: z.enum(['booked', 'cancelled']),
+  notes: z.string().optional().default(''),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type Shift = z.infer<typeof Shift>;
+
+export const ShiftCreateInput = z.object({
+  caregiver_id: z.number().int().positive(),
+  starts_at: z.string(),
+  ends_at: z.string(),
+  availability_slot_id: z.number().int().positive().nullable().optional(),
+  notes: z.string().optional(),
+  timezone: z.string().optional(),
+});
+export type ShiftCreateInput = z.infer<typeof ShiftCreateInput>;
+
 export const MatchBreakdown = z.object({
   cbf: z.number(),
   cf: z.number(),

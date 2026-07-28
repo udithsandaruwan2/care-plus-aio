@@ -10,6 +10,7 @@ from .models import (
     MatchRun,
     PatientProfile,
     Review,
+    Shift,
 )
 
 
@@ -133,3 +134,11 @@ class ReviewAdmin(admin.ModelAdmin):
     list_filter = ("status", "rating")
     search_fields = ("patient__email", "caregiver__display_name", "comment")
     readonly_fields = ("created_at", "updated_at", "moderated_at")
+
+
+@admin.register(Shift)
+class ShiftAdmin(admin.ModelAdmin):
+    list_display = ("id", "caregiver", "patient", "starts_at", "ends_at", "status", "created_at")
+    list_filter = ("status",)
+    search_fields = ("patient__email", "caregiver__display_name", "notes")
+    readonly_fields = ("created_at", "updated_at")

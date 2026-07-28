@@ -20,6 +20,8 @@ from .views import (
     PatientMeView,
     ReviewListCreateView,
     ReviewModerationView,
+    ShiftDetailView,
+    ShiftListCreateView,
 )
 
 urlpatterns = [
@@ -61,6 +63,8 @@ urlpatterns = [
         CareRelationshipActionView.as_view(),
         name="care_relationship_action",
     ),
+    path("shifts/", ShiftListCreateView.as_view(), name="shift_list"),
+    path("shifts/<int:pk>/", ShiftDetailView.as_view(), name="shift_detail"),
     path("match/", MatchView.as_view(), name="match"),
     path("match/cbf/", CbfPreviewView.as_view(), name="match_cbf_preview"),
     path("match/weights/", AhpWeightsView.as_view(), name="match_ahp_weights"),
