@@ -267,7 +267,25 @@ export function CaregiverDetailPage() {
 
           <div>
             <h2 className="font-display text-lg text-mist">Weekly availability</h2>
-            <AvailabilitySlots caregiverId={profile.id} />
+            <AvailabilitySlots caregiverId={profile.id} caregiverName={profile.display_name} />
+            {user?.role === 'patient' && (
+              <Link to={`/schedule?caregiver=${profile.id}`} className="mt-3 inline-block">
+                <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                  Book a shift
+                </Button>
+              </Link>
+            )}
+            {!user && (
+              <Link
+                to="/login"
+                state={{ from: `/schedule?caregiver=${profile.id}` }}
+                className="mt-3 inline-block"
+              >
+                <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                  Sign in to book a shift
+                </Button>
+              </Link>
+            )}
           </div>
         </section>
       )}
@@ -275,7 +293,12 @@ export function CaregiverDetailPage() {
   );
 }
 
-function AvailabilitySlots({ caregiverId }: { caregiverId: number }) {
+function AvailabilitySlots({
+  caregiverId,
+}: {
+  caregiverId: number;
+  caregiverName?: string;
+}) {
   const [slots, setSlots] = useState<
     Array<{
       id: number;
