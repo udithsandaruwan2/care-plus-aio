@@ -102,6 +102,13 @@ export function PlatformHubPage() {
             title={user?.role === 'caregiver' ? 'Inbox' : 'Care requests'}
             desc="Track pending, accepted, and completed requests."
           />
+          {(user?.role === 'patient' || user?.role === 'caregiver') && (
+            <Shortcut
+              to="/schedule"
+              title="Schedule"
+              desc="Book and cancel shifts in Asia/Colombo time."
+            />
+          )}
           <Shortcut to="/records" title="Medical records" desc="Notes and attachments for active care." />
           <Shortcut to="/account" title="Account" desc="Profile completion and notification settings." />
           <Shortcut to="/app" title="Serah assistant" desc="Voice-guided matching in your language." />

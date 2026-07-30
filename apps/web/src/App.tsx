@@ -25,6 +25,7 @@ import { AccountPage } from './pages/AccountPage';
 import { PatientOnboardingPage } from './pages/PatientOnboardingPage';
 import { PlatformHubPage } from './pages/PlatformHubPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { SchedulePage } from './pages/SchedulePage';
 
 export function App() {
   return (
@@ -56,6 +57,7 @@ export function App() {
             <Route path="/orders/:orderId/success" element={<OrderSuccessPage />} />
             <Route path="/orders/:orderId/failed" element={<OrderFailedPage />} />
             <Route path="/presence" element={<CaregiverPresencePage />} />
+            <Route path="/schedule" element={<SchedulePage />} />
             <Route path="/leads" element={<LeadsPage />} />
           </Route>
         </Route>

@@ -8,6 +8,7 @@ const PRIMARY_NAV = [
   { to: '/platform', label: 'Home', end: true },
   { to: '/app', label: 'Assistant', end: true },
   { to: '/requests', label: 'Requests' },
+  { to: '/schedule', label: 'Schedule' },
   { to: '/messages', label: 'Messages' },
   { to: '/records', label: 'Records' },
   { to: '/account', label: 'Account' },
@@ -99,13 +100,22 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 >
                   Notifications
                 </Link>
+                {(user?.role === 'patient' || user?.role === 'caregiver') && (
+                  <Link
+                    to="/schedule"
+                    className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Schedule
+                  </Link>
+                )}
                 {user?.role === 'caregiver' && (
                   <Link
                     to="/presence"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Availability
+                    Soft presence
                   </Link>
                 )}
                 {user?.role === 'admin' && (

@@ -64,9 +64,14 @@ export function AccountPage() {
                   Update caregiver profile
                 </Button>
               </Link>
+              <Link to="/schedule">
+                <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                  Weekly schedule
+                </Button>
+              </Link>
               <Link to="/presence">
                 <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
-                  Update availability
+                  Soft presence
                 </Button>
               </Link>
             </div>
@@ -84,6 +89,13 @@ export function AccountPage() {
       </section>
 
       <section className="mt-6 grid gap-3 sm:grid-cols-2">
+        {(user?.role === 'patient' || user?.role === 'caregiver') && (
+          <SettingsLink
+            to="/schedule"
+            title="Schedule"
+            desc="Book and cancel care shifts in Asia/Colombo."
+          />
+        )}
         <SettingsLink
           to="/settings/notifications"
           title="Notification settings"
