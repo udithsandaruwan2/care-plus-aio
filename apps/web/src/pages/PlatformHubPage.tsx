@@ -112,6 +112,20 @@ export function PlatformHubPage() {
           <Shortcut to="/records" title="Medical records" desc="Notes and attachments for active care." />
           <Shortcut to="/account" title="Account" desc="Profile completion and notification settings." />
           <Shortcut to="/app" title="Serah assistant" desc="Voice-guided matching in your language." />
+          {(user?.role === 'admin' || user?.role === 'auditor') && (
+            <Shortcut
+              to="/users"
+              title="Users"
+              desc={
+                user.role === 'admin'
+                  ? 'Filter accounts and disable access.'
+                  : 'Read-only user directory.'
+              }
+            />
+          )}
+          {user?.role === 'admin' && (
+            <Shortcut to="/leads" title="Leads" desc="Process marketing contact submissions." />
+          )}
           <Shortcut to="/catalog" title="Packages" desc="Review LKR care packages and add-ons." />
         </div>
       </section>

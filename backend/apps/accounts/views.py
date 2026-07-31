@@ -1,4 +1,7 @@
+from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -11,9 +14,12 @@ from .models import (
     MobilePushDevice,
     NotificationPreference,
     PushSubscription,
+    Role,
 )
-from .permissions import HasAIConsent, RolePermission
+from .permissions import HasAIConsent, IsAdmin, RolePermission
 from .serializers import (
+    AdminUserSerializer,
+    AdminUserUpdateSerializer,
     AuditLogSerializer,
     ConsentLogSerializer,
     MobilePushDeviceSerializer,
@@ -22,6 +28,74 @@ from .serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+
+User = get_user_model()
+
+
+class UserPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+class AdminUserListView(generics.ListAPIView):
+    """GET /api/v1/users/ — admin + auditor user directory (Step 54)."""
+
+    serializer_class = AdminUserSerializer
+    permission_classes = [RolePermission]
+    allowed_roles = ("admin", "auditor")
+    pagination_class = UserPagination
+
+    def get_queryset(self):
+        qs = User.objects.all().order_by("-date_joined")
+        role = (self.request.query_params.get("role") or "").strip()
+        if role:
+            if role not in {c.value for c in Role}:
+                raise ValidationError({"role": "Invalid role filter."})
+            qs = qs.filter(role=role)
+        active = (self.request.query_params.get("is_active") or "").strip().lower()
+        if active in {"true", "1", "yes"}:
+            qs = qs.filter(is_active=True)
+        elif active in {"false", "0", "no"}:
+            qs = qs.filter(is_active=False)
+        q = (self.request.query_params.get("q") or "").strip()
+        if q:
+            qs = qs.filter(email__icontains=q)
+        return qs
+
+
+class AdminUserDetailView(APIView):
+    """PATCH /api/v1/users/<id>/ — admin disable/enable account (Step 54)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def patch(self, request, pk: int):
+        try:
+            target = User.objects.get(pk=pk)
+        except User.DoesNotExist as exc:
+            raise NotFound("User not found.") from exc
+
+        ser = AdminUserUpdateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        is_active = ser.validated_data["is_active"]
+
+        if target.pk == request.user.pk and is_active is False:
+            raise ValidationError("You cannot disable your own account.")
+
+        if target.is_active == is_active:
+            return Response(AdminUserSerializer(target).data)
+
+        target.is_active = is_active
+        target.save(update_fields=["is_active"])
+        record_audit(
+            actor=request.user,
+            action=AuditAction.DISABLE_USER,
+            request=request,
+            target_type="user",
+            target_id=target.pk,
+            metadata={"is_active": is_active, "email": target.email, "role": target.role},
+        )
+        return Response(AdminUserSerializer(target).data)
 
 
 class RegisterView(generics.CreateAPIView):

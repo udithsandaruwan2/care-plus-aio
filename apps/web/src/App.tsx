@@ -22,6 +22,7 @@ import { MessagesPage } from './pages/MessagesPage';
 import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
 import { AccountPage } from './pages/AccountPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 import { PatientOnboardingPage } from './pages/PatientOnboardingPage';
 import { PlatformHubPage } from './pages/PlatformHubPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -58,6 +59,7 @@ export function App() {
             <Route path="/orders/:orderId/failed" element={<OrderFailedPage />} />
             <Route path="/presence" element={<CaregiverPresencePage />} />
             <Route path="/schedule" element={<SchedulePage />} />
+            <Route path="/users" element={<AdminUsersPage />} />
             <Route path="/leads" element={<LeadsPage />} />
           </Route>
         </Route>
