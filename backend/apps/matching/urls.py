@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    AdminAnalyticsView,
     AhpWeightsView,
     CaregiverDetailView,
     CaregiverAvailabilityPublicListView,
@@ -70,4 +71,5 @@ urlpatterns = [
     path("match/weights/", AhpWeightsView.as_view(), name="match_ahp_weights"),
     path("reviews/", ReviewListCreateView.as_view(), name="review_list"),
     path("reviews/<int:pk>/moderate/", ReviewModerationView.as_view(), name="review_moderate"),
+    path("admin/analytics/", AdminAnalyticsView.as_view(), name="admin_analytics"),
 ]

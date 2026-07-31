@@ -16,6 +16,7 @@ from apps.accounts.models import AuditAction
 from apps.accounts.permissions import HasAIConsent, IsCaregiver, IsPatient, RolePermission
 
 from .ahp import build_config, get_ahp_weights
+from .analytics import build_admin_analytics
 from .cf_model import cf_model_info, get_cf_model
 from .embeddings import get_embedder, intent_to_text
 from .engine import run_match
@@ -1027,3 +1028,18 @@ class ShiftDetailView(APIView):
             metadata={"status": shift.status},
         )
         return Response(ShiftSerializer(shift).data)
+
+
+class AdminAnalyticsView(APIView):
+    """GET /api/v1/admin/analytics/ — chart series for admin console (Step 56)."""
+
+    permission_classes = [RolePermission]
+    allowed_roles = ("admin", "auditor")
+
+    def get(self, request):
+        raw = (request.query_params.get("window_days") or "30").strip()
+        try:
+            window_days = int(raw)
+        except ValueError:
+            raise ValidationError({"window_days": "Must be an integer."}) from None
+        return Response(build_admin_analytics(window_days=window_days))

@@ -11,6 +11,7 @@ import {
   ConditionListResponse,
   AdminConditionTerm,
   AdminConditionListResponse,
+  AdminAnalytics,
   Lead,
   LeadListResponse,
   CarePackage,
@@ -341,6 +342,10 @@ export function createApiClient(options: ApiClientOptions) {
         { method: 'PATCH', body: JSON.stringify({ is_active }) },
         (d) => AdminUser.parse(d),
       ),
+    getAdminAnalytics: (windowDays?: number) => {
+      const qs = windowDays != null ? `?window_days=${windowDays}` : '';
+      return request(`/admin/analytics/${qs}`, {}, (d) => AdminAnalytics.parse(d));
+    },
     ingestHealthMetric: (input: HealthMetricIngestInput) =>
       request(
         '/health/metrics/ingest/',

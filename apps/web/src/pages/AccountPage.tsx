@@ -84,6 +84,11 @@ export function AccountPage() {
                 Manage users
               </Button>
             </Link>
+            <Link to="/admin/analytics">
+              <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                Analytics
+              </Button>
+            </Link>
             <Link to="/admin/catalog">
               <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
                 Vocab & catalog
@@ -101,6 +106,11 @@ export function AccountPage() {
             <Link to="/users">
               <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
                 View users
+              </Button>
+            </Link>
+            <Link to="/admin/analytics">
+              <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                Analytics
               </Button>
             </Link>
             <Link to="/admin/catalog">
