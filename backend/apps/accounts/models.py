@@ -214,6 +214,7 @@ class AuditAction(models.TextChoices):
     BOOK_SHIFT = "book_shift", "Patient booked a caregiver shift"
     CANCEL_SHIFT = "cancel_shift", "Shift booking cancelled"
     SHIFT_CONFLICT_FALLBACK = "shift_conflict_fallback", "Shift conflict offered VEHMF fallback"
+    DISABLE_USER = "disable_user", "Admin disabled or re-enabled a user account"
 
 
 class AuditLog(models.Model):

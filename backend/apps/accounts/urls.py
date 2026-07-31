@@ -3,6 +3,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .views import (
     AdminOnlyView,
+    AdminUserDetailView,
+    AdminUserListView,
     AuditLogListView,
     ConsentGateCheckView,
     ConsentView,
@@ -21,6 +23,8 @@ urlpatterns = [
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", MeView.as_view(), name="me"),
     path("auth/admin-only/", AdminOnlyView.as_view(), name="admin_only"),
+    path("users/", AdminUserListView.as_view(), name="admin_user_list"),
+    path("users/<int:pk>/", AdminUserDetailView.as_view(), name="admin_user_detail"),
     path("consent/", ConsentView.as_view(), name="consent"),
     path("consent/gate-check/", ConsentGateCheckView.as_view(), name="consent_gate_check"),
     path(

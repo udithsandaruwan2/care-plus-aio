@@ -16,6 +16,34 @@ export const User = z.object({
 });
 export type User = z.infer<typeof User>;
 
+export const AdminUser = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  role: z.enum(['patient', 'caregiver', 'admin', 'auditor']),
+  first_name: z.string(),
+  last_name: z.string(),
+  is_active: z.boolean(),
+  date_joined: z.string(),
+  last_login: z.string().nullable().optional(),
+});
+export type AdminUser = z.infer<typeof AdminUser>;
+
+export const AdminUserListResponse = z.object({
+  count: z.number(),
+  next: z.string().nullable().optional(),
+  previous: z.string().nullable().optional(),
+  results: z.array(AdminUser),
+});
+export type AdminUserListResponse = z.infer<typeof AdminUserListResponse>;
+
+export type AdminUserListParams = {
+  role?: string;
+  is_active?: boolean;
+  q?: string;
+  page?: number;
+  page_size?: number;
+};
+
 export const TokenPair = z.object({
   access: z.string(),
   refresh: z.string(),

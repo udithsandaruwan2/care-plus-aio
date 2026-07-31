@@ -37,6 +37,8 @@ import {
   RegisterResponse,
   TokenPair,
   User,
+  AdminUser,
+  AdminUserListResponse,
   VoiceIntent,
   VoiceSessionClearResponse,
   VoiceSessionResponse,
@@ -58,6 +60,7 @@ import {
   type PushSubscriptionInput,
   type RegisterInput,
   type ShiftCreateInput,
+  type AdminUserListParams,
   type VoiceIntentInput,
 } from './schemas';
 
@@ -319,6 +322,22 @@ export function createApiClient(options: ApiClientOptions) {
     getShift: (id: number) => request(`/shifts/${id}/`, {}, (d) => Shift.parse(d)),
     cancelShift: (id: number) =>
       request(`/shifts/${id}/`, { method: 'DELETE' }, (d) => Shift.parse(d)),
+    listAdminUsers: (params: AdminUserListParams = {}) => {
+      const qs = new URLSearchParams();
+      if (params.role) qs.set('role', params.role);
+      if (params.is_active != null) qs.set('is_active', String(params.is_active));
+      if (params.q) qs.set('q', params.q);
+      if (params.page != null) qs.set('page', String(params.page));
+      if (params.page_size != null) qs.set('page_size', String(params.page_size));
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      return request(`/users/${suffix}`, {}, (d) => AdminUserListResponse.parse(d));
+    },
+    setAdminUserActive: (id: number, is_active: boolean) =>
+      request(
+        `/users/${id}/`,
+        { method: 'PATCH', body: JSON.stringify({ is_active }) },
+        (d) => AdminUser.parse(d),
+      ),
     ingestHealthMetric: (input: HealthMetricIngestInput) =>
       request(
         '/health/metrics/ingest/',

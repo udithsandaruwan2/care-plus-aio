@@ -118,6 +118,15 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     Soft presence
                   </Link>
                 )}
+                {(user?.role === 'admin' || user?.role === 'auditor') && (
+                  <Link
+                    to="/users"
+                    className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Users
+                  </Link>
+                )}
                 {user?.role === 'admin' && (
                   <Link
                     to="/leads"

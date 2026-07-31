@@ -85,3 +85,25 @@ class AuditLogSerializer(serializers.ModelSerializer):
             "metadata",
         )
         read_only_fields = fields
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """Admin console user row (Step 54)."""
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "role",
+            "first_name",
+            "last_name",
+            "is_active",
+            "date_joined",
+            "last_login",
+        )
+        read_only_fields = fields
+
+
+class AdminUserUpdateSerializer(serializers.Serializer):
+    is_active = serializers.BooleanField(required=True)
