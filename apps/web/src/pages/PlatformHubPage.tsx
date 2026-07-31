@@ -123,6 +123,13 @@ export function PlatformHubPage() {
               }
             />
           )}
+          {(user?.role === 'admin' || user?.role === 'auditor') && (
+            <Shortcut
+              to="/admin/catalog"
+              title="Vocab & catalog"
+              desc="Manage conditions, packages, and add-ons."
+            />
+          )}
           {user?.role === 'admin' && (
             <Shortcut to="/leads" title="Leads" desc="Process marketing contact submissions." />
           )}

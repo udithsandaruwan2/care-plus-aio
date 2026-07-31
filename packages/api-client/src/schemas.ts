@@ -775,6 +775,34 @@ export const ConditionTerm = z.object({
 });
 export type ConditionTerm = z.infer<typeof ConditionTerm>;
 
+export const AdminConditionTerm = z.object({
+  id: z.number(),
+  slug: z.string(),
+  canonical_en: z.string(),
+  synonyms: z.record(z.array(z.string())).optional().default({}),
+  active: z.boolean(),
+  version: z.number(),
+  notes: z.string().optional().default(''),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+export type AdminConditionTerm = z.infer<typeof AdminConditionTerm>;
+
+export const AdminConditionListResponse = z.object({
+  count: z.number(),
+  results: z.array(AdminConditionTerm),
+});
+export type AdminConditionListResponse = z.infer<typeof AdminConditionListResponse>;
+
+export type AdminConditionInput = {
+  slug: string;
+  canonical_en: string;
+  synonyms?: Record<string, string[]>;
+  active?: boolean;
+  version?: number;
+  notes?: string;
+};
+
 export const ConditionListResponse = z.object({
   count: z.number(),
   results: z.array(ConditionTerm),

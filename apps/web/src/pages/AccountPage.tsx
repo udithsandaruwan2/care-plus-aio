@@ -84,6 +84,11 @@ export function AccountPage() {
                 Manage users
               </Button>
             </Link>
+            <Link to="/admin/catalog">
+              <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                Vocab & catalog
+              </Button>
+            </Link>
             <Link to="/leads">
               <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
                 Open leads inbox
@@ -92,10 +97,15 @@ export function AccountPage() {
           </div>
         )}
         {user?.role === 'auditor' && (
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Link to="/users">
               <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
                 View users
+              </Button>
+            </Link>
+            <Link to="/admin/catalog">
+              <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                View catalog
               </Button>
             </Link>
           </div>

@@ -20,6 +20,21 @@ class CarePackageSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class CarePackageWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CarePackage
+        fields = (
+            "slug",
+            "name",
+            "description",
+            "care_level",
+            "price_lkr",
+            "default_days",
+            "is_active",
+            "sort_order",
+        )
+
+
 class AddOnSerializer(serializers.ModelSerializer):
     class Meta:
         model = AddOn
@@ -34,6 +49,20 @@ class AddOnSerializer(serializers.ModelSerializer):
             "sort_order",
         )
         read_only_fields = fields
+
+
+class AddOnWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AddOn
+        fields = (
+            "slug",
+            "name",
+            "description",
+            "category",
+            "price_lkr",
+            "is_active",
+            "sort_order",
+        )
 
 
 class OrderLineItemSerializer(serializers.ModelSerializer):
