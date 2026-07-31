@@ -12,6 +12,7 @@ import {
   AdminConditionTerm,
   AdminConditionListResponse,
   AdminAnalytics,
+  AuditLogListResponse,
   Lead,
   LeadListResponse,
   CarePackage,
@@ -65,6 +66,7 @@ import {
   type ShiftCreateInput,
   type AdminUserListParams,
   type AdminConditionInput,
+  type AuditLogListParams,
   type VoiceIntentInput,
 } from './schemas';
 
@@ -345,6 +347,26 @@ export function createApiClient(options: ApiClientOptions) {
     getAdminAnalytics: (windowDays?: number) => {
       const qs = windowDays != null ? `?window_days=${windowDays}` : '';
       return request(`/admin/analytics/${qs}`, {}, (d) => AdminAnalytics.parse(d));
+    },
+    listAuditLogs: (params: AuditLogListParams = {}) => {
+      const qs = new URLSearchParams();
+      if (params.actor) qs.set('actor', params.actor);
+      if (params.action) qs.set('action', params.action);
+      if (params.date_from) qs.set('date_from', params.date_from);
+      if (params.date_to) qs.set('date_to', params.date_to);
+      if (params.page != null) qs.set('page', String(params.page));
+      if (params.page_size != null) qs.set('page_size', String(params.page_size));
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      return request(`/audit/${suffix}`, {}, (d) => AuditLogListResponse.parse(d));
+    },
+    exportAuditLogsCsv: async (params: AuditLogListParams = {}) => {
+      const qs = new URLSearchParams();
+      if (params.actor) qs.set('actor', params.actor);
+      if (params.action) qs.set('action', params.action);
+      if (params.date_from) qs.set('date_from', params.date_from);
+      if (params.date_to) qs.set('date_to', params.date_to);
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      return request(`/audit/export/${suffix}`, {}, (d) => String(d));
     },
     ingestHealthMetric: (input: HealthMetricIngestInput) =>
       request(

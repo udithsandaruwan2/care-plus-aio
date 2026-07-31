@@ -23,6 +23,7 @@ import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
 import { AccountPage } from './pages/AccountPage';
 import { AdminAnalyticsPage } from './pages/AdminAnalyticsPage';
+import { AdminAuditPage } from './pages/AdminAuditPage';
 import { AdminCatalogPage } from './pages/AdminCatalogPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { PatientOnboardingPage } from './pages/PatientOnboardingPage';
@@ -64,6 +65,7 @@ export function App() {
             <Route path="/users" element={<AdminUsersPage />} />
             <Route path="/admin/catalog" element={<AdminCatalogPage />} />
             <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+            <Route path="/admin/audit" element={<AdminAuditPage />} />
             <Route path="/leads" element={<LeadsPage />} />
           </Route>
         </Route>

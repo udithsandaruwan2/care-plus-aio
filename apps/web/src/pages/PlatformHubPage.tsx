@@ -132,6 +132,13 @@ export function PlatformHubPage() {
           )}
           {(user?.role === 'admin' || user?.role === 'auditor') && (
             <Shortcut
+              to="/admin/audit"
+              title="Audit log"
+              desc="Filter and export the compliance audit trail."
+            />
+          )}
+          {(user?.role === 'admin' || user?.role === 'auditor') && (
+            <Shortcut
               to="/admin/catalog"
               title="Vocab & catalog"
               desc="Manage conditions, packages, and add-ons."
