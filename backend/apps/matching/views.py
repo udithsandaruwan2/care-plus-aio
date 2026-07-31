@@ -63,7 +63,8 @@ from .serializers import (
     ShiftCreateSerializer,
     ShiftSerializer,
 )
-from .shifts import book_shift, cancel_shift, shifts_queryset_for_user
+from .conflict_fallback import find_shift_conflict_fallback
+from .shifts import ShiftOverlapError, book_shift, cancel_shift, shifts_queryset_for_user
 
 
 class CaregiverPagination(PageNumberPagination):
@@ -949,15 +950,44 @@ class ShiftListCreateView(APIView):
         ser = ShiftCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        shift = book_shift(
-            patient=request.user,
-            caregiver_id=data["caregiver_id"],
-            starts_at=data["starts_at"],
-            ends_at=data["ends_at"],
-            notes=data.get("notes", ""),
-            availability_slot_id=data.get("availability_slot_id"),
-            timezone_name=data.get("timezone") or "Asia/Colombo",
-        )
+        try:
+            shift = book_shift(
+                patient=request.user,
+                caregiver_id=data["caregiver_id"],
+                starts_at=data["starts_at"],
+                ends_at=data["ends_at"],
+                notes=data.get("notes", ""),
+                availability_slot_id=data.get("availability_slot_id"),
+                timezone_name=data.get("timezone") or "Asia/Colombo",
+            )
+        except ShiftOverlapError as exc:
+            offer = find_shift_conflict_fallback(
+                patient=request.user,
+                exclude_caregiver_id=data["caregiver_id"],
+                starts_at=data["starts_at"],
+                ends_at=data["ends_at"],
+            )
+            payload = {
+                "detail": str(exc.message),
+                "code": "shift_overlap",
+                "conflict": True,
+                "fallback": offer.as_dict() if offer else None,
+            }
+            if offer is not None:
+                record_audit(
+                    actor=request.user,
+                    action=AuditAction.SHIFT_CONFLICT_FALLBACK,
+                    request=request,
+                    target_type="caregiver",
+                    target_id=offer.caregiver_id,
+                    metadata={
+                        "excluded_caregiver_id": data["caregiver_id"],
+                        "match_run_id": offer.match_run_id,
+                        "starts_at": data["starts_at"].isoformat(),
+                        "ends_at": data["ends_at"].isoformat(),
+                    },
+                )
+            return Response(payload, status=status.HTTP_409_CONFLICT)
         record_audit(
             actor=request.user,
             action=AuditAction.BOOK_SHIFT,

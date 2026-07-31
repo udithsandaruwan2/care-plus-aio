@@ -245,6 +245,31 @@ export const ShiftCreateInput = z.object({
 });
 export type ShiftCreateInput = z.infer<typeof ShiftCreateInput>;
 
+export const ShiftConflictFallback = z.object({
+  caregiver_id: z.number(),
+  display_name: z.string(),
+  score: z.number(),
+  explanation: z.string(),
+  distance_m: z.number().nullable().optional(),
+  availability_slot_id: z.number(),
+  starts_at: z.string(),
+  ends_at: z.string(),
+  match_run_id: z.number(),
+  specialties: z.array(z.string()).optional().default([]),
+  languages: z.array(z.string()).optional().default([]),
+  care_levels: z.array(z.string()).optional().default([]),
+  trust_score: z.number().nullable().optional(),
+});
+export type ShiftConflictFallback = z.infer<typeof ShiftConflictFallback>;
+
+export const ShiftConflictBody = z.object({
+  detail: z.string().optional(),
+  code: z.literal('shift_overlap').optional(),
+  conflict: z.literal(true).optional(),
+  fallback: ShiftConflictFallback.nullable().optional(),
+});
+export type ShiftConflictBody = z.infer<typeof ShiftConflictBody>;
+
 export const MatchBreakdown = z.object({
   cbf: z.number(),
   cf: z.number(),

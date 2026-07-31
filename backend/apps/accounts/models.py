@@ -213,6 +213,7 @@ class AuditAction(models.TextChoices):
     DELETE_MEDICAL_RECORD = "delete_medical_record", "Patient soft-deleted medical record"
     BOOK_SHIFT = "book_shift", "Patient booked a caregiver shift"
     CANCEL_SHIFT = "cancel_shift", "Shift booking cancelled"
+    SHIFT_CONFLICT_FALLBACK = "shift_conflict_fallback", "Shift conflict offered VEHMF fallback"
 
 
 class AuditLog(models.Model):

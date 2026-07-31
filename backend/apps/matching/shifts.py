@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import APIException, NotFound, ValidationError
 
 from apps.accounts.models import Role
 from apps.common.redis_lock import redis_lock
@@ -18,6 +18,22 @@ from apps.matching.models import (
     ShiftStatus,
 )
 from apps.matching.patient_guards import ensure_patient_can_request_care
+
+
+class ShiftOverlapConflict(APIException):
+    """409 when the requested window is already booked (Step 53 may attach fallback)."""
+
+    status_code = 409
+    default_detail = "This time window overlaps an existing booked shift."
+    default_code = "shift_overlap"
+
+
+class ShiftOverlapError(Exception):
+    """Raised inside the schedule lock when another booked shift overlaps."""
+
+    def __init__(self, message: str = "This time window overlaps an existing booked shift."):
+        self.message = message
+        super().__init__(message)
 
 
 def _as_aware(dt: datetime) -> datetime:
@@ -124,9 +140,8 @@ def book_shift(
                 starts_at=starts_at,
                 ends_at=ends_at,
             ):
-                raise ValidationError(
+                raise ShiftOverlapError(
                     "This time window overlaps an existing booked shift.",
-                    code="shift_overlap",
                 )
             return Shift.objects.create(
                 caregiver=caregiver,
