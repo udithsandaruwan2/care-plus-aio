@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
 import { useAuth } from '../../auth/AuthContext';
+import { LanguageSwitcher } from '../../i18n/LanguageSwitcher';
+import { useLocale } from '../../i18n/LocaleProvider';
 import { ThemeToggle } from '../../theme/ThemeToggle';
 import { Button } from '../ui/Button';
 
@@ -13,33 +15,34 @@ function linkClass(isActive: boolean) {
 
 export function PublicHeader() {
   const { user, logout } = useAuth();
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
 
   const nav = (
     <>
       <NavLink to="/" end className={({ isActive }) => linkClass(isActive)} onClick={() => setOpen(false)}>
-        Home
+        {t('nav.home')}
       </NavLink>
       <NavLink
         to="/caregivers"
         className={({ isActive }) => linkClass(isActive)}
         onClick={() => setOpen(false)}
       >
-        Caregivers
+        {t('nav.caregivers')}
       </NavLink>
       <NavLink
         to="/catalog"
         className={({ isActive }) => linkClass(isActive)}
         onClick={() => setOpen(false)}
       >
-        Packages
+        {t('nav.packages')}
       </NavLink>
       <NavLink
         to="/contact"
         className={({ isActive }) => linkClass(isActive)}
         onClick={() => setOpen(false)}
       >
-        Contact
+        {t('nav.contact')}
       </NavLink>
       {user && (
         <>
@@ -48,21 +51,21 @@ export function PublicHeader() {
             className={({ isActive }) => linkClass(isActive)}
             onClick={() => setOpen(false)}
           >
-            App
+            {t('nav.app')}
           </NavLink>
           <NavLink
             to="/messages"
             className={({ isActive }) => linkClass(isActive)}
             onClick={() => setOpen(false)}
           >
-            Messages
+            {t('nav.messages')}
           </NavLink>
           <NavLink
             to="/account"
             className={({ isActive }) => linkClass(isActive)}
             onClick={() => setOpen(false)}
           >
-            Account
+            {t('nav.account')}
           </NavLink>
         </>
       )}
@@ -78,27 +81,28 @@ export function PublicHeader() {
         </Link>
         <nav className="hidden items-center gap-1 md:flex">{nav}</nav>
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
           {user ? (
             <>
               <Link to="/platform" className="hidden sm:block">
                 <Button tone="ghost" className="min-h-10 px-3 py-1.5">
-                  Open app
+                  {t('action.openApp')}
                 </Button>
               </Link>
               <Button tone="danger" className="min-h-10 px-3 py-1.5" onClick={logout}>
-                Sign out
+                {t('action.signOut')}
               </Button>
             </>
           ) : (
             <>
               <Link to="/login">
                 <Button tone="ghost" className="min-h-10 px-3 py-1.5">
-                  Sign in
+                  {t('action.signIn')}
                 </Button>
               </Link>
               <Link to="/register" className="hidden sm:block">
-                <Button className="min-h-10 px-3 py-1.5">Get started</Button>
+                <Button className="min-h-10 px-3 py-1.5">{t('action.getStarted')}</Button>
               </Link>
             </>
           )}
@@ -108,7 +112,7 @@ export function PublicHeader() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
           >
-            Menu
+            {t('action.menu')}
           </button>
         </div>
       </div>

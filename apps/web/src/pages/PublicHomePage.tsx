@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
 import { Button } from '../components/ui/Button';
+import { useLocale } from '../i18n/LocaleProvider';
 
 export function PublicHomePage() {
+  const { t } = useLocale();
+
   return (
     <div>
       <section className="relative -mx-5 overflow-hidden sm:-mx-8">
@@ -13,19 +16,16 @@ export function PublicHomePage() {
         <div className="relative mx-auto flex min-h-[78vh] max-w-6xl flex-col justify-center px-5 py-16 sm:px-8 sm:py-20">
           <p className="font-display text-4xl tracking-tight text-mist sm:text-6xl">{brand.name}</p>
           <h1 className="mt-4 max-w-2xl font-display text-2xl leading-snug text-mist/95 sm:text-3xl">
-            Trusted home care for families across Sri Lanka.
+            {t('home.headline')}
           </h1>
-          <p className="mt-4 max-w-xl text-base text-muted">
-            Find verified caregivers in Colombo and beyond — clear schedules, transparent packages,
-            and guided support from Serah in English, Sinhala, or Tamil.
-          </p>
+          <p className="mt-4 max-w-xl text-base text-muted">{t('home.support')}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/caregivers">
-              <Button className="px-6">Browse caregivers</Button>
+              <Button className="px-6">{t('action.browseCaregivers')}</Button>
             </Link>
             <Link to="/register">
               <Button tone="ghost" className="px-6">
-                Get started
+                {t('action.getStarted')}
               </Button>
             </Link>
           </div>
@@ -33,98 +33,74 @@ export function PublicHomePage() {
       </section>
 
       <section className="mt-16">
-        <h2 className="font-display text-2xl text-mist">How booking works</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">
-          Three clear steps from discovery to coordinated care.
-        </p>
+        <h2 className="font-display text-2xl text-mist">{t('home.howTitle')}</h2>
+        <p className="mt-2 max-w-xl text-sm text-muted">{t('home.howSubtitle')}</p>
         <ol className="mt-8 grid gap-8 sm:grid-cols-3">
           <li>
             <p className="font-display text-cyan">01</p>
-            <p className="mt-2 font-display text-lg text-mist">Explore</p>
-            <p className="mt-1 text-sm text-muted">
-              Filter by language, specialty, trust, and weekly availability.
-            </p>
+            <p className="mt-2 font-display text-lg text-mist">{t('home.step1Title')}</p>
+            <p className="mt-1 text-sm text-muted">{t('home.step1Body')}</p>
           </li>
           <li>
             <p className="font-display text-cyan">02</p>
-            <p className="mt-2 font-display text-lg text-mist">Shortlist</p>
-            <p className="mt-1 text-sm text-muted">
-              Open a profile, review slots and reviews, then start a booking.
-            </p>
+            <p className="mt-2 font-display text-lg text-mist">{t('home.step2Title')}</p>
+            <p className="mt-1 text-sm text-muted">{t('home.step2Body')}</p>
           </li>
           <li>
             <p className="font-display text-cyan">03</p>
-            <p className="mt-2 font-display text-lg text-mist">Coordinate</p>
-            <p className="mt-1 text-sm text-muted">
-              Sign in, message your caregiver, and complete checkout when ready.
-            </p>
+            <p className="mt-2 font-display text-lg text-mist">{t('home.step3Title')}</p>
+            <p className="mt-1 text-sm text-muted">{t('home.step3Body')}</p>
           </li>
         </ol>
       </section>
 
       <section id="about" className="mt-20">
-        <h2 className="font-display text-2xl text-mist">Why families choose Care Plus</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">
-          Built for Sri Lankan households who need reliable, respectful home care.
-        </p>
+        <h2 className="font-display text-2xl text-mist">{t('home.whyTitle')}</h2>
+        <p className="mt-2 max-w-xl text-sm text-muted">{t('home.whySubtitle')}</p>
         <div className="mt-8 grid gap-10 md:grid-cols-3">
           <div>
-            <p className="font-display text-lg text-mist">Verified profiles</p>
-            <p className="mt-2 text-sm text-muted">
-              Certifications, trust scores, reviews, and published weekly slots.
-            </p>
+            <p className="font-display text-lg text-mist">{t('home.why1Title')}</p>
+            <p className="mt-2 text-sm text-muted">{t('home.why1Body')}</p>
           </div>
           <div>
-            <p className="font-display text-lg text-mist">AI guidance, your decision</p>
-            <p className="mt-2 text-sm text-muted">
-              Serah helps you discover matches faster — your family stays in control.
-            </p>
+            <p className="font-display text-lg text-mist">{t('home.why2Title')}</p>
+            <p className="mt-2 text-sm text-muted">{t('home.why2Body')}</p>
           </div>
           <div>
-            <p className="font-display text-lg text-mist">Island-wide support</p>
-            <p className="mt-2 text-sm text-muted">
-              English, Sinhala, and Tamil — from Colombo to Kandy, Galle, and beyond.
-            </p>
+            <p className="font-display text-lg text-mist">{t('home.why3Title')}</p>
+            <p className="mt-2 text-sm text-muted">{t('home.why3Body')}</p>
           </div>
         </div>
       </section>
 
       <section id="testimonials" className="mt-20">
-        <h2 className="font-display text-2xl text-mist">What families say</h2>
-        <p className="mt-2 text-sm text-muted">Early stories from Care Plus users.</p>
+        <h2 className="font-display text-2xl text-mist">{t('home.storiesTitle')}</h2>
+        <p className="mt-2 text-sm text-muted">{t('home.storiesSubtitle')}</p>
         <div className="mt-8 space-y-8">
           <blockquote className="border-l-2 border-cyan/40 pl-5">
-            <p className="text-mist">
-              “We found a dementia caregiver for my mother in less than a day. The process felt safe.”
-            </p>
-            <footer className="mt-2 text-xs text-muted">Family in Colombo 07</footer>
+            <p className="text-mist">{t('home.quote1')}</p>
+            <footer className="mt-2 text-xs text-muted">{t('home.quote1By')}</footer>
           </blockquote>
           <blockquote className="border-l-2 border-cyan/40 pl-5">
-            <p className="text-mist">
-              “Weekly slots and clear pricing helped us plan post-surgery care without confusion.”
-            </p>
-            <footer className="mt-2 text-xs text-muted">Family in Kandy</footer>
+            <p className="text-mist">{t('home.quote2')}</p>
+            <footer className="mt-2 text-xs text-muted">{t('home.quote2By')}</footer>
           </blockquote>
           <blockquote className="border-l-2 border-cyan/40 pl-5">
-            <p className="text-mist">
-              “Serah guided us in Tamil and made caregiver search easier for our grandparents.”
-            </p>
-            <footer className="mt-2 text-xs text-muted">Family in Jaffna</footer>
+            <p className="text-mist">{t('home.quote3')}</p>
+            <footer className="mt-2 text-xs text-muted">{t('home.quote3By')}</footer>
           </blockquote>
         </div>
       </section>
 
       <section className="mt-20 mb-4">
-        <h2 className="font-display text-2xl text-mist">Need help choosing?</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">
-          Talk to our support team, or open Serah from the corner when you are ready.
-        </p>
+        <h2 className="font-display text-2xl text-mist">{t('home.helpTitle')}</h2>
+        <p className="mt-2 max-w-xl text-sm text-muted">{t('home.helpBody')}</p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link to="/contact">
-            <Button>Contact us</Button>
+            <Button>{t('action.contactUs')}</Button>
           </Link>
           <Link to="/caregivers">
-            <Button tone="ghost">Explore caregivers</Button>
+            <Button tone="ghost">{t('action.exploreCaregivers')}</Button>
           </Link>
         </div>
       </section>

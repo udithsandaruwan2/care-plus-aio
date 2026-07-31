@@ -7,6 +7,7 @@ import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
+import { useLocale } from '../i18n/LocaleProvider';
 
 function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -21,6 +22,7 @@ function errorMessage(err: unknown): string {
 
 export function LoginPage() {
   const { user, login } = useAuth();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/platform';
@@ -53,18 +55,18 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md">
-      <BackLink to="/">Home</BackLink>
+      <BackLink to="/">{t('login.backHome')}</BackLink>
       <div className="mt-4">
         <PageHeader
-          eyebrow="Care Plus"
-          title="Sign in"
-          subtitle="Use your Care Plus account to continue booking and care management."
+          eyebrow={t('login.eyebrow')}
+          title={t('login.title')}
+          subtitle={t('login.subtitle')}
         />
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Email</span>
+          <span className="text-xs uppercase tracking-wide text-muted">{t('login.email')}</span>
           <Input
             type="email"
             required
@@ -74,7 +76,7 @@ export function LoginPage() {
           />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Password</span>
+          <span className="text-xs uppercase tracking-wide text-muted">{t('login.password')}</span>
           <Input
             type="password"
             required
@@ -85,14 +87,14 @@ export function LoginPage() {
         </label>
         {error && <p className="text-sm text-rose">{error}</p>}
         <Button type="submit" disabled={busy} className="w-full">
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? t('action.signingIn') : t('action.signIn')}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted">
-        No account?{' '}
+        {t('login.noAccount')}{' '}
         <Link to="/register" className="text-cyan hover:underline">
-          Create one
+          {t('action.createAccount')}
         </Link>
       </p>
     </div>

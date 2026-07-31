@@ -6,6 +6,7 @@ import { usePatientProfile } from '../auth/usePatientProfile';
 import { ActiveCareLinkCard } from '../components/ActiveCareLinkCard';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
+import { useLocale } from '../i18n/LocaleProvider';
 
 function Shortcut({ to, title, desc }: { to: string; title: string; desc: string }) {
   return (
@@ -21,6 +22,7 @@ function Shortcut({ to, title, desc }: { to: string; title: string; desc: string
 
 export function PlatformHubPage() {
   const { user } = useAuth();
+  const { t } = useLocale();
   const care = useCurrentCareRelationship();
   const patient = usePatientProfile();
   const caregiver = useCaregiverProfile();
@@ -30,18 +32,18 @@ export function PlatformHubPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Home"
-        title={`Welcome, ${firstName}`}
-        subtitle="Manage care relationships, messages, records, and requests from one place."
+        eyebrow={t('hub.eyebrow')}
+        title={t('hub.welcome', { name: firstName })}
+        subtitle={t('hub.subtitle')}
       />
 
       {user?.role === 'patient' && !patient.canRequestCare && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber/40 bg-amber/5 px-4 py-3">
           <p className="text-sm text-amber">
-            Complete your patient profile ({patient.completionPercent}%) to request care.
+            {t('hub.patientProfileHint', { percent: patient.completionPercent })}
           </p>
           <Link to="/onboarding">
-            <Button className="min-h-9 px-3 py-1.5 text-xs">Continue profile</Button>
+            <Button className="min-h-9 px-3 py-1.5 text-xs">{t('action.continueProfile')}</Button>
           </Link>
         </div>
       )}
@@ -49,10 +51,10 @@ export function PlatformHubPage() {
       {user?.role === 'caregiver' && !caregiver.isMatchEligible && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber/40 bg-amber/5 px-4 py-3">
           <p className="text-sm text-amber">
-            Complete your caregiver profile ({caregiver.completionPercent}%) to appear in matching.
+            {t('hub.caregiverProfileHint', { percent: caregiver.completionPercent })}
           </p>
           <Link to="/caregiver-onboarding">
-            <Button className="min-h-9 px-3 py-1.5 text-xs">Continue profile</Button>
+            <Button className="min-h-9 px-3 py-1.5 text-xs">{t('action.continueProfile')}</Button>
           </Link>
         </div>
       )}
@@ -67,26 +69,24 @@ export function PlatformHubPage() {
 
       {!care.loading && !care.relationship && (
         <div className="mt-6 rounded-2xl border border-hair bg-panel/50 p-5">
-          <p className="font-display text-lg text-mist">No active care link yet</p>
+          <p className="font-display text-lg text-mist">{t('hub.noLinkTitle')}</p>
           <p className="mt-1 text-sm text-muted">
-            {user?.role === 'patient'
-              ? 'Browse caregivers or ask Serah to find a match, then send a request.'
-              : 'When a patient request is accepted and checkout completes, your care link appears here.'}
+            {user?.role === 'patient' ? t('hub.noLinkPatient') : t('hub.noLinkCaregiver')}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {user?.role === 'patient' && (
               <>
                 <Link to="/caregivers">
-                  <Button>Browse caregivers</Button>
+                  <Button>{t('action.browseCaregivers')}</Button>
                 </Link>
                 <Link to="/app">
-                  <Button tone="ghost">Ask Serah</Button>
+                  <Button tone="ghost">{t('action.askSerah')}</Button>
                 </Link>
               </>
             )}
             {user?.role === 'caregiver' && (
               <Link to="/requests">
-                <Button>Open inbox</Button>
+                <Button>{t('action.openInbox')}</Button>
               </Link>
             )}
           </div>
@@ -94,60 +94,56 @@ export function PlatformHubPage() {
       )}
 
       <section className="mt-8">
-        <h2 className="font-display text-lg text-mist">Quick actions</h2>
+        <h2 className="font-display text-lg text-mist">{t('hub.quickActions')}</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Shortcut to="/messages" title="Messages" desc="Chat with your care partner in real time." />
+          <Shortcut to="/messages" title={t('hub.messagesTitle')} desc={t('hub.messagesDesc')} />
           <Shortcut
             to="/requests"
-            title={user?.role === 'caregiver' ? 'Inbox' : 'Care requests'}
-            desc="Track pending, accepted, and completed requests."
+            title={user?.role === 'caregiver' ? t('hub.inboxTitle') : t('hub.requestsTitle')}
+            desc={t('hub.requestsDesc')}
           />
           {(user?.role === 'patient' || user?.role === 'caregiver') && (
             <Shortcut
               to="/schedule"
-              title="Schedule"
-              desc="Book and cancel shifts in Asia/Colombo time."
+              title={t('hub.scheduleTitle')}
+              desc={t('hub.scheduleDesc')}
             />
           )}
-          <Shortcut to="/records" title="Medical records" desc="Notes and attachments for active care." />
-          <Shortcut to="/account" title="Account" desc="Profile completion and notification settings." />
-          <Shortcut to="/app" title="Serah assistant" desc="Voice-guided matching in your language." />
+          <Shortcut to="/records" title={t('hub.recordsTitle')} desc={t('hub.recordsDesc')} />
+          <Shortcut to="/account" title={t('hub.accountTitle')} desc={t('hub.accountDesc')} />
+          <Shortcut to="/app" title={t('hub.serahTitle')} desc={t('hub.serahDesc')} />
           {(user?.role === 'admin' || user?.role === 'auditor') && (
             <Shortcut
               to="/users"
-              title="Users"
-              desc={
-                user.role === 'admin'
-                  ? 'Filter accounts and disable access.'
-                  : 'Read-only user directory.'
-              }
+              title={t('hub.usersTitle')}
+              desc={user.role === 'admin' ? t('hub.usersDescAdmin') : t('hub.usersDescAuditor')}
             />
           )}
           {(user?.role === 'admin' || user?.role === 'auditor') && (
             <Shortcut
               to="/admin/analytics"
-              title="Analytics"
-              desc="Requests, roles, match latency, and relationships."
+              title={t('hub.analyticsTitle')}
+              desc={t('hub.analyticsDesc')}
             />
           )}
           {(user?.role === 'admin' || user?.role === 'auditor') && (
             <Shortcut
               to="/admin/audit"
-              title="Audit log"
-              desc="Filter and export the compliance audit trail."
+              title={t('hub.auditTitle')}
+              desc={t('hub.auditDesc')}
             />
           )}
           {(user?.role === 'admin' || user?.role === 'auditor') && (
             <Shortcut
               to="/admin/catalog"
-              title="Vocab & catalog"
-              desc="Manage conditions, packages, and add-ons."
+              title={t('hub.catalogTitle')}
+              desc={t('hub.catalogDesc')}
             />
           )}
           {user?.role === 'admin' && (
-            <Shortcut to="/leads" title="Leads" desc="Process marketing contact submissions." />
+            <Shortcut to="/leads" title={t('hub.leadsTitle')} desc={t('hub.leadsDesc')} />
           )}
-          <Shortcut to="/catalog" title="Packages" desc="Review LKR care packages and add-ons." />
+          <Shortcut to="/catalog" title={t('hub.packagesTitle')} desc={t('hub.packagesDesc')} />
         </div>
       </section>
     </div>
