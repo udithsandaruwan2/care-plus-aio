@@ -105,7 +105,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M9** Messaging + notifications      | 38–41   | ✅ done          |
 | **M10** Reviews → trust               | 42–44   | ✅ done          |
 | **M11** Health monitoring + emergency | 45–49   | ✅ done         |
-| **M12** Scheduling + Redlock          | 50–53   | 🟡 50–52 done    |
+| **M12** Scheduling + Redlock          | 50–53   | ✅ done          |
 | **M13** Admin console                 | 54–58   | ⬜                |
 | **M14** i18n + a11y                   | 59–61   | ⬜                |
 | **M15** Mobile Expo                   | 62–67   | ⬜                |

@@ -1,6 +1,13 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import type { CaregiverAvailabilitySlot, CaregiverProfile, Shift } from '@care-plus/api-client';
+import {
+  ApiError,
+  ShiftConflictBody,
+  type CaregiverAvailabilitySlot,
+  type CaregiverProfile,
+  type Shift,
+  type ShiftConflictFallback,
+} from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -15,6 +22,13 @@ import {
 } from '../lib/colomboSchedule';
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
+
+function parseConflictFallback(err: unknown): ShiftConflictFallback | null {
+  if (!(err instanceof ApiError) || err.status !== 409 || !err.body) return null;
+  const parsed = ShiftConflictBody.safeParse(err.body);
+  if (!parsed.success || !parsed.data.fallback) return null;
+  return parsed.data.fallback;
+}
 
 export function SchedulePage() {
   const { user } = useAuth();
@@ -33,6 +47,7 @@ export function SchedulePage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState('');
+  const [fallback, setFallback] = useState<ShiftConflictFallback | null>(null);
   const [picked, setPicked] = useState<{
     slotId: number;
     starts_at: string;
@@ -153,6 +168,7 @@ export function SchedulePage() {
     if (!picked || !selectedCg || busy) return;
     setBusy(true);
     setError(null);
+    setFallback(null);
     try {
       await api.createShift({
         caregiver_id: selectedCg,
@@ -166,7 +182,42 @@ export function SchedulePage() {
       setPicked(null);
       await loadShifts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not book shift.');
+      const offer = parseConflictFallback(err);
+      if (offer) {
+        setFallback(offer);
+        setError(
+          'That window was just taken. VEHMF found another caregiver for the same time.',
+        );
+      } else if (err instanceof ApiError && err.status === 409) {
+        setError('That time window overlaps an existing booking.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Could not book shift.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onAcceptFallback() {
+    if (!fallback || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.createShift({
+        caregiver_id: fallback.caregiver_id,
+        starts_at: fallback.starts_at,
+        ends_at: fallback.ends_at,
+        availability_slot_id: fallback.availability_slot_id,
+        notes: notes.trim() || undefined,
+        timezone: COLOMBO_TZ,
+      });
+      setNotes('');
+      setPicked(null);
+      setFallback(null);
+      setSelectedCg(fallback.caregiver_id);
+      await loadShifts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not book fallback caregiver.');
     } finally {
       setBusy(false);
     }
@@ -243,6 +294,27 @@ export function SchedulePage() {
         <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
           {error}
         </p>
+      )}
+
+      {fallback && (
+        <div className="mt-4 rounded-2xl border border-cyan/40 bg-cyan/5 p-4">
+          <p className="font-display text-mist">{fallback.display_name}</p>
+          <p className="mt-1 text-sm text-muted">{fallback.explanation}</p>
+          <p className="mt-1 text-xs text-muted">
+            {formatColomboDateTime(fallback.starts_at)} – {formatColomboTime(fallback.ends_at)}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button disabled={busy} onClick={() => void onAcceptFallback()}>
+              {busy ? 'Booking…' : 'Book this caregiver'}
+            </Button>
+            <Button tone="ghost" disabled={busy} onClick={() => setFallback(null)}>
+              Dismiss
+            </Button>
+            <Link to={`/caregivers/${fallback.caregiver_id}`} className="text-sm text-cyan hover:underline self-center">
+              View profile
+            </Link>
+          </div>
+        </div>
       )}
 
       <section className="mt-8">

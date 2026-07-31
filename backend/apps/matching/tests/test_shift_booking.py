@@ -127,7 +127,8 @@ class ShiftBookingApiTests(APITestCase):
             ),
             format="json",
         )
-        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST, second.data)
+        self.assertEqual(second.status_code, status.HTTP_409_CONFLICT, second.data)
+        self.assertTrue(second.data.get("conflict"))
         self.assertEqual(Shift.objects.filter(status=ShiftStatus.BOOKED).count(), 1)
 
     def test_cancel_shift(self):
