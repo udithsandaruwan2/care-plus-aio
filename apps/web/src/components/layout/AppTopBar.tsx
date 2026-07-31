@@ -2,17 +2,9 @@ import { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
 import { useAuth } from '../../auth/AuthContext';
+import { LanguageSwitcher } from '../../i18n/LanguageSwitcher';
+import { useLocale } from '../../i18n/LocaleProvider';
 import { ThemeToggle } from '../../theme/ThemeToggle';
-
-const PRIMARY_NAV = [
-  { to: '/platform', label: 'Home', end: true },
-  { to: '/app', label: 'Assistant', end: true },
-  { to: '/requests', label: 'Requests' },
-  { to: '/schedule', label: 'Schedule' },
-  { to: '/messages', label: 'Messages' },
-  { to: '/records', label: 'Records' },
-  { to: '/account', label: 'Account' },
-];
 
 function navClass(isActive: boolean) {
   return `rounded-full px-3 py-1.5 text-xs transition ${
@@ -24,6 +16,7 @@ function navClass(isActive: boolean) {
 
 export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
   const { user, logout } = useAuth();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -31,6 +24,16 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
 
   const isHome = location.pathname === '/platform';
   const showBackButton = showBack && !isHome;
+
+  const primaryNav = [
+    { to: '/platform', label: t('nav.home'), end: true },
+    { to: '/app', label: t('nav.assistant'), end: true },
+    { to: '/requests', label: t('nav.requests') },
+    { to: '/schedule', label: t('nav.schedule') },
+    { to: '/messages', label: t('nav.messages') },
+    { to: '/records', label: t('nav.records') },
+    { to: '/account', label: t('nav.account') },
+  ];
 
   function onBack() {
     if (window.history.length > 1) {
@@ -52,7 +55,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
               onClick={onBack}
               className="rounded-full border border-hair px-3 py-1 text-xs text-muted transition hover:border-cyan hover:text-cyan"
             >
-              Back
+              {t('action.back')}
             </button>
           )}
           <Link to="/platform" className="flex items-center gap-2">
@@ -62,7 +65,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
         </div>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {PRIMARY_NAV.map((item) => (
+          {primaryNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -75,6 +78,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
         </nav>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
           <div className="relative">
             <button
@@ -82,7 +86,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
               onClick={() => setAccountOpen((v) => !v)}
               className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted hover:border-cyan hover:text-cyan"
             >
-              Menu
+              {t('action.menu')}
             </button>
             {accountOpen && (
               <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-hair bg-panel p-2 shadow-[var(--cp-shadow-soft)]">
@@ -91,14 +95,14 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
-                  Edit profile
+                  {t('menu.editProfile')}
                 </Link>
                 <Link
                   to="/settings/notifications"
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
-                  Notifications
+                  {t('menu.notifications')}
                 </Link>
                 {(user?.role === 'patient' || user?.role === 'caregiver') && (
                   <Link
@@ -106,7 +110,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Schedule
+                    {t('menu.schedule')}
                   </Link>
                 )}
                 {user?.role === 'caregiver' && (
@@ -115,7 +119,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Soft presence
+                    {t('menu.presence')}
                   </Link>
                 )}
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
@@ -124,7 +128,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Users
+                    {t('menu.users')}
                   </Link>
                 )}
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
@@ -133,7 +137,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Analytics
+                    {t('menu.analytics')}
                   </Link>
                 )}
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
@@ -142,7 +146,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Audit log
+                    {t('menu.audit')}
                   </Link>
                 )}
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
@@ -151,7 +155,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Vocab & catalog
+                    {t('menu.catalog')}
                   </Link>
                 )}
                 {user?.role === 'admin' && (
@@ -160,7 +164,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
-                    Leads
+                    {t('menu.leads')}
                   </Link>
                 )}
                 <Link
@@ -168,14 +172,14 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
-                  Browse caregivers
+                  {t('menu.browseCaregivers')}
                 </Link>
                 <Link
                   to="/"
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
-                  Public site
+                  {t('menu.publicSite')}
                 </Link>
                 <button
                   type="button"
@@ -185,7 +189,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                     logout();
                   }}
                 >
-                  Sign out
+                  {t('action.signOut')}
                 </button>
               </div>
             )}
@@ -196,7 +200,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
             onClick={() => setMenuOpen((v) => !v)}
             aria-expanded={menuOpen}
           >
-            Nav
+            {t('action.nav')}
           </button>
         </div>
       </div>
@@ -204,7 +208,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
       {menuOpen && (
         <nav className="border-t border-hair px-4 py-3 md:hidden">
           <div className="flex flex-wrap gap-2">
-            {PRIMARY_NAV.map((item) => (
+            {primaryNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
