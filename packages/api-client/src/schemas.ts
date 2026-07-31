@@ -803,6 +803,35 @@ export type AdminConditionInput = {
   notes?: string;
 };
 
+export const AnalyticsSeriesItem = z.object({
+  key: z.string(),
+  label: z.string(),
+  count: z.number(),
+});
+export type AnalyticsSeriesItem = z.infer<typeof AnalyticsSeriesItem>;
+
+export const AdminAnalytics = z.object({
+  generated_at: z.string(),
+  window_days: z.number(),
+  requests_by_status: z.array(AnalyticsSeriesItem),
+  roles: z.array(AnalyticsSeriesItem),
+  match_latency: z.object({
+    sample_size: z.number(),
+    p50_ms: z.number().nullable(),
+    p95_ms: z.number().nullable(),
+    p99_ms: z.number().nullable(),
+    avg_ms: z.number().nullable(),
+    window_days: z.number(),
+  }),
+  relationships: z.object({
+    active: z.number(),
+    pending_payment: z.number(),
+    ended: z.number(),
+    by_status: z.array(AnalyticsSeriesItem),
+  }),
+});
+export type AdminAnalytics = z.infer<typeof AdminAnalytics>;
+
 export const ConditionListResponse = z.object({
   count: z.number(),
   results: z.array(ConditionTerm),
