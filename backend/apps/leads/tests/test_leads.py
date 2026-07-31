@@ -101,6 +101,27 @@ class LeadAdminQueueTests(APITestCase):
         self.assertEqual(self.lead.admin_notes, "Called back")
         self.assertEqual(self.lead.contacted_by_id, self.admin.pk)
 
+    def test_admin_closes_lead(self):
+        self.client.force_authenticate(self.admin)
+        resp = self.client.patch(
+            self.contact_url,
+            {"action": "close", "notes": "Not interested"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(resp.data["status"], "closed")
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.status, LeadStatus.CLOSED)
+        self.assertEqual(self.lead.admin_notes, "Not interested")
+
+    def test_admin_filters_by_status(self):
+        Lead.objects.create(name="Closed", email="closed@example.com", status=LeadStatus.CLOSED)
+        self.client.force_authenticate(self.admin)
+        resp = self.client.get(self.list_url, {"status": "new"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["count"], 1)
+        self.assertEqual(resp.data["results"][0]["email"], "kasun@example.com")
+
     def test_patient_cannot_mark_contacted(self):
         self.client.force_authenticate(self.patient)
         resp = self.client.patch(

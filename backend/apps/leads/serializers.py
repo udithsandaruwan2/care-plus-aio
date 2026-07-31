@@ -49,5 +49,5 @@ class LeadSerializer(serializers.ModelSerializer):
 
 
 class LeadContactSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=["contact"])
+    action = serializers.ChoiceField(choices=["contact", "close"])
     notes = serializers.CharField(required=False, allow_blank=True, max_length=2000)

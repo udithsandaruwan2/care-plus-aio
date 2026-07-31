@@ -500,6 +500,15 @@ export function createApiClient(options: ApiClientOptions) {
         },
         (d) => Lead.parse(d),
       ),
+    closeLead: (id: number, notes?: string) =>
+      request(
+        `/leads/${id}/contact/`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'close', notes: notes ?? '' }),
+        },
+        (d) => Lead.parse(d),
+      ),
     listCarePackages: (careLevel?: string) => {
       const qs = careLevel ? `?care_level=${encodeURIComponent(careLevel)}` : '';
       return request(`/catalog/packages/${qs}`, {}, (d) =>

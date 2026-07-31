@@ -8,7 +8,7 @@ from apps.accounts.permissions import IsAdmin
 
 from .models import Lead
 from .serializers import LeadContactSerializer, LeadCreateSerializer, LeadSerializer
-from .services import create_lead, mark_lead_contacted
+from .services import close_lead, create_lead, mark_lead_contacted
 
 
 class LeadPagination(PageNumberPagination):
@@ -56,7 +56,7 @@ class LeadListCreateView(generics.ListCreateAPIView):
 
 
 class LeadContactView(APIView):
-    """PATCH /api/v1/leads/<id>/contact/ — admin marks lead contacted."""
+    """PATCH /api/v1/leads/<id>/contact/ — admin contact or close (Step 57)."""
 
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
 
@@ -68,12 +68,13 @@ class LeadContactView(APIView):
         except Lead.DoesNotExist as exc:
             raise NotFound("Lead not found.") from exc
 
+        action = ser.validated_data["action"]
+        notes = ser.validated_data.get("notes", "")
         try:
-            lead = mark_lead_contacted(
-                lead,
-                actor=request.user,
-                notes=ser.validated_data.get("notes", ""),
-            )
+            if action == "close":
+                lead = close_lead(lead, actor=request.user, notes=notes)
+            else:
+                lead = mark_lead_contacted(lead, actor=request.user, notes=notes)
         except Exception as exc:
             raise ValidationError(str(exc)) from exc
 
