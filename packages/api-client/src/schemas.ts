@@ -832,6 +832,62 @@ export const AdminAnalytics = z.object({
 });
 export type AdminAnalytics = z.infer<typeof AdminAnalytics>;
 
+export const AuditLog = z.object({
+  id: z.number(),
+  actor: z.number().nullable().optional(),
+  actor_email: z.string().email().nullable().optional(),
+  action: z.string(),
+  ts: z.string(),
+  ip: z.string().nullable().optional(),
+  target_type: z.string().optional().default(''),
+  target_id: z.string().optional().default(''),
+  metadata: z.record(z.unknown()).optional().default({}),
+});
+export type AuditLog = z.infer<typeof AuditLog>;
+
+export const AuditLogListResponse = z.object({
+  count: z.number(),
+  next: z.string().nullable().optional(),
+  previous: z.string().nullable().optional(),
+  results: z.array(AuditLog),
+});
+export type AuditLogListResponse = z.infer<typeof AuditLogListResponse>;
+
+export type AuditLogListParams = {
+  actor?: string;
+  action?: string;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  page_size?: number;
+};
+
+export const AUDIT_ACTIONS = [
+  'view_health',
+  'view_caregiver',
+  'grant_consent',
+  'revoke_consent',
+  'login',
+  'create_care_request',
+  'cancel_care_request',
+  'accept_care_request',
+  'reject_care_request',
+  'activate_care_relationship',
+  'end_care_relationship',
+  'create_order',
+  'create_payment_intent',
+  'confirm_payment',
+  'payment_webhook',
+  'receipt_sent',
+  'create_medical_record',
+  'update_medical_record',
+  'delete_medical_record',
+  'book_shift',
+  'cancel_shift',
+  'shift_conflict_fallback',
+  'disable_user',
+] as const;
+
 export const ConditionListResponse = z.object({
   count: z.number(),
   results: z.array(ConditionTerm),

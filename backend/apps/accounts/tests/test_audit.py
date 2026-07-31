@@ -64,6 +64,43 @@ class AuditTrailApiTests(APITestCase):
         allowed = self.client.get(self.list_url)
         self.assertEqual(allowed.status_code, status.HTTP_200_OK)
 
+    def test_audit_list_filters_by_actor_action(self):
+        self.client.force_authenticate(self.caregiver)
+        self.client.get(self.demo_url, {"patient_id": self.patient.pk})
+        AuditLog.objects.create(
+            actor=self.patient,
+            action=AuditAction.LOGIN,
+            target_type="",
+            target_id="",
+        )
+
+        self.client.force_authenticate(self.auditor)
+        by_action = self.client.get(self.list_url, {"action": "view_health"})
+        self.assertEqual(by_action.status_code, status.HTTP_200_OK, by_action.data)
+        self.assertGreaterEqual(by_action.data["count"], 1)
+        self.assertTrue(all(r["action"] == "view_health" for r in by_action.data["results"]))
+
+        by_actor = self.client.get(self.list_url, {"actor": self.caregiver.email})
+        self.assertEqual(by_actor.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            all(
+                r["actor"] == self.caregiver.pk or r["actor_email"] == self.caregiver.email
+                for r in by_actor.data["results"]
+            )
+        )
+
+    def test_audit_csv_export(self):
+        self.client.force_authenticate(self.caregiver)
+        self.client.get(self.demo_url, {"patient_id": self.patient.pk})
+        self.client.force_authenticate(self.auditor)
+        export_url = reverse("v1:audit_export")
+        resp = self.client.get(export_url, {"action": "view_health"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIn("text/csv", resp["Content-Type"])
+        body = resp.content.decode("utf-8")
+        self.assertIn("actor_email", body)
+        self.assertIn("view_health", body)
+
     def test_orm_rejects_update_and_delete(self):
         row = AuditLog.objects.create(
             actor=self.caregiver,

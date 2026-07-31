@@ -5,6 +5,7 @@ from .views import (
     AdminOnlyView,
     AdminUserDetailView,
     AdminUserListView,
+    AuditLogExportView,
     AuditLogListView,
     ConsentGateCheckView,
     ConsentView,
@@ -36,5 +37,6 @@ urlpatterns = [
     path("push/subscriptions/", PushSubscriptionView.as_view(), name="push_subscriptions"),
     path("push/mobile/devices/", MobilePushDeviceView.as_view(), name="mobile_push_devices"),
     path("audit/", AuditLogListView.as_view(), name="audit_list"),
+    path("audit/export/", AuditLogExportView.as_view(), name="audit_export"),
     path("audit/demo-view-health/", DemoViewHealthView.as_view(), name="audit_demo_view_health"),
 ]

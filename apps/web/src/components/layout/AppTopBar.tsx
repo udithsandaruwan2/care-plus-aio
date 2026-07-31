@@ -138,6 +138,15 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 )}
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
                   <Link
+                    to="/admin/audit"
+                    className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Audit log
+                  </Link>
+                )}
+                {(user?.role === 'admin' || user?.role === 'auditor') && (
+                  <Link
                     to="/admin/catalog"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}

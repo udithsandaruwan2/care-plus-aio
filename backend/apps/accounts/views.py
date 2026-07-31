@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -6,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .audit import record_audit
+from .audit_filters import CSV_ROW_CAP, filtered_audit_logs
 from .models import (
     AuditAction,
     AuditLog,
@@ -36,6 +38,12 @@ class UserPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
     max_page_size = 100
+
+
+class AuditPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 200
 
 
 class AdminUserListView(generics.ListAPIView):
@@ -279,12 +287,61 @@ class MobilePushDeviceView(APIView):
 
 
 class AuditLogListView(generics.ListAPIView):
-    """GET /api/v1/audit/ — list audit rows (admin + auditor only)."""
+    """GET /api/v1/audit/ — filtered audit rows (admin + auditor; Step 58)."""
 
     serializer_class = AuditLogSerializer
     permission_classes = [RolePermission]
     allowed_roles = ("admin", "auditor")
-    queryset = AuditLog.objects.select_related("actor").all()
+    pagination_class = AuditPagination
+
+    def get_queryset(self):
+        return filtered_audit_logs(self.request.query_params)
+
+
+class AuditLogExportView(APIView):
+    """GET /api/v1/audit/export/ — CSV export with the same filters (Step 58)."""
+
+    permission_classes = [RolePermission]
+    allowed_roles = ("admin", "auditor")
+
+    def get(self, request):
+        import csv
+        import io
+        import json
+
+        qs = filtered_audit_logs(request.query_params)[:CSV_ROW_CAP]
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(
+            [
+                "id",
+                "ts",
+                "actor_id",
+                "actor_email",
+                "action",
+                "ip",
+                "target_type",
+                "target_id",
+                "metadata",
+            ]
+        )
+        for row in qs.iterator():
+            writer.writerow(
+                [
+                    row.pk,
+                    row.ts.isoformat() if row.ts else "",
+                    row.actor_id or "",
+                    getattr(row.actor, "email", "") if row.actor_id else "",
+                    row.action,
+                    row.ip or "",
+                    row.target_type,
+                    row.target_id,
+                    json.dumps(row.metadata or {}, ensure_ascii=False),
+                ]
+            )
+        response = HttpResponse(buf.getvalue(), content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="careplus-audit.csv"'
+        return response
 
 
 class DemoViewHealthView(APIView):
@@ -311,6 +368,7 @@ class DemoViewHealthView(APIView):
             target_type="patient",
             target_id=patient_id,
             metadata={"source": "demo_view_health"},
+            async_=False,
         )
         return Response(
             {

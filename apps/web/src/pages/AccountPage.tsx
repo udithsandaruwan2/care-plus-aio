@@ -89,6 +89,11 @@ export function AccountPage() {
                 Analytics
               </Button>
             </Link>
+            <Link to="/admin/audit">
+              <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                Audit log
+              </Button>
+            </Link>
             <Link to="/admin/catalog">
               <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
                 Vocab & catalog
@@ -111,6 +116,11 @@ export function AccountPage() {
             <Link to="/admin/analytics">
               <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
                 Analytics
+              </Button>
+            </Link>
+            <Link to="/admin/audit">
+              <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
+                Audit log
               </Button>
             </Link>
             <Link to="/admin/catalog">
