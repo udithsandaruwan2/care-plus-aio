@@ -93,3 +93,32 @@ def mark_lead_contacted(lead: Lead, *, actor, notes: str = "") -> Lead:
         ]
     )
     return lead
+
+
+@transaction.atomic
+def close_lead(lead: Lead, *, actor, notes: str = "") -> Lead:
+    """Admin closes a marketing lead (Step 57)."""
+    if getattr(actor, "role", None) != Role.ADMIN and not getattr(actor, "is_staff", False):
+        raise ValidationError("Only admins can close leads.")
+    if lead.status == LeadStatus.CLOSED:
+        if notes.strip():
+            lead.admin_notes = notes.strip()
+            lead.save(update_fields=["admin_notes", "updated_at"])
+        return lead
+
+    lead.status = LeadStatus.CLOSED
+    if notes.strip():
+        lead.admin_notes = notes.strip()
+    if lead.contacted_at is None:
+        lead.contacted_at = timezone.now()
+        lead.contacted_by = actor
+    lead.save(
+        update_fields=[
+            "status",
+            "admin_notes",
+            "contacted_at",
+            "contacted_by",
+            "updated_at",
+        ]
+    )
+    return lead
