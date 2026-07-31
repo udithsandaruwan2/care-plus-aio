@@ -9,6 +9,8 @@ import {
   CareRelationship,
   CareRelationshipListResponse,
   ConditionListResponse,
+  AdminConditionTerm,
+  AdminConditionListResponse,
   Lead,
   LeadListResponse,
   CarePackage,
@@ -61,6 +63,7 @@ import {
   type RegisterInput,
   type ShiftCreateInput,
   type AdminUserListParams,
+  type AdminConditionInput,
   type VoiceIntentInput,
 } from './schemas';
 
@@ -502,6 +505,62 @@ export function createApiClient(options: ApiClientOptions) {
       const qs = category ? `?category=${encodeURIComponent(category)}` : '';
       return request(`/catalog/addons/${qs}`, {}, (d) => z.array(CatalogAddOn).parse(d));
     },
+    listAdminConditions: (active?: boolean) => {
+      const qs = active == null ? '' : `?active=${active}`;
+      return request(`/admin/vocab/conditions/${qs}`, {}, (d) =>
+        AdminConditionListResponse.parse(d),
+      );
+    },
+    createAdminCondition: (input: AdminConditionInput) =>
+      request(
+        '/admin/vocab/conditions/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => AdminConditionTerm.parse(d),
+      ),
+    updateAdminCondition: (slug: string, input: Partial<AdminConditionInput>) =>
+      request(
+        `/admin/vocab/conditions/${encodeURIComponent(slug)}/`,
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => AdminConditionTerm.parse(d),
+      ),
+    deleteAdminCondition: (slug: string) =>
+      request(`/admin/vocab/conditions/${encodeURIComponent(slug)}/`, { method: 'DELETE' }, () => undefined),
+    listAdminPackages: (careLevel?: string) => {
+      const qs = careLevel ? `?care_level=${encodeURIComponent(careLevel)}` : '';
+      return request(`/admin/catalog/packages/${qs}`, {}, (d) => z.array(CarePackage).parse(d));
+    },
+    createAdminPackage: (input: Record<string, unknown>) =>
+      request(
+        '/admin/catalog/packages/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => CarePackage.parse(d),
+      ),
+    updateAdminPackage: (id: number, input: Record<string, unknown>) =>
+      request(
+        `/admin/catalog/packages/${id}/`,
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => CarePackage.parse(d),
+      ),
+    deleteAdminPackage: (id: number) =>
+      request(`/admin/catalog/packages/${id}/`, { method: 'DELETE' }, () => undefined),
+    listAdminAddOns: (category?: string) => {
+      const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+      return request(`/admin/catalog/addons/${qs}`, {}, (d) => z.array(CatalogAddOn).parse(d));
+    },
+    createAdminAddOn: (input: Record<string, unknown>) =>
+      request(
+        '/admin/catalog/addons/',
+        { method: 'POST', body: JSON.stringify(input) },
+        (d) => CatalogAddOn.parse(d),
+      ),
+    updateAdminAddOn: (id: number, input: Record<string, unknown>) =>
+      request(
+        `/admin/catalog/addons/${id}/`,
+        { method: 'PATCH', body: JSON.stringify(input) },
+        (d) => CatalogAddOn.parse(d),
+      ),
+    deleteAdminAddOn: (id: number) =>
+      request(`/admin/catalog/addons/${id}/`, { method: 'DELETE' }, () => undefined),
     createCheckout: (input: CheckoutCreate) =>
       request(
         '/checkout/',

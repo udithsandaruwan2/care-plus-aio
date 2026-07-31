@@ -6,7 +6,7 @@ from django.http import HttpResponse
 
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
-from apps.accounts.permissions import IsPatient
+from apps.accounts.permissions import IsAdmin, IsPatient, RolePermission
 
 from .checkout import create_checkout_order
 from .models import AddOn, CarePackage, Order, OrderStatus, PaymentIntent
@@ -18,7 +18,9 @@ from .payments.service import (
 from .receipts import format_receipt_html
 from .serializers import (
     AddOnSerializer,
+    AddOnWriteSerializer,
     CarePackageSerializer,
+    CarePackageWriteSerializer,
     CheckoutCreateSerializer,
     OrderSerializer,
     PaymentIntentSerializer,
@@ -53,6 +55,120 @@ class AddOnListView(generics.ListAPIView):
         if category:
             qs = qs.filter(category=category)
         return qs
+
+
+class AdminCarePackageListCreateView(APIView):
+    """GET/POST /api/v1/admin/catalog/packages/ — admin+auditor list; admin create."""
+
+    allowed_roles = ("admin", "auditor")
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [RolePermission()]
+
+    def get(self, request):
+        qs = CarePackage.objects.all().order_by("sort_order", "price_lkr", "name")
+        level = (request.query_params.get("care_level") or "").strip()
+        if level:
+            qs = qs.filter(care_level=level)
+        return Response(CarePackageSerializer(qs, many=True).data)
+
+    def post(self, request):
+        ser = CarePackageWriteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        row = CarePackage.objects.create(**ser.validated_data)
+        return Response(CarePackageSerializer(row).data, status=status.HTTP_201_CREATED)
+
+
+class AdminCarePackageDetailView(APIView):
+    """GET/PATCH/DELETE /api/v1/admin/catalog/packages/<id>/."""
+
+    allowed_roles = ("admin", "auditor")
+
+    def get_permissions(self):
+        if self.request.method in ("PATCH", "DELETE"):
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [RolePermission()]
+
+    def _get(self, pk: int) -> CarePackage:
+        try:
+            return CarePackage.objects.get(pk=pk)
+        except CarePackage.DoesNotExist as exc:
+            raise NotFound("Package not found.") from exc
+
+    def get(self, request, pk: int):
+        return Response(CarePackageSerializer(self._get(pk)).data)
+
+    def patch(self, request, pk: int):
+        row = self._get(pk)
+        ser = CarePackageWriteSerializer(row, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        for key, value in ser.validated_data.items():
+            setattr(row, key, value)
+        row.save()
+        return Response(CarePackageSerializer(row).data)
+
+    def delete(self, request, pk: int):
+        self._get(pk).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminAddOnListCreateView(APIView):
+    """GET/POST /api/v1/admin/catalog/addons/ — admin+auditor list; admin create."""
+
+    allowed_roles = ("admin", "auditor")
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [RolePermission()]
+
+    def get(self, request):
+        qs = AddOn.objects.all().order_by("sort_order", "category", "price_lkr", "name")
+        category = (request.query_params.get("category") or "").strip()
+        if category:
+            qs = qs.filter(category=category)
+        return Response(AddOnSerializer(qs, many=True).data)
+
+    def post(self, request):
+        ser = AddOnWriteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        row = AddOn.objects.create(**ser.validated_data)
+        return Response(AddOnSerializer(row).data, status=status.HTTP_201_CREATED)
+
+
+class AdminAddOnDetailView(APIView):
+    """GET/PATCH/DELETE /api/v1/admin/catalog/addons/<id>/."""
+
+    allowed_roles = ("admin", "auditor")
+
+    def get_permissions(self):
+        if self.request.method in ("PATCH", "DELETE"):
+            return [permissions.IsAuthenticated(), IsAdmin()]
+        return [RolePermission()]
+
+    def _get(self, pk: int) -> AddOn:
+        try:
+            return AddOn.objects.get(pk=pk)
+        except AddOn.DoesNotExist as exc:
+            raise NotFound("Add-on not found.") from exc
+
+    def get(self, request, pk: int):
+        return Response(AddOnSerializer(self._get(pk)).data)
+
+    def patch(self, request, pk: int):
+        row = self._get(pk)
+        ser = AddOnWriteSerializer(row, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        for key, value in ser.validated_data.items():
+            setattr(row, key, value)
+        row.save()
+        return Response(AddOnSerializer(row).data)
+
+    def delete(self, request, pk: int):
+        self._get(pk).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CheckoutCreateView(APIView):
