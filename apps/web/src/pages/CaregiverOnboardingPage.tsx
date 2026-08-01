@@ -230,13 +230,13 @@ export function CaregiverOnboardingPage() {
                     className={inputClass}
                   />
                 </Field>
-                <Field label="NIC / ID (placeholder)">
+                <Field label="National ID (NIC)">
                   <input
                     required
                     value={nicId}
                     onChange={(e) => setNicId(e.target.value)}
                     className={inputClass}
-                    placeholder="e.g. 199012345678"
+                    placeholder="e.g. 199012345678 or 901234567V"
                   />
                 </Field>
                 <Field label="City">

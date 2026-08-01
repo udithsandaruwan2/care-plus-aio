@@ -323,7 +323,7 @@ export function SchedulePage() {
         </h2>
         {booked.length === 0 && (
           <p className="mt-3 text-sm text-muted">
-            No upcoming booked shifts yet.
+            No upcoming shifts in Sri Lanka time (Asia/Colombo).
             {isPatient && (
               <>
                 {' '}
@@ -395,7 +395,8 @@ export function SchedulePage() {
 
           {selectedCg && occurrences.length === 0 && (
             <p className="mt-4 text-sm text-muted">
-              No published weekly slots for this caregiver yet.
+              This caregiver hasn’t published weekly slots yet. Try another profile or ask them to
+              add availability.
             </p>
           )}
 
@@ -478,7 +479,9 @@ export function SchedulePage() {
               </li>
             ))}
             {slots.length === 0 && (
-              <p className="text-sm text-muted">No weekly slots published yet.</p>
+              <p className="text-sm text-muted">
+                No weekly windows yet. Add slots below so families in your city can book.
+              </p>
             )}
           </ul>
 
@@ -523,7 +526,7 @@ export function SchedulePage() {
           </form>
 
           <p className="mt-4 text-xs text-muted">
-            Soft presence (match rankings) is still on{' '}
+            Match availability is still controlled on{' '}
             <Link to="/presence" className="text-cyan hover:underline">
               Availability
             </Link>

@@ -89,12 +89,20 @@ export function ContactPage() {
           <Input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Phone</span>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <span className="text-xs uppercase tracking-wide text-muted">Phone (+94)</span>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+94 7X XXX XXXX"
+          />
         </label>
         <label className="block space-y-1.5">
           <span className="text-xs uppercase tracking-wide text-muted">City</span>
-          <Input value={city} onChange={(e) => setCity(e.target.value)} />
+          <Input
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="e.g. Colombo, Kandy, Galle"
+          />
         </label>
         <label className="block space-y-1.5">
           <span className="text-xs uppercase tracking-wide text-muted">Language</span>

@@ -261,7 +261,9 @@ export function CaregiverDetailPage() {
                 </ul>
               </>
             ) : (
-              <p className="mt-2 text-sm text-muted">No approved reviews yet.</p>
+              <p className="mt-2 text-sm text-muted">
+                No family reviews yet — be among the first to share feedback after care.
+              </p>
             )}
           </div>
 
@@ -323,7 +325,12 @@ function AvailabilitySlots({
     };
   }, [caregiverId]);
 
-  if (!slots.length) return <p className="mt-2 text-sm text-muted">No published slots yet.</p>;
+  if (!slots.length)
+    return (
+      <p className="mt-2 text-sm text-muted">
+        No weekly availability published yet (shown in Asia/Colombo).
+      </p>
+    );
 
   return (
     <ul className="mt-3 space-y-2 text-sm text-muted">

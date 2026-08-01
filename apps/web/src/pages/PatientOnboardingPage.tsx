@@ -288,7 +288,7 @@ export function PatientOnboardingPage() {
                     onChange={(e) => setMedicationsText(e.target.value)}
                     rows={2}
                     className={inputClass}
-                    placeholder="e.g. metformin, aspirin"
+                    placeholder="e.g. metformin, amlodipine"
                   />
                 </Field>
                 <Field label="Allergies (comma-separated)">

@@ -90,7 +90,7 @@ export function OrderPayPage() {
         <PageHeader
         eyebrow="Payment"
         title="Pay for care"
-        subtitle="Review your order, then confirm payment. No card details needed in mock mode."
+        subtitle="Review your order, then pay securely in LKR via PayHere."
         actions={
           <Link
             to="/requests"
@@ -119,7 +119,7 @@ export function OrderPayPage() {
             {mode === 'mock' && (
               <div className="rounded-2xl border border-amber/40 bg-amber/5 p-5">
                 <p className="text-sm text-amber">
-                  Development mock payment — confirms instantly without card numbers.
+                  Test payment — confirms instantly. No card entry in this environment.
                 </p>
                 <button
                   type="button"
@@ -135,8 +135,8 @@ export function OrderPayPage() {
             {mode === 'payhere' && intent && (
               <div className="rounded-2xl border border-cyan/40 bg-cyan/5 p-5">
                 <p className="text-sm text-mist/90">
-                  PayHere checkout is stubbed. Complete payment via the provider notify webhook in
-                  staging; live redirect lands in a later release.
+                  PayHere redirect will open the provider checkout when live. Until then, use test
+                  payment or contact Care Plus support.
                 </p>
                 <p className="mt-2 font-mono text-xs text-muted">
                   order_id: {String(intent.client_payload?.order_id ?? intent.provider_intent_id)}
