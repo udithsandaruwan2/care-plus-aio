@@ -108,7 +108,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M12** Scheduling + Redlock          | 50–53   | ✅ done          |
 | **M13** Admin console                 | 54–58   | ✅ done          |
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
-| **M15** Mobile Expo                   | 62–67   | ⬜                |
+| **M15** Mobile Expo                   | 62–67   | 62 ✅ · 63–67 ⬜  |
 | **M16** Compliance                    | 68–71   | ⬜                |
 | **M17** Ship                          | 72–75   | ⬜                |
 
@@ -129,6 +129,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 62** — Expo mobile bootstrap: `apps/mobile` (Expo 52 + expo-router), Metro monorepo config, shared `@care-plus/{core,api-client,ui-tokens}`, health-check shell. Branch `feat/step62-expo-bootstrap`.
 - **Step 61** — Content polish: Sri Lanka–appropriate empty states and microcopy; remove literal “placeholder” NIC label, HIPAA/stub jargon; catalog/checkout empties. Branch `feat/step61-copy-polish`.
 - **Step 60** — Accessibility: skip links, menu focus traps, ARIA live/alerts, Escape-to-stop Neural Core, language radiogroup keys, reduced-motion CSS, muted contrast bump, Vitest+axe on auth/home/results. Branch `feat/step60-a11y-pass`.
 - **Step 59** — UI i18n: `packages/core` en/si/ta catalogs + `t()`; `LocaleProvider` / language switcher (`careplus.uiLocale`); public home, login, platform hub + headers translated. Branch `feat/step59-ui-i18n`.
