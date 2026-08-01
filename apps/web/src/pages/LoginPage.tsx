@@ -85,7 +85,11 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
-        {error && <p className="text-sm text-rose">{error}</p>}
+        {error && (
+          <p className="text-sm text-rose" role="alert">
+            {error}
+          </p>
+        )}
         <Button type="submit" disabled={busy} className="w-full">
           {busy ? t('action.signingIn') : t('action.signIn')}
         </Button>

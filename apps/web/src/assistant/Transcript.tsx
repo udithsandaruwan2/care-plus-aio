@@ -9,7 +9,12 @@ export function Transcript({ transcript, interim }: Props) {
     return null;
   }
   return (
-    <p className="mt-3 max-w-md text-center text-sm leading-relaxed text-mist">
+    <p
+      className="mt-3 max-w-md text-center text-sm leading-relaxed text-mist"
+      aria-live="polite"
+      aria-relevant="additions text"
+      aria-atomic="false"
+    >
       {transcript}{' '}
       {interim && <span className="text-muted italic">{interim}</span>}
     </p>

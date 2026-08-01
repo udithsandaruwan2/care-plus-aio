@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
+import { useFocusTrap } from '../../a11y/useFocusTrap';
 import { useAuth } from '../../auth/AuthContext';
 import { LanguageSwitcher } from '../../i18n/LanguageSwitcher';
 import { useLocale } from '../../i18n/LocaleProvider';
@@ -21,6 +22,13 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
+
+  const closeAccount = useCallback(() => setAccountOpen(false), []);
+  const closeMobile = useCallback(() => setMenuOpen(false), []);
+  useFocusTrap(accountOpen, accountMenuRef, closeAccount);
+  useFocusTrap(menuOpen, mobileNavRef, closeMobile);
 
   const isHome = location.pathname === '/platform';
   const showBackButton = showBack && !isHome;
@@ -59,12 +67,12 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
             </button>
           )}
           <Link to="/platform" className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-cyan" />
+            <span className="h-2.5 w-2.5 rounded-full bg-cyan" aria-hidden />
             <span className="font-display text-base text-mist">{brand.name}</span>
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
           {primaryNav.map((item) => (
             <NavLink
               key={item.to}
@@ -83,15 +91,27 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
           <div className="relative">
             <button
               type="button"
-              onClick={() => setAccountOpen((v) => !v)}
+              onClick={() => {
+                setMenuOpen(false);
+                setAccountOpen((v) => !v);
+              }}
               className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted hover:border-cyan hover:text-cyan"
+              aria-expanded={accountOpen}
+              aria-haspopup="menu"
+              aria-controls="app-account-menu"
             >
               {t('action.menu')}
             </button>
             {accountOpen && (
-              <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-hair bg-panel p-2 shadow-[var(--cp-shadow-soft)]">
+              <div
+                id="app-account-menu"
+                ref={accountMenuRef}
+                role="menu"
+                className="absolute right-0 mt-2 w-52 rounded-2xl border border-hair bg-panel p-2 shadow-[var(--cp-shadow-soft)]"
+              >
                 <Link
                   to={profilePath}
+                  role="menuitem"
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
@@ -99,6 +119,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 </Link>
                 <Link
                   to="/settings/notifications"
+                  role="menuitem"
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
@@ -107,6 +128,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 {(user?.role === 'patient' || user?.role === 'caregiver') && (
                   <Link
                     to="/schedule"
+                    role="menuitem"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -116,6 +138,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 {user?.role === 'caregiver' && (
                   <Link
                     to="/presence"
+                    role="menuitem"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -125,6 +148,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
                   <Link
                     to="/users"
+                    role="menuitem"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -134,6 +158,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
                   <Link
                     to="/admin/analytics"
+                    role="menuitem"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -143,6 +168,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
                   <Link
                     to="/admin/audit"
+                    role="menuitem"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -152,6 +178,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 {(user?.role === 'admin' || user?.role === 'auditor') && (
                   <Link
                     to="/admin/catalog"
+                    role="menuitem"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -161,6 +188,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 {user?.role === 'admin' && (
                   <Link
                     to="/leads"
+                    role="menuitem"
                     className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -169,6 +197,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 )}
                 <Link
                   to="/caregivers"
+                  role="menuitem"
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
@@ -176,6 +205,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 </Link>
                 <Link
                   to="/"
+                  role="menuitem"
                   className="block rounded-xl px-3 py-2 text-xs text-muted hover:bg-soft hover:text-mist"
                   onClick={() => setAccountOpen(false)}
                 >
@@ -183,6 +213,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
                 </Link>
                 <button
                   type="button"
+                  role="menuitem"
                   className="mt-1 w-full rounded-xl px-3 py-2 text-left text-xs text-rose hover:bg-rose/10"
                   onClick={() => {
                     setAccountOpen(false);
@@ -197,8 +228,12 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
           <button
             type="button"
             className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted md:hidden"
-            onClick={() => setMenuOpen((v) => !v)}
+            onClick={() => {
+              setAccountOpen(false);
+              setMenuOpen((v) => !v);
+            }}
             aria-expanded={menuOpen}
+            aria-controls="app-mobile-nav"
           >
             {t('action.nav')}
           </button>
@@ -206,7 +241,12 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
       </div>
 
       {menuOpen && (
-        <nav className="border-t border-hair px-4 py-3 md:hidden">
+        <nav
+          id="app-mobile-nav"
+          ref={mobileNavRef}
+          className="border-t border-hair px-4 py-3 md:hidden"
+          aria-label="Mobile primary"
+        >
           <div className="flex flex-wrap gap-2">
             {primaryNav.map((item) => (
               <NavLink

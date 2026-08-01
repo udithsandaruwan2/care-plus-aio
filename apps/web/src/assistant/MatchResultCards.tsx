@@ -11,12 +11,20 @@ import { speakSerah } from './useTts';
 function FactorBar({ label, value, className }: { label: string; value: number; className: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
   return (
-    <div className="flex items-center gap-2 text-[10px]">
-      <span className="w-10 shrink-0 text-muted">{label}</span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-void/60">
+    <div
+      className="flex items-center gap-2 text-[10px]"
+      role="img"
+      aria-label={`${label} ${pct} percent`}
+    >
+      <span className="w-10 shrink-0 text-mist/80" aria-hidden>
+        {label}
+      </span>
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-void/60" aria-hidden>
         <div className={`h-full rounded-full ${className}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="w-7 text-right font-mono text-muted">{pct}</span>
+      <span className="w-7 text-right font-mono text-mist/80" aria-hidden>
+        {pct}
+      </span>
     </div>
   );
 }
@@ -198,12 +206,14 @@ function MatchCard({
         )}
         {showForm && !sent && (
           <div className="space-y-2 rounded-xl border border-hair bg-soft/40 p-3">
-            <input
-              className="w-full rounded-lg border border-hair bg-elevated px-3 py-2 text-xs text-mist outline-none"
-              placeholder="Optional message for the caregiver"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
+            <label className="block space-y-1">
+              <span className="text-[11px] text-muted">Optional message for the caregiver</span>
+              <input
+                className="w-full rounded-lg border border-hair bg-elevated px-3 py-2 text-xs text-mist outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+            </label>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -223,7 +233,11 @@ function MatchCard({
             </div>
           </div>
         )}
-        {formError && <p className="text-[11px] text-rose">{formError}</p>}
+        {formError && (
+          <p className="text-[11px] text-rose" role="alert">
+            {formError}
+          </p>
+        )}
       </div>
     </article>
   );
@@ -245,18 +259,24 @@ export function MatchResultCards({
   if (!match.results.length) {
     return <p className="mt-4 text-center text-sm text-muted">{ui.noMatches}</p>;
   }
+  const heading = match.refined
+    ? uiLanguage === 'Sinhala'
+      ? 'යාවත්කාලීන ගැලපීම්'
+      : uiLanguage === 'Tamil'
+        ? 'புதுப்பிக்கப்பட்ட பொருத்தங்கள்'
+        : 'Updated matches'
+    : ui.title;
+
   return (
-    <div id={id} className="mt-6 w-full max-w-md space-y-3">
+    <section
+      id={id}
+      className="mt-6 w-full max-w-md space-y-3"
+      role="region"
+      aria-label={heading}
+      aria-live="polite"
+    >
       <div className="flex items-center justify-between gap-2 px-1">
-        <p className="font-display text-sm tracking-wide text-mist">
-          {match.refined
-            ? uiLanguage === 'Sinhala'
-              ? 'යාවත්කාලීන ගැලපීම්'
-              : uiLanguage === 'Tamil'
-                ? 'புதுப்பிக்கப்பட்ட பொருத்தங்கள்'
-                : 'Updated matches'
-            : ui.title}
-        </p>
+        <h2 className="font-display text-sm tracking-wide text-mist">{heading}</h2>
         <span className="rounded-full border border-mint/40 px-2.5 py-0.5 font-mono text-[11px] text-mint">
           {match.latency_ms} ms
         </span>
@@ -270,6 +290,6 @@ export function MatchResultCards({
           uiLanguage={uiLanguage}
         />
       ))}
-    </div>
+    </section>
   );
 }

@@ -6,7 +6,11 @@ export function ThemeToggle() {
   const { mode, resolved, setMode } = useTheme();
 
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-hair bg-panel px-1 py-1 text-xs shadow-[var(--cp-shadow-soft)]">
+    <div
+      className="inline-flex items-center gap-1 rounded-full border border-hair bg-panel px-1 py-1 text-xs shadow-[var(--cp-shadow-soft)]"
+      role="group"
+      aria-label="Color theme"
+    >
       {ORDER.map((opt) => (
         <button
           key={opt}
@@ -17,7 +21,8 @@ export function ThemeToggle() {
               ? 'bg-elevated text-mist'
               : 'text-muted hover:bg-soft hover:text-mist'
           }`}
-          title={opt === 'system' ? `System (${resolved})` : undefined}
+          title={opt === 'system' ? `System (${resolved})` : opt}
+          aria-pressed={mode === opt}
         >
           {opt}
         </button>
@@ -25,4 +30,3 @@ export function ThemeToggle() {
     </div>
   );
 }
-

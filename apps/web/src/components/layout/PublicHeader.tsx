@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { brand } from '@care-plus/ui-tokens';
+import { useFocusTrap } from '../../a11y/useFocusTrap';
 import { useAuth } from '../../auth/AuthContext';
 import { LanguageSwitcher } from '../../i18n/LanguageSwitcher';
 import { useLocale } from '../../i18n/LocaleProvider';
@@ -17,6 +18,9 @@ export function PublicHeader() {
   const { user, logout } = useAuth();
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
+  const mobileNavRef = useRef<HTMLElement>(null);
+  const closeMobile = useCallback(() => setOpen(false), []);
+  useFocusTrap(open, mobileNavRef, closeMobile);
 
   const nav = (
     <>
@@ -76,10 +80,12 @@ export function PublicHeader() {
     <header className="sticky top-0 z-20 -mx-5 border-b border-hair/80 bg-panel/90 px-5 py-3 backdrop-blur-xl sm:-mx-8 sm:px-8">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-cyan" />
+          <span className="h-3 w-3 rounded-full bg-cyan" aria-hidden />
           <span className="font-display text-lg text-mist">{brand.name}</span>
         </Link>
-        <nav className="hidden items-center gap-1 md:flex">{nav}</nav>
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+          {nav}
+        </nav>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <ThemeToggle />
@@ -111,13 +117,21 @@ export function PublicHeader() {
             className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
+            aria-controls="public-mobile-nav"
           >
             {t('action.menu')}
           </button>
         </div>
       </div>
       {open && (
-        <nav className="mt-3 flex flex-col gap-1 border-t border-hair pt-3 md:hidden">{nav}</nav>
+        <nav
+          id="public-mobile-nav"
+          ref={mobileNavRef}
+          className="mt-3 flex flex-col gap-1 border-t border-hair pt-3 md:hidden"
+          aria-label="Mobile primary"
+        >
+          {nav}
+        </nav>
       )}
     </header>
   );
