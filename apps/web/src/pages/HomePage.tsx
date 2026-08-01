@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AssistantState, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { useAuth } from '../auth/AuthContext';
@@ -73,6 +73,7 @@ export function HomePage() {
 
   const endingRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
+  const consentBtnRef = useRef<HTMLButtonElement>(null);
   const [clearing, setClearing] = useState(false);
 
   const speech = useSpeechRecognition({
@@ -115,6 +116,25 @@ export function HomePage() {
 
   const listening = mic.active || speech.listening;
   const emergencyActive = state === AssistantState.EMERGENCY && emergencyMatchId != null;
+
+  useEffect(() => {
+    if (consentNeeded) consentBtnRef.current?.focus();
+  }, [consentNeeded]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return;
+      if (!(mic.active || speech.listening || busy)) return;
+      e.preventDefault();
+      if (busy) {
+        setConversationOn(false);
+        stopSpeaking();
+      }
+      speech.stop();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mic.active, speech, busy, stopSpeaking]);
 
   async function toggleMic() {
     if (listening || busy) {
@@ -261,27 +281,40 @@ export function HomePage() {
             </p>
           )}
           {(mic.error || speech.error) && (
-            <p className="mt-1 text-sm text-rose">{mic.error ?? speech.error}</p>
+            <p className="mt-1 text-sm text-rose" role="alert">
+              {mic.error ?? speech.error}
+            </p>
           )}
-          {turnError && !consentNeeded && <p className="mt-1 text-sm text-rose">{turnError}</p>}
+          {turnError && !consentNeeded && (
+            <p className="mt-1 text-sm text-rose" role="alert">
+              {turnError}
+            </p>
+          )}
           {consentNeeded && (
-            <div className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center">
-              <p className="text-sm text-amber">{turnError}</p>
+            <div
+              className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center"
+              role="alertdialog"
+              aria-labelledby="consent-title"
+            >
+              <p id="consent-title" className="text-sm text-amber">
+                {turnError}
+              </p>
               <button
+                ref={consentBtnRef}
                 type="button"
                 onClick={onGrantConsent}
-                className="mt-3 rounded-full bg-amber/90 px-5 py-2 text-sm font-medium text-void transition hover:bg-amber"
+                className="mt-3 rounded-full bg-amber/90 px-5 py-2 text-sm font-medium text-void transition hover:bg-amber focus-visible:ring-2 focus-visible:ring-cyan"
               >
                 Enable AI processing
               </button>
             </div>
           )}
           {!speech.supported && (
-            <p className="mt-1 text-xs text-amber">
+            <p className="mt-1 text-xs text-amber" role="status">
               Live captions unsupported here — audio still uploads for Serah (try Chrome/Edge).
             </p>
           )}
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-xs text-muted" aria-live="polite">
             Goal {progress}% · level {(mic.amplitude * 100).toFixed(0)}%
           </p>
 
@@ -306,7 +339,15 @@ export function HomePage() {
             type="button"
             onClick={toggleMic}
             disabled={busy && !listening}
-            className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition disabled:opacity-50 ${
+            aria-pressed={listening}
+            aria-label={
+              listening
+                ? 'Stop listening and send'
+                : busy
+                  ? 'Serah is speaking'
+                  : 'Tap to speak with Serah'
+            }
+            className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-cyan disabled:opacity-50 ${
               listening
                 ? 'bg-rose/20 text-rose ring-1 ring-rose/50'
                 : 'bg-cyan/90 text-void hover:bg-cyan'

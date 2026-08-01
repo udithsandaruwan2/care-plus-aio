@@ -107,7 +107,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M11** Health monitoring + emergency | 45–49   | ✅ done         |
 | **M12** Scheduling + Redlock          | 50–53   | ✅ done          |
 | **M13** Admin console                 | 54–58   | ✅ done          |
-| **M14** i18n + a11y                   | 59–61   | 59 ✅ · 60–61 ⬜  |
+| **M14** i18n + a11y                   | 59–61   | 59–60 ✅ · 61 ⬜ |
 | **M15** Mobile Expo                   | 62–67   | ⬜                |
 | **M16** Compliance                    | 68–71   | ⬜                |
 | **M17** Ship                          | 72–75   | ⬜                |
@@ -129,6 +129,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 60** — Accessibility: skip links, menu focus traps, ARIA live/alerts, Escape-to-stop Neural Core, language radiogroup keys, reduced-motion CSS, muted contrast bump, Vitest+axe on auth/home/results. Branch `feat/step60-a11y-pass`.
 - **Step 59** — UI i18n: `packages/core` en/si/ta catalogs + `t()`; `LocaleProvider` / language switcher (`careplus.uiLocale`); public home, login, platform hub + headers translated. Branch `feat/step59-ui-i18n`.
 - **Step 15h** — Unified Neural Core loop: `CHAT_REPLY` FSM state, scrollable `ChatBubbles`, MATCHING→RESULTS transition, mic re-arms after Serah TTS in conversation mode. Branch `feat/step15h-conversation-loop`.
 - **Step 15j** — Dialogue AI policy: `DIALOGUE_CHAT_BACKEND` + Gemini chat rate limit; MATCH/REFINE stay VEHMF-only; `GET /voice/policy/`; turn `chat_source` + audit; docs in `DIALOGUE_POLICY.md`. Branch `feat/step15j-dialogue-policy`.

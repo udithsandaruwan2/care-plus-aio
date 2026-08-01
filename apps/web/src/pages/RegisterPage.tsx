@@ -112,7 +112,11 @@ export function RegisterPage() {
             ))}
           </div>
         </fieldset>
-        {error && <p className="text-sm text-rose">{error}</p>}
+        {error && (
+          <p className="text-sm text-rose" role="alert">
+            {error}
+          </p>
+        )}
         <Button type="submit" disabled={busy} className="w-full">
           {busy ? 'Creating…' : 'Create account'}
         </Button>
