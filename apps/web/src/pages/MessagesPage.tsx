@@ -164,7 +164,8 @@ export function MessagesPage() {
         {!loading && !thread && (
           <div className="mt-8 rounded-2xl border border-hair bg-panel/50 p-5">
             <p className="text-sm text-muted">
-              No active care relationship yet. Accept a request and complete checkout to unlock messaging.
+              Messaging opens after a care link is active — accept a request, then complete checkout
+              (LKR).
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link to="/caregivers">
@@ -182,7 +183,9 @@ export function MessagesPage() {
             <div className="mt-6 flex min-h-[320px] flex-1 flex-col rounded-2xl border border-hair bg-panel/70 p-4 backdrop-blur-md">
               <ul className="flex-1 space-y-3 overflow-y-auto pr-1">
                 {messages.length === 0 && (
-                  <li className="text-center text-sm text-muted">No messages yet — say hello.</li>
+                  <li className="text-center text-sm text-muted">
+                    No messages yet. Introduce yourself to start the care chat.
+                  </li>
                 )}
                 {messages.map((msg) => (
                   <li

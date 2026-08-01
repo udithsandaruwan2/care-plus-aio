@@ -38,9 +38,8 @@ export function PublicFooter() {
         </div>
         <div>
           <p className="font-display text-base text-mist">Support</p>
-          <p className="mt-2">Phone: +94 11 000 0000</p>
-          <p>Email: support@careplus.lk</p>
-          <p className="mt-2 text-xs">Mon - Sat, 8:00 AM - 8:00 PM</p>
+          <p className="mt-2">Email: support@careplus.lk</p>
+          <p className="mt-2 text-xs">Mon–Sat, 8:00 AM – 8:00 PM (Asia/Colombo)</p>
         </div>
       </div>
       <p className="mt-6 text-xs text-muted">© {new Date().getFullYear()} Care Plus. All rights reserved.</p>

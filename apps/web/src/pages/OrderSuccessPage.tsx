@@ -64,7 +64,7 @@ export function OrderSuccessPage() {
             to="/platform"
             className="rounded-lg border border-mint/50 px-4 py-2.5 text-sm text-mint transition hover:bg-mint/10"
           >
-            Platform
+            Open hub
           </Link>
           <button
             type="button"

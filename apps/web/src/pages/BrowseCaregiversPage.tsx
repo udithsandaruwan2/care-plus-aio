@@ -100,7 +100,7 @@ export function BrowseCaregiversPage() {
         <Input
           value={draftQ}
           onChange={(e) => setDraftQ(e.target.value)}
-          placeholder="Search name, city, specialty…"
+          placeholder="Search name, city (Colombo…), specialty…"
           className="min-w-0 flex-1"
         />
         <Button type="submit">Search</Button>
@@ -176,7 +176,8 @@ export function BrowseCaregiversPage() {
         <div className="max-h-[35rem] space-y-2 overflow-y-auto rounded-[1.5rem] border border-hair bg-panel/50 p-3">
           {!loading && !error && rows.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-muted">
-              No caregivers match these filters. Try clearing specialty or language.
+              No caregivers match. Try another city (e.g. Colombo, Kandy), clear language/specialty,
+              or turn off “Available only”.
             </p>
           )}
           {rows.map((cg) => {

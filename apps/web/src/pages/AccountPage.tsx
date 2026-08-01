@@ -28,7 +28,7 @@ export function AccountPage() {
       <PageHeader
         eyebrow="Account"
         title="Profile and settings"
-        subtitle="Manage identity, profile completion, and notification preferences."
+        subtitle="Manage your Care Plus profile, completion, and alerts."
       />
 
       <section className="mt-6 rounded-2xl border border-hair bg-panel/50 p-5">
@@ -71,7 +71,7 @@ export function AccountPage() {
               </Link>
               <Link to="/presence">
                 <Button tone="ghost" className="min-h-9 px-3 py-1.5 text-xs">
-                  Soft presence
+                  Availability
                 </Button>
               </Link>
             </div>

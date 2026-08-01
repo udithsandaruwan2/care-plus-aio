@@ -244,14 +244,14 @@ export function MedicalRecordsPage() {
           isCaregiver
             ? partnerLabel
               ? `Viewing records for ${partnerLabel}. Every access is audited.`
-              : 'No active care relationship. Records appear only while linked to a patient.'
+              : 'No active care link. Records unlock only while you are linked to a patient.'
             : 'Store clinical notes and attachments. Linked caregivers can read while care is active.'
         }
       />
 
         {isCaregiver && (
           <p className="mt-4 rounded-xl border border-violet/30 bg-violet/5 px-4 py-3 text-xs text-violet">
-            Read-only access · HIPAA/PDPA audit trail · active relationship required
+            Read-only while care is active · access is audited under Sri Lanka data-protection rules
           </p>
         )}
 
@@ -365,8 +365,8 @@ export function MedicalRecordsPage() {
         {!loading && !showCreate && rows.length === 0 && (
           <p className="mt-8 text-sm text-muted">
             {isCaregiver
-              ? 'No records for your active patient yet.'
-              : 'No records yet — add your first clinical note above.'}
+              ? 'No notes yet for this patient — ask them to add the first record.'
+              : 'No records yet. Add a clinical note (clinic letters, prescriptions, discharge notes).'}
           </p>
         )}
 
@@ -512,7 +512,7 @@ export function MedicalRecordsPage() {
                 <div className="mt-6">
                   <h3 className="font-display text-sm text-mist">Attachments</h3>
                   {(detail.attachments ?? []).length === 0 && (
-                    <p className="mt-2 text-sm text-muted">No attachments.</p>
+                    <p className="mt-2 text-sm text-muted">No files attached yet.</p>
                   )}
                   <ul className="mt-2 space-y-2">
                     {(detail.attachments ?? []).map((att) => (

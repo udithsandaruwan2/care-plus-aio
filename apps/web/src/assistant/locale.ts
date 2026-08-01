@@ -49,21 +49,21 @@ const CHIP_LABELS: Record<
     language: 'භාෂාව',
     care_level: 'සේවා මට්ටම',
     urgency: 'අවශ්‍යතාව',
-    empty: 'තවම විස්තර නැහැ.',
+    empty: 'තවම විස්තර නැහැ — තත්ත්වය, භාෂාව සහ සේවා මට්ටම කියන්න.',
   },
   Tamil: {
     condition: 'நிலை',
     language: 'மொழி',
     care_level: 'பராமரிப்பு நிலை',
     urgency: 'அவசரம்',
-    empty: 'விவரங்கள் இன்னும் இல்லை.',
+    empty: 'விவரங்கள் இல்லை — நிலை, மொழி, பராமரிப்பு அளவைச் சொல்லுங்கள்.',
   },
   English: {
     condition: 'Condition',
     language: 'Language',
     care_level: 'Care level',
     urgency: 'Urgency',
-    empty: 'No details captured yet.',
+    empty: 'No care details yet — tell Serah the condition, language, and support level.',
   },
 };
 
@@ -91,21 +91,21 @@ const MATCH_UI: Record<
     score: 'ලකුණු',
     viewProfile: 'පැතිකඩ බලන්න',
     request: 'මෙම පරිචාරක ඉල්ලන්න',
-    noMatches: 'තවම පරිචාරකයින් හමු නොවීය.',
+    noMatches: 'තවම පරිචාරකයින් හමු නොවීය. තත්ත්වය හෝ භාෂාව එකතු කරන්න.',
   },
   Tamil: {
     title: 'சிறந்த பொருத்தங்கள்',
     score: 'மதிப்பு',
     viewProfile: 'சுயவிவரம்',
     request: 'இந்த பராமரிப்பாளரைக் கோருங்கள்',
-    noMatches: 'இன்னும் பராமரிப்பாளர்கள் இல்லை.',
+    noMatches: 'பொருத்தம் இல்லை. நிலை அல்லது மொழியைச் சேர்த்து முயலவும்.',
   },
   English: {
     title: 'Best matches',
     score: 'score',
     viewProfile: 'View profile',
     request: 'Request this caregiver',
-    noMatches: 'No caregivers matched yet.',
+    noMatches: 'No caregivers matched yet. Add a condition or language, or try nearby cities.',
   },
 };
 

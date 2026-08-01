@@ -109,6 +109,11 @@ export function CheckoutPage() {
           <form onSubmit={(e) => void onSubmit(e)} className="mt-8 space-y-6">
             <section className="space-y-3">
               <h2 className="font-display text-lg text-mist">Package</h2>
+              {packages.length === 0 && (
+                <p className="text-sm text-muted">
+                  No care packages available. Contact support or try again later.
+                </p>
+              )}
               {packages.map((pkg) => (
                 <label
                   key={pkg.id}
@@ -145,7 +150,9 @@ export function CheckoutPage() {
 
             <section className="space-y-3">
               <h2 className="font-display text-lg text-mist">Add-ons</h2>
-              {addons.length === 0 && <p className="text-sm text-muted">No add-ons available.</p>}
+              {addons.length === 0 && (
+                <p className="text-sm text-muted">No optional add-ons for this package right now.</p>
+              )}
               {addons.map((addon) => (
                 <label
                   key={addon.id}

@@ -63,7 +63,7 @@ export function CaregiverPresencePage() {
         <PageHeader
         eyebrow="Presence"
         title="Availability"
-        subtitle="Toggle whether you appear available for new matches."
+        subtitle="Choose whether you appear available for new Serah matches across Sri Lanka."
       />
 
         {loading && <p className="mt-10 text-sm text-muted">Loading…</p>}
@@ -113,7 +113,7 @@ export function CaregiverPresencePage() {
                 </button>
               </div>
               <p className="mt-4 font-mono text-sm text-cyan">
-                {available ? 'Available now' : 'Unavailable — not in match top-N'}
+                {available ? 'Available now' : 'Unavailable — hidden from Serah’s ranked matches'}
               </p>
             </div>
 

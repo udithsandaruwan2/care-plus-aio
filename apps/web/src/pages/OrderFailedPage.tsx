@@ -22,9 +22,9 @@ export function OrderFailedPage() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
         <PageHeader
-        eyebrow="Failed"
+        eyebrow="Payment"
         title="Payment not completed"
-        subtitle="Your order is still awaiting payment. You can try again when ready."
+        subtitle="Payment didn’t complete. Your order is unpaid — you can retry PayHere when ready."
       />
 
         {intent?.failure_message && (

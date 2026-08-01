@@ -61,7 +61,7 @@ export function RegisterPage() {
         <PageHeader
           eyebrow="Care Plus"
           title="Create account"
-          subtitle="Patients and caregivers can self-register to manage care on the platform."
+          subtitle="Join as a patient or caregiver to book home care in Sri Lanka."
         />
       </div>
 

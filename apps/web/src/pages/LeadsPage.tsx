@@ -128,7 +128,7 @@ export function LeadsPage() {
       )}
       {!loading && rows.length === 0 && (
         <p className="mt-8 text-sm text-muted">
-          No leads in this filter — submissions appear from /contact.
+          No enquiries in this filter. New leads arrive from the public Contact form.
         </p>
       )}
 

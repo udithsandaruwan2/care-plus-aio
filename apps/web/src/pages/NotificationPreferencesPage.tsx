@@ -8,7 +8,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 const CATEGORY_LABEL: Record<string, string> = {
   security: 'Security (always on)',
   transactional: 'Care & account updates',
-  marketing: 'Marketing',
+  marketing: 'News & offers',
 };
 
 function groupByCategory(events: NotificationEventPreference[]) {
@@ -88,8 +88,7 @@ export function NotificationPreferencesPage() {
         <section className="mt-6 rounded-2xl border border-cyan/30 bg-cyan/5 p-5">
           <h2 className="font-display text-lg text-mist">Browser push</h2>
           <p className="mt-1 text-xs text-muted">
-            Allow Care Plus to notify you in this browser when a care request arrives (requires
-            permission + VAPID keys on the server).
+            Allow Care Plus to send browser alerts when care requests arrive (needs permission).
           </p>
           {!push.supported && (
             <p className="mt-3 text-sm text-amber">This browser does not support Web Push.</p>
@@ -101,7 +100,7 @@ export function NotificationPreferencesPage() {
                   ? 'Push enabled on this device'
                   : push.configured
                     ? 'Push available — enable to receive alerts'
-                    : 'Server VAPID keys not configured yet'}
+                    : 'Push isn’t available on this server yet'}
                 {push.permission === 'denied' ? ' · permission blocked in browser' : ''}
               </p>
               {push.subscribed ? (

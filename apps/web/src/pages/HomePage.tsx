@@ -197,7 +197,7 @@ export function HomePage() {
       <PageHeader
         eyebrow="Assistant"
         title="Talk with Serah"
-        subtitle="Choose a language, then speak. Serah replies in the same language and ranks caregiver matches when you need care."
+        subtitle="Choose Sinhala, Tamil, or English, then speak. Serah replies in that language and ranks caregivers when you need care."
         actions={
           <Link
             to="/platform"

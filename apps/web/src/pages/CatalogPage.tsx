@@ -60,6 +60,11 @@ export function CatalogPage() {
 
       <section className="mt-10 space-y-4">
         <h2 className="font-display text-lg text-mist">Packages</h2>
+        {!loading && !error && packages.length === 0 && (
+          <p className="text-sm text-muted">
+            No packages published yet. Check back soon or contact Care Plus Sri Lanka.
+          </p>
+        )}
         {packages.map((pkg) => (
           <article key={pkg.id} className="border-b border-hair/70 py-4 last:border-0">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -78,6 +83,9 @@ export function CatalogPage() {
 
       <section className="mt-12 space-y-4">
         <h2 className="font-display text-lg text-mist">Add-ons</h2>
+        {!loading && !error && addons.length === 0 && (
+          <p className="text-sm text-muted">No add-ons published yet. Check back soon.</p>
+        )}
         {addons.map((addon) => (
           <article key={addon.id} className="border-b border-hair/70 py-4 last:border-0">
             <div className="flex flex-wrap items-start justify-between gap-3">

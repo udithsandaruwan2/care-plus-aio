@@ -109,8 +109,8 @@ export function CareRequestsPage() {
         title={isCaregiver ? 'Patient requests' : 'Your requests'}
         subtitle={
           isCaregiver
-            ? 'Accept or reject incoming patient requests.'
-            : 'Track requests you sent to caregivers.'
+            ? 'Accept or decline requests from families.'
+            : 'Track requests and finish LKR checkout when accepted.'
         }
         actions={
           isPatient ? (
@@ -138,8 +138,8 @@ export function CareRequestsPage() {
         <div className="mt-8 rounded-2xl border border-hair bg-panel/50 p-5">
           <p className="text-sm text-muted">
             {isCaregiver
-              ? 'No requests yet — patients can send requests from match results or caregiver profiles.'
-              : 'No requests yet — browse caregivers or ask Serah to find a match.'}
+              ? 'Inbox empty. Requests appear when families send one from Serah matches or caregiver profiles.'
+              : 'No requests yet. Browse caregivers across Sri Lanka or ask Serah in Sinhala, Tamil, or English.'}
           </p>
           {isPatient && (
             <div className="mt-4 flex flex-wrap gap-2">
