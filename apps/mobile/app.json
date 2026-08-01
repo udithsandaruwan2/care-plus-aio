@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Care Plus",
+    "slug": "care-plus",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "careplus",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#05060A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "lk.careplus.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#05060A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "lk.careplus.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "care-plus-local"
+      }
+    }
+  }
+}

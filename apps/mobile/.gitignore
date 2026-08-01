@@ -1,0 +1,9 @@
+# Keep Expo local artifacts out of git (root .gitignore also covers .expo/).
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+*.orig.*
