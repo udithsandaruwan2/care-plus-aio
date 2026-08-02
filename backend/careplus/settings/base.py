@@ -9,10 +9,6 @@ from pathlib import Path
 
 import environ
 
-from pathlib import Path
-
-import environ
-
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
@@ -308,6 +304,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
 
+# ── Browser / transport security (Step 70; TLS terminates at reverse proxy) ─
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
 # ── DRF ───────────────────────────────────────────────────────────
 # API exploration/testing uses DRF's built-in Browsable API (enabled in dev),
 # not Swagger. Session auth lets you log in via the browsable UI; JWT stays the
@@ -320,6 +325,18 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env("DRF_THROTTLE_ANON", default="60/min"),
+        "user": env("DRF_THROTTLE_USER", default="300/min"),
+        "auth": env("DRF_THROTTLE_AUTH", default="20/min"),
+        "match": env("DRF_THROTTLE_MATCH", default="30/min"),
+        "voice": env("DRF_THROTTLE_VOICE", default="60/min"),
+    },
 }
 
 SIMPLE_JWT = {
@@ -327,4 +344,21 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+# ── CORS lockdown (Step 70) ──────────────────────────────────────
+# Prefer explicit allow-list. In DEBUG with an empty list, allow all for local
+# Expo / Vite convenience. Production must set CORS_ALLOWED_ORIGINS (or rely on
+# FRONTEND_BASE_URL as a single origin).
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+CORS_ALLOW_CREDENTIALS = True
+if CORS_ALLOWED_ORIGINS:
+    CORS_ALLOW_ALL_ORIGINS = False
+elif DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    _frontend = env("FRONTEND_BASE_URL", default="").rstrip("/")
+    if _frontend.startswith("http"):
+        CORS_ALLOWED_ORIGINS = [_frontend]
+    CORS_ALLOW_ALL_ORIGINS = False
+if not CSRF_TRUSTED_ORIGINS and CORS_ALLOWED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
