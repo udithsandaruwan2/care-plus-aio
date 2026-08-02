@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.audit import record_audit
@@ -20,6 +21,8 @@ class VoiceIntentView(APIView):
     """POST /api/v1/voice/intent/ — transcript → structured intent (consent-gated)."""
 
     permission_classes = [permissions.IsAuthenticated, HasAIConsent]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "voice"
 
     def post(self, request):
         refresh_env()
@@ -67,6 +70,8 @@ class VoiceTurnView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, HasAIConsent]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "voice"
 
     def post(self, request):
         refresh_env()

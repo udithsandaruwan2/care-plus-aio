@@ -9,6 +9,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.audit import record_audit
@@ -328,6 +329,8 @@ class CbfPreviewView(APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated, HasAIConsent]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "match"
 
     def post(self, request):
         condition = (request.data.get("condition") or "").strip()
@@ -419,6 +422,8 @@ class MatchView(APIView):
     """POST /api/v1/match/ — VEHMF ranked caregivers + breakdown + XAI (Step 19)."""
 
     permission_classes = [permissions.IsAuthenticated, HasAIConsent]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "match"
 
     def post(self, request):
         ser = MatchRequestSerializer(data=request.data)

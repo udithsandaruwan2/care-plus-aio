@@ -4,7 +4,9 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .audit import record_audit
 from .audit_filters import CSV_ROW_CAP, filtered_audit_logs
@@ -106,11 +108,27 @@ class AdminUserDetailView(APIView):
         return Response(AdminUserSerializer(target).data)
 
 
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """POST /api/v1/auth/token/ — JWT login with auth-scope throttle (Step 70)."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    """POST /api/v1/auth/token/refresh/ — JWT refresh with auth-scope throttle."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+
 class RegisterView(generics.CreateAPIView):
     """POST /api/v1/auth/register/ — public self-registration (patient/caregiver)."""
 
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
 
 
 class MeView(generics.RetrieveAPIView):
