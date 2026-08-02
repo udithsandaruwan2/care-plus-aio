@@ -129,6 +129,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 66** — Mobile caregiver Accept/Reject (+ optional reason), patient Cancel; Messages screen with current-thread poll chat. Branch `feat/step66-mobile-inbox-messaging`.
 - **Step 65** — Mobile match cards with VEHMF breakdown bars, profile-gated Request caregiver (`createCareRequest` + snapshot), requests list screen. Branch `feat/step65-mobile-match-request`.
 - **Step 64** — Mobile Serah: Skia Neural Core, Goal Ring + chips, Zustand FSM, text → `POST /voice/turn/` with consent gate and match preview. Branch `feat/step64-mobile-neural-core`.
 - **Step 63** — Expo mobile auth: SecureStore JWT session, AuthProvider, login/register (patient|caregiver), role hub navigation, API token refresh wiring. Branch `feat/step63-mobile-auth`.
