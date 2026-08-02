@@ -37,8 +37,8 @@ from .models import (
     CareRelationshipStatus,
     InteractionKind,
     MatchResult,
-    MatchRun,
     PatientProfile,
+    create_match_run,
     Review,
     ReviewStatus,
     Shift,
@@ -452,7 +452,7 @@ class MatchView(APIView):
             )
         latency_ms = int((time.perf_counter() - t0) * 1000)
 
-        run = MatchRun.objects.create(
+        run = create_match_run(
             user=request.user,
             query=out.query,
             condition=data.get("condition", ""),

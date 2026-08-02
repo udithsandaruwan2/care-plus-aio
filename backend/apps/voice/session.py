@@ -42,15 +42,23 @@ def get_or_create_active_session(user, *, lang: str = "") -> DialogueSession:
 
 def clear_active_sessions(user) -> int:
     """Deactivate all active sessions for the user (New request). Returns count."""
-    qs = DialogueSession.objects.filter(user=user, active=True)
-    count = qs.count()
-    if count:
-        qs.update(
-            active=False,
-            last_match_run=None,
-            intent_chips={},
-            open_questions=[],
-            updated_at=now(),
+    qs = list(DialogueSession.objects.filter(user=user, active=True))
+    count = len(qs)
+    stamp = now()
+    for session in qs:
+        session.active = False
+        session.last_match_run = None
+        session.intent_chips = {}
+        session.open_questions = []
+        session.updated_at = stamp
+        session.save(
+            update_fields=[
+                "active",
+                "last_match_run",
+                "intent_chips_ciphertext",
+                "open_questions",
+                "updated_at",
+            ]
         )
     return count
 
@@ -117,5 +125,15 @@ def persist_session_after_turn(
     elif match_run_id:
         session.last_match_run_id = match_run_id
 
-    session.save()
+    session.save(
+        update_fields=[
+            "lang",
+            "intent_chips_ciphertext",
+            "open_questions",
+            "route_history",
+            "turns_ciphertext",
+            "last_match_run",
+            "updated_at",
+        ]
+    )
     return session

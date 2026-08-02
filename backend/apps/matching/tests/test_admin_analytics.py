@@ -16,7 +16,7 @@ from apps.matching.models import (
     CareRequest,
     CareRequestStatus,
     CaregiverProfile,
-    MatchRun,
+    create_match_run,
 )
 
 User = get_user_model()
@@ -73,7 +73,7 @@ class AdminAnalyticsApiTests(APITestCase):
             status=CareRelationshipStatus.ACTIVE,
         )
         for ms in (100, 200, 400):
-            MatchRun.objects.create(
+            create_match_run(
                 user=self.patient,
                 query="dengue",
                 weights=[0.4, 0.2, 0.2, 0.2],

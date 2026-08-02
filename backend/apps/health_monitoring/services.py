@@ -59,15 +59,17 @@ def ingest_metric(
     recorded_at=None,
     metadata: dict | None = None,
 ):
-    return HealthMetric.objects.create(
+    row = HealthMetric(
         patient=patient,
         kind=kind,
         value=float(value),
         unit=(unit or "").strip(),
         source=(source or "manual").strip()[:64],
         recorded_at=recorded_at or timezone.now(),
-        metadata=metadata or {},
     )
+    row.metadata = metadata or {}
+    row.save()
+    return row
 
 
 def aggregate_window(*, queryset, kind: str, hours: int):
@@ -130,7 +132,7 @@ def _emit_health_critical_event(
     ).exists()
     if exists:
         return None
-    return HealthEvent.objects.create(
+    event = HealthEvent(
         patient_id=patient_id,
         event_type=HealthEventType.HEALTH_CRITICAL,
         kind=kind,
@@ -139,8 +141,10 @@ def _emit_health_critical_event(
         window_start=window_start,
         window_end=window_end,
         sample_count=sample_count,
-        payload=payload,
     )
+    event.payload = payload
+    event.save()
+    return event
 
 
 def detect_glucose_anomalies(

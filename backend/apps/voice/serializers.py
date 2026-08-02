@@ -11,6 +11,9 @@ class VoiceIntentInputSerializer(serializers.Serializer):
 
 
 class VoiceIntentSerializer(serializers.ModelSerializer):
+    raw_text = serializers.CharField(read_only=True)
+    condition = serializers.CharField(read_only=True)
+
     class Meta:
         model = VoiceIntent
         fields = (

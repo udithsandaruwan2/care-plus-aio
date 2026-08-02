@@ -126,7 +126,10 @@ class PatientProfile(models.Model):
 
 
 class MatchRun(models.Model):
-    """One VEHMF invocation (request + latency + weights used)."""
+    """One VEHMF invocation (request + latency + weights used).
+
+    Step 68: query (transcript) and condition encrypted at rest.
+    """
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -135,8 +138,8 @@ class MatchRun(models.Model):
         null=True,
         blank=True,
     )
-    query = models.TextField()
-    condition = models.CharField(max_length=120, blank=True, default="")
+    query_ciphertext = models.TextField(blank=True, default="")
+    condition_ciphertext = models.TextField(blank=True, default="")
     language = models.CharField(max_length=16, blank=True, default="")
     care_level = models.CharField(max_length=16, blank=True, default="")
     emergency = models.BooleanField(default=False)
@@ -149,6 +152,55 @@ class MatchRun(models.Model):
 
     def __str__(self):
         return f"MatchRun#{self.pk} ({self.latency_ms}ms)"
+
+    @property
+    def query(self) -> str:
+        from apps.common.encryption import decrypt_field
+
+        return decrypt_field(self.query_ciphertext)
+
+    @query.setter
+    def query(self, value: str) -> None:
+        from apps.common.encryption import encrypt_field
+
+        self.query_ciphertext = encrypt_field(value or "")
+
+    @property
+    def condition(self) -> str:
+        from apps.common.encryption import decrypt_field
+
+        return decrypt_field(self.condition_ciphertext)
+
+    @condition.setter
+    def condition(self, value: str) -> None:
+        from apps.common.encryption import encrypt_field
+
+        self.condition_ciphertext = encrypt_field(value or "")
+
+
+def create_match_run(
+    *,
+    user=None,
+    query: str = "",
+    condition: str = "",
+    language: str = "",
+    care_level: str = "",
+    emergency: bool = False,
+    weights=None,
+    latency_ms: int = 0,
+) -> MatchRun:
+    run = MatchRun(
+        user=user,
+        language=language or "",
+        care_level=care_level or "",
+        emergency=bool(emergency),
+        weights=list(weights or []),
+        latency_ms=int(latency_ms or 0),
+    )
+    run.query = query or ""
+    run.condition = condition or ""
+    run.save()
+    return run
 
 
 class MatchResult(models.Model):

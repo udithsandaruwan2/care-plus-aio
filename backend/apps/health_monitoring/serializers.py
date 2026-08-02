@@ -14,6 +14,8 @@ class HealthMetricIngestSerializer(serializers.Serializer):
 
 
 class HealthMetricSerializer(serializers.ModelSerializer):
+    metadata = serializers.JSONField(read_only=True)
+
     class Meta:
         model = HealthMetric
         fields = (
@@ -28,4 +30,3 @@ class HealthMetricSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = fields
-
