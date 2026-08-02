@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-02 — Step 70 security hardening (TLS proxy notes, CORS, throttles). Next: Step 71 load & concurrency tests._
+_Last updated: 2026-08-02 — Step 71 load & concurrency tests (M16 complete). Next: Step 72 CI/CD (M17 Ship)._
 
 ---
 
@@ -109,7 +109,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M13** Admin console                 | 54–58   | ✅ done          |
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
 | **M15** Mobile Expo                   | 62–67   | ✅ done             |
-| **M16** Compliance                    | 68–71   | 68–70 ✅ · 71 ⬜    |
+| **M16** Compliance                    | 68–71   | ✅ done             |
 | **M17** Ship                          | 72–75   | ⬜                |
 
 **Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
@@ -128,6 +128,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Step 71** — Load/concurrency: match `latency_ms` p95 &lt; 800 ms suite, 8-way Redlock booking race, HTTP harness `backend/scripts/load_step71.py`, ops note `docs/ops/load-concurrency.md`. Branch `feat/step71-load-concurrency`.
 
 - **Step 70** — Security hardening: CORS allow-list + CSRF trusted origins, DRF Redis throttles (auth/match/voice), browser security headers, prod HSTS/SSL cookies, `docs/ops/tls-proxy.md`. Branch `feat/step70-security-hardening`.
 
