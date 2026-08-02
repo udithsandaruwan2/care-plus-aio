@@ -14,7 +14,11 @@ function linksForRole(role: string): HubLink[] {
         desc: t('en', 'hub.serahDesc'),
         href: '/(app)/serah',
       },
-      { title: t('en', 'hub.requestsTitle'), desc: t('en', 'hub.requestsDesc') },
+      {
+        title: t('en', 'hub.requestsTitle'),
+        desc: t('en', 'hub.requestsDesc'),
+        href: '/(app)/requests',
+      },
       { title: t('en', 'hub.messagesTitle'), desc: t('en', 'hub.messagesDesc') },
       { title: t('en', 'hub.scheduleTitle'), desc: t('en', 'hub.scheduleDesc') },
       { title: t('en', 'hub.recordsTitle'), desc: t('en', 'hub.recordsDesc') },
@@ -23,7 +27,11 @@ function linksForRole(role: string): HubLink[] {
   }
   if (role === 'caregiver') {
     return [
-      { title: t('en', 'hub.inboxTitle'), desc: t('en', 'hub.requestsDesc') },
+      {
+        title: t('en', 'hub.inboxTitle'),
+        desc: t('en', 'hub.requestsDesc'),
+        href: '/(app)/requests',
+      },
       { title: t('en', 'hub.messagesTitle'), desc: t('en', 'hub.messagesDesc') },
       { title: t('en', 'hub.scheduleTitle'), desc: t('en', 'hub.scheduleDesc') },
       { title: t('en', 'hub.accountTitle'), desc: t('en', 'hub.accountDesc') },
@@ -73,7 +81,7 @@ export default function HubScreen() {
       <Text style={styles.section}>{t('en', 'hub.quickActions')}</Text>
       {links.map((item) =>
         item.href ? (
-          <Link key={item.title} href={item.href as '/(app)/serah'} asChild>
+          <Link key={item.title} href={item.href as '/(app)/serah' | '/(app)/requests'} asChild>
             <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.cardDesc}>{item.desc}</Text>
@@ -103,7 +111,7 @@ export default function HubScreen() {
       </Pressable>
 
       <Text style={styles.footer}>
-        {brand.name} · Step 64 Serah · {user.role}
+        {brand.name} · Step 65 match + request · {user.role}
       </Text>
     </ScrollView>
   );

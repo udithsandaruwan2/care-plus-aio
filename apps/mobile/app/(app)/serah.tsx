@@ -14,9 +14,11 @@ import { Redirect } from 'expo-router';
 import { AssistantState, STATE_COPY } from '@care-plus/core';
 import { brand, colors } from '@care-plus/ui-tokens';
 import { useAuth } from '../../src/auth/AuthContext';
+import { usePatientProfile } from '../../src/auth/usePatientProfile';
 import { NeuralCoreSkia } from '../../src/neural-core/NeuralCoreSkia';
 import { EntityChips } from '../../src/assistant/EntityChips';
 import { GoalRing } from '../../src/assistant/GoalRing';
+import { MatchResultCards } from '../../src/assistant/MatchResultCards';
 import { useAssistant } from '../../src/assistant/store';
 import { useVoiceTurn } from '../../src/assistant/useVoiceTurn';
 import type { UiVoiceLanguage } from '../../src/assistant/uiVoiceLanguage';
@@ -25,6 +27,7 @@ const LANGS: UiVoiceLanguage[] = ['English', 'Sinhala', 'Tamil'];
 
 export default function SerahScreen() {
   const { user } = useAuth();
+  const { canRequestCare, completionPercent } = usePatientProfile();
   const state = useAssistant((s) => s.state);
   const intent = useAssistant((s) => s.intent);
   const chat = useAssistant((s) => s.chat);
@@ -61,7 +64,10 @@ export default function SerahScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.eyebrow}>{brand.name}</Text>
         <Text style={styles.title}>Serah</Text>
-        <Text style={styles.subtitle}>{STATE_COPY[state]}</Text>
+        <Text style={styles.subtitle}>
+          {STATE_COPY[state]}
+          {user.role === 'patient' ? ` · profile ${completionPercent}%` : ''}
+        </Text>
 
         <View style={styles.langRow}>
           {LANGS.map((lang) => (
@@ -118,21 +124,11 @@ export default function SerahScreen() {
         </View>
 
         {match?.results?.length ? (
-          <View style={styles.results}>
-            <Text style={styles.section}>Matches · {match.latency_ms ?? '—'} ms</Text>
-            {match.results.slice(0, 5).map((hit, i) => (
-              <View key={String(hit.caregiver_id ?? i)} style={styles.resultCard}>
-                <Text style={styles.resultTitle}>
-                  #{hit.rank ?? i + 1} · {hit.display_name || `Caregiver ${hit.caregiver_id}`}
-                </Text>
-                <Text style={styles.muted}>score {hit.score.toFixed(2)}</Text>
-                <Text style={styles.muted} numberOfLines={2}>
-                  {hit.explanation || 'Ranked by VEHMF'}
-                </Text>
-              </View>
-            ))}
-            <Text style={styles.note}>Full request-caregiver UI lands in Step 65.</Text>
-          </View>
+          <MatchResultCards
+            match={match}
+            canRequestCare={canRequestCare}
+            uiLanguage={uiLanguage}
+          />
         ) : null}
       </ScrollView>
 
@@ -280,32 +276,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 14,
     lineHeight: 20,
-  },
-  results: {
-    gap: 8,
-    marginTop: 8,
-  },
-  section: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  resultCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.borderHair,
-    padding: 12,
-    backgroundColor: 'rgba(18, 22, 34, 0.85)',
-    gap: 4,
-  },
-  resultTitle: {
-    color: colors.accentMint,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  note: {
-    color: colors.textMuted,
-    fontSize: 12,
   },
   composer: {
     flexDirection: 'row',
