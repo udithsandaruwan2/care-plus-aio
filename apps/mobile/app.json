@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "careplus",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -40,16 +40,14 @@
           "sounds": [],
           "defaultChannel": "care-plus-alerts"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "care-plus-local"
-      }
+      "router": {}
     },
     "notification": {
       "color": "#22D3EE"
