@@ -377,3 +377,66 @@ class DemoViewHealthView(APIView):
                 "target_id": str(patient_id),
             }
         )
+
+
+class PrivacyExportView(APIView):
+    """GET /api/v1/privacy/export/?export_format=json|pdf — personal data portability (Step 69)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from apps.accounts.privacy import build_user_export, render_export_pdf
+
+        fmt = (request.query_params.get("export_format") or request.query_params.get("as") or "json").strip().lower()
+        if fmt not in ("json", "pdf"):
+            return Response(
+                {"detail": "export_format must be json or pdf."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if getattr(request.user, "erased_at", None):
+            return Response(
+                {"detail": "Account already erased."},
+                status=status.HTTP_410_GONE,
+            )
+
+        payload = build_user_export(request.user)
+        record_audit(
+            actor=request.user,
+            action=AuditAction.EXPORT_DATA,
+            request=request,
+            target_type="user",
+            target_id=request.user.pk,
+            metadata={"format": fmt},
+            async_=False,
+        )
+        if fmt == "pdf":
+            pdf = render_export_pdf(payload)
+            response = HttpResponse(pdf, content_type="application/pdf")
+            response["Content-Disposition"] = 'attachment; filename="careplus-data-export.pdf"'
+            return response
+        return Response(payload)
+
+
+class PrivacyEraseView(APIView):
+    """POST /api/v1/privacy/erase/ — right-to-erasure with password confirm (Step 69)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from apps.accounts.privacy import erase_user_account
+        from rest_framework.exceptions import AuthenticationFailed, ValidationError
+
+        password = request.data.get("password") or ""
+        confirm = (request.data.get("confirm") or "").strip().lower()
+        if confirm not in ("erase", "delete", "yes"):
+            return Response(
+                {"detail": 'Send confirm as "erase" to proceed.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            result = erase_user_account(user=request.user, password=password, request=request)
+        except ValidationError as exc:
+            return Response({"detail": exc.detail}, status=status.HTTP_400_BAD_REQUEST)
+        except AuthenticationFailed as exc:
+            return Response({"detail": str(exc.detail)}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(result, status=status.HTTP_200_OK)

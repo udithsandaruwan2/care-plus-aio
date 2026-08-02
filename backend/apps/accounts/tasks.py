@@ -25,3 +25,11 @@ def write_audit_log(
         metadata=metadata,
     )
     return row.pk
+
+
+@shared_task(name="accounts.purge_erased_accounts")
+def purge_erased_accounts_task(older_than_days: int = 30) -> dict:
+    """Scheduled residual PHI purge for erased accounts (Step 69)."""
+    from .privacy import purge_erased_accounts
+
+    return purge_erased_accounts(older_than_days=older_than_days)

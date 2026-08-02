@@ -154,6 +154,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "health_monitoring.detect_health_anomalies",
         "schedule": crontab(minute="*/5"),
     },
+    "purge-erased-accounts-weekly": {
+        "task": "accounts.purge_erased_accounts",
+        "schedule": crontab(hour=4, minute=15, day_of_week=0),
+    },
 }
 
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────

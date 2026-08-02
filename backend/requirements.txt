@@ -42,8 +42,11 @@ faster-whisper==1.1.1
 # Neural TTS fallback for Sinhala/Tamil when Gemini TTS quota is exhausted.
 edge-tts==7.2.8
 
-# Medical record field encryption (Step 34)
+# Medical record / PHI field encryption (Steps 34 / 68)
 cryptography>=49.0.0,<50
+
+# Personal data export PDF (Step 69)
+reportlab==4.2.5
 
 # Web Push (Step 41) — VAPID browser notifications
 pywebpush==2.0.1
