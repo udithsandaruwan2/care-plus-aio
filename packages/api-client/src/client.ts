@@ -182,6 +182,28 @@ export function createApiClient(options: ApiClientOptions) {
     return parse(data);
   }
 
+  async function requestBlob(path: string, init: RequestInit = {}, retried = false): Promise<Blob> {
+    const headers = new Headers(init.headers);
+    const token = getAccessToken?.();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const res = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, { ...init, headers });
+    if (res.status === 401 && !retried && getRefreshToken && !path.includes('/auth/token')) {
+      const next = await refreshAccessToken();
+      if (next) return requestBlob(path, init, true);
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      let data: unknown = text;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        /* keep text */
+      }
+      throw new ApiError(`HTTP ${res.status}`, res.status, data);
+    }
+    return res.blob();
+  }
+
   return {
     health: () => request('/health/', {}, (d) => HealthResponse.parse(d)),
     me: () => request('/auth/me/', {}, (d) => User.parse(d)),
@@ -268,6 +290,27 @@ export function createApiClient(options: ApiClientOptions) {
         '/notification-preferences/',
         { method: 'PATCH', body: JSON.stringify(input) },
         (d) => NotificationPreferences.parse(d),
+      ),
+    exportPrivacyData: (format: 'json' | 'pdf' = 'json') => {
+      if (format === 'pdf') {
+        return requestBlob(`/privacy/export/?export_format=pdf`);
+      }
+      return request(`/privacy/export/?export_format=json`, {}, (d) => d as Record<string, unknown>);
+    },
+    eraseAccount: (password: string, confirm = 'erase') =>
+      request(
+        '/privacy/erase/',
+        { method: 'POST', body: JSON.stringify({ password, confirm }) },
+        (d) =>
+          z
+            .object({
+              erased: z.boolean(),
+              user_id: z.number(),
+              erased_at: z.string(),
+              faiss_rebuilt: z.boolean(),
+              stats: z.record(z.number()).optional(),
+            })
+            .parse(d),
       ),
     getVapidPublicKey: () =>
       request('/push/vapid-public-key/', {}, (d) => VapidPublicKey.parse(d)),

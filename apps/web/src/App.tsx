@@ -22,6 +22,7 @@ import { MessagesPage } from './pages/MessagesPage';
 import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
 import { AccountPage } from './pages/AccountPage';
+import { PrivacySettingsPage } from './pages/PrivacySettingsPage';
 import { AdminAnalyticsPage } from './pages/AdminAnalyticsPage';
 import { AdminAuditPage } from './pages/AdminAuditPage';
 import { AdminCatalogPage } from './pages/AdminCatalogPage';
@@ -56,6 +57,7 @@ export function App() {
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
+            <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
             <Route path="/requests/:careRequestId/checkout" element={<CheckoutPage />} />
             <Route path="/orders/:orderId/pay" element={<OrderPayPage />} />
             <Route path="/orders/:orderId/success" element={<OrderSuccessPage />} />
