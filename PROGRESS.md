@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-02 — Step 65 mobile match results + request caregiver. Next: Step 66 caregiver inbox + messaging._
+_Last updated: 2026-08-02 — Step 66 mobile inbox accept/reject + messaging. Next: Step 67 push alerts + store profiles._
 
 ---
 
@@ -108,7 +108,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M12** Scheduling + Redlock          | 50–53   | ✅ done          |
 | **M13** Admin console                 | 54–58   | ✅ done          |
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
-| **M15** Mobile Expo                   | 62–67   | 62–65 ✅ · 66–67 ⬜ |
+| **M15** Mobile Expo                   | 62–67   | 62–66 ✅ · 67 ⬜    |
 | **M16** Compliance                    | 68–71   | ⬜                |
 | **M17** Ship                          | 72–75   | ⬜                |
 
