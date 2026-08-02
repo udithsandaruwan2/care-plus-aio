@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-02 — Step 71 load & concurrency tests (M16 complete). Next: Step 72 CI/CD (M17 Ship)._
+_Last updated: 2026-08-02 — Step 72 CI/CD (Compose tests + GHCR push). Next: Step 73 deploy VM + observability._
 
 ---
 
@@ -35,6 +35,7 @@ git clone https://github.com/udithsandaruwan2/care-plus-aio.git "Care Plus"
 cd "Care Plus"
 cp .env.example .env                      # fill in secrets (GEMINI_API_KEY, etc.)
 docker compose -f infra/docker-compose.yml up -d --build
+docker compose -f infra/docker-compose.yml exec -T backend python manage.py migrate --noinput
 curl -fsS http://localhost:8000/api/v1/health/   # expect {"status":"ok","db":"ok","redis":"ok"}
 pnpm --filter @care-plus/web dev --host 127.0.0.1 --port 5173
 ```
@@ -45,6 +46,7 @@ Notes:
 - Host DB port is **5433** (container internal 5432) to avoid clashing with a local Postgres.
 - Local reference only: `Old Care Plus/` (gitignored) — old Lumora/Care Plus HND app for product shape.
 - Requires Docker + ~5–10 GB free disk.
+- CI/CD: [docs/ops/ci-cd.md](docs/ops/ci-cd.md) · TLS proxy: [docs/ops/tls-proxy.md](docs/ops/tls-proxy.md)
 
 ---
 
@@ -110,7 +112,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
 | **M15** Mobile Expo                   | 62–67   | ✅ done             |
 | **M16** Compliance                    | 68–71   | ✅ done             |
-| **M17** Ship                          | 72–75   | ⬜                |
+| **M17** Ship                          | 72–75   | 72 ✅ · 73–75 ⬜    |
 
 **Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
 
@@ -128,6 +130,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Step 72** — CI/CD: Compose Django tests + migrate in Actions, web typecheck, GHCR push on `main`, `MIGRATE_ON_START` entrypoint flag, prod compose stub, `docs/ops/ci-cd.md`. Branch `feat/step72-cicd`.
 
 - **Step 71** — Load/concurrency: match `latency_ms` p95 &lt; 800 ms suite, 8-way Redlock booking race, HTTP harness `backend/scripts/load_step71.py`, ops note `docs/ops/load-concurrency.md`. Branch `feat/step71-load-concurrency`.
 

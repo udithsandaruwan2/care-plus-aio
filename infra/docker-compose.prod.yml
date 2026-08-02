@@ -1,0 +1,102 @@
+# Production-oriented Compose stub (Step 72 prep / Step 73 deploy)
+
+# Uses the GHCR image instead of a local build + bind mounts.
+# Fill .env with production secrets; terminate TLS at a reverse proxy
+# (see docs/ops/tls-proxy.md).
+
+name: care-plus-prod
+
+services:
+  db:
+    image: timescale/timescaledb-ha:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-careplus}
+      POSTGRES_USER: ${POSTGRES_USER:-careplus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/home/postgres/pgdata/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-careplus} -d ${POSTGRES_DB:-careplus}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
+    restart: unless-stopped
+    command:
+      ['uvicorn', 'careplus.asgi:application', '--host', '0.0.0.0', '--port', '8000', '--workers', '2']
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: careplus.settings.prod
+      MIGRATE_ON_START: '0'
+      FAISS_ARTIFACT_DIR: /ml/artifacts
+      AHP_WEIGHTS_PATH: /config/ahp_weights.json
+    volumes:
+      - ml_data:/ml
+      - ../config:/config:ro
+    ports:
+      - '8000:8000'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
+    restart: unless-stopped
+    command: ['celery', '-A', 'careplus', 'worker', '-l', 'info']
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: careplus.settings.prod
+      FAISS_ARTIFACT_DIR: /ml/artifacts
+      AHP_WEIGHTS_PATH: /config/ahp_weights.json
+    volumes:
+      - ml_data:/ml
+      - ../config:/config:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
+    restart: unless-stopped
+    command: ['celery', '-A', 'careplus', 'beat', '-l', 'info']
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: careplus.settings.prod
+      FAISS_ARTIFACT_DIR: /ml/artifacts
+      AHP_WEIGHTS_PATH: /config/ahp_weights.json
+    volumes:
+      - ml_data:/ml
+      - ../config:/config:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  redis_data:
+  ml_data:
