@@ -8,12 +8,12 @@ import time
 from apps.matching.engine import run_match
 from apps.matching.i18n import localize_explanation, match_spoken_reply
 from apps.matching.interactions import record_match_interactions
-from apps.matching.models import CaregiverProfile, MatchResult, MatchRun
+from apps.matching.models import CaregiverProfile, MatchResult, create_match_run
 from apps.matching.push import push_match_results
 
 from .asr import resolve_transcript
 from .backends import extract_intent
-from .models import VoiceIntent
+from .models import create_voice_intent
 from .refine import apply_deltas_to_intent, parse_refine_deltas
 from .replies import serah_reply
 from .router import classify_turn
@@ -172,7 +172,7 @@ def _run_vehmf(
     )
     latency_ms = int((time.perf_counter() - t0) * 1000)
 
-    run = MatchRun.objects.create(
+    run = create_match_run(
         user=user,
         query=out.query,
         condition=intent.get("condition", ""),
@@ -463,7 +463,7 @@ def process_turn(
         deltas = parse_refine_deltas(text) if is_refine else None
         if deltas and deltas.applied():
             base = apply_deltas_to_intent(base, deltas)
-        VoiceIntent.objects.create(
+        create_voice_intent(
             user=user,
             raw_text=base.get("raw_text", text),
             condition=base.get("condition", ""),

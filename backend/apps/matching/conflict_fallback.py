@@ -14,7 +14,7 @@ from apps.matching.models import (
     CaregiverAvailabilitySlot,
     CaregiverProfile,
     MatchResult,
-    MatchRun,
+    create_match_run,
 )
 from apps.matching.shifts import _slot_covers_window, shifts_overlap
 
@@ -92,7 +92,7 @@ def find_shift_conflict_fallback(
     )
     latency_ms = int((time.perf_counter() - t0) * 1000)
 
-    run = MatchRun.objects.create(
+    run = create_match_run(
         user=patient,
         query=out.query,
         condition=condition,

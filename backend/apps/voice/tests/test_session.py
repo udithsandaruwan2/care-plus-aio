@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import ConsentLog, ConsentScope
-from apps.matching.models import MatchResult, MatchRun
+from apps.matching.models import MatchResult, MatchRun, create_match_run
 from apps.voice.dialogue import process_turn
 from apps.voice.models import DialogueSession
 from apps.voice.session import clear_active_sessions, get_or_create_active_session
@@ -26,7 +26,7 @@ class DialogueSessionMemoryTests(TestCase):
         self.user = User.objects.create_user(email="sess@example.com", password="pw-strong-123")
 
     def _seed_match_run(self) -> MatchRun:
-        run = MatchRun.objects.create(
+        run = create_match_run(
             user=self.user,
             query="diabetes Sinhala",
             condition="diabetes",

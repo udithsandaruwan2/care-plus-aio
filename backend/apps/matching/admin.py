@@ -75,7 +75,7 @@ class MatchResultInline(admin.TabularInline):
 class MatchRunAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "query", "emergency", "latency_ms", "created_at")
     list_filter = ("emergency",)
-    search_fields = ("query", "user__email", "condition")
+    search_fields = ("user__email",)
     readonly_fields = (
         "user",
         "query",

@@ -11,7 +11,7 @@ from apps.health_monitoring.models import HealthEvent
 
 from .engine import run_match
 from .interactions import record_match_interactions
-from .models import CaregiverProfile, MatchResult, MatchRun
+from .models import CaregiverProfile, MatchResult, create_match_run
 from .push import push_match_results
 
 
@@ -60,7 +60,7 @@ def emergency_rematch_for_health_event(event: HealthEvent) -> dict:
     if selected is None:
         return {"created": False, "reason": "no_match"}
 
-    run = MatchRun.objects.create(
+    run = create_match_run(
         user=patient,
         query=out.query,
         condition="",
@@ -136,6 +136,6 @@ def emergency_rematch_for_health_event(event: HealthEvent) -> dict:
     event.rematch_run = run
     event.handled_at = run.created_at
     event.payload = {**(event.payload or {}), "dispatched": True}
-    event.save(update_fields=["rematch_run", "handled_at", "payload"])
+    event.save(update_fields=["rematch_run", "handled_at", "payload_ciphertext"])
     return {"created": True, "run_id": run.pk, "caregiver_id": selected.caregiver_id}
 

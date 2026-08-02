@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-02 — Step 67 push alerts + EAS profiles. Next: Step 68 pgcrypto / field encryption (M16)._
+_Last updated: 2026-08-02 — Step 68 field encryption (health + intent). Next: Step 69 right-to-erasure + FAISS eviction + data export._
 
 ---
 
@@ -109,7 +109,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M13** Admin console                 | 54–58   | ✅ done          |
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
 | **M15** Mobile Expo                   | 62–67   | ✅ done             |
-| **M16** Compliance                    | 68–71   | ⬜                |
+| **M16** Compliance                    | 68–71   | 68 ✅ · 69–71 ⬜     |
 | **M17** Ship                          | 72–75   | ⬜                |
 
 **Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
@@ -128,6 +128,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Step 68** — Shared Fernet PHI encryption: voice intent transcript/condition, dialogue turns/chips, health metadata/payloads, MatchRun query/condition; medical-records helpers re-export shared module. Branch `feat/step68-field-encryption`.
 
 - **Step 67** — Mobile push: `expo-notifications` + device token register/unregister, care-request events also queue FCM/APNs, `eas.json` (development/preview/production). Branch `feat/step67-mobile-push-eas`.
 

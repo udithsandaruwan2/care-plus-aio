@@ -10,7 +10,7 @@ from apps.common.envutil import refresh_env
 
 from .backends import extract_intent
 from .dialogue import process_turn
-from .models import DialogueSession, VoiceIntent
+from .models import DialogueSession, VoiceIntent, create_voice_intent
 from .policy import policy_snapshot
 from .serializers import VoiceIntentInputSerializer, VoiceIntentSerializer
 from .session import clear_active_sessions
@@ -29,7 +29,7 @@ class VoiceIntentView(APIView):
         hint = input_ser.validated_data.get("language")
 
         data = extract_intent(text, hint)
-        intent = VoiceIntent.objects.create(user=request.user, **data)
+        intent = create_voice_intent(user=request.user, **data)
 
         record_audit(
             actor=request.user,

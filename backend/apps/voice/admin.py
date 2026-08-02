@@ -7,7 +7,7 @@ from .models import DialogueSession, VoiceIntent
 class VoiceIntentAdmin(admin.ModelAdmin):
     list_display = ("ts", "user", "condition", "language", "care_level", "urgency", "source")
     list_filter = ("language", "care_level", "urgency", "source")
-    search_fields = ("user__email", "condition", "raw_text")
+    search_fields = ("user__email",)
     readonly_fields = (
         "user",
         "raw_text",

@@ -2,10 +2,14 @@
 
 Stores the transcript plus the fields Gemini (or the stub extractor) mapped to
 the Care Plus schema, ready for the VEHMF matcher (M4).
+
+Step 68: transcribed intent (raw_text) and condition are encrypted at rest.
 """
 
 from django.conf import settings
 from django.db import models
+
+from apps.common.encryption import decrypt_field, decrypt_json, encrypt_field, encrypt_json
 
 
 class Language(models.TextChoices):
@@ -32,8 +36,8 @@ class VoiceIntent(models.Model):
         on_delete=models.CASCADE,
         related_name="voice_intents",
     )
-    raw_text = models.TextField()
-    condition = models.CharField(max_length=120, blank=True, default="")
+    raw_text_ciphertext = models.TextField(blank=True, default="")
+    condition_ciphertext = models.TextField(blank=True, default="")
     language = models.CharField(max_length=16, choices=Language.choices)
     # All languages detected in the utterance (Singlish / Tanglish mixes).
     languages = models.JSONField(default=list, blank=True)
@@ -49,6 +53,22 @@ class VoiceIntent(models.Model):
         return (
             f"{self.user_id}: {self.condition or '?'} / {self.language} @ {self.ts:%Y-%m-%d %H:%M}"
         )
+
+    @property
+    def raw_text(self) -> str:
+        return decrypt_field(self.raw_text_ciphertext)
+
+    @raw_text.setter
+    def raw_text(self, value: str) -> None:
+        self.raw_text_ciphertext = encrypt_field(value or "")
+
+    @property
+    def condition(self) -> str:
+        return decrypt_field(self.condition_ciphertext)
+
+    @condition.setter
+    def condition(self, value: str) -> None:
+        self.condition_ciphertext = encrypt_field(value or "")
 
 
 # Soft caps for JSON memory on DialogueSession (Step 15g).
@@ -66,7 +86,7 @@ class DialogueSession(models.Model):
     )
     lang = models.CharField(max_length=16, blank=True, default="")
     active = models.BooleanField(default=True, db_index=True)
-    intent_chips = models.JSONField(default=dict, blank=True)
+    intent_chips_ciphertext = models.TextField(blank=True, default="")
     route_history = models.JSONField(default=list, blank=True)
     open_questions = models.JSONField(default=list, blank=True)
     last_match_run = models.ForeignKey(
@@ -76,8 +96,8 @@ class DialogueSession(models.Model):
         on_delete=models.SET_NULL,
         related_name="dialogue_sessions",
     )
-    # Last N turns: {role, text, route, situation, ts}
-    turns = models.JSONField(default=list, blank=True)
+    # Last N turns: {role, text, route, situation, ts} — encrypted at rest (Step 68).
+    turns_ciphertext = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -90,3 +110,35 @@ class DialogueSession(models.Model):
     def __str__(self):
         state = "active" if self.active else "closed"
         return f"DialogueSession {self.pk} ({self.user_id}, {state})"
+
+    @property
+    def intent_chips(self) -> dict:
+        return decrypt_json(self.intent_chips_ciphertext, default={})
+
+    @intent_chips.setter
+    def intent_chips(self, value: dict | None) -> None:
+        self.intent_chips_ciphertext = encrypt_json(value or {})
+
+    @property
+    def turns(self) -> list:
+        return decrypt_json(self.turns_ciphertext, default=[])
+
+    @turns.setter
+    def turns(self, value: list | None) -> None:
+        self.turns_ciphertext = encrypt_json(value or [])
+
+
+def create_voice_intent(*, user, **fields) -> VoiceIntent:
+    """Persist a VoiceIntent with encrypted raw_text / condition."""
+    intent = VoiceIntent(
+        user=user,
+        language=fields.get("language") or "English",
+        languages=fields.get("languages") or [fields.get("language") or "English"],
+        care_level=fields.get("care_level") or "intermediate",
+        urgency=fields.get("urgency") or Urgency.ROUTINE,
+        source=fields.get("source") or "stub",
+    )
+    intent.raw_text = fields.get("raw_text") or ""
+    intent.condition = fields.get("condition") or ""
+    intent.save()
+    return intent

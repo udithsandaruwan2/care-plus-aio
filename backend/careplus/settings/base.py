@@ -243,7 +243,7 @@ PAYHERE_NOTIFY_URL = env("PAYHERE_NOTIFY_URL", default="")
 # Step 33 — email LKR receipt after successful payment.
 RECEIPT_EMAIL_ENABLED = env.bool("RECEIPT_EMAIL_ENABLED", default=True)
 
-# Step 34 — app-level AES for sensitive medical record fields (Fernet key).
+# Step 34/68 — app-level AES (Fernet) for PHI columns (medical notes, intent, health payloads).
 # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
 

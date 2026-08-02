@@ -1,9 +1,15 @@
-"""Timeseries health metrics for monitoring and alerts (Step 45)."""
+"""Timeseries health metrics for monitoring and alerts (Step 45).
+
+Step 68: free-form metadata / event payloads are encrypted at rest.
+Numeric vitals stay plaintext so Timescale aggregations and anomaly rules work.
+"""
 
 from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
+
+from apps.common.encryption import decrypt_json, encrypt_json
 
 
 class HealthMetricKind(models.TextChoices):
@@ -29,7 +35,7 @@ class HealthMetric(models.Model):
     unit = models.CharField(max_length=24, blank=True, default="")
     source = models.CharField(max_length=64, blank=True, default="manual")
     recorded_at = models.DateTimeField(db_index=True)
-    metadata = models.JSONField(default=dict, blank=True)
+    metadata_ciphertext = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -41,6 +47,14 @@ class HealthMetric(models.Model):
 
     def __str__(self):
         return f"HealthMetric#{self.pk} patient={self.patient_id} {self.kind}={self.value}"
+
+    @property
+    def metadata(self) -> dict:
+        return decrypt_json(self.metadata_ciphertext, default={})
+
+    @metadata.setter
+    def metadata(self, value: dict | None) -> None:
+        self.metadata_ciphertext = encrypt_json(value or {})
 
 
 class HealthEvent(models.Model):
@@ -71,7 +85,7 @@ class HealthEvent(models.Model):
         on_delete=models.SET_NULL,
         related_name="health_events",
     )
-    payload = models.JSONField(default=dict, blank=True)
+    payload_ciphertext = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -84,3 +98,10 @@ class HealthEvent(models.Model):
     def __str__(self):
         return f"HealthEvent#{self.pk} patient={self.patient_id} {self.event_type} {self.rule_key}"
 
+    @property
+    def payload(self) -> dict:
+        return decrypt_json(self.payload_ciphertext, default={})
+
+    @payload.setter
+    def payload(self, value: dict | None) -> None:
+        self.payload_ciphertext = encrypt_json(value or {})
