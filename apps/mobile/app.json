@@ -30,7 +30,18 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#22D3EE",
+          "sounds": [],
+          "defaultChannel": "care-plus-alerts"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     },
@@ -39,6 +50,9 @@
       "eas": {
         "projectId": "care-plus-local"
       }
+    },
+    "notification": {
+      "color": "#22D3EE"
     }
   }
 }

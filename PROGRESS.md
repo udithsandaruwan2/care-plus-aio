@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-02 — Step 66 mobile inbox accept/reject + messaging. Next: Step 67 push alerts + store profiles._
+_Last updated: 2026-08-02 — Step 67 push alerts + EAS profiles. Next: Step 68 pgcrypto / field encryption (M16)._
 
 ---
 
@@ -108,7 +108,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M12** Scheduling + Redlock          | 50–53   | ✅ done          |
 | **M13** Admin console                 | 54–58   | ✅ done          |
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
-| **M15** Mobile Expo                   | 62–67   | 62–66 ✅ · 67 ⬜    |
+| **M15** Mobile Expo                   | 62–67   | ✅ done             |
 | **M16** Compliance                    | 68–71   | ⬜                |
 | **M17** Ship                          | 72–75   | ⬜                |
 
@@ -128,6 +128,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Step 67** — Mobile push: `expo-notifications` + device token register/unregister, care-request events also queue FCM/APNs, `eas.json` (development/preview/production). Branch `feat/step67-mobile-push-eas`.
 
 - **Step 66** — Mobile caregiver Accept/Reject (+ optional reason), patient Cancel; Messages screen with current-thread poll chat. Branch `feat/step66-mobile-inbox-messaging`.
 - **Step 65** — Mobile match cards with VEHMF breakdown bars, profile-gated Request caregiver (`createCareRequest` + snapshot), requests list screen. Branch `feat/step65-mobile-match-request`.
