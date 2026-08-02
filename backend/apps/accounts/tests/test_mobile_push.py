@@ -1,5 +1,6 @@
-"""Step 49 — mobile push token API + health critical dispatch."""
+"""Step 49 / 67 — mobile push token API + dispatch (health + care requests)."""
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -8,7 +9,11 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import MobilePushDevice, Role
-from apps.accounts.notifications.push_dispatch import notify_health_critical_mobile
+from apps.accounts.notifications.push_dispatch import (
+    notify_care_request_accepted_push,
+    notify_care_request_received_push,
+    notify_health_critical_mobile,
+)
 
 User = get_user_model()
 
@@ -50,3 +55,43 @@ class MobilePushApiTests(APITestCase):
         self.assertEqual(kwargs["user_id"], self.user.pk)
         self.assertEqual(kwargs["event_key"], "health_critical")
 
+    @patch("apps.accounts.notifications.tasks.send_mobile_push_notification.delay")
+    @patch("apps.accounts.notifications.tasks.send_web_push_notification.delay")
+    @patch("apps.accounts.notifications.push_dispatch.vapid_configured", return_value=False)
+    @patch("apps.accounts.mobile_push.mobile_push_configured", return_value=True)
+    def test_care_request_received_queues_mobile(
+        self, _mobile_cfg, _vapid, _web_delay, mobile_delay
+    ):
+        caregiver_user = User.objects.create_user(
+            email="cg.push@example.com",
+            password="pw-strong-123",
+            role=Role.CAREGIVER,
+        )
+        MobilePushDevice.objects.create(user=caregiver_user, token="fcm-cg", platform="fcm")
+        req = SimpleNamespace(
+            pk=42,
+            caregiver=SimpleNamespace(user=caregiver_user),
+            patient=SimpleNamespace(email="p@example.com", patient_profile=None),
+        )
+        ok = notify_care_request_received_push(req)
+        self.assertTrue(ok)
+        mobile_delay.assert_called_once()
+        self.assertEqual(mobile_delay.call_args.kwargs["event_key"], "care_request_received")
+
+    @patch("apps.accounts.notifications.tasks.send_mobile_push_notification.delay")
+    @patch("apps.accounts.notifications.tasks.send_web_push_notification.delay")
+    @patch("apps.accounts.notifications.push_dispatch.vapid_configured", return_value=False)
+    @patch("apps.accounts.mobile_push.mobile_push_configured", return_value=True)
+    def test_care_request_accepted_queues_mobile(
+        self, _mobile_cfg, _vapid, _web_delay, mobile_delay
+    ):
+        MobilePushDevice.objects.create(user=self.user, token="fcm-pt", platform="fcm")
+        req = SimpleNamespace(
+            pk=7,
+            patient=self.user,
+            caregiver=SimpleNamespace(display_name="Nurse A"),
+        )
+        ok = notify_care_request_accepted_push(req)
+        self.assertTrue(ok)
+        mobile_delay.assert_called_once()
+        self.assertEqual(mobile_delay.call_args.kwargs["event_key"], "care_request_accepted")

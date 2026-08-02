@@ -82,23 +82,46 @@ def notify_care_request_received_push(request) -> bool:
         getattr(request.patient, "patient_profile", None)
         and request.patient.patient_profile.display_name
     ) or request.patient.email
-    return queue_web_push(
+    title = "New care request"
+    body = f"{patient_label} sent you a care request."
+    web = queue_web_push(
         user=caregiver_user,
         event_key="care_request_received",
-        title="New care request",
-        body=f"{patient_label} sent you a care request.",
+        title=title,
+        body=body,
         url=f"{frontend_base_url()}/requests",
     )
+    mobile = queue_mobile_push(
+        user=caregiver_user,
+        event_key="care_request_received",
+        title=title,
+        body=body,
+        data={"event_type": "care_request_received", "care_request_id": str(request.pk)},
+    )
+    return web or mobile
 
 
 def notify_care_request_accepted_push(request) -> bool:
-    return queue_web_push(
+    title = "Care request accepted"
+    body = (
+        f"{request.caregiver.display_name} accepted your request. "
+        "Complete checkout to start care."
+    )
+    web = queue_web_push(
         user=request.patient,
         event_key="care_request_accepted",
-        title="Care request accepted",
-        body=f"{request.caregiver.display_name} accepted your request. Complete checkout to start care.",
+        title=title,
+        body=body,
         url=f"{frontend_base_url()}/requests/{request.pk}/checkout",
     )
+    mobile = queue_mobile_push(
+        user=request.patient,
+        event_key="care_request_accepted",
+        title=title,
+        body=body,
+        data={"event_type": "care_request_accepted", "care_request_id": str(request.pk)},
+    )
+    return web or mobile
 
 
 def notify_health_critical_mobile(
