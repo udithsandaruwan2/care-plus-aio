@@ -2,15 +2,22 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@care-plus/ui-tokens';
 import { api, apiBaseUrl } from '../../src/api';
+import { getCachedPushToken, registerForPushAlerts } from '../../src/notifications/registerPush';
 
 type HealthState =
   | { status: 'loading' }
   | { status: 'ok'; detail: string }
   | { status: 'error'; message: string };
 
-/** Dev/status screen — keeps the Step 62 health check accessible after auth. */
+type PushState =
+  | { status: 'idle' }
+  | { status: 'working' }
+  | { status: 'result'; label: string; detail?: string };
+
+/** Dev/status screen — health check + push registration probe (Step 67). */
 export default function StatusScreen() {
   const [health, setHealth] = useState<HealthState>({ status: 'loading' });
+  const [push, setPush] = useState<PushState>({ status: 'idle' });
 
   async function checkHealth() {
     setHealth({ status: 'loading' });
@@ -26,6 +33,18 @@ export default function StatusScreen() {
         message: err instanceof Error ? err.message : 'Could not reach API',
       });
     }
+  }
+
+  async function probePush() {
+    setPush({ status: 'working' });
+    const result = await registerForPushAlerts();
+    const tokenHint = getCachedPushToken();
+    const short = tokenHint ? `${tokenHint.slice(0, 12)}…` : 'none';
+    setPush({
+      status: 'result',
+      label: `${result.status} · token ${short}`,
+      detail: result.detail,
+    });
   }
 
   useEffect(() => {
@@ -55,6 +74,26 @@ export default function StatusScreen() {
       >
         <Text style={styles.buttonText}>Retry health check</Text>
       </Pressable>
+
+      <Text style={[styles.mono, styles.pushHeading]}>Push (FCM/APNs via EAS build)</Text>
+      {push.status === 'working' && (
+        <View style={styles.row}>
+          <ActivityIndicator color={colors.accentCyan} />
+          <Text style={styles.muted}>Registering device…</Text>
+        </View>
+      )}
+      {push.status === 'result' && (
+        <>
+          <Text style={styles.ok}>{push.label}</Text>
+          {push.detail ? <Text style={styles.muted}>{push.detail}</Text> : null}
+        </>
+      )}
+      <Pressable
+        onPress={() => void probePush()}
+        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+      >
+        <Text style={styles.buttonText}>Register push device</Text>
+      </Pressable>
     </View>
   );
 }
@@ -70,6 +109,9 @@ const styles = StyleSheet.create({
     color: colors.accentMint,
     fontSize: 12,
     fontFamily: 'monospace',
+  },
+  pushHeading: {
+    marginTop: 16,
   },
   row: {
     flexDirection: 'row',

@@ -10,6 +10,7 @@ import {
 import type { User } from '@care-plus/api-client';
 import { ApiError } from '@care-plus/api-client';
 import { api } from '../api';
+import { registerForPushAlerts, unregisterPushAlerts } from '../notifications/registerPush';
 import { clearTokens, loadTokens, saveTokens } from '../session';
 
 type AuthState = {
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await saveTokens(tokens);
     const me = await api.me();
     setUser(me);
+    void registerForPushAlerts();
   }, []);
 
   const register = useCallback(
@@ -63,9 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    await unregisterPushAlerts();
     await clearTokens();
     setUser(null);
   }, []);
+
+  useEffect(() => {
+    if (!user || loading) return;
+    void registerForPushAlerts();
+  }, [user, loading]);
 
   const value = useMemo(
     () => ({ user, loading, login, register, logout }),
