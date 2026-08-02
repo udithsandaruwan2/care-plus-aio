@@ -13,6 +13,7 @@
     "lint": "echo 'mobile: ok'"
   },
   "dependencies": {
+    "@babel/runtime": "^7.26.0",
     "@care-plus/api-client": "workspace:*",
     "@care-plus/core": "workspace:*",
     "@care-plus/ui-tokens": "workspace:*",
