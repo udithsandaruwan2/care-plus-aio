@@ -146,6 +146,11 @@ export function AccountPage() {
           desc="Email and push preferences for care events."
         />
         <SettingsLink
+          to="/settings/privacy"
+          title="Privacy & data"
+          desc="Export your data or erase your account (PDPA)."
+        />
+        <SettingsLink
           to="/messages"
           title="Messaging"
           desc="Open care chat with your linked partner."

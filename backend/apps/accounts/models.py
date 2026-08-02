@@ -60,6 +60,8 @@ class User(AbstractUser):
     username = None
     email = models.EmailField("email address", unique=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.PATIENT)
+    # Step 69 — set when right-to-erasure completes (account stays for audit PROTECT).
+    erased_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -215,6 +217,8 @@ class AuditAction(models.TextChoices):
     CANCEL_SHIFT = "cancel_shift", "Shift booking cancelled"
     SHIFT_CONFLICT_FALLBACK = "shift_conflict_fallback", "Shift conflict offered VEHMF fallback"
     DISABLE_USER = "disable_user", "Admin disabled or re-enabled a user account"
+    EXPORT_DATA = "export_data", "User exported personal data"
+    REQUEST_ERASURE = "request_erasure", "User requested right-to-erasure"
 
 
 class AuditLog(models.Model):

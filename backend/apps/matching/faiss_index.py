@@ -154,3 +154,18 @@ def _cache_set(index: CaregiverIndex) -> None:
 def reset_cache() -> None:
     global _CACHE
     _CACHE = None
+
+
+def evict_caregiver_from_index(caregiver_id: int) -> CaregiverIndex:
+    """Remove a caregiver from matchability and rebuild FAISS (Step 69).
+
+    IndexFlatIP has no cheap single-id delete; lean approach is deactivate
+    (caller) + full rebuild of active caregivers only.
+    """
+    CaregiverProfile.objects.filter(pk=caregiver_id).update(
+        is_active=False,
+        is_available=False,
+        embedding=[],
+    )
+    reset_cache()
+    return build_index(persist=True)
