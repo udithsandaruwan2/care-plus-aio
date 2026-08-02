@@ -28,6 +28,7 @@ export default function AppLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Care Plus' }} />
+      <Stack.Screen name="serah" options={{ title: 'Serah' }} />
       <Stack.Screen name="status" options={{ title: 'API status' }} />
     </Stack>
   );
