@@ -4,7 +4,7 @@ import { brand, colors } from '@care-plus/ui-tokens';
 import { t } from '@care-plus/core';
 import { useAuth } from '../../src/auth/AuthContext';
 
-type HubLink = { title: string; desc: string; note?: string };
+type HubLink = { title: string; desc: string; note?: string; href?: string };
 
 function linksForRole(role: string): HubLink[] {
   if (role === 'patient') {
@@ -12,7 +12,7 @@ function linksForRole(role: string): HubLink[] {
       {
         title: t('en', 'hub.serahTitle'),
         desc: t('en', 'hub.serahDesc'),
-        note: 'Voice matching lands in Step 64',
+        href: '/(app)/serah',
       },
       { title: t('en', 'hub.requestsTitle'), desc: t('en', 'hub.requestsDesc') },
       { title: t('en', 'hub.messagesTitle'), desc: t('en', 'hub.messagesDesc') },
@@ -71,13 +71,23 @@ export default function HubScreen() {
       )}
 
       <Text style={styles.section}>{t('en', 'hub.quickActions')}</Text>
-      {links.map((item) => (
-        <View key={item.title} style={styles.card}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardDesc}>{item.desc}</Text>
-          {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
-        </View>
-      ))}
+      {links.map((item) =>
+        item.href ? (
+          <Link key={item.title} href={item.href as '/(app)/serah'} asChild>
+            <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardDesc}>{item.desc}</Text>
+              {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
+            </Pressable>
+          </Link>
+        ) : (
+          <View key={item.title} style={styles.card}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardDesc}>{item.desc}</Text>
+            {item.note ? <Text style={styles.note}>{item.note}</Text> : null}
+          </View>
+        ),
+      )}
 
       <Link href="/(app)/status" style={styles.statusLink}>
         API status · health check
@@ -93,7 +103,7 @@ export default function HubScreen() {
       </Pressable>
 
       <Text style={styles.footer}>
-        {brand.name} · Step 63 auth · {user.role}
+        {brand.name} · Step 64 Serah · {user.role}
       </Text>
     </ScrollView>
   );

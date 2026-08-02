@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-02 — Step 63 mobile auth + role navigation. Next: Step 64 Neural Core (Skia)._
+_Last updated: 2026-08-02 — Step 64 mobile Neural Core (Skia) + voice turn. Next: Step 65 match results + request._
 
 ---
 
@@ -108,7 +108,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M12** Scheduling + Redlock          | 50–53   | ✅ done          |
 | **M13** Admin console                 | 54–58   | ✅ done          |
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
-| **M15** Mobile Expo                   | 62–67   | 62–63 ✅ · 64–67 ⬜ |
+| **M15** Mobile Expo                   | 62–67   | 62–64 ✅ · 65–67 ⬜ |
 | **M16** Compliance                    | 68–71   | ⬜                |
 | **M17** Ship                          | 72–75   | ⬜                |
 
@@ -129,6 +129,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ## Changelog (newest first)
 
+- **Step 64** — Mobile Serah: Skia Neural Core, Goal Ring + chips, Zustand FSM, text → `POST /voice/turn/` with consent gate and match preview. Branch `feat/step64-mobile-neural-core`.
 - **Step 63** — Expo mobile auth: SecureStore JWT session, AuthProvider, login/register (patient|caregiver), role hub navigation, API token refresh wiring. Branch `feat/step63-mobile-auth`.
 - **Step 62** — Expo mobile bootstrap: `apps/mobile` (Expo 52 + expo-router), Metro monorepo config, shared `@care-plus/{core,api-client,ui-tokens}`, health-check shell. Branch `feat/step62-expo-bootstrap`.
 - **Step 61** — Content polish: Sri Lanka–appropriate empty states and microcopy; remove literal “placeholder” NIC label, HIPAA/stub jargon; catalog/checkout empties. Branch `feat/step61-copy-polish`.
