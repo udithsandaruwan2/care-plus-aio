@@ -44,7 +44,7 @@ def gemini_chat_allowed(user_id: int | None) -> tuple[bool, str]:
     if user_id is None:
         return True, "ok"  # anonymous/tests without user still gated by key
 
-    limit = int(getattr(settings, "DIALOGUE_GEMINI_RATE_LIMIT", 30) or 30)
+    limit = int(getattr(settings, "DIALOGUE_GEMINI_RATE_LIMIT", 120) or 120)
     window = int(getattr(settings, "DIALOGUE_GEMINI_RATE_WINDOW_SEC", 3600) or 3600)
     if limit <= 0:
         return False, "disabled"
@@ -75,7 +75,7 @@ def policy_snapshot() -> dict:
         "chat_backend": resolve_chat_backend(),
         "match_engine": "vehmf",
         "gemini_ranks_caregivers": False,
-        "gemini_rate_limit": int(getattr(settings, "DIALOGUE_GEMINI_RATE_LIMIT", 30) or 30),
+        "gemini_rate_limit": int(getattr(settings, "DIALOGUE_GEMINI_RATE_LIMIT", 120) or 120),
         "gemini_rate_window_sec": int(
             getattr(settings, "DIALOGUE_GEMINI_RATE_WINDOW_SEC", 3600) or 3600
         ),

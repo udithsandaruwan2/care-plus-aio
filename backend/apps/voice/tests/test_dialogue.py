@@ -19,11 +19,14 @@ class RouteUnitTests(TestCase):
     def test_greeting_is_chat(self):
         self.assertEqual(_route("hello there", {}, False), "CHAT")
 
-    def test_care_need_clarify_when_incomplete(self):
+    def test_care_need_with_condition_is_match(self):
         self.assertEqual(
             _route("I need a caregiver for diabetes", {"condition": "Diabetes"}, False),
-            "CLARIFY",
+            "MATCH",
         )
+
+    def test_care_seek_without_condition_clarifies(self):
+        self.assertEqual(_route("find me a caregiver", {}, False), "CLARIFY")
 
     def test_complete_intent_is_match(self):
         intent = {
@@ -31,7 +34,7 @@ class RouteUnitTests(TestCase):
             "language": "Sinhala",
             "care_level": "intermediate",
         }
-        self.assertEqual(_route("find me someone", intent, False), "MATCH")
+        self.assertEqual(_route("find me a caregiver", intent, False), "MATCH")
 
     def test_thanks_after_match_is_chat(self):
         intent = {
@@ -51,9 +54,7 @@ class RouteUnitTests(TestCase):
 class VoiceTurnApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="turn@example.com", password="pw-strong-123")
-        ConsentLog.objects.create(
-            user=self.user, scope=ConsentScope.AI_PROCESSING, granted=True
-        )
+        ConsentLog.objects.create(user=self.user, scope=ConsentScope.AI_PROCESSING, granted=True)
         self.url = reverse("v1:voice_turn")
 
     def test_chat_turn_returns_reply(self):
@@ -177,7 +178,7 @@ class ProcessTurnLanguageMergeTests(TestCase):
         self.assertIsNone(out["match"])
         self.assertIn("welcome", out["reply"].lower())
 
-    def test_general_condition_statement_runs_match_when_slots_complete(self):
+    def test_condition_statement_stays_chat_until_care_seek(self):
         from apps.voice.asr import AsrResult
 
         fake = AsrResult(
@@ -204,11 +205,8 @@ class ProcessTurnLanguageMergeTests(TestCase):
         }
         with (
             patch("apps.voice.dialogue.resolve_transcript", return_value=fake),
-            patch("apps.voice.dialogue.extract_intent", return_value=extracted),
-            patch(
-                "apps.voice.dialogue._run_vehmf",
-                return_value={"request_id": None, "results": [], "latency_ms": 1, "query": "dengue", "emergency": False, "cf_enabled": False, "cf_version": "", "weights": {"cbf": 1, "cf": 0, "geo": 0, "trust": 0}},
-            ),
+            patch("apps.voice.dialogue.extract_stub", return_value=extracted),
+            patch("apps.voice.dialogue.extract_intent") as intent_gemini,
         ):
             out = process_turn(
                 user=self.user,
@@ -216,8 +214,52 @@ class ProcessTurnLanguageMergeTests(TestCase):
                 prior_intent=prior,
                 ui_language="English",
             )
+        self.assertEqual(out["route"], "CHAT")
+        self.assertEqual(out["situation"], "general")
+        self.assertIsNone(out["match"])
+        intent_gemini.assert_not_called()
+        self.assertEqual(out["tts_source"], "browser")
+
+    def test_explicit_care_seek_after_condition_runs_match(self):
+        from apps.voice.asr import AsrResult
+
+        fake = AsrResult(
+            text="find me a caregiver",
+            source="client",
+            language_hint="English",
+            language_code="en",
+            languages=["English"],
+        )
+        prior = {
+            "condition": "dengue",
+            "language": "English",
+            "care_level": "basic",
+            "languages": ["English"],
+        }
+        with (
+            patch("apps.voice.dialogue.resolve_transcript", return_value=fake),
+            patch(
+                "apps.voice.dialogue._run_vehmf",
+                return_value={
+                    "request_id": None,
+                    "results": [],
+                    "latency_ms": 1,
+                    "query": "dengue",
+                    "emergency": False,
+                    "cf_enabled": False,
+                    "cf_version": "",
+                    "weights": {"cbf": 1, "cf": 0, "geo": 0, "trust": 0},
+                },
+            ) as vehmf,
+        ):
+            out = process_turn(
+                user=self.user,
+                client_text="find me a caregiver",
+                prior_intent=prior,
+                ui_language="English",
+            )
         self.assertEqual(out["route"], "MATCH")
-        self.assertEqual(out["situation"], "match")
+        vehmf.assert_called_once()
 
 
 class ReplyGroundingTests(SimpleTestCase):

@@ -1,6 +1,11 @@
 import { useCallback, useState } from 'react';
 import { ApiError, AI_CONSENT_SCOPE, type VoiceLanguage } from '@care-plus/api-client';
-import { AssistantState, nextMissingField, type IntentDraft } from '@care-plus/core';
+import {
+  AssistantState,
+  looksLikeCareSeek,
+  nextMissingField,
+  type IntentDraft,
+} from '@care-plus/core';
 import { api } from '../auth/api';
 import { useAssistant } from './store';
 import { speakSerah, stopSpeaking } from './useTts';
@@ -82,7 +87,10 @@ export function useVoiceTurn() {
       const userLine = opts.text.trim();
       setBusy(true);
       setError(null);
-      store.setState(AssistantState.THINKING, { force: true });
+      store.setState(
+        looksLikeCareSeek(opts.text) ? AssistantState.MATCHING : AssistantState.THINKING,
+        { force: true },
+      );
       stopSpeaking();
 
       try {
@@ -91,14 +99,15 @@ export function useVoiceTurn() {
           audio: opts.audio,
           hasPriorMatch: hasVisibleMatch,
           priorIntent: store.intent as Record<string, unknown>,
-          priorMatch: hasVisibleMatch ? (store.match as unknown as Record<string, unknown>) : undefined,
+          priorMatch: hasVisibleMatch
+            ? (store.match as unknown as Record<string, unknown>)
+            : undefined,
           uiLanguage: store.uiLanguage,
         });
         setConsentNeeded(false);
         setAsrSource(result.asr_source);
         setAsrHeardLang(
-          result.asr_language ||
-            (result.intent?.language ? String(result.intent.language) : null),
+          result.asr_language || (result.intent?.language ? String(result.intent.language) : null),
         );
         setTtsSource(result.tts_source || null);
         setSerahReply(result.reply);

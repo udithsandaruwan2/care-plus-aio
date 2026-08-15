@@ -1,4 +1,4 @@
-"""Conversational turn: ASR → route → Serah reply (+ optional VEHMF match)."""
+"""Conversational turn: ASR → route → fast Serah chat or VEHMF match."""
 
 from __future__ import annotations
 
@@ -8,21 +8,22 @@ import time
 from apps.matching.engine import run_match
 from apps.matching.i18n import localize_explanation, match_spoken_reply
 from apps.matching.interactions import record_match_interactions
-from apps.matching.models import CaregiverProfile, MatchResult, create_match_run
+from apps.matching.models import CaregiverProfile, MatchResult, MatchRun, create_match_run
 from apps.matching.push import push_match_results
 
 from .asr import resolve_transcript
 from .backends import extract_intent
+from .extraction import extract_stub
 from .models import create_voice_intent
+from .policy import resolve_chat_backend
 from .refine import apply_deltas_to_intent, parse_refine_deltas
 from .replies import serah_reply
-from .router import classify_turn
+from .router import classify_turn, needs_slot_extraction
 from .session import (
     get_or_create_active_session,
     open_questions_for_intent,
     persist_session_after_turn,
 )
-from .policy import resolve_chat_backend
 
 
 def _serah(
@@ -33,6 +34,7 @@ def _serah(
     situation: str,
     has_prior_match: bool = False,
     match: dict | None = None,
+    history: list | None = None,
 ) -> tuple[str, str]:
     line = serah_reply(
         text=text,
@@ -40,9 +42,11 @@ def _serah(
         situation=situation,
         has_prior_match=has_prior_match,
         match=match,
+        history=history,
         user_id=getattr(user, "pk", None),
     )
     return line.text, line.source
+
 
 logger = logging.getLogger(__name__)
 
@@ -116,15 +120,26 @@ def _empty_catch_reply(lang: str, *, had_audio: bool) -> str:
     return "I didn’t catch any speech — hold the mic, speak clearly, then pause so I can reply."
 
 
-def _attach_tts(payload: dict, reply: str, reply_lang: str) -> dict:
+def _attach_tts(payload: dict, reply: str, reply_lang: str, *, server_voice: bool = True) -> dict:
     from .tts import pack_for_api, synthesize
 
+    if not server_voice:
+        payload.update(
+            {
+                "reply_audio_base64": "",
+                "reply_audio_mime": "",
+                "tts_source": "browser",
+            }
+        )
+        return payload
     tts = synthesize(reply, reply_lang)
     payload.update(pack_for_api(tts))
     return payload
 
 
-def _match_reply(results: list[dict], lang: str, *, refined: bool = False, deltas: dict | None = None) -> str:
+def _match_reply(
+    results: list[dict], lang: str, *, refined: bool = False, deltas: dict | None = None
+) -> str:
     return match_spoken_reply(results, lang, refined=refined, deltas=deltas)
 
 
@@ -350,6 +365,7 @@ def process_turn(
             },
             reply,
             reply_lang,
+            server_voice=False,
         )
 
     # Session chips → client prior → this turn's extraction (clarify / refine continuity).
@@ -359,8 +375,22 @@ def process_turn(
             if val not in (None, "", []):
                 base[key] = val
     hint = ui or asr.language_hint
-    extracted = extract_intent(text, hint)
-    for key in ("condition", "language", "languages", "care_level", "urgency", "raw_text", "source"):
+    # Chat stays cheap: local stub slots. Gemini intent only when VEHMF may run.
+    if needs_slot_extraction(
+        text, has_prior_match=has_prior_match or bool(session.last_match_run_id)
+    ):
+        extracted = extract_intent(text, hint)
+    else:
+        extracted = extract_stub(text, hint)
+    for key in (
+        "condition",
+        "language",
+        "languages",
+        "care_level",
+        "urgency",
+        "raw_text",
+        "source",
+    ):
         val = extracted.get(key)
         if val not in (None, "", []):
             base[key] = val
@@ -395,7 +425,9 @@ def process_turn(
     history_match = visible_match
     if history_match is None and _match_has_results(session_match):
         history_match = session_match
-    if history_match is None and _match_has_results(prior_match if isinstance(prior_match, dict) else None):
+    if history_match is None and _match_has_results(
+        prior_match if isinstance(prior_match, dict) else None
+    ):
         history_match = prior_match
 
     has_visible_match = _match_has_results(visible_match)
@@ -413,25 +445,14 @@ def process_turn(
     reply_lang = _tts_lang(base.get("language") or ui, base.get("languages"))
 
     context_match = visible_match or history_match
-    just_captured_condition = bool(extracted.get("condition"))
-    if (
-        route == "CHAT"
-        and situation == "general"
-        and not has_visible_match
-        and just_captured_condition
-        and base.get("condition")
-        and base.get("language")
-        and base.get("care_level")
-    ):
-        route = "MATCH"
-        situation = "match"
+    chat_history = list(session.turns or [])[-8:]
 
     match_payload = None
     chat_source = "none"
     if route == "EMERGENCY":
         base["_emergency"] = True
         base["urgency"] = "urgent"
-        if base.get("condition") and base.get("language") and base.get("care_level"):
+        if base.get("condition"):
             try:
                 match_payload = _run_vehmf(user, base)
                 reply = _match_reply(match_payload.get("results") or [], reply_lang)
@@ -446,6 +467,7 @@ def process_turn(
                     lang=reply_lang,
                     situation="emergency",
                     has_prior_match=effective_prior,
+                    history=chat_history,
                 )
                 reply = f"{reply} (Matching briefly unavailable: {exc})"
                 route = "CHAT"
@@ -456,6 +478,7 @@ def process_turn(
                 lang=reply_lang,
                 situation="emergency",
                 has_prior_match=effective_prior,
+                history=chat_history,
             )
             route = "CHAT"
     elif route in ("MATCH", "REFINE"):
@@ -509,6 +532,7 @@ def process_turn(
             situation="request",
             has_prior_match=has_visible_match,
             match=visible_match or history_match,
+            history=chat_history,
         )
         match_payload = None
     else:
@@ -519,6 +543,7 @@ def process_turn(
             situation=situation,
             has_prior_match=effective_prior,
             match=context_match,
+            history=chat_history,
         )
 
     intent_out = {
@@ -531,7 +556,13 @@ def process_turn(
         "source": base.get("source") or asr.source,
     }
     # Keep refine filters across turns on the session.
-    for key in ("specialty", "max_distance_km", "prefer_closer", "_hard_language", "_hard_care_level"):
+    for key in (
+        "specialty",
+        "max_distance_km",
+        "prefer_closer",
+        "_hard_language",
+        "_hard_care_level",
+    ):
         if key in base and base[key] not in (None, "", False):
             intent_out[key] = base[key]
     match_run_id = None
@@ -575,4 +606,5 @@ def process_turn(
         },
         reply,
         reply_lang,
+        server_voice=bool(match_payload),
     )

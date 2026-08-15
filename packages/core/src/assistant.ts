@@ -43,7 +43,7 @@ export function nextMissingField(intent: IntentDraft): GoalField | null {
 export const STATE_COPY: Record<AssistantState, string> = {
   IDLE: 'Tap to speak',
   LISTENING: 'Listening…',
-  THINKING: 'Understanding…',
+  THINKING: 'Replying…',
   CLARIFYING: 'One more detail…',
   SPEAKING: 'Here’s what I heard',
   CHAT_REPLY: 'Serah is replying…',
@@ -55,7 +55,7 @@ export const STATE_COPY: Record<AssistantState, string> = {
 /** Allowed FSM transitions (docs/FRONTEND.md §4). */
 export const TRANSITIONS: Record<AssistantState, AssistantState[]> = {
   IDLE: ['LISTENING', 'EMERGENCY'],
-  LISTENING: ['LISTENING', 'THINKING', 'EMERGENCY', 'IDLE'],
+  LISTENING: ['LISTENING', 'THINKING', 'MATCHING', 'EMERGENCY', 'IDLE'],
   THINKING: ['SPEAKING', 'CLARIFYING', 'CHAT_REPLY', 'MATCHING', 'RESULTS', 'EMERGENCY'],
   CLARIFYING: ['LISTENING', 'CHAT_REPLY', 'EMERGENCY'],
   SPEAKING: ['MATCHING', 'CHAT_REPLY', 'IDLE'],
@@ -69,3 +69,13 @@ export function canTransition(from: AssistantState, to: AssistantState): boolean
   return TRANSITIONS[from].includes(to);
 }
 
+/** Client hint: this utterance is asking to run VEHMF (not general chat). */
+export function looksLikeCareSeek(text: string): boolean {
+  const raw = (text || '').trim();
+  if (!raw) return false;
+  return (
+    /\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|match me)\b/i.test(raw) ||
+    /පරිචාරක|பராமரிப்பாளர்/.test(raw) ||
+    /(හොය|සොය).{0,24}(කෙනෙක්|කෙනෙකු|පරිචාරක|caregiver|nurse)/.test(raw)
+  );
+}

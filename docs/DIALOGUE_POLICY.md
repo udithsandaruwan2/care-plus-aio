@@ -13,7 +13,7 @@ Locked split so cost and PDPA stay sane:
 
 ```bash
 DIALOGUE_CHAT_BACKEND=          # blank → gemini if key else stub
-DIALOGUE_GEMINI_RATE_LIMIT=30   # chat turns / user / window; 0 disables Gemini chat
+DIALOGUE_GEMINI_RATE_LIMIT=120  # chat turns / user / window; 0 disables Gemini chat
 DIALOGUE_GEMINI_RATE_WINDOW_SEC=3600
 GEMINI_API_KEY=
 ```
@@ -22,7 +22,10 @@ GEMINI_API_KEY=
 
 - `GET /api/v1/voice/policy/` — `{ chat_backend, match_engine: "vehmf", gemini_ranks_caregivers: false, … }`
 - Each `POST /voice/turn/` audits `route`, `situation`, `chat_source`, `chat_backend`, `match_engine`
-- Turn payload includes `chat_source` (`stub` \| `gemini` \| `rate_limited` \| `vehmf` \| `none`)
+- General talk → **CHAT** (Gemini + history). Explicit caregiver ask → **VEHMF**. Then CHAT resumes with match context.
+- CHAT / ACTION / CLARIFY skip server TTS (browser speech) so replies stay instant.
+- Gemini chat receives recent `DialogueSession` turns plus grounded VEHMF names/XAI after a match.
+- Intent Gemini runs only on explicit caregiver-seeking / refine / emergency turns.
 
 ## Acceptance
 

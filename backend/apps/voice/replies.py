@@ -76,7 +76,9 @@ def stub_for_situation(
         if _si(lang):
             return "ආයුබෝවන්, මම Serah. කතා කරන්න — care ප්‍රශ්නයක් හෝ caregiver කෙනෙක් සොයනවා නම් කියන්න."
         if _ta(lang):
-            return "வணக்கம், நான் Serah. பேசுங்கள் — பராமரிப்பு கேள்வி அல்லது பராமரிப்பாளர் தேவை என்றால் சொல்லுங்கள்."
+            return (
+                "வணக்கம், நான் Serah. பேசுங்கள் — பராமரிப்பு கேள்வி அல்லது பராமரிப்பாளர் தேவை என்றால் சொல்லுங்கள்."
+            )
         return "Hi, I’m Serah. Talk naturally — ask a care question, or ask me to find a caregiver."
 
     if situation == "smalltalk":
@@ -235,12 +237,40 @@ def stub_for_situation(
             "If you want a caregiver, just ask me to find one."
         )
 
-    # general / fallback
+    # general / fallback — keep the floor open; Gemini should usually replace this.
     if _si(lang):
-        return "අහන්න පුළුවන් — care ප්‍රශ්නයක්, හෝ caregiver කෙනෙක් සොයමුද කියලා."
+        return "හරි, තේරුණා. තවත් කියන්න — නැත්නම් caregiver කෙනෙක් හොයන්න කියන්න."
     if _ta(lang):
-        return "கேளுங்கள் — பராமரிப்பு கேள்வி, அல்லது பராமரிப்பாளரைத் தேடலாமா என்று."
-    return "I’m listening — ask a care question, or ask me to find a caregiver."
+        return "சரி, புரிந்தது. தொடர்ந்து சொல்லுங்கள் — அல்லது பராமரிப்பாளர் தேடச் சொல்லுங்கள்."
+    return "Got it. Keep talking — or ask me to find a caregiver when you want one."
+
+
+def _history_blurb(history: list | None) -> str:
+    if not history:
+        return ""
+    lines: list[str] = []
+    for turn in history[-8:]:
+        if not isinstance(turn, dict):
+            continue
+        role = "User" if turn.get("role") == "user" else "Serah"
+        text = (turn.get("text") or "").strip().replace("\n", " ")
+        if not text:
+            continue
+        lines.append(f"{role}: {text[:240]}")
+    return "\n".join(lines)
+
+
+def _match_grounding(match: dict | None, lang: str) -> str:
+    if not match or not match.get("results"):
+        return "No caregiver list is active."
+    rows = []
+    for row in match["results"][:5]:
+        if not isinstance(row, dict):
+            continue
+        name = row.get("display_name") or f"caregiver {row.get('caregiver_id')}"
+        xai = localize_explanation(row.get("explanation") or "", lang)
+        rows.append(f"#{row.get('rank')} {name}: {xai}")
+    return "Grounded VEHMF results (do not invent names or ranks):\n" + "\n".join(rows)
 
 
 def gemini_chat_reply(
@@ -250,14 +280,15 @@ def gemini_chat_reply(
     situation: str,
     has_prior_match: bool,
     match: dict | None = None,
+    history: list | None = None,
     user_id: int | None = None,
 ) -> SerahLine | None:
     """Optional Gemini line; returns None to fall back to stub (or rate_limited stub)."""
     backend = resolve_chat_backend()
     if backend != "gemini":
         return None
-    # Critical UX paths stay deterministic to avoid "it's on your screen" hallucinations.
-    if situation in {"about_match", "request", "post_match_chat"}:
+    # Hire/request copy stays deterministic (points at UI buttons).
+    if situation == "request":
         return None
 
     allowed, reason = gemini_chat_allowed(user_id)
@@ -278,16 +309,31 @@ def gemini_chat_reply(
         "thanks": "They said thanks. Acknowledge warmly. Do NOT pitch finding caregivers again.",
         "goodbye": "They are leaving. Say a short goodbye. Do NOT restart caregiver matching.",
         "affirm": "They acknowledged. Brief confirm. Mention matches only if already shown.",
-        "greeting": "Greet briefly. Offer chat OR caregiver search — don’t force matching.",
-        "smalltalk": "Answer who you are briefly. No diagnosis.",
-        "faq": "Explain Care Plus in one short spoken beat.",
-        "about_match": f"Explain the top match using this XAI only: {top_xai}. Name={top_name}.",
+        "greeting": "Greet briefly as Serah. Offer to chat about anything, or find a caregiver if they ask.",
+        "smalltalk": "Answer who you are briefly. Continue the conversation. No diagnosis.",
+        "faq": "Explain Care Plus in one short spoken beat, then invite them to keep talking.",
+        "about_match": f"Explain using ONLY the grounded list. Top={top_name}. XAI={top_xai}.",
         "advice": "General info only; no diagnosis/prescription. Offer caregiver search only if asked.",
-        "post_match_chat": "Matches already on screen. Respond naturally; don’t re-list caregivers unless asked.",
-        "cancel": "Acknowledge canceling the search.",
+        "post_match_chat": (
+            "Continue naturally. You may refer to the grounded match list. "
+            "Do not re-run or invent rankings. If they want a new search they must ask."
+        ),
+        "cancel": "Acknowledge canceling the search, then stay open for ordinary chat.",
         "emergency": "Urge real emergency services first; offer caregiver search second.",
-        "general": "Be a warm short companion. Only invite caregiver search if they ask.",
-    }.get(situation, "Be warm and brief. Don’t force caregiver matching.")
+        "general": (
+            "Continue the conversation as a warm, useful companion. Answer what they said. "
+            "Only invite caregiver matching if they ask for a caregiver/nurse."
+        ),
+    }.get(
+        situation, "Be warm and brief. Continue the conversation. Don’t force caregiver matching."
+    )
+
+    history_block = _history_blurb(history)
+    match_block = (
+        _match_grounding(match, lang)
+        if (match or situation in {"about_match", "post_match_chat"})
+        else ""
+    )
 
     try:
         import google.generativeai as genai
@@ -297,14 +343,17 @@ def gemini_chat_reply(
         resp = model.generate_content(
             (
                 "You are Serah, Care Plus voice assistant for Sri Lanka. "
-                "Reply in 1–2 short spoken sentences. Never invent caregiver names or rankings. "
-                "Never pick or re-rank caregivers — VEHMF does that locally. "
+                "Reply in 1–3 short spoken sentences that continue the dialogue. "
+                "Never invent caregiver names, scores, or rankings. "
+                "Never pick or re-rank caregivers — VEHMF does that locally when they ask. "
                 f"Situation={situation}. has_prior_match={has_prior_match}. "
-                f"Guidance: {guidance} "
+                f"Guidance: {guidance}\n"
+                f"{match_block}\n"
+                f"Recent conversation:\n{history_block or '(none yet)'}\n"
                 f"Reply ONLY in {_display_lang(lang)} — never mix English if the user chose Sinhala or Tamil. "
-                f"Patient said: {text}"
+                f"Patient just said: {text}"
             ),
-            generation_config={"temperature": 0.35},
+            generation_config={"temperature": 0.45, "max_output_tokens": 180},
         )
         out = (resp.text or "").strip()
         if out:
@@ -322,6 +371,7 @@ def serah_reply(
     situation: str,
     has_prior_match: bool = False,
     match: dict | None = None,
+    history: list | None = None,
     user_id: int | None = None,
 ) -> SerahLine:
     cloud = gemini_chat_reply(
@@ -330,6 +380,7 @@ def serah_reply(
         situation=situation,
         has_prior_match=has_prior_match,
         match=match,
+        history=history,
         user_id=user_id,
     )
     if cloud is not None:

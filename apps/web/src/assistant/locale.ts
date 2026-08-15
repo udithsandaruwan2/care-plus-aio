@@ -77,7 +77,10 @@ const CARE_LEVEL_LABELS: Record<UiVoiceLanguage, Record<string, string>> = {
   English: { basic: 'basic', intermediate: 'intermediate', advanced: 'advanced' },
 };
 
-export function localizeCareLevel(level: string | undefined, lang: UiVoiceLanguage): string | undefined {
+export function localizeCareLevel(
+  level: string | undefined,
+  lang: UiVoiceLanguage,
+): string | undefined {
   if (!level) return level;
   return CARE_LEVEL_LABELS[lang][level] ?? level;
 }
@@ -117,7 +120,7 @@ const STATE_COPY_LOCAL: Record<UiVoiceLanguage, Record<string, string>> = {
   Sinhala: {
     IDLE: 'කතා කරන්න ටැප් කරන්න',
     LISTENING: 'ඇසෙනවා…',
-    THINKING: 'තේරුම් ගන්නවා…',
+    THINKING: 'පිළිතුරු දෙනවා…',
     CLARIFYING: 'තව ටිකක් විස්තර…',
     SPEAKING: 'මෙහෙම ඇසුණා',
     CHAT_REPLY: 'Serah පිළිතුරු දෙනවා…',
@@ -128,7 +131,7 @@ const STATE_COPY_LOCAL: Record<UiVoiceLanguage, Record<string, string>> = {
   Tamil: {
     IDLE: 'பேச தட்டுங்கள்',
     LISTENING: 'கேட்கிறது…',
-    THINKING: 'புரிந்து கொள்கிறது…',
+    THINKING: 'பதிலளிக்கிறது…',
     CLARIFYING: 'இன்னும் சிறிது விவரம்…',
     SPEAKING: 'இதைக் கேட்டேன்',
     CHAT_REPLY: 'Serah பதிலளிக்கிறார்…',
@@ -139,7 +142,7 @@ const STATE_COPY_LOCAL: Record<UiVoiceLanguage, Record<string, string>> = {
   English: {
     IDLE: 'Tap to speak',
     LISTENING: 'Listening…',
-    THINKING: 'Understanding…',
+    THINKING: 'Replying…',
     CLARIFYING: 'One more detail…',
     SPEAKING: "Here's what I heard",
     CHAT_REPLY: 'Serah is replying…',

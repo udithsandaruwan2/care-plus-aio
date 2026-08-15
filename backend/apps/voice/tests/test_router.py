@@ -101,10 +101,27 @@ class RouterFixtureTests(SimpleTestCase):
     def test_incomplete_care_seek_clarifies(self):
         d = classify_turn(
             "find me a caregiver",
-            {"condition": "diabetes"},
+            {},
             has_prior_match=False,
         )
         self.assertEqual(d.route, "CLARIFY")
+
+    def test_condition_without_seek_is_chat(self):
+        d = classify_turn("i have dengue", {"condition": "dengue"}, has_prior_match=False)
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "general")
+
+    def test_bare_sinhala_need_is_chat(self):
+        d = classify_turn("මට ඕනේ", {}, has_prior_match=False)
+        self.assertEqual(d.route, "CHAT")
+
+    def test_sinhala_caregiver_seek_matches(self):
+        d = classify_turn(
+            "මට caregiver කෙනෙක් ඕනේ",
+            {"condition": "dengue"},
+            has_prior_match=False,
+        )
+        self.assertEqual(d.route, "MATCH")
 
     def test_post_match_default_chat(self):
         d = classify_turn("hmm interesting", COMPLETE, has_prior_match=True)
