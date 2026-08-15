@@ -36,8 +36,9 @@ _THANKS = re.compile(
 )
 
 _GOODBYE = re.compile(
-    r"\b(bye|goodbye|good\s*bye|see\s*you|later|take\s*care|that'?s\s*all|"
+    r"\b(bye|goodbye|good\s*bye|see\s*you|that'?s\s*all|"
     r"i'?m\s*done|nothing\s*else|no\s*more)\b|"
+    r"\btake\s*care(?!\s+of)\b|"
     r"ගිහින්|බලමු|හමුවෙමු|போய்ட்டு|போறேன்|சந்திப்போம்",
     re.I,
 )
@@ -97,15 +98,21 @@ _REFINE = re.compile(
     re.I,
 )
 
-# Explicit caregiver-seeking only. Bare "need" / "ඕනේ" / "කෙනෙක්" is general chat.
+# Care-seeking: named roles, or "someone to take care of me" (ASR often drops "caregiver").
 _MATCH_SEEK = re.compile(
     r"\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|"
-    r"find\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant)|"
+    r"find\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant|someone)|"
     r"(need|want|get)\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant)|"
-    r"(looking|search(ing)?)\s*for\s*(a\s*)?(caregiver|nurse|carer|attendant)|"
-    r"match\s*me|show\s*(me\s*)?(the\s*)?(caregivers?|nurses?)|"
-    r"book\s*(a\s*)?(caregiver|nurse)|hire\s*(a\s*)?(caregiver|nurse))\b|"
-    r"පරිචාරක|කේර්\s*ගිවර්|"
+    r"(looking|search(ing)?)\s*for\s*(a\s*)?(caregiver|nurse|carer|attendant|someone)|"
+    r"match\s*me|show\s*(me\s*)?(the\s*)?(caregivers?|nurses?|matches|options)|"
+    r"book\s*(a\s*)?(caregiver|nurse)|hire\s*(a\s*)?(caregiver|nurse)|"
+    r"need\s+(a\s+)?(someone|somebody|person)|"
+    r"(someone|somebody|person)\s+(to|who)\s+(take\s*care|look\s*after|care\s+for|help)|"
+    r"who\s+can\s+(take\s*care|look\s*after|care\s+for|help)|"
+    r"take\s*care\s+of\s+(me|my|him|her|them|us)|"
+    r"look\s*after\s+(me|my|him|her|them|us)|"
+    r"care\s+for\s+(me|my)\b)\b|"
+    r"පරිචාරක|කේර්\s*ගිවර්|රැකබලා|බලාගන්න|"
     r"(හොය|සොය).{0,24}(කෙනෙක්|කෙනෙකු|පරිචාරක|nurse|caregiver)|"
     r"(කෙනෙක්|කෙනෙකු).{0,24}(හොය|සොය)|"
     r"(caregiver|nurse|පරිචාරක).{0,16}(ඕන[ේෙ]?|ඕන)|"

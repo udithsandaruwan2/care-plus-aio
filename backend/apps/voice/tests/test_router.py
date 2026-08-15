@@ -33,6 +33,29 @@ class RouterFixtureTests(SimpleTestCase):
         self.assertEqual(d.route, "CHAT")
         self.assertEqual(d.situation, "affirm")
 
+    def test_take_care_of_me_is_match_not_goodbye(self):
+        d = classify_turn(
+            "so I need a give a who can take care of my fever and take care of me",
+            {"condition": "dengue", "language": "English", "care_level": "intermediate"},
+            has_prior_match=False,
+        )
+        self.assertEqual(d.route, "MATCH")
+        self.assertFalse(d.clear_match)
+
+    def test_farewell_take_care_is_goodbye(self):
+        d = classify_turn("take care", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "goodbye")
+        self.assertTrue(d.clear_match)
+
+    def test_need_someone_to_care_is_match(self):
+        d = classify_turn(
+            "I need someone to take care of me",
+            {"condition": "dengue"},
+            has_prior_match=False,
+        )
+        self.assertEqual(d.route, "MATCH")
+
     def test_goodbye_clears_match(self):
         d = classify_turn("goodbye", COMPLETE, has_prior_match=True)
         self.assertEqual(d.route, "CHAT")

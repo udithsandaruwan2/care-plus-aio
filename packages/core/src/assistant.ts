@@ -75,7 +75,10 @@ export function looksLikeCareSeek(text: string): boolean {
   if (!raw) return false;
   return (
     /\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|match me)\b/i.test(raw) ||
-    /පරිචාරක|பராமரிப்பாளர்/.test(raw) ||
+    /\b(need|want)\s+(a\s+)?(someone|somebody|person)\b/i.test(raw) ||
+    /\bwho\s+can\s+(take\s*care|look\s*after|care\s+for|help)\b/i.test(raw) ||
+    /\btake\s*care\s+of\s+(me|my|him|her|them|us)\b/i.test(raw) ||
+    /පරිචාරක|பராமரிப்பாளர்|රැකබලා/.test(raw) ||
     /(හොය|සොය).{0,24}(කෙනෙක්|කෙනෙකු|පරිචාරක|caregiver|nurse)/.test(raw)
   );
 }
