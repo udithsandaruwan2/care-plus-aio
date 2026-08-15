@@ -211,6 +211,14 @@ export function createApiClient(options: ApiClientOptions) {
       request('/auth/token/', { method: 'POST', body: JSON.stringify({ email, password }) }, (d) =>
         TokenPair.parse(d),
       ),
+    requestOtp: () =>
+      request('/auth/otp/request/', { method: 'POST', body: JSON.stringify({}) }, (d) =>
+        z.object({ detail: z.string(), expires_in: z.number().optional() }).parse(d),
+      ),
+    verifyOtp: (code: string) =>
+      request('/auth/otp/verify/', { method: 'POST', body: JSON.stringify({ code }) }, (d) =>
+        TokenPair.parse(d),
+      ),
     register: (input: RegisterInput) =>
       request(
         '/auth/register/',
@@ -268,16 +276,12 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => VoiceTurnResponse.parse(d),
       );
     },
-    voiceSession: () =>
-      request('/voice/session/', {}, (d) => VoiceSessionResponse.parse(d)),
+    voiceSession: () => request('/voice/session/', {}, (d) => VoiceSessionResponse.parse(d)),
     clearVoiceSession: () =>
-      request(
-        '/voice/session/clear/',
-        { method: 'POST', body: JSON.stringify({}) },
-        (d) => VoiceSessionClearResponse.parse(d),
+      request('/voice/session/clear/', { method: 'POST', body: JSON.stringify({}) }, (d) =>
+        VoiceSessionClearResponse.parse(d),
       ),
-    dialoguePolicy: () =>
-      request('/voice/policy/', {}, (d) => DialoguePolicy.parse(d)),
+    dialoguePolicy: () => request('/voice/policy/', {}, (d) => DialoguePolicy.parse(d)),
     getConsent: () => request('/consent/', {}, (d) => ConsentState.parse(d)),
     setConsent: (scope: string, granted: boolean) =>
       request('/consent/', { method: 'POST', body: JSON.stringify({ scope, granted }) }, (d) =>
@@ -286,16 +290,18 @@ export function createApiClient(options: ApiClientOptions) {
     getNotificationPreferences: () =>
       request('/notification-preferences/', {}, (d) => NotificationPreferences.parse(d)),
     updateNotificationPreferences: (input: NotificationPreferencesUpdate) =>
-      request(
-        '/notification-preferences/',
-        { method: 'PATCH', body: JSON.stringify(input) },
-        (d) => NotificationPreferences.parse(d),
+      request('/notification-preferences/', { method: 'PATCH', body: JSON.stringify(input) }, (d) =>
+        NotificationPreferences.parse(d),
       ),
     exportPrivacyData: (format: 'json' | 'pdf' = 'json') => {
       if (format === 'pdf') {
         return requestBlob(`/privacy/export/?export_format=pdf`);
       }
-      return request(`/privacy/export/?export_format=json`, {}, (d) => d as Record<string, unknown>);
+      return request(
+        `/privacy/export/?export_format=json`,
+        {},
+        (d) => d as Record<string, unknown>,
+      );
     },
     eraseAccount: (password: string, confirm = 'erase') =>
       request(
@@ -312,13 +318,10 @@ export function createApiClient(options: ApiClientOptions) {
             })
             .parse(d),
       ),
-    getVapidPublicKey: () =>
-      request('/push/vapid-public-key/', {}, (d) => VapidPublicKey.parse(d)),
+    getVapidPublicKey: () => request('/push/vapid-public-key/', {}, (d) => VapidPublicKey.parse(d)),
     subscribeWebPush: (input: PushSubscriptionInput) =>
-      request(
-        '/push/subscriptions/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => PushSubscriptionResult.parse(d),
+      request('/push/subscriptions/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
+        PushSubscriptionResult.parse(d),
       ),
     unsubscribeWebPush: (endpoint: string) =>
       request(
@@ -327,16 +330,12 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => z.object({ deleted: z.number() }).parse(d),
       ),
     registerMobilePushDevice: (input: MobilePushDeviceInput) =>
-      request(
-        '/push/mobile/devices/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => MobilePushDeviceResult.parse(d),
+      request('/push/mobile/devices/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
+        MobilePushDeviceResult.parse(d),
       ),
     unregisterMobilePushDevice: (token: string) =>
-      request(
-        '/push/mobile/devices/',
-        { method: 'DELETE', body: JSON.stringify({ token }) },
-        (d) => z.object({ deleted: z.number() }).parse(d),
+      request('/push/mobile/devices/', { method: 'DELETE', body: JSON.stringify({ token }) }, (d) =>
+        z.object({ deleted: z.number() }).parse(d),
       ),
     listMyAvailabilitySlots: () =>
       request('/caregivers/me/availability-slots/', {}, (d) =>
@@ -355,17 +354,14 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => CaregiverAvailabilitySlot.parse(d),
       ),
     deleteMyAvailabilitySlot: (id: number) =>
-      request(
-        `/caregivers/me/availability-slots/${id}/`,
-        { method: 'DELETE' },
-        (d) => z.any().optional().parse(d),
+      request(`/caregivers/me/availability-slots/${id}/`, { method: 'DELETE' }, (d) =>
+        z.any().optional().parse(d),
       ),
     listCaregiverAvailabilitySlots: (caregiverId: number) =>
       request(`/caregivers/${caregiverId}/availability-slots/`, {}, (d) =>
         z.array(CaregiverAvailabilitySlot).parse(d),
       ),
-    listShifts: () =>
-      request('/shifts/', {}, (d) => z.array(Shift).parse(d)),
+    listShifts: () => request('/shifts/', {}, (d) => z.array(Shift).parse(d)),
     createShift: (input: ShiftCreateInput) =>
       request('/shifts/', { method: 'POST', body: JSON.stringify(input) }, (d) => Shift.parse(d)),
     getShift: (id: number) => request(`/shifts/${id}/`, {}, (d) => Shift.parse(d)),
@@ -382,10 +378,8 @@ export function createApiClient(options: ApiClientOptions) {
       return request(`/users/${suffix}`, {}, (d) => AdminUserListResponse.parse(d));
     },
     setAdminUserActive: (id: number, is_active: boolean) =>
-      request(
-        `/users/${id}/`,
-        { method: 'PATCH', body: JSON.stringify({ is_active }) },
-        (d) => AdminUser.parse(d),
+      request(`/users/${id}/`, { method: 'PATCH', body: JSON.stringify({ is_active }) }, (d) =>
+        AdminUser.parse(d),
       ),
     getAdminAnalytics: (windowDays?: number) => {
       const qs = windowDays != null ? `?window_days=${windowDays}` : '';
@@ -412,10 +406,8 @@ export function createApiClient(options: ApiClientOptions) {
       return request(`/audit/export/${suffix}`, {}, (d) => String(d));
     },
     ingestHealthMetric: (input: HealthMetricIngestInput) =>
-      request(
-        '/health/metrics/ingest/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => HealthMetric.parse(d),
+      request('/health/metrics/ingest/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
+        HealthMetric.parse(d),
       ),
     healthMetricWindow: (params: { kind: string; hours?: number; patient_id?: number }) => {
       const qs = new URLSearchParams();
@@ -459,23 +451,17 @@ export function createApiClient(options: ApiClientOptions) {
       const suffix = qs.toString() ? `?${qs}` : '';
       return request(`/caregivers/${suffix}`, {}, (d) => CaregiverListResponse.parse(d));
     },
-    caregiver: (id: number) =>
-      request(`/caregivers/${id}/`, {}, (d) => CaregiverDetail.parse(d)),
-    myCaregiverProfile: () =>
-      request('/caregivers/me/', {}, (d) => CaregiverMeProfile.parse(d)),
+    caregiver: (id: number) => request(`/caregivers/${id}/`, {}, (d) => CaregiverDetail.parse(d)),
+    myCaregiverProfile: () => request('/caregivers/me/', {}, (d) => CaregiverMeProfile.parse(d)),
     updateMyCaregiverProfile: (input: CaregiverProfileUpdate) =>
-      request(
-        '/caregivers/me/',
-        { method: 'PATCH', body: JSON.stringify(input) },
-        (d) => CaregiverMeProfile.parse(d),
+      request('/caregivers/me/', { method: 'PATCH', body: JSON.stringify(input) }, (d) =>
+        CaregiverMeProfile.parse(d),
       ),
     uploadMyCaregiverPhoto: (file: Blob, filename?: string) => {
       const form = new FormData();
       form.append('file', file, filename ?? 'photo.jpg');
-      return request(
-        '/caregivers/me/photo/',
-        { method: 'POST', body: form, headers: {} },
-        (d) => CaregiverMeProfile.parse(d),
+      return request('/caregivers/me/photo/', { method: 'POST', body: form, headers: {} }, (d) =>
+        CaregiverMeProfile.parse(d),
       );
     },
     uploadMyCaregiverDocument: (file: Blob, filename?: string) => {
@@ -498,31 +484,24 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     myPatientProfile: () => request('/patients/me/', {}, (d) => PatientProfile.parse(d)),
     updateMyPatientProfile: (input: PatientProfileUpdate) =>
-      request(
-        '/patients/me/',
-        { method: 'PATCH', body: JSON.stringify(input) },
-        (d) => PatientProfile.parse(d),
+      request('/patients/me/', { method: 'PATCH', body: JSON.stringify(input) }, (d) =>
+        PatientProfile.parse(d),
       ),
     uploadMyPatientPhoto: (file: Blob, filename?: string) => {
       const form = new FormData();
       form.append('file', file, filename ?? 'photo.jpg');
-      return request(
-        '/patients/me/photo/',
-        { method: 'POST', body: form, headers: {} },
-        (d) => PatientProfile.parse(d),
+      return request('/patients/me/photo/', { method: 'POST', body: form, headers: {} }, (d) =>
+        PatientProfile.parse(d),
       );
     },
-    vocabConditions: () =>
-      request('/vocab/conditions/', {}, (d) => ConditionListResponse.parse(d)),
+    vocabConditions: () => request('/vocab/conditions/', {}, (d) => ConditionListResponse.parse(d)),
     listCareRequests: (page?: number) => {
       const qs = page != null ? `?page=${page}` : '';
       return request(`/care-requests/${qs}`, {}, (d) => CareRequestListResponse.parse(d));
     },
     createCareRequest: (input: CareRequestCreate) =>
-      request(
-        '/care-requests/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => CareRequest.parse(d),
+      request('/care-requests/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
+        CareRequest.parse(d),
       ),
     cancelCareRequest: (id: number) =>
       request(
@@ -547,9 +526,7 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     listCareRelationships: (page?: number) => {
       const qs = page != null ? `?page=${page}` : '';
-      return request(`/care-relationships/${qs}`, {}, (d) =>
-        CareRelationshipListResponse.parse(d),
-      );
+      return request(`/care-relationships/${qs}`, {}, (d) => CareRelationshipListResponse.parse(d));
     },
     currentCareRelationship: () =>
       request('/care-relationships/current/', {}, (d) =>
@@ -571,11 +548,7 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => CareRelationship.parse(d),
       ),
     createLead: (input: LeadCreate) =>
-      request(
-        '/leads/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => Lead.parse(d),
-      ),
+      request('/leads/', { method: 'POST', body: JSON.stringify(input) }, (d) => Lead.parse(d)),
     listLeads: (page?: number, statusFilter?: string) => {
       const params = new URLSearchParams();
       if (page != null) params.set('page', String(page));
@@ -603,9 +576,7 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     listCarePackages: (careLevel?: string) => {
       const qs = careLevel ? `?care_level=${encodeURIComponent(careLevel)}` : '';
-      return request(`/catalog/packages/${qs}`, {}, (d) =>
-        z.array(CarePackage).parse(d),
-      );
+      return request(`/catalog/packages/${qs}`, {}, (d) => z.array(CarePackage).parse(d));
     },
     listCatalogAddOns: (category?: string) => {
       const qs = category ? `?category=${encodeURIComponent(category)}` : '';
@@ -618,10 +589,8 @@ export function createApiClient(options: ApiClientOptions) {
       );
     },
     createAdminCondition: (input: AdminConditionInput) =>
-      request(
-        '/admin/vocab/conditions/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => AdminConditionTerm.parse(d),
+      request('/admin/vocab/conditions/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
+        AdminConditionTerm.parse(d),
       ),
     updateAdminCondition: (slug: string, input: Partial<AdminConditionInput>) =>
       request(
@@ -630,16 +599,18 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => AdminConditionTerm.parse(d),
       ),
     deleteAdminCondition: (slug: string) =>
-      request(`/admin/vocab/conditions/${encodeURIComponent(slug)}/`, { method: 'DELETE' }, () => undefined),
+      request(
+        `/admin/vocab/conditions/${encodeURIComponent(slug)}/`,
+        { method: 'DELETE' },
+        () => undefined,
+      ),
     listAdminPackages: (careLevel?: string) => {
       const qs = careLevel ? `?care_level=${encodeURIComponent(careLevel)}` : '';
       return request(`/admin/catalog/packages/${qs}`, {}, (d) => z.array(CarePackage).parse(d));
     },
     createAdminPackage: (input: Record<string, unknown>) =>
-      request(
-        '/admin/catalog/packages/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => CarePackage.parse(d),
+      request('/admin/catalog/packages/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
+        CarePackage.parse(d),
       ),
     updateAdminPackage: (id: number, input: Record<string, unknown>) =>
       request(
@@ -654,10 +625,8 @@ export function createApiClient(options: ApiClientOptions) {
       return request(`/admin/catalog/addons/${qs}`, {}, (d) => z.array(CatalogAddOn).parse(d));
     },
     createAdminAddOn: (input: Record<string, unknown>) =>
-      request(
-        '/admin/catalog/addons/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => CatalogAddOn.parse(d),
+      request('/admin/catalog/addons/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
+        CatalogAddOn.parse(d),
       ),
     updateAdminAddOn: (id: number, input: Record<string, unknown>) =>
       request(
@@ -668,15 +637,9 @@ export function createApiClient(options: ApiClientOptions) {
     deleteAdminAddOn: (id: number) =>
       request(`/admin/catalog/addons/${id}/`, { method: 'DELETE' }, () => undefined),
     createCheckout: (input: CheckoutCreate) =>
-      request(
-        '/checkout/',
-        { method: 'POST', body: JSON.stringify(input) },
-        (d) => Order.parse(d),
-      ),
-    getOrder: (id: number) =>
-      request(`/orders/${id}/`, {}, (d) => Order.parse(d)),
-    getOrderReceiptHtml: (id: number) =>
-      request(`/orders/${id}/receipt/`, {}, (d) => String(d)),
+      request('/checkout/', { method: 'POST', body: JSON.stringify(input) }, (d) => Order.parse(d)),
+    getOrder: (id: number) => request(`/orders/${id}/`, {}, (d) => Order.parse(d)),
+    getOrderReceiptHtml: (id: number) => request(`/orders/${id}/receipt/`, {}, (d) => String(d)),
     createPaymentIntent: (orderId: number) =>
       request(
         `/orders/${orderId}/payment-intent/`,
@@ -703,19 +666,15 @@ export function createApiClient(options: ApiClientOptions) {
       if (input.sensitive_notes != null) form.append('sensitive_notes', input.sensitive_notes);
       if (input.recorded_at != null) form.append('recorded_at', input.recorded_at);
       if (input.file instanceof Blob) form.append('file', input.file);
-      return request(
-        '/medical-records/',
-        { method: 'POST', body: form, headers: {} },
-        (d) => MedicalRecordDetail.parse(d),
+      return request('/medical-records/', { method: 'POST', body: form, headers: {} }, (d) =>
+        MedicalRecordDetail.parse(d),
       );
     },
     getMedicalRecord: (id: number) =>
       request(`/medical-records/${id}/`, {}, (d) => MedicalRecordDetail.parse(d)),
     updateMedicalRecord: (id: number, input: MedicalRecordUpdateInput) =>
-      request(
-        `/medical-records/${id}/`,
-        { method: 'PATCH', body: JSON.stringify(input) },
-        (d) => MedicalRecordDetail.parse(d),
+      request(`/medical-records/${id}/`, { method: 'PATCH', body: JSON.stringify(input) }, (d) =>
+        MedicalRecordDetail.parse(d),
       ),
     deleteMedicalRecord: (id: number) =>
       request(`/medical-records/${id}/`, { method: 'DELETE' }, () => undefined),
@@ -735,18 +694,14 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => SignedDownloadUrl.parse(d),
       ),
     currentMessageThread: () =>
-      request('/message-threads/current/', {}, (d) =>
-        d == null ? null : MessageThread.parse(d),
-      ),
+      request('/message-threads/current/', {}, (d) => (d == null ? null : MessageThread.parse(d))),
     listMessages: (threadId: number, params?: { after_id?: number; limit?: number }) => {
       const qs = new URLSearchParams();
       if (params?.after_id != null) qs.set('after_id', String(params.after_id));
       if (params?.limit != null) qs.set('limit', String(params.limit));
       const q = qs.toString();
-      return request(
-        `/message-threads/${threadId}/messages/${q ? `?${q}` : ''}`,
-        {},
-        (d) => z.array(Message).parse(d),
+      return request(`/message-threads/${threadId}/messages/${q ? `?${q}` : ''}`, {}, (d) =>
+        z.array(Message).parse(d),
       );
     },
     sendMessage: (threadId: number, body: string) =>

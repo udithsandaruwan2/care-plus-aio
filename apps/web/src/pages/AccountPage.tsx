@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { userNeedsOtp } from '@care-plus/api-client';
 import { useAuth } from '../auth/AuthContext';
 import { useCaregiverProfile } from '../auth/useCaregiverProfile';
 import { usePatientProfile } from '../auth/usePatientProfile';
@@ -40,6 +41,14 @@ export function AccountPage() {
         <p className="mt-1 text-sm text-muted">
           Role: <span className="text-mist">{user?.role ?? 'unknown'}</span>
         </p>
+        {userNeedsOtp(user) && (
+          <p className="mt-3 text-sm text-amber">
+            Email verification is required before hire, payment, or medical records.{' '}
+            <Link to="/otp" className="text-cyan hover:underline">
+              Enter code
+            </Link>
+          </p>
+        )}
         {(user?.role === 'patient' || user?.role === 'caregiver') && (
           <div className="mt-4">
             <ProfileMediaCard
@@ -171,11 +180,7 @@ export function AccountPage() {
           title="Messaging"
           desc="Open care chat with your linked partner."
         />
-        <SettingsLink
-          to="/records"
-          title="Medical records"
-          desc="Manage notes and attachments."
-        />
+        <SettingsLink to="/records" title="Medical records" desc="Manage notes and attachments." />
         <SettingsLink
           to="/requests"
           title="Care requests"

@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Link, Redirect, router } from 'expo-router';
-import { ApiError } from '@care-plus/api-client';
+import { ApiError, userNeedsOtp } from '@care-plus/api-client';
 import { brand, colors } from '@care-plus/ui-tokens';
 import { t } from '@care-plus/core';
 import { useAuth } from '../../src/auth/AuthContext';
@@ -36,6 +36,7 @@ export default function RegisterScreen() {
   const [busy, setBusy] = useState(false);
 
   if (!loading && user) {
+    if (userNeedsOtp(user)) return <Redirect href="/(auth)/otp" />;
     return <Redirect href="/(app)" />;
   }
 
@@ -43,7 +44,11 @@ export default function RegisterScreen() {
     setError(null);
     setBusy(true);
     try {
-      await register(email.trim(), password, role);
+      const me = await register(email.trim(), password, role);
+      if (userNeedsOtp(me)) {
+        router.replace('/(auth)/otp');
+        return;
+      }
       router.replace('/(app)');
     } catch (err) {
       setError(errorMessage(err));

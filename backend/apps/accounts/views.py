@@ -20,6 +20,7 @@ from .models import (
     PushSubscription,
     Role,
 )
+from .otp import request_otp, verify_otp
 from .permissions import HasAIConsent, IsAdmin, RolePermission
 from .serializers import (
     AdminUserSerializer,
@@ -32,6 +33,7 @@ from .serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+from .tokens import CarePlusTokenObtainPairSerializer, issue_token_pair
 
 User = get_user_model()
 
@@ -111,6 +113,7 @@ class AdminUserDetailView(APIView):
 class ThrottledTokenObtainPairView(TokenObtainPairView):
     """POST /api/v1/auth/token/ — JWT login with auth-scope throttle (Step 70)."""
 
+    serializer_class = CarePlusTokenObtainPairSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 
@@ -139,6 +142,33 @@ class MeView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class OtpRequestView(APIView):
+    """POST /auth/otp/request/ — email a 6-digit code (Step 22f)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        payload = request_otp(request.user)
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class OtpVerifyView(APIView):
+    """POST /auth/otp/verify/ — elevate JWT with otp_verified=true."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        code = ""
+        if isinstance(request.data, dict):
+            code = str(request.data.get("code") or "")
+        verify_otp(request.user, code)
+        return Response(issue_token_pair(request.user, otp_verified=True))
 
 
 class AdminOnlyView(APIView):

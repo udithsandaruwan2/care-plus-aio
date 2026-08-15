@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
+import { RequireOtp } from './auth/RequireOtp';
 import { AppShell } from './components/layout/AppShell';
 import { PublicSiteLayout } from './components/layout/PublicSiteLayout';
 import { BrowseCaregiversPage } from './pages/BrowseCaregiversPage';
@@ -21,6 +22,7 @@ import { OrderSuccessPage } from './pages/OrderSuccessPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { MedicalRecordsPage } from './pages/MedicalRecordsPage';
 import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
+import { OtpPage } from './pages/OtpPage';
 import { AccountPage } from './pages/AccountPage';
 import { PrivacyNoticePage } from './pages/PrivacyNoticePage';
 import { PrivacySettingsPage } from './pages/PrivacySettingsPage';
@@ -55,13 +57,16 @@ export function App() {
             <Route path="/onboarding" element={<PatientOnboardingPage />} />
             <Route path="/caregiver-onboarding" element={<CaregiverOnboardingPage />} />
             <Route path="/requests" element={<CareRequestsPage />} />
-            <Route path="/records" element={<MedicalRecordsPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/account" element={<AccountPage />} />
+            <Route path="/otp" element={<OtpPage />} />
             <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
             <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
-            <Route path="/requests/:careRequestId/checkout" element={<CheckoutPage />} />
-            <Route path="/orders/:orderId/pay" element={<OrderPayPage />} />
+            <Route element={<RequireOtp />}>
+              <Route path="/records" element={<MedicalRecordsPage />} />
+              <Route path="/requests/:careRequestId/checkout" element={<CheckoutPage />} />
+              <Route path="/orders/:orderId/pay" element={<OrderPayPage />} />
+            </Route>
             <Route path="/orders/:orderId/success" element={<OrderSuccessPage />} />
             <Route path="/orders/:orderId/failed" element={<OrderFailedPage />} />
             <Route path="/presence" element={<CaregiverPresencePage />} />

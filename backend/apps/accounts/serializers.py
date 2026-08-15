@@ -3,15 +3,39 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import AuditLog, ConsentLog, Role
+from .tokens import otp_enabled
 
 User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    otp_enabled = serializers.SerializerMethodField()
+    otp_verified = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ("id", "email", "role", "first_name", "last_name")
-        read_only_fields = ("id",)
+        fields = (
+            "id",
+            "email",
+            "role",
+            "first_name",
+            "last_name",
+            "otp_enabled",
+            "otp_verified",
+        )
+        read_only_fields = ("id", "otp_enabled", "otp_verified")
+
+    def get_otp_enabled(self, obj):
+        return otp_enabled()
+
+    def get_otp_verified(self, obj):
+        if not otp_enabled():
+            return True
+        request = self.context.get("request")
+        token = getattr(request, "auth", None) if request else None
+        if token is not None and hasattr(token, "get"):
+            return bool(token.get("otp_verified"))
+        return False
 
 
 class RegisterSerializer(serializers.ModelSerializer):

@@ -6,7 +6,7 @@ from django.http import HttpResponse
 
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
-from apps.accounts.permissions import IsAdmin, IsPatient, RolePermission
+from apps.accounts.permissions import HasOtpIfEnabled, IsAdmin, IsPatient, RolePermission
 
 from .checkout import create_checkout_order
 from .models import AddOn, CarePackage, Order, OrderStatus, PaymentIntent
@@ -174,7 +174,7 @@ class AdminAddOnDetailView(APIView):
 class CheckoutCreateView(APIView):
     """POST /api/v1/checkout/ — create priced Order in awaiting_payment."""
 
-    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    permission_classes = [permissions.IsAuthenticated, IsPatient, HasOtpIfEnabled]
 
     def post(self, request):
         ser = CheckoutCreateSerializer(data=request.data)
@@ -253,7 +253,7 @@ class OrderReceiptView(APIView):
 class PaymentIntentView(APIView):
     """POST/GET /api/v1/orders/<id>/payment-intent/ — create or fetch latest intent."""
 
-    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    permission_classes = [permissions.IsAuthenticated, IsPatient, HasOtpIfEnabled]
 
     def post(self, request, pk: int):
         try:
@@ -295,7 +295,7 @@ class PaymentIntentView(APIView):
 class MockPaymentConfirmView(APIView):
     """POST /api/v1/payments/mock/<provider_intent_id>/confirm/ — explicit mock pay."""
 
-    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    permission_classes = [permissions.IsAuthenticated, IsPatient, HasOtpIfEnabled]
 
     def post(self, request, provider_intent_id: str):
         try:

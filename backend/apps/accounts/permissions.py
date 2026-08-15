@@ -10,6 +10,7 @@ from rest_framework.exceptions import APIException
 from rest_framework.permissions import BasePermission
 
 from .models import ConsentLog, ConsentScope
+from .tokens import otp_enabled
 
 
 class RolePermission(BasePermission):
@@ -44,6 +45,32 @@ IsPatient = role_required("patient")
 IsCaregiver = role_required("caregiver")
 IsAdmin = role_required("admin")
 IsAuditor = role_required("auditor")
+
+
+class OTPRequired(APIException):
+    """Raised when hire/pay/records need an elevated OTP session."""
+
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "Email OTP verification is required before this action."
+    default_code = "otp_required"
+
+
+class HasOtpIfEnabled(BasePermission):
+    """When ``OTP_ENABLED``, require JWT claim ``otp_verified``."""
+
+    def has_permission(self, request, view):
+        if not otp_enabled():
+            return True
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        token = request.auth
+        verified = False
+        if token is not None and hasattr(token, "get"):
+            verified = bool(token.get("otp_verified"))
+        if not verified:
+            raise OTPRequired()
+        return True
 
 
 class ConsentRequired(APIException):

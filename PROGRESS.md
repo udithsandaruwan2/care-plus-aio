@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-15 — Step 22d profile photo & certification documents._
+_Last updated: 2026-08-15 — Step 22f optional email OTP second factor._
 
 ---
 
@@ -94,8 +94,9 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Step 22b** — Patient onboarding wizard; `GET/PATCH /patients/me/`; completion % gates request care. Branch `feat/step22b-patient-onboarding`.
 - ✅ **Step 22c** — Caregiver onboarding wizard; `GET/PATCH /caregivers/me/`; inactive until ≥80% + approval. Branch `feat/step22c-caregiver-onboarding`.
 - ✅ **Step 22d** — Profile photo + cert document uploads; signed download URLs; virus-scan stub. Branch `feat/step22d-profile-media`.
+- ✅ **Step 22f** — Optional email OTP (`OTP_ENABLED`); JWT `otp_verified`; hire/pay/records gated. Branch `feat/step22f-email-otp`.
 - ✅ **Step 23** — `CareRequest` model + API; patient request from match/profile; caregiver inbox; expiry job. Branch `feat/step23-care-request`.
-- 🔜 **Step 22f** — Email OTP optional second factor
+- ✅ **M0–M17** product steps are in code. **Step 74** store submissions remain deferred (Expo Go).
 
 ### Expanded product tracks (from Old Care Plus)
 
@@ -105,7 +106,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M3c** Conversational dialogue loop  | 15f–15j | 15f–15j ✅        |
 | **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅        |
 | **M5** CF personalization             | 21–22   | 21–22 ✅          |
-| **M5b** Rich onboarding / OTP         | 22b–22f | 22b–22e ✅ · 22f 🔜 |
+| **M5b** Rich onboarding / OTP         | 22b–22f | ✅ done            |
 | **M6** Hire lifecycle (`CareRequest`) | 23–28   | ⬜                |
 | **M7** Catalog + checkout + payments  | 29–33   | ✅                |
 | **M8** Medical records                | 34–37   | ✅ done          |
@@ -135,6 +136,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Step 22f** — Optional email OTP 2FA: request/verify endpoints, `otp_verified` JWT claim, hire/pay/records gated when `OTP_ENABLED=true`. Web `/otp` + Expo verify screen. Branch `feat/step22f-email-otp`.
 
 - **Step 22d** — Profile photos (`ImageField`) + caregiver certification files; signed download tokens (no public bucket); virus-scan stub; Account + caregiver detail UI. Branch `feat/step22d-profile-media`.
 

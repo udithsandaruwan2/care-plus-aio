@@ -261,3 +261,27 @@ class AuditLog(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValueError("AuditLog is append-only; deletes are forbidden.")
+
+
+class EmailOtp(models.Model):
+    """Short-lived email OTP for optional second-factor elevation (Step 22f)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_otps",
+    )
+    code_hash = models.CharField(max_length=128)
+    expires_at = models.DateTimeField(db_index=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["user", "-created_at"], name="email_otp_user_created_idx"),
+        ]
+
+    def __str__(self):
+        return f"EmailOtp#{self.pk} user={self.user_id}"
