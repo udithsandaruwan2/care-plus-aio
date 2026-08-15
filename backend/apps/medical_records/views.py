@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Role
-from apps.accounts.permissions import IsPatient
+from apps.accounts.permissions import HasOtpIfEnabled, IsPatient
 
 from .access import can_read_medical_record, read_medical_record
 from .attachments import (
@@ -36,7 +36,7 @@ from .services import (
 class MedicalRecordListCreateView(generics.ListCreateAPIView):
     """GET list / POST create (multipart) medical records."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasOtpIfEnabled]
     parser_classes = [MultiPartParser, FormParser]
 
     def get_serializer_class(self):
@@ -46,7 +46,7 @@ class MedicalRecordListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == "POST":
-            return [permissions.IsAuthenticated(), IsPatient()]
+            return [permissions.IsAuthenticated(), IsPatient(), HasOtpIfEnabled()]
         return super().get_permissions()
 
     def get_queryset(self):
@@ -87,7 +87,7 @@ class MedicalRecordListCreateView(generics.ListCreateAPIView):
 class MedicalRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
     """GET/PATCH/DELETE /medical-records/<id>/ — audited detail; patient update/soft-delete."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasOtpIfEnabled]
     serializer_class = MedicalRecordDetailSerializer
     lookup_url_kwarg = "pk"
     http_method_names = ["get", "patch", "delete", "head", "options"]
@@ -97,7 +97,7 @@ class MedicalRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method in ("PATCH", "DELETE"):
-            return [permissions.IsAuthenticated(), IsPatient()]
+            return [permissions.IsAuthenticated(), IsPatient(), HasOtpIfEnabled()]
         return super().get_permissions()
 
     def retrieve(self, request, *args, **kwargs):
@@ -144,7 +144,7 @@ class MedicalRecordDetailView(generics.RetrieveUpdateDestroyAPIView):
 class MedicalRecordAttachmentUploadView(APIView):
     """POST /medical-records/<id>/attachments/ — multipart file upload."""
 
-    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    permission_classes = [permissions.IsAuthenticated, IsPatient, HasOtpIfEnabled]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request, pk: int):
@@ -181,7 +181,7 @@ class MedicalRecordAttachmentUploadView(APIView):
 class MedicalRecordAttachmentDownloadUrlView(APIView):
     """POST /medical-records/attachments/<id>/download-url/ — signed download link."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasOtpIfEnabled]
 
     def post(self, request, pk: int):
         attachment = get_attachment_or_404(pk)

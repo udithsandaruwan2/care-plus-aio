@@ -315,6 +315,8 @@ Implemented: `POST /patients/me/photo/`, `POST /caregivers/me/photo/`, `POST /ca
 **Tasks:** issue OTP, verify, elevate JWT claims `otp_verified`.  
 **✅ Acceptance:** sensitive actions (hire, pay, records) require OTP when enabled.
 
+Implemented: `OTP_ENABLED` (default off); `POST /auth/otp/request/` + `/auth/otp/verify/`; JWT `otp_verified`; `HasOtpIfEnabled` on care-request create/action, checkout/pay, medical records.
+
 ---
 
 ## M6 · Hire lifecycle (old checkout → accept → link)

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ApiError } from '@care-plus/api-client';
+import { ApiError, userNeedsOtp } from '@care-plus/api-client';
 import { useAuth } from '../auth/AuthContext';
 import { readBookingIntent } from '../booking/intent';
 import { BackLink } from '../components/ui/BackLink';
@@ -32,14 +32,21 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (user) return <Navigate to="/platform" replace />;
+  if (user) {
+    if (userNeedsOtp(user)) return <Navigate to="/otp" replace />;
+    return <Navigate to="/platform" replace />;
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      await login(email.trim(), password);
+      const me = await login(email.trim(), password);
+      if (userNeedsOtp(me)) {
+        navigate('/otp', { replace: true, state: { from } });
+        return;
+      }
       const intent = readBookingIntent();
       if (intent && (from === '/platform' || from === '/app')) {
         navigate(`/caregivers/${intent.caregiverId}?book=1`, { replace: true });

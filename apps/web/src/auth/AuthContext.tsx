@@ -15,9 +15,11 @@ import { clearTokens, loadTokens, saveTokens } from './session';
 type AuthState = {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, role: 'patient' | 'caregiver') => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string, role: 'patient' | 'caregiver') => Promise<User>;
   logout: () => void;
+  requestOtp: () => Promise<{ detail: string; expires_in?: number }>;
+  verifyOtp: (code: string) => Promise<User>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -52,15 +54,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveTokens(tokens);
     const me = await api.me();
     setUser(me);
+    return me;
   }, []);
 
   const register = useCallback(
     async (email: string, password: string, role: 'patient' | 'caregiver') => {
       await api.register({ email, password, role });
-      await login(email, password);
+      return login(email, password);
     },
     [login],
   );
+
+  const requestOtp = useCallback(() => api.requestOtp(), []);
+
+  const verifyOtp = useCallback(async (code: string) => {
+    const tokens = await api.verifyOtp(code);
+    saveTokens(tokens);
+    const me = await api.me();
+    setUser(me);
+    return me;
+  }, []);
 
   const logout = useCallback(() => {
     clearTokens();
@@ -68,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, register, logout, requestOtp, verifyOtp }),
+    [user, loading, login, register, logout, requestOtp, verifyOtp],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

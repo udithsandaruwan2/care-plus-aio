@@ -14,7 +14,13 @@ from rest_framework.views import APIView
 
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
-from apps.accounts.permissions import HasAIConsent, IsCaregiver, IsPatient, RolePermission
+from apps.accounts.permissions import (
+    HasAIConsent,
+    HasOtpIfEnabled,
+    IsCaregiver,
+    IsPatient,
+    RolePermission,
+)
 
 from .ahp import build_config, get_ahp_weights
 from .analytics import build_admin_analytics
@@ -567,7 +573,7 @@ class CareRequestListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == "POST":
-            return [permissions.IsAuthenticated(), IsPatient()]
+            return [permissions.IsAuthenticated(), IsPatient(), HasOtpIfEnabled()]
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -636,7 +642,7 @@ class CareRequestDetailView(generics.RetrieveAPIView):
 class CareRequestActionView(APIView):
     """PATCH /api/v1/care-requests/<id>/action/ — cancel / accept / reject."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasOtpIfEnabled]
 
     def patch(self, request, pk: int):
         ser = CareRequestActionSerializer(data=request.data)

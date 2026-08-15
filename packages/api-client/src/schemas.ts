@@ -13,8 +13,16 @@ export const User = z.object({
   role: z.enum(['patient', 'caregiver', 'admin', 'auditor']),
   first_name: z.string(),
   last_name: z.string(),
+  otp_enabled: z.boolean().optional().default(false),
+  otp_verified: z.boolean().optional().default(true),
 });
 export type User = z.infer<typeof User>;
+
+export function userNeedsOtp(
+  user: { otp_enabled?: boolean; otp_verified?: boolean } | null | undefined,
+): boolean {
+  return Boolean(user?.otp_enabled && user.otp_verified === false);
+}
 
 export const AdminUser = z.object({
   id: z.number(),
@@ -441,10 +449,7 @@ export const CaregiverMeProfile = CaregiverProfile.extend({
   nic_id: z.string().optional().default(''),
   years_experience: z.number().int().nullable().optional(),
   service_radius_km: z.number().optional().default(25),
-  certification_docs: z
-    .array(z.record(z.string(), z.unknown()))
-    .optional()
-    .default([]),
+  certification_docs: z.array(z.record(z.string(), z.unknown())).optional().default([]),
   is_approved: z.boolean().optional().default(false),
   completion_percent: z.number().int(),
   onboarding_complete: z.boolean(),
@@ -580,10 +585,7 @@ export const CareRequest = z.object({
   expires_at: z.string(),
   responded_at: z.string().nullable().optional(),
   relationship_id: z.number().nullable().optional(),
-  relationship_status: z
-    .enum(['pending_payment', 'active', 'ended'])
-    .nullable()
-    .optional(),
+  relationship_status: z.enum(['pending_payment', 'active', 'ended']).nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });

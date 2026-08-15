@@ -348,6 +348,11 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
+# Step 22f — optional email OTP second factor (off by default).
+OTP_ENABLED = env.bool("OTP_ENABLED", default=False)
+OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=600)
+OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+
 # ── CORS lockdown (Step 70) ──────────────────────────────────────
 # Prefer explicit allow-list. In DEBUG with an empty list, allow all for local
 # Expo / Vite convenience. Production must set CORS_ALLOWED_ORIGINS (or rely on
