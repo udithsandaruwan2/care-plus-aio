@@ -1,10 +1,16 @@
-# Production-oriented Compose stub (Step 72 prep / Step 73 deploy)
+# Production-oriented Compose (Step 73 deploy)
 
-# Uses the GHCR image instead of a local build + bind mounts.
-# Fill .env with production secrets; terminate TLS at a reverse proxy
-# (see docs/ops/tls-proxy.md).
+# Pulls the GHCR image (no bind mounts). TLS terminates at Caddy
+# (see docs/ops/deploy.md and docs/ops/tls-proxy.md).
+# uvicorn is bound to loopback on the host only — not the public internet.
 
 name: care-plus-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
 
 services:
   db:
@@ -22,6 +28,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    logging: *default-logging
 
   redis:
     image: redis:7-alpine
@@ -34,6 +41,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    logging: *default-logging
 
   backend:
     image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
@@ -47,16 +55,24 @@ services:
       MIGRATE_ON_START: '0'
       FAISS_ARTIFACT_DIR: /ml/artifacts
       AHP_WEIGHTS_PATH: /config/ahp_weights.json
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     volumes:
       - ml_data:/ml
       - ../config:/config:ro
     ports:
-      - '8000:8000'
+      - '127.0.0.1:8000:8000'
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:8000/api/v1/health/']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
 
   worker:
     image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
@@ -68,6 +84,7 @@ services:
       DJANGO_SETTINGS_MODULE: careplus.settings.prod
       FAISS_ARTIFACT_DIR: /ml/artifacts
       AHP_WEIGHTS_PATH: /config/ahp_weights.json
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     volumes:
       - ml_data:/ml
       - ../config:/config:ro
@@ -76,6 +93,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    logging: *default-logging
 
   beat:
     image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
@@ -87,6 +105,7 @@ services:
       DJANGO_SETTINGS_MODULE: careplus.settings.prod
       FAISS_ARTIFACT_DIR: /ml/artifacts
       AHP_WEIGHTS_PATH: /config/ahp_weights.json
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     volumes:
       - ml_data:/ml
       - ../config:/config:ro
@@ -95,8 +114,30 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      CADDY_SITE: ${CADDY_SITE:-http://localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-ops@localhost}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+    logging: *default-logging
 
 volumes:
   db_data:
   redis_data:
   ml_data:
+  caddy_data:
+  caddy_config:

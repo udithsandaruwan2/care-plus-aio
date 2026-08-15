@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-02 — Step 72 CI/CD (Compose tests + GHCR push). Next: Step 73 deploy VM + observability._
+_Last updated: 2026-08-15 — Step 73 deploy VM + observability. Next: Step 74 Play Store + App Store._
 
 ---
 
@@ -46,7 +46,9 @@ Notes:
 - Host DB port is **5433** (container internal 5432) to avoid clashing with a local Postgres.
 - Local reference only: `Old Care Plus/` (gitignored) — old Lumora/Care Plus HND app for product shape.
 - Requires Docker + ~5–10 GB free disk.
-- CI/CD: [docs/ops/ci-cd.md](docs/ops/ci-cd.md) · TLS proxy: [docs/ops/tls-proxy.md](docs/ops/tls-proxy.md)
+- CI/CD: [docs/ops/ci-cd.md](docs/ops/ci-cd.md)
+- TLS proxy: [docs/ops/tls-proxy.md](docs/ops/tls-proxy.md)
+- Deploy VM + observability: [docs/ops/deploy.md](docs/ops/deploy.md)
 
 ---
 
@@ -112,7 +114,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
 | **M15** Mobile Expo                   | 62–67   | ✅ done             |
 | **M16** Compliance                    | 68–71   | ✅ done             |
-| **M17** Ship                          | 72–75   | 72 ✅ · 73–75 ⬜    |
+| **M17** Ship                          | 72–75   | 72–73 ✅ · 74–75 ⬜    |
 
 **Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
 
@@ -130,6 +132,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Step 73** — Deploy VM + observability: Caddy TLS 1.3 in prod Compose, `infra/scripts/deploy.sh` (GHCR pull → migrate → health), JSON logs, Prometheus `GET /api/v1/metrics/`, optional Sentry DSN, `docs/ops/deploy.md`. Branch `feat/step73-deploy-observability`.
 
 - **Step 72** — CI/CD: Compose Django tests + migrate in Actions, web typecheck, GHCR push on `main`, `MIGRATE_ON_START` entrypoint flag, prod compose stub, `docs/ops/ci-cd.md`. Branch `feat/step72-cicd`.
 

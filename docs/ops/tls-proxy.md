@@ -60,4 +60,4 @@ DRF_THROTTLE_MATCH=30/min
 DRF_THROTTLE_VOICE=60/min
 ```
 
-Full VM + certbot/Caddy wiring ships with Step 73 deploy.
+Full VM + certbot/Caddy wiring: [deploy.md](deploy.md) (Step 73).

@@ -53,3 +53,7 @@ pywebpush==2.0.1
 
 # Mobile push (Step 49) — FCM/APNs via Firebase Admin SDK
 firebase-admin==6.8.0
+
+# Observability (Step 73) — Sentry errors + Prometheus /metrics
+sentry-sdk==2.19.2
+prometheus-client==0.21.1
