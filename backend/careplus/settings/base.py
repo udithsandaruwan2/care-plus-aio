@@ -299,6 +299,11 @@ MEDICAL_RECORD_DOWNLOAD_URL_TTL_SECONDS = env.int(
     default=3600,
 )
 
+# Step 22d — profile photos + caregiver certification documents (local media).
+PROFILE_PHOTO_MAX_BYTES = env.int("PROFILE_PHOTO_MAX_BYTES", default=2 * 1024 * 1024)
+PROFILE_DOC_MAX_BYTES = env.int("PROFILE_DOC_MAX_BYTES", default=8 * 1024 * 1024)
+PROFILE_MEDIA_URL_TTL_SECONDS = env.int("PROFILE_MEDIA_URL_TTL_SECONDS", default=3600)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"

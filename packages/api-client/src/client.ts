@@ -469,6 +469,24 @@ export function createApiClient(options: ApiClientOptions) {
         { method: 'PATCH', body: JSON.stringify(input) },
         (d) => CaregiverMeProfile.parse(d),
       ),
+    uploadMyCaregiverPhoto: (file: Blob, filename?: string) => {
+      const form = new FormData();
+      form.append('file', file, filename ?? 'photo.jpg');
+      return request(
+        '/caregivers/me/photo/',
+        { method: 'POST', body: form, headers: {} },
+        (d) => CaregiverMeProfile.parse(d),
+      );
+    },
+    uploadMyCaregiverDocument: (file: Blob, filename?: string) => {
+      const form = new FormData();
+      form.append('file', file, filename ?? 'document');
+      return request(
+        '/caregivers/me/documents/',
+        { method: 'POST', body: form, headers: {} },
+        (d) => CaregiverMeProfile.parse(d),
+      );
+    },
     setMyAvailability: (is_available: boolean) =>
       request(
         '/caregivers/me/',
@@ -485,6 +503,15 @@ export function createApiClient(options: ApiClientOptions) {
         { method: 'PATCH', body: JSON.stringify(input) },
         (d) => PatientProfile.parse(d),
       ),
+    uploadMyPatientPhoto: (file: Blob, filename?: string) => {
+      const form = new FormData();
+      form.append('file', file, filename ?? 'photo.jpg');
+      return request(
+        '/patients/me/photo/',
+        { method: 'POST', body: form, headers: {} },
+        (d) => PatientProfile.parse(d),
+      );
+    },
     vocabConditions: () =>
       request('/vocab/conditions/', {}, (d) => ConditionListResponse.parse(d)),
     listCareRequests: (page?: number) => {

@@ -303,6 +303,8 @@ weights; XAI explanation; `MatchRun`/`MatchResult` persistence; consent-gated
 **Tasks:** media storage (S3 or local volume); virus scan stub; size/type limits.  
 **✅ Acceptance:** upload + serve authenticated; no public open bucket.
 
+Implemented: `POST /patients/me/photo/`, `POST /caregivers/me/photo/`, `POST /caregivers/me/documents/`; signed `GET /profile-media/photos|documents/?token=`; jpeg/png/webp (+ PDF for certs); ClamAV stub.
+
 ### Step 22e — Profile completion % API
 
 **✅ Acceptance:** both roles see completion meter; matches old dashboard UX intent.

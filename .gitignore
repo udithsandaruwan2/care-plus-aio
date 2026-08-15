@@ -41,6 +41,7 @@ var/backups/
 coverage/
 htmlcov/
 staticfiles/
+backend/media/
 
 # ── Local reference only (old HND Lumora/Care Plus dump) ──
 Old Care Plus/

@@ -16,6 +16,29 @@ from .models import (
     Shift,
 )
 from .patient_profile import patient_profile_completion
+from .profile_media import cert_download_path, photo_download_path
+
+
+def _photo_url(obj) -> str | None:
+    if not getattr(obj, "photo", None):
+        return None
+    kind = "caregiver" if isinstance(obj, CaregiverProfile) else "patient"
+    return photo_download_path(kind=kind, profile_id=obj.pk)
+
+
+def _certification_docs_payload(obj: CaregiverProfile) -> list[dict]:
+    out: list[dict] = []
+    for doc in obj.certification_docs or []:
+        if not isinstance(doc, dict):
+            continue
+        item = {k: v for k, v in doc.items() if k != "storage_path"}
+        doc_id = item.get("id")
+        if doc_id:
+            item["download_url"] = cert_download_path(
+                caregiver_id=obj.pk, doc_id=str(doc_id)
+            )
+        out.append(item)
+    return out
 
 
 class CaregiverProfileSerializer(serializers.ModelSerializer):
@@ -23,6 +46,7 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
     # GeoJSON-ish lon/lat for clients (PostGIS Point → [lon, lat]).
     longitude = serializers.SerializerMethodField()
     latitude = serializers.SerializerMethodField()
+    photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CaregiverProfile
@@ -41,6 +65,7 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
             "bio",
             "is_active",
             "is_available",
+            "photo_url",
             "created_at",
         )
         read_only_fields = fields
@@ -51,6 +76,9 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
     def get_latitude(self, obj):
         return obj.location.y if obj.location else None
 
+    def get_photo_url(self, obj):
+        return _photo_url(obj)
+
 
 class CaregiverMeSerializer(CaregiverProfileSerializer):
     """Own-profile payload with onboarding completion (Step 22c)."""
@@ -58,7 +86,7 @@ class CaregiverMeSerializer(CaregiverProfileSerializer):
     nic_id = serializers.CharField()
     years_experience = serializers.IntegerField(allow_null=True)
     service_radius_km = serializers.FloatField()
-    certification_docs = serializers.JSONField()
+    certification_docs = serializers.SerializerMethodField()
     is_approved = serializers.BooleanField()
     completion_percent = serializers.SerializerMethodField()
     onboarding_complete = serializers.SerializerMethodField()
@@ -96,6 +124,9 @@ class CaregiverMeSerializer(CaregiverProfileSerializer):
 
     def get_missing_fields(self, obj):
         return self._completion(obj).missing_fields
+
+    def get_certification_docs(self, obj):
+        return _certification_docs_payload(obj)
 
 
 class CaregiverProfileUpdateSerializer(serializers.ModelSerializer):
@@ -225,6 +256,7 @@ class PatientProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)
     longitude = serializers.SerializerMethodField()
     latitude = serializers.SerializerMethodField()
+    photo_url = serializers.SerializerMethodField()
     completion_percent = serializers.SerializerMethodField()
     can_request_care = serializers.SerializerMethodField()
     missing_fields = serializers.SerializerMethodField()
@@ -249,6 +281,7 @@ class PatientProfileSerializer(serializers.ModelSerializer):
             "allergies",
             "emergency_contact_name",
             "emergency_contact_phone",
+            "photo_url",
             "completion_percent",
             "can_request_care",
             "missing_fields",
@@ -262,6 +295,9 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
     def get_latitude(self, obj):
         return obj.location.y if obj.location else None
+
+    def get_photo_url(self, obj):
+        return _photo_url(obj)
 
     def _completion(self, obj):
         return patient_profile_completion(obj)
