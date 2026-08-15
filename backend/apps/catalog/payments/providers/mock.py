@@ -16,12 +16,19 @@ class MockProvider:
         return CreateIntentResult(
             provider_intent_id=intent_id,
             client_payload={
-                "mode": "mock",
+                "mode": "stripe_demo",
+                "brand": "stripe",
                 "confirm_path": f"/api/v1/payments/mock/{intent_id}/confirm/",
                 "amount_lkr": str(order.total_lkr),
                 "currency": order.currency,
+                "publishable_key": "pk_test_careplus_demo",
+                "statement_descriptor": "CARE PLUS",
             },
-            provider_response={"provider": "mock", "auto_succeeded": False},
+            provider_response={
+                "provider": "mock",
+                "gateway": "stripe_demo",
+                "auto_succeeded": False,
+            },
         )
 
     def verify_webhook_signature(self, *, body: bytes, headers: Mapping[str, str]) -> bool:

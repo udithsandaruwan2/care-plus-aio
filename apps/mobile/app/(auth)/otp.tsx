@@ -27,6 +27,7 @@ export default function OtpScreen() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [demoCode, setDemoCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const requested = useRef(false);
 
@@ -34,7 +35,13 @@ export default function OtpScreen() {
     if (!userNeedsOtp(user) || requested.current) return;
     requested.current = true;
     void requestOtp()
-      .then((res) => setInfo(res.detail || 'A verification code was sent to your email.'))
+      .then((res) => {
+        setInfo(res.detail || 'A verification code was sent to your email.');
+        if (res.demo_code) {
+          setDemoCode(res.demo_code);
+          setCode(res.demo_code);
+        }
+      })
       .catch((err) => setError(errorMessage(err)));
   }, [user, requestOtp]);
 
@@ -65,8 +72,9 @@ export default function OtpScreen() {
     >
       <Text style={styles.title}>Verify your email</Text>
       <Text style={styles.subtitle}>
-        Enter the 6-digit code we sent you before hire, payment, or medical records.
+        Demo verification — no email is sent. Use the code shown below.
       </Text>
+      {demoCode ? <Text style={styles.demo}>{demoCode}</Text> : null}
       {info ? <Text style={styles.info}>{info}</Text> : null}
       <TextInput
         style={styles.input}
@@ -98,6 +106,13 @@ const styles = StyleSheet.create({
   title: { color: colors.textPrimary, fontSize: 22, fontWeight: '600' },
   subtitle: { color: colors.textMuted, marginTop: 8, marginBottom: 16 },
   info: { color: colors.accentMint, marginBottom: 12 },
+  demo: {
+    color: colors.accentAmber,
+    fontSize: 28,
+    letterSpacing: 10,
+    fontVariant: ['tabular-nums'],
+    marginBottom: 12,
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.borderHair,

@@ -368,7 +368,7 @@ Implemented: `OTP_ENABLED` (default off); `POST /auth/otp/request/` + `/auth/otp
 
 ### Step 31 — PaymentIntent abstraction
 
-**Tasks:** interface `MockProvider` (dev) + `PayHereProvider` stub; never mark paid without provider confirm webhook.  
+Implemented: `MockProvider` dummy Stripe checkout UI (`mode=stripe_demo`, test card 4242…); confirm still via explicit mock endpoint. PayHere stub unchanged.  
 **✅ Acceptance:** mock pay succeeds only via explicit confirm endpoint; webhook signature verified in stub tests.
 
 ### Step 32 — Payment UI (web)

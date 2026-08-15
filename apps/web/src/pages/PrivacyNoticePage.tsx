@@ -19,8 +19,8 @@ export function PrivacyNoticePage() {
         <section>
           <h2 className="font-display text-lg text-mist">Who we are</h2>
           <p className="mt-2">
-            Care Plus matches patients with caregivers using voice, profiles, and (with consent)
-            AI processing. Controller contact:{' '}
+            Care Plus matches patients with caregivers using voice, profiles, and (with consent) AI
+            processing. Controller contact:{' '}
             <a className="text-cyan hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>
               {SUPPORT_EMAIL}
             </a>
@@ -32,10 +32,15 @@ export function PrivacyNoticePage() {
           <h2 className="font-display text-lg text-mist">What we collect</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>Account: email, name, role (patient or caregiver), authentication tokens.</li>
-            <li>Care profiles: languages, location, specialties, availability, onboarding answers.</li>
+            <li>
+              Care profiles: languages, location, specialties, availability, onboarding answers.
+            </li>
             <li>Voice and chat: transcripts and structured intent when you use Serah.</li>
             <li>Health records and wearable metrics you or a linked caregiver submit.</li>
-            <li>Hire flow: care requests, messages, payments (mock or PayHere), reviews.</li>
+            <li>
+              Hire flow: care requests, messages, payments (Stripe demo gateway or PayHere),
+              reviews.
+            </li>
             <li>Device: optional push tokens; browser language preference.</li>
           </ul>
         </section>
@@ -52,8 +57,7 @@ export function PrivacyNoticePage() {
         <section>
           <h2 className="font-display text-lg text-mist">Your rights</h2>
           <p className="mt-2">
-            Signed-in users can download a copy of their data (JSON or PDF) and request erasure
-            from{' '}
+            Signed-in users can download a copy of their data (JSON or PDF) and request erasure from{' '}
             <Link className="text-cyan hover:underline" to="/settings/privacy">
               Account → Privacy
             </Link>

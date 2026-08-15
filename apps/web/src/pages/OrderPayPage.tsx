@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Order, PaymentIntent } from '@care-plus/api-client';
 import { OrderSummary } from '../components/OrderSummary';
+import { StripeDemoCheckout } from '../components/StripeDemoCheckout';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/ui/PageHeader';
 
-/** Order summary + mock / PayHere pay CTA (Step 32). No fake card fields in mock mode. */
+/** Order summary + dummy Stripe checkout (mock confirm) or PayHere stub. */
 export function OrderPayPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export function OrderPayPage() {
     }
   }, [user?.role, load]);
 
-  async function onMockPay() {
+  async function onStripePay() {
     if (!intent) return;
     setPaying(true);
     setError(null);
@@ -84,13 +85,14 @@ export function OrderPayPage() {
   }
 
   const mode = (intent?.client_payload?.mode as string | undefined) ?? intent?.provider;
+  const stripeDemo = mode === 'stripe_demo' || mode === 'mock' || intent?.provider === 'mock';
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
-        <PageHeader
+      <PageHeader
         eyebrow="Payment"
         title="Pay for care"
-        subtitle="Review your order, then pay securely in LKR via PayHere."
+        subtitle="Review your order, then complete checkout with the Stripe demo gateway."
         actions={
           <Link
             to="/requests"
@@ -101,56 +103,50 @@ export function OrderPayPage() {
         }
       />
 
-        {user?.role !== 'patient' && (
-          <p className="mt-8 text-sm text-muted">Only patients can pay for care orders.</p>
-        )}
+      {user?.role !== 'patient' && (
+        <p className="mt-8 text-sm text-muted">Only patients can pay for care orders.</p>
+      )}
 
-        {loading && <p className="mt-8 text-sm text-muted">Loading order…</p>}
-        {error && (
-          <p className="mt-8 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
-            {error}
-          </p>
-        )}
+      {loading && <p className="mt-8 text-sm text-muted">Loading order…</p>}
+      {error && (
+        <p className="mt-8 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
+          {error}
+        </p>
+      )}
 
-        {order && (
-          <div className="mt-8 space-y-6">
-            <OrderSummary order={order} />
+      {order && (
+        <div className="mt-8 space-y-6">
+          <OrderSummary order={order} />
 
-            {mode === 'mock' && (
-              <div className="rounded-2xl border border-amber/40 bg-amber/5 p-5">
-                <p className="text-sm text-amber">
-                  Test payment — confirms instantly. No card entry in this environment.
-                </p>
-                <button
-                  type="button"
-                  disabled={paying || !intent}
-                  onClick={() => void onMockPay()}
-                  className="mt-4 rounded-lg border border-mint/50 px-4 py-2.5 text-sm text-mint transition hover:bg-mint/10 disabled:opacity-50"
-                >
-                  {paying ? 'Confirming…' : 'Confirm payment'}
-                </button>
-              </div>
-            )}
+          {stripeDemo && intent && (
+            <StripeDemoCheckout
+              amountLkr={order.total_lkr}
+              email={user?.email}
+              paying={paying}
+              onPay={onStripePay}
+              onDeclined={(message) => setError(message)}
+            />
+          )}
 
-            {mode === 'payhere' && intent && (
-              <div className="rounded-2xl border border-cyan/40 bg-cyan/5 p-5">
-                <p className="text-sm text-mist/90">
-                  PayHere redirect will open the provider checkout when live. Until then, use test
-                  payment or contact Care Plus support.
-                </p>
-                <p className="mt-2 font-mono text-xs text-muted">
-                  order_id: {String(intent.client_payload?.order_id ?? intent.provider_intent_id)}
-                </p>
-                <Link
-                  to={`/orders/${id}/failed`}
-                  className="mt-4 inline-block text-sm text-cyan hover:underline"
-                >
-                  Payment not completed?
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          {mode === 'payhere' && intent && (
+            <div className="rounded-2xl border border-cyan/40 bg-cyan/5 p-5">
+              <p className="text-sm text-mist/90">
+                PayHere redirect will open the provider checkout when live. Until then, use the
+                Stripe demo gateway or contact Care Plus support.
+              </p>
+              <p className="mt-2 font-mono text-xs text-muted">
+                order_id: {String(intent.client_payload?.order_id ?? intent.provider_intent_id)}
+              </p>
+              <Link
+                to={`/orders/${id}/failed`}
+                className="mt-4 inline-block text-sm text-cyan hover:underline"
+              >
+                Payment not completed?
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

@@ -19,7 +19,12 @@ type AuthState = {
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, role: 'patient' | 'caregiver') => Promise<User>;
   logout: () => Promise<void>;
-  requestOtp: () => Promise<{ detail: string; expires_in?: number }>;
+  requestOtp: () => Promise<{
+    detail: string;
+    expires_in?: number;
+    demo?: boolean;
+    demo_code?: string;
+  }>;
   verifyOtp: (code: string) => Promise<User>;
 };
 
