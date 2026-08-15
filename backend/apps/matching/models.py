@@ -70,8 +70,9 @@ class CaregiverProfile(models.Model):
         default=25.0,
         validators=[MinValueValidator(1.0), MaxValueValidator(200.0)],
     )
-    # Placeholder metadata until Step 22d file uploads land.
+    # Certification file metadata (storage path + scan status). Files land in MEDIA_ROOT.
     certification_docs = models.JSONField(default=list, blank=True)
+    photo = models.ImageField(upload_to="profile_photos/caregivers/%Y/%m/", blank=True)
     is_approved = models.BooleanField(default=False, db_index=True)
     is_active = models.BooleanField(default=False)
     # Soft presence — browse/match can filter on this (Step 20b / 20e).
@@ -115,6 +116,7 @@ class PatientProfile(models.Model):
     allergies = ArrayField(models.CharField(max_length=120), default=list, blank=True)
     emergency_contact_name = models.CharField(max_length=120, blank=True, default="")
     emergency_contact_phone = models.CharField(max_length=32, blank=True, default="")
+    photo = models.ImageField(upload_to="profile_photos/patients/%Y/%m/", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

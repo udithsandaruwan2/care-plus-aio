@@ -9,6 +9,7 @@ import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
+import { mediaUrl } from '../lib/mediaUrl';
 
 function formatReviewDate(value?: string) {
   if (!value) return '';
@@ -150,9 +151,18 @@ export function CaregiverDetailPage() {
           )}
 
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <p className="max-w-2xl text-sm leading-relaxed text-mist/90">
-              {profile.bio || 'Community caregiver on Care Plus.'}
-            </p>
+            <div className="flex max-w-2xl items-start gap-4">
+              {mediaUrl(profile.photo_url) ? (
+                <img
+                  src={mediaUrl(profile.photo_url)}
+                  alt=""
+                  className="h-20 w-20 shrink-0 rounded-2xl border border-hair object-cover"
+                />
+              ) : null}
+              <p className="text-sm leading-relaxed text-mist/90">
+                {profile.bio || 'Community caregiver on Care Plus.'}
+              </p>
+            </div>
             <div className="text-right">
               <p className="text-3xl text-mint">{Math.round((profile.trust_score || 0) * 100)}</p>
               <p className="text-[11px] uppercase tracking-wide text-muted">trust</p>

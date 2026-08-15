@@ -42,6 +42,9 @@ faster-whisper==1.1.1
 # Neural TTS fallback for Sinhala/Tamil when Gemini TTS quota is exhausted.
 edge-tts==7.2.8
 
+# Images (Step 22d profile photos)
+Pillow>=11.0.0,<13
+
 # Medical record / PHI field encryption (Steps 34 / 68)
 cryptography>=49.0.0,<50
 

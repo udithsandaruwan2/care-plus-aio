@@ -1,5 +1,12 @@
 from django.urls import path
 
+from .media_views import (
+    CaregiverDocumentUploadView,
+    CaregiverPhotoUploadView,
+    PatientPhotoUploadView,
+    ProfileDocumentDownloadView,
+    ProfilePhotoDownloadView,
+)
 from .views import (
     AdminAnalyticsView,
     AhpWeightsView,
@@ -28,6 +35,12 @@ from .views import (
 urlpatterns = [
     path("caregivers/", CaregiverListView.as_view(), name="caregiver_list"),
     path("caregivers/me/", CaregiverMeView.as_view(), name="caregiver_me"),
+    path("caregivers/me/photo/", CaregiverPhotoUploadView.as_view(), name="caregiver_me_photo"),
+    path(
+        "caregivers/me/documents/",
+        CaregiverDocumentUploadView.as_view(),
+        name="caregiver_me_documents",
+    ),
     path(
         "caregivers/me/availability-slots/",
         CaregiverAvailabilitySlotListCreateView.as_view(),
@@ -46,6 +59,17 @@ urlpatterns = [
     ),
     path("patients/", PatientListView.as_view(), name="patient_list"),
     path("patients/me/", PatientMeView.as_view(), name="patient_me"),
+    path("patients/me/photo/", PatientPhotoUploadView.as_view(), name="patient_me_photo"),
+    path(
+        "profile-media/photos/",
+        ProfilePhotoDownloadView.as_view(),
+        name="profile_photo_download",
+    ),
+    path(
+        "profile-media/documents/",
+        ProfileDocumentDownloadView.as_view(),
+        name="profile_document_download",
+    ),
     path("care-requests/", CareRequestListCreateView.as_view(), name="care_request_list"),
     path("care-requests/<int:pk>/", CareRequestDetailView.as_view(), name="care_request_detail"),
     path(

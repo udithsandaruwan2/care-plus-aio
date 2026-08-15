@@ -4,6 +4,7 @@ import { useCaregiverProfile } from '../auth/useCaregiverProfile';
 import { usePatientProfile } from '../auth/usePatientProfile';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ProfileMediaCard } from '../components/ProfileMediaCard';
 
 function SettingsLink({ to, title, desc }: { to: string; title: string; desc: string }) {
   return (
@@ -39,6 +40,21 @@ export function AccountPage() {
         <p className="mt-1 text-sm text-muted">
           Role: <span className="text-mist">{user?.role ?? 'unknown'}</span>
         </p>
+        {(user?.role === 'patient' || user?.role === 'caregiver') && (
+          <div className="mt-4">
+            <ProfileMediaCard
+              role={user.role}
+              photoUrl={
+                user.role === 'patient' ? patient.profile?.photo_url : caregiver.profile?.photo_url
+              }
+              documents={
+                user.role === 'caregiver' ? caregiver.profile?.certification_docs : undefined
+              }
+              onPatientPhoto={(p) => patient.setProfile(p)}
+              onCaregiverProfile={(p) => caregiver.setProfile(p)}
+            />
+          </div>
+        )}
       </section>
 
       <section className="mt-6 rounded-2xl border border-hair bg-panel/50 p-5">

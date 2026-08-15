@@ -432,6 +432,7 @@ export const CaregiverProfile = z.object({
   bio: z.string().optional().default(''),
   is_active: z.boolean().optional(),
   is_available: z.boolean().optional().default(true),
+  photo_url: z.string().nullable().optional(),
   created_at: z.string().optional(),
 });
 export type CaregiverProfile = z.infer<typeof CaregiverProfile>;
@@ -529,6 +530,7 @@ export const PatientProfile = z.object({
   allergies: z.array(z.string()).optional().default([]),
   emergency_contact_name: z.string().optional().default(''),
   emergency_contact_phone: z.string().optional().default(''),
+  photo_url: z.string().nullable().optional(),
   completion_percent: z.number().int(),
   can_request_care: z.boolean(),
   missing_fields: z.array(z.string()).optional().default([]),
