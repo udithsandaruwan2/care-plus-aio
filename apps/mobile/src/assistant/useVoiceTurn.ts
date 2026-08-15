@@ -1,6 +1,11 @@
 import { useCallback, useState } from 'react';
 import { ApiError, AI_CONSENT_SCOPE, type VoiceLanguage } from '@care-plus/api-client';
-import { AssistantState, nextMissingField, type IntentDraft } from '@care-plus/core';
+import {
+  AssistantState,
+  looksLikeCareSeek,
+  nextMissingField,
+  type IntentDraft,
+} from '@care-plus/core';
 import { api } from '../api';
 import { useAssistant } from './store';
 
@@ -76,7 +81,10 @@ export function useVoiceTurn() {
 
     setBusy(true);
     setError(null);
-    store.setState(AssistantState.THINKING, { force: true });
+    store.setState(
+      looksLikeCareSeek(userLine) ? AssistantState.MATCHING : AssistantState.THINKING,
+      { force: true },
+    );
     store.setTranscript(userLine);
 
     try {

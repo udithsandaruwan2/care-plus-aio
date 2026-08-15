@@ -381,6 +381,17 @@ def transcribe_gemini_audio(audio: bytes, content_type: str) -> AsrResult:
             path.unlink(missing_ok=True)
 
 
+def _captions_are_trusted(client: str, ui: str | None) -> bool:
+    """Skip Whisper when browser captions already match the conversation language."""
+    if not client:
+        return False
+    if _SINHALA_RE.search(client) or _TAMIL_RE.search(client):
+        return True
+    if ui == "English":
+        return True
+    return False
+
+
 def resolve_transcript(
     *,
     client_text: str,
@@ -388,7 +399,7 @@ def resolve_transcript(
     content_type: str | None,
     ui_language: str | None = None,
 ) -> AsrResult:
-    """Pick the best transcript for this turn — local Whisper first."""
+    """Pick the best transcript — captions when trusted, else local Whisper."""
     from apps.common.envutil import refresh_env
 
     refresh_env()
@@ -426,11 +437,32 @@ def resolve_transcript(
             languages=[ui] if ui else [],
         )
 
+    # Fast chat: trust captions when they already look like the chosen language.
+    # Whisper still runs when Sinhala/Tamil UI gets English-biased browser captions.
+    if client and _captions_are_trusted(client, ui):
+        langs = [ui] if ui else []
+        if _SINHALA_RE.search(client) and "Sinhala" not in langs:
+            langs = ["Sinhala", *langs]
+        if _TAMIL_RE.search(client) and "Tamil" not in langs:
+            langs = ["Tamil", *langs]
+        hint = ui
+        if _SINHALA_RE.search(client):
+            hint = "Sinhala"
+        elif _TAMIL_RE.search(client):
+            hint = "Tamil"
+        elif not hint:
+            hint = "English"
+        return AsrResult(
+            text=client,
+            source="client",
+            language_hint=hint,
+            language_code=_ui_to_iso(hint),
+            languages=langs or [hint],
+        )
+
     # faster_whisper (default) — never prefer English browser captions over audio.
     if audio:
-        result = transcribe_faster_whisper(
-            audio, content_type or "audio/webm", ui_language=ui
-        )
+        result = transcribe_faster_whisper(audio, content_type or "audio/webm", ui_language=ui)
         if result.text:
             return result
         logger.warning("faster_whisper returned empty; falling back to client captions")

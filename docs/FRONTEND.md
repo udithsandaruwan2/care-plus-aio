@@ -142,7 +142,7 @@ stateDiagram-v2
 | ------------ | ---------------------------- | --------------------------------- | ----------------------------------- |
 | `IDLE`       | dim slow breathing           | "Tap to speak" hint               | —                                   |
 | `LISTENING`  | cyan, amplitude-reactive     | live transcript, mic ring         | "Listening…"                        |
-| `THINKING`   | violet swirl, particles fire | shimmer skeleton                  | "Understanding…"                    |
+| `THINKING`   | violet swirl, particles fire | shimmer skeleton                  | "Replying…"                         |
 | `CLARIFYING` | soft violet pulse            | highlight empty Goal-Ring segment | "Which language do you prefer?"     |
 | `SPEAKING`   | warm glow + waveform         | TTS plays; caption shown          | reads extracted intent back         |
 | `MATCHING`   | fast orbit                   | Goal Ring 100%, spinner           | "Finding your best match…"          |

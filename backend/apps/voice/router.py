@@ -97,13 +97,22 @@ _REFINE = re.compile(
     re.I,
 )
 
+# Explicit caregiver-seeking only. Bare "need" / "ඕනේ" / "කෙනෙක්" is general chat.
 _MATCH_SEEK = re.compile(
-    r"\b(caregiver|care\s*giver|nurse|carer|attendant|"
-    r"find\s*(me\s*)?(a\s*)?(someone|caregiver|nurse|help)|"
-    r"need\s*(a\s*)?(caregiver|nurse|help|care)|"
-    r"looking\s*for|search\s*for|match\s*me|show\s*(me\s*)?(caregivers|results)|"
-    r"book\s*care|get\s*me\s*(a\s*)?(caregiver|nurse))\b|"
-    r"කෙනෙක්|කෙනෙකු|ඕන[ේෙ]?|සොය|හොය|பராமரிப்பாளர்|வேண்டும்|தேவை|தேடு",
+    r"\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|"
+    r"find\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant)|"
+    r"(need|want|get)\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant)|"
+    r"(looking|search(ing)?)\s*for\s*(a\s*)?(caregiver|nurse|carer|attendant)|"
+    r"match\s*me|show\s*(me\s*)?(the\s*)?(caregivers?|nurses?)|"
+    r"book\s*(a\s*)?(caregiver|nurse)|hire\s*(a\s*)?(caregiver|nurse))\b|"
+    r"පරිචාරක|කේර්\s*ගිවර්|"
+    r"(හොය|සොය).{0,24}(කෙනෙක්|කෙනෙකු|පරිචාරක|nurse|caregiver)|"
+    r"(කෙනෙක්|කෙනෙකු).{0,24}(හොය|සොය)|"
+    r"(caregiver|nurse|පරිචාරක).{0,16}(ඕන[ේෙ]?|ඕන)|"
+    r"(ඕන[ේෙ]?|ඕන).{0,16}(caregiver|nurse|පරිචාරක)|"
+    r"பராமரிப்பாளர்|"
+    r"(தேடு|தேவை|வேண்டும்).{0,20}(பராமரிப்பாளர்|nurse|caregiver)|"
+    r"(பராமரிப்பாளர்|nurse|caregiver).{0,16}(தேடு|தேவை|வேண்டும்)",
     re.I,
 )
 
@@ -133,7 +142,24 @@ _CANCEL = re.compile(
 
 
 def _complete(intent: dict) -> bool:
-    return bool(intent.get("condition") and intent.get("language") and intent.get("care_level"))
+    """Engine can run once the care condition is known; language/level default."""
+    return bool((intent.get("condition") or "").strip())
+
+
+def is_care_seek(text: str) -> bool:
+    return bool(_MATCH_SEEK.search((text or "").strip()))
+
+
+def needs_slot_extraction(text: str, *, has_prior_match: bool = False) -> bool:
+    """True when this turn may run VEHMF — worth a (slower) intent extract."""
+    raw = (text or "").strip()
+    if not raw:
+        return False
+    if _EMERGENCY.search(raw) or _MATCH_SEEK.search(raw) or _NEW_SEARCH.search(raw):
+        return True
+    if has_prior_match and _REFINE.search(raw):
+        return True
+    return False
 
 
 def classify_turn(
@@ -206,10 +232,5 @@ def classify_turn(
     if _ADVICE.search(raw):
         return RouteDecision("CHAT", "advice")
 
-    # Filling slots without saying "caregiver" (e.g. "diabetes", "basic")
-    if not _complete(intent) and (
-        intent.get("condition") or intent.get("language") or intent.get("care_level")
-    ):
-        return RouteDecision("CLARIFY", "clarify")
-
+    # General talk stays in CHAT. Slot-filling CLARIFY only after an explicit seek.
     return RouteDecision("CHAT", "general")

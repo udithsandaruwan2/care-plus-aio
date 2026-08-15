@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-15 — Dummy Stripe checkout UI + dummy email OTP (no outbound mail)._
+_Last updated: 2026-08-16 — Fast Serah chat vs VEHMF: general talk uses direct AI; caregiver asks run the engine, then chat resumes with those results._
 
 ---
 

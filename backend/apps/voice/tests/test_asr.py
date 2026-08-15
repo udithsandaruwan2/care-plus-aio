@@ -15,7 +15,30 @@ class ResolveTranscriptTests(SimpleTestCase):
         self.assertEqual(out.source, "client")
 
     @override_settings(ASR_BACKEND="faster_whisper")
-    def test_prefers_whisper_over_english_captions(self):
+    def test_english_ui_trusts_captions_without_whisper(self):
+        with patch("apps.voice.asr.transcribe_faster_whisper") as whisper:
+            out = resolve_transcript(
+                client_text="how are you today",
+                audio=b"fake-webm",
+                content_type="audio/webm",
+                ui_language="English",
+            )
+        whisper.assert_not_called()
+        self.assertEqual(out.source, "client")
+        self.assertEqual(out.text, "how are you today")
+
+    @override_settings(ASR_BACKEND="faster_whisper")
+    def test_sinhala_script_captions_skip_whisper(self):
+        with patch("apps.voice.asr.transcribe_faster_whisper") as whisper:
+            out = resolve_transcript(
+                client_text="ආයුබෝවන්",
+                audio=b"fake-webm",
+                content_type="audio/webm",
+                ui_language="Sinhala",
+            )
+        whisper.assert_not_called()
+        self.assertEqual(out.source, "client")
+        self.assertEqual(out.language_hint, "Sinhala")
         fake = AsrResult(
             text="මට දියවැඩියා තියෙනවා",
             source="faster_whisper",
@@ -121,9 +144,7 @@ class WhisperRouteTests(SimpleTestCase):
                 return_value=("මට දියවැඩියා තියෙනවා", "si", -0.2),
             ) as tr,
         ):
-            out = transcribe_faster_whisper(
-                b"audio", "audio/webm", ui_language="Sinhala"
-            )
+            out = transcribe_faster_whisper(b"audio", "audio/webm", ui_language="Sinhala")
 
         detect.assert_not_called()
         self.assertEqual(out.language_hint, "Sinhala")
