@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-15 — Step 22f optional email OTP second factor._
+_Last updated: 2026-08-15 — Numbered plan complete in code; Step 74 store submissions deferred._
 
 ---
 
@@ -102,13 +102,13 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 | Milestone                             | Steps   | Status            |
 | ------------------------------------- | ------- | ----------------- |
-| **M3b** Medical vocab + Serah chat    | 15b–15e | 15b ✅ · 15c–e ⬜ |
-| **M3c** Conversational dialogue loop  | 15f–15j | 15f–15j ✅        |
-| **M4b** Marketplace browse/map/detail | 20b–20e | 20b–20e ✅        |
-| **M5** CF personalization             | 21–22   | 21–22 ✅          |
+| **M3b** Medical vocab + Serah chat    | 15b–15e | ✅ (vocab + `/voice/turn/` chat/TTS) |
+| **M3c** Conversational dialogue loop  | 15f–15j | ✅ done        |
+| **M4b** Marketplace browse/map/detail | 20b–20e | ✅ done        |
+| **M5** CF personalization             | 21–22   | ✅ done          |
 | **M5b** Rich onboarding / OTP         | 22b–22f | ✅ done            |
-| **M6** Hire lifecycle (`CareRequest`) | 23–28   | ⬜                |
-| **M7** Catalog + checkout + payments  | 29–33   | ✅                |
+| **M6** Hire lifecycle (`CareRequest`) | 23–28   | ✅ done            |
+| **M7** Catalog + checkout + payments  | 29–33   | ✅ done            |
 | **M8** Medical records                | 34–37   | ✅ done          |
 | **M9** Messaging + notifications      | 38–41   | ✅ done          |
 | **M10** Reviews → trust               | 42–44   | ✅ done          |
@@ -118,24 +118,25 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
 | **M15** Mobile Expo                   | 62–67   | ✅ done             |
 | **M16** Compliance                    | 68–71   | ✅ done             |
-| **M17** Ship                          | 72–75   | 72–73 ✅ · 74 deferred (Expo Go) · 75 ✅ |
+| **M17** Ship                          | 72–75   | 72–73 ✅ · **74 deferred** (Expo Go, no store accounts) · 75 ✅ |
 
-**Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
+**Progress:** numbered plan implemented. Remaining ops choice: enable `OTP_ENABLED` in production if desired; Play/App Store when accounts exist.
 
 ---
 
 ## What works today (user-facing)
 
-- Register / login (JWT), consent gate, Neural Core voice UI
-- Speak (si/ta/en) → structured intent → chips + Goal Ring; clarify loop
-- Seeded caregivers + CBF preview + **full VEHMF `POST /match/`** (ranked + breakdown + XAI)
-- AHP weights + emergency override
-- **Match result cards** + JWT `ws/match/{patient_id}/` push; FSM → RESULTS
-- **Not yet:** multi-turn “talk like Serah” (chat vs match router) — see M3c
+- Register / login (JWT), optional email OTP (`OTP_ENABLED`), consent gate, Neural Core voice UI
+- Speak or chat (si/ta/en) → Serah via `/voice/turn/` → chips + Goal Ring; match/refine/chat router
+- Seeded caregivers + **VEHMF `POST /match/`** (ranked + breakdown + XAI) + browse/map/detail
+- Onboarding, profile photos, care requests, checkout/pay, records, messaging, schedule, admin
+- Web + Expo Go (SDK 54). Store listings deferred until Play/App Store accounts exist.
 
 ---
 
 ## Changelog (newest first)
+
+- **Docs** — Status board matches shipped code (M0–M17); README no longer says pre-development. Branch `chore/progress-board-complete`.
 
 - **Step 22f** — Optional email OTP 2FA: request/verify endpoints, `otp_verified` JWT claim, hire/pay/records gated when `OTP_ENABLED=true`. Web `/otp` + Expo verify screen. Branch `feat/step22f-email-otp`.
 
