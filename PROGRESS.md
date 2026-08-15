@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-15 — Numbered plan complete in code; Step 74 store submissions deferred._
+_Last updated: 2026-08-15 — Dummy Stripe checkout UI + dummy email OTP (no outbound mail)._
 
 ---
 
@@ -135,6 +135,8 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Demo gateways** — Stripe-lookalike checkout (test card `4242…`, no real charge); email OTP dummy code `123456` with no outbound mail (`OTP_DUMMY`). Branch `feat/dummy-stripe-otp`.
 
 - **Docs** — Status board matches shipped code (M0–M17); README no longer says pre-development. Branch `chore/progress-board-complete`.
 

@@ -23,6 +23,7 @@ export function OtpPage() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [demoCode, setDemoCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const requested = useRef(false);
 
@@ -30,7 +31,13 @@ export function OtpPage() {
     if (!userNeedsOtp(user) || requested.current) return;
     requested.current = true;
     void requestOtp()
-      .then((res) => setInfo(res.detail || 'A verification code was sent to your email.'))
+      .then((res) => {
+        setInfo(res.detail || 'A verification code was sent to your email.');
+        if (res.demo_code) {
+          setDemoCode(res.demo_code);
+          setCode(res.demo_code);
+        }
+      })
       .catch((err) => setError(errorMessage(err)));
   }, [user, requestOtp]);
 
@@ -56,7 +63,7 @@ export function OtpPage() {
       <PageHeader
         eyebrow="Security"
         title="Verify your email"
-        subtitle="Enter the 6-digit code we sent you before hire, payment, or medical records."
+        subtitle="Demo verification — no email is sent. Use the code shown below."
       />
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <label className="block space-y-1.5">
@@ -70,6 +77,11 @@ export function OtpPage() {
             required
           />
         </label>
+        {demoCode && (
+          <p className="rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 font-mono text-lg tracking-[0.4em] text-amber">
+            {demoCode}
+          </p>
+        )}
         {info && <p className="text-sm text-mint">{info}</p>}
         {error && <p className="text-sm text-rose">{error}</p>}
         <Button type="submit" disabled={busy || code.length !== 6}>

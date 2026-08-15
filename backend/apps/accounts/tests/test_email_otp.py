@@ -1,7 +1,5 @@
 """Step 22f — optional email OTP elevation for hire / pay / records."""
 
-import re
-
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point
 from django.core import mail
@@ -60,6 +58,8 @@ def _caregiver():
 
 @override_settings(
     OTP_ENABLED=True,
+    OTP_DUMMY=True,
+    OTP_DUMMY_CODE="123456",
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
 )
 class EmailOtpTests(APITestCase):
@@ -76,12 +76,6 @@ class EmailOtpTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {resp.data['access']}")
         return resp.data
-
-    def _code_from_mailbox(self):
-        self.assertTrue(mail.outbox)
-        match = re.search(r"\b(\d{6})\b", mail.outbox[-1].body)
-        self.assertIsNotNone(match)
-        return match.group(1)
 
     def test_password_login_is_not_otp_verified(self):
         self._login(self.patient)
@@ -102,8 +96,12 @@ class EmailOtpTests(APITestCase):
 
         req = self.client.post(reverse("v1:otp_request"), {}, format="json")
         self.assertEqual(req.status_code, status.HTTP_200_OK)
-        code = self._code_from_mailbox()
-        verified = self.client.post(reverse("v1:otp_verify"), {"code": code}, format="json")
+        self.assertTrue(req.data["demo"])
+        self.assertEqual(req.data["demo_code"], "123456")
+        self.assertEqual(len(mail.outbox), 0)
+        verified = self.client.post(
+            reverse("v1:otp_verify"), {"code": req.data["demo_code"]}, format="json"
+        )
         self.assertEqual(verified.status_code, status.HTTP_200_OK)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {verified.data['access']}")
 

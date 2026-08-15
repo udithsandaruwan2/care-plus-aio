@@ -28,6 +28,7 @@ import {
   MobilePushDeviceResult,
   NotificationPreferences,
   Order,
+  OtpRequestResult,
   PaymentIntent,
   PushSubscriptionResult,
   SignedDownloadUrl,
@@ -213,7 +214,7 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     requestOtp: () =>
       request('/auth/otp/request/', { method: 'POST', body: JSON.stringify({}) }, (d) =>
-        z.object({ detail: z.string(), expires_in: z.number().optional() }).parse(d),
+        OtpRequestResult.parse(d),
       ),
     verifyOtp: (code: string) =>
       request('/auth/otp/verify/', { method: 'POST', body: JSON.stringify({ code }) }, (d) =>

@@ -109,6 +109,7 @@ class PaymentIntentFlowTests(APITestCase):
         self.assertEqual(create.status_code, status.HTTP_201_CREATED, create.data)
         self.assertEqual(create.data["status"], PaymentIntentStatus.REQUIRES_PAYMENT)
         self.assertEqual(create.data["provider"], PaymentProviderName.MOCK)
+        self.assertEqual(create.data["client_payload"]["mode"], "stripe_demo")
 
         order = Order.objects.get(pk=self.order_id)
         self.assertEqual(order.status, OrderStatus.AWAITING_PAYMENT)

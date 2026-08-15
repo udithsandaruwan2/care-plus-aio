@@ -24,6 +24,14 @@ export function userNeedsOtp(
   return Boolean(user?.otp_enabled && user.otp_verified === false);
 }
 
+export const OtpRequestResult = z.object({
+  detail: z.string(),
+  expires_in: z.number().optional(),
+  demo: z.boolean().optional(),
+  demo_code: z.string().optional(),
+});
+export type OtpRequestResult = z.infer<typeof OtpRequestResult>;
+
 export const AdminUser = z.object({
   id: z.number(),
   email: z.string().email(),

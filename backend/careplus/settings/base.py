@@ -352,6 +352,9 @@ SIMPLE_JWT = {
 OTP_ENABLED = env.bool("OTP_ENABLED", default=False)
 OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=600)
 OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+# Dummy OTP: fixed code, no outbound email (demo / thesis). Set false to send real mail.
+OTP_DUMMY = env.bool("OTP_DUMMY", default=True)
+OTP_DUMMY_CODE = env("OTP_DUMMY_CODE", default="123456")
 
 # ── CORS lockdown (Step 70) ──────────────────────────────────────
 # Prefer explicit allow-list. In DEBUG with an empty list, allow all for local
