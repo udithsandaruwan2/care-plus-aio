@@ -122,6 +122,14 @@ export function RegisterPage() {
         </Button>
       </form>
 
+      <p className="mt-4 text-center text-xs text-muted">
+        By creating an account you agree to our{' '}
+        <Link to="/privacy" className="text-cyan hover:underline">
+          privacy notice (PDPA)
+        </Link>
+        .
+      </p>
+
       <p className="mt-6 text-center text-sm text-muted">
         Already registered?{' '}
         <Link to="/login" className="text-cyan hover:underline">

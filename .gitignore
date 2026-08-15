@@ -37,8 +37,7 @@ ml/tts/
 .DS_Store
 Thumbs.db
 
-# ── Logs / coverage ────────────────────────────────────────
-*.log
+var/backups/
 coverage/
 htmlcov/
 staticfiles/
