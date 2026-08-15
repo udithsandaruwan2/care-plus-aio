@@ -50,8 +50,7 @@ Android and iOS. Full design in [docs/FRONTEND.md](docs/FRONTEND.md).
 
 ## Status
 
-Pre-development. The architecture is designed; the next step is to confirm the
-[open decisions](docs/ARCHITECTURE.md#15-open-decisions) and generate the Phase 0 scaffold.
+The numbered plan (M0–M17) is implemented on `main`. Testers use **web** and **Expo Go** (SDK 54). Play/App Store submissions are deferred until store accounts exist. See [PROGRESS.md](PROGRESS.md) and [docs/ops/launch-checklist.md](docs/ops/launch-checklist.md).
 
 ## Tech stack (lean profile)
 
