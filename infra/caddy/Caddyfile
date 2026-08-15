@@ -1,0 +1,25 @@
+{
+	email {$ACME_EMAIL:ops@localhost}
+}
+
+# CADDY_SITE is a hostname (HTTPS + Let's Encrypt) or http://host (plain HTTP).
+# Examples:
+#   CADDY_SITE=app.careplus.lk
+#   CADDY_SITE=http://localhost
+{$CADDY_SITE:http://localhost} {
+	encode gzip zstd
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		X-Frame-Options DENY
+	}
+
+	reverse_proxy backend:8000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Request-ID {http.request.header.X-Request-ID}
+	}
+}

@@ -63,7 +63,13 @@ class AuthThrottleTests(APITestCase):
         with patch.object(
             ScopedRateThrottle,
             "THROTTLE_RATES",
-            {"auth": "2/min", "anon": "1000/min", "user": "1000/min", "match": "1000/min", "voice": "1000/min"},
+            {
+                "auth": "2/min",
+                "anon": "1000/min",
+                "user": "1000/min",
+                "match": "1000/min",
+                "voice": "1000/min",
+            },
         ):
             self.assertEqual(self.client.post(self.url, payload, format="json").status_code, 401)
             self.assertEqual(self.client.post(self.url, payload, format="json").status_code, 401)
@@ -84,6 +90,7 @@ class ProdSettingsSmokeTests(TestCase):
         self.assertTrue(prod.SESSION_COOKIE_SECURE)
         self.assertGreaterEqual(prod.SECURE_HSTS_SECONDS, 31536000)
         self.assertFalse(prod.CORS_ALLOW_ALL_ORIGINS)
+        self.assertEqual(prod.LOGGING["handlers"]["console"]["formatter"], "json")
         # Live settings still the test/dev module.
         self.assertTrue(hasattr(live, "REST_FRAMEWORK"))
         self.assertIn("auth", live.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"])

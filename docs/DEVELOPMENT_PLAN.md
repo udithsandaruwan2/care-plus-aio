@@ -605,4 +605,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 22c — Caregiver onboarding wizard** (`feat/step22c-caregiver-onboarding`).
+**Step 74 — Play Store + App Store submissions** (`feat/step74-store-submissions`).

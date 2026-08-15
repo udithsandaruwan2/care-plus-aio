@@ -26,3 +26,7 @@ if not CORS_ALLOWED_ORIGINS:  # noqa: F405
         CORS_ALLOWED_ORIGINS = [_frontend]  # noqa: F405
 if not CSRF_TRUSTED_ORIGINS and CORS_ALLOWED_ORIGINS:  # noqa: F405
     CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)  # noqa: F405
+
+# JSON logs for journald / Docker json-file (Step 73).
+LOGGING["handlers"]["console"]["formatter"] = "json"  # noqa: F405
+LOGGING["root"]["level"] = env("LOG_LEVEL", default="INFO")  # noqa: F405

@@ -51,11 +51,11 @@ docker compose exec backend python manage.py migrate --noinput
 docker compose run --rm backend python manage.py migrate --noinput
 ```
 
-VM + TLS + image pull wiring continues in **Step 73**.
+VM + TLS + image pull: [deploy.md](deploy.md) (Step 73).
 
 ## Checklist
 
 - [x] CI runs lint, format, typecheck, image build, Django tests
 - [x] CD pushes backend image to GHCR on `main`
 - [x] Migrate documented + optional `MIGRATE_ON_START` for local/CI
-- [ ] Staging sign-off: pull `:latest`, migrate, health check (Step 73)
+- [x] Staging sign-off path: pull `:latest`, migrate, health check (`infra/scripts/deploy.sh`)

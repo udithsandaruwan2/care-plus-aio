@@ -59,6 +59,7 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    "apps.common.observability.RequestIdMetricsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     # WhiteNoise serves admin / DRF Browsable API CSS/JS under uvicorn (runserver
@@ -160,9 +161,7 @@ CELERY_BEAT_SCHEDULE = {
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
 GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
 # stub | gemini | local (local URL empty until you add an on-prem model)
-VOICE_INTENT_BACKEND = env(
-    "VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
-)
+VOICE_INTENT_BACKEND = env("VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub")
 # auto | client | gemini_audio | faster_whisper — default is local Whisper (own ASR)
 ASR_BACKEND = env("ASR_BACKEND", default="faster_whisper")
 WHISPER_MODEL = env("WHISPER_MODEL", default="small")
@@ -185,9 +184,7 @@ EDGE_TTS_ENABLED = env.bool("EDGE_TTS_ENABLED", default=True)
 PIPER_BIN = env("PIPER_BIN", default="")
 PIPER_MODEL_DIR = env("PIPER_MODEL_DIR", default="/ml/tts/piper")
 PIPER_EN_MODEL = env("PIPER_EN_MODEL", default="en_US-lessac-medium.onnx")
-DIALOGUE_CHAT_BACKEND = env(
-    "DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub"
-)
+DIALOGUE_CHAT_BACKEND = env("DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub")
 # Gemini chat only (MATCH/REFINE always local VEHMF). 0 disables Gemini chat.
 DIALOGUE_GEMINI_RATE_LIMIT = env.int("DIALOGUE_GEMINI_RATE_LIMIT", default=30)
 DIALOGUE_GEMINI_RATE_WINDOW_SEC = env.int("DIALOGUE_GEMINI_RATE_WINDOW_SEC", default=3600)
@@ -282,7 +279,9 @@ STORAGES = {
 # Step 35 — medical record uploads (local media; signed download URLs in API).
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-MEDICAL_RECORD_MAX_UPLOAD_BYTES = env.int("MEDICAL_RECORD_MAX_UPLOAD_BYTES", default=10 * 1024 * 1024)
+MEDICAL_RECORD_MAX_UPLOAD_BYTES = env.int(
+    "MEDICAL_RECORD_MAX_UPLOAD_BYTES", default=10 * 1024 * 1024
+)
 MEDICAL_RECORD_ALLOWED_MIMES = env.list(
     "MEDICAL_RECORD_ALLOWED_MIMES",
     default=[
@@ -362,3 +361,38 @@ else:
     CORS_ALLOW_ALL_ORIGINS = False
 if not CSRF_TRUSTED_ORIGINS and CORS_ALLOWED_ORIGINS:
     CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
+
+# ── Observability (Step 73) ──────────────────────────────────────
+SENTRY_DSN = env("SENTRY_DSN", default="")
+SENTRY_ENVIRONMENT = env("SENTRY_ENVIRONMENT", default="development")
+SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0)
+METRICS_TOKEN = env("METRICS_TOKEN", default="")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {
+            "format": "{levelname} {name} {message}",
+            "style": "{",
+        },
+        "json": {
+            "()": "apps.common.observability.JsonLogFormatter",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+        },
+    },
+    "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO")},
+}
+
+from apps.common.observability import init_sentry  # noqa: E402
+
+init_sentry(
+    dsn=SENTRY_DSN,
+    environment=SENTRY_ENVIRONMENT,
+    traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+)
