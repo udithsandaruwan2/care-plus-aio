@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Fast Serah chat vs VEHMF: general talk uses direct AI; caregiver asks run the engine, then chat resumes with those results._
+_Last updated: 2026-08-16 — Care-seeking (“take care of me”) runs VEHMF and keeps match cards on screen._
 
 ---
 

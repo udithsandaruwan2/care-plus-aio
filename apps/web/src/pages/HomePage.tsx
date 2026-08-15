@@ -271,117 +271,114 @@ export function HomePage() {
           </GoalRing>
         </button>
 
-          <p className="mt-2 font-display text-sm tracking-wide text-cyan" aria-live="polite">
-            {stateCopy(state, uiLanguage)}
+        <p className="mt-2 font-display text-sm tracking-wide text-cyan" aria-live="polite">
+          {stateCopy(state, uiLanguage)}
+        </p>
+        <ChatBubbles messages={chat} />
+        {clarifyPrompt && (
+          <p className="mt-1 text-sm text-amber" aria-live="polite">
+            {clarifyPrompt} Keep talking — your other details stay.
           </p>
-          <ChatBubbles messages={chat} />
-          {clarifyPrompt && (
-            <p className="mt-1 text-sm text-amber" aria-live="polite">
-              {clarifyPrompt} Keep talking — your other details stay.
-            </p>
-          )}
-          {(mic.error || speech.error) && (
-            <p className="mt-1 text-sm text-rose" role="alert">
-              {mic.error ?? speech.error}
-            </p>
-          )}
-          {turnError && !consentNeeded && (
-            <p className="mt-1 text-sm text-rose" role="alert">
+        )}
+        {(mic.error || speech.error) && (
+          <p className="mt-1 text-sm text-rose" role="alert">
+            {mic.error ?? speech.error}
+          </p>
+        )}
+        {turnError && !consentNeeded && (
+          <p className="mt-1 text-sm text-rose" role="alert">
+            {turnError}
+          </p>
+        )}
+        {consentNeeded && (
+          <div
+            className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center"
+            role="alertdialog"
+            aria-labelledby="consent-title"
+          >
+            <p id="consent-title" className="text-sm text-amber">
               {turnError}
             </p>
-          )}
-          {consentNeeded && (
-            <div
-              className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center"
-              role="alertdialog"
-              aria-labelledby="consent-title"
+            <button
+              ref={consentBtnRef}
+              type="button"
+              onClick={onGrantConsent}
+              className="mt-3 rounded-full bg-amber/90 px-5 py-2 text-sm font-medium text-void transition hover:bg-amber focus-visible:ring-2 focus-visible:ring-cyan"
             >
-              <p id="consent-title" className="text-sm text-amber">
-                {turnError}
-              </p>
-              <button
-                ref={consentBtnRef}
-                type="button"
-                onClick={onGrantConsent}
-                className="mt-3 rounded-full bg-amber/90 px-5 py-2 text-sm font-medium text-void transition hover:bg-amber focus-visible:ring-2 focus-visible:ring-cyan"
-              >
-                Enable AI processing
-              </button>
-            </div>
-          )}
-          {!speech.supported && (
-            <p className="mt-1 text-xs text-amber" role="status">
-              Live captions unsupported here — audio still uploads for Serah (try Chrome/Edge).
-            </p>
-          )}
-          <p className="mt-1 text-xs text-muted" aria-live="polite">
-            Goal {progress}% · level {(mic.amplitude * 100).toFixed(0)}%
-          </p>
-
-          <Transcript transcript={transcript} interim={interim} />
-          <div className="mt-3">
-            <EntityChips intent={intent} uiLanguage={uiLanguage} />
+              Enable AI processing
+            </button>
           </div>
+        )}
+        {!speech.supported && (
+          <p className="mt-1 text-xs text-amber" role="status">
+            Live captions unsupported here — audio still uploads for Serah (try Chrome/Edge).
+          </p>
+        )}
+        <p className="mt-1 text-xs text-muted" aria-live="polite">
+          Goal {progress}% · level {(mic.amplitude * 100).toFixed(0)}%
+        </p>
 
-          {match &&
-            (state === AssistantState.RESULTS ||
-              state === AssistantState.MATCHING ||
-              state === AssistantState.EMERGENCY) && (
-              <MatchResultCards
-                id={emergencyActive ? 'emergency-match' : undefined}
-                match={match}
-                canRequestCare={canRequestCare}
-                uiLanguage={uiLanguage}
-              />
-          )}
+        <Transcript transcript={transcript} interim={interim} />
+        <div className="mt-3">
+          <EntityChips intent={intent} uiLanguage={uiLanguage} />
+        </div>
 
+        {match ? (
+          <MatchResultCards
+            id={emergencyActive ? 'emergency-match' : undefined}
+            match={match}
+            canRequestCare={canRequestCare}
+            uiLanguage={uiLanguage}
+          />
+        ) : null}
+
+        <button
+          type="button"
+          onClick={toggleMic}
+          disabled={busy && !listening}
+          aria-pressed={listening}
+          aria-label={
+            listening
+              ? 'Stop listening and send'
+              : busy
+                ? 'Serah is speaking'
+                : 'Tap to speak with Serah'
+          }
+          className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-cyan disabled:opacity-50 ${
+            listening
+              ? 'bg-rose/20 text-rose ring-1 ring-rose/50'
+              : 'bg-cyan/90 text-void hover:bg-cyan'
+          }`}
+        >
+          {listening
+            ? 'Stop / send'
+            : busy
+              ? 'Serah is speaking…'
+              : state === AssistantState.CLARIFYING ||
+                  state === AssistantState.RESULTS ||
+                  state === AssistantState.EMERGENCY ||
+                  state === AssistantState.CHAT_REPLY
+                ? 'Continue talking'
+                : 'Tap to speak with Serah'}
+        </button>
+
+        {(match ||
+          state === AssistantState.CLARIFYING ||
+          state === AssistantState.RESULTS ||
+          state === AssistantState.EMERGENCY ||
+          state === AssistantState.CHAT_REPLY) && (
           <button
             type="button"
-            onClick={toggleMic}
-            disabled={busy && !listening}
-            aria-pressed={listening}
-            aria-label={
-              listening
-                ? 'Stop listening and send'
-                : busy
-                  ? 'Serah is speaking'
-                  : 'Tap to speak with Serah'
-            }
-            className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-cyan disabled:opacity-50 ${
-              listening
-                ? 'bg-rose/20 text-rose ring-1 ring-rose/50'
-                : 'bg-cyan/90 text-void hover:bg-cyan'
-            }`}
+            onClick={() => void onNewRequest()}
+            disabled={clearing || busy || listening}
+            className="mt-2 rounded-full border border-hair px-5 py-2 text-xs text-muted transition hover:border-amber hover:text-amber disabled:opacity-50"
           >
-            {listening
-              ? 'Stop / send'
-              : busy
-                ? 'Serah is speaking…'
-                : state === AssistantState.CLARIFYING ||
-                    state === AssistantState.RESULTS ||
-                    state === AssistantState.EMERGENCY ||
-                    state === AssistantState.CHAT_REPLY
-                  ? 'Continue talking'
-                  : 'Tap to speak with Serah'}
+            {clearing ? 'Clearing…' : 'New request'}
           </button>
+        )}
+      </section>
 
-          {(match ||
-            state === AssistantState.CLARIFYING ||
-            state === AssistantState.RESULTS ||
-            state === AssistantState.EMERGENCY ||
-            state === AssistantState.CHAT_REPLY) && (
-            <button
-              type="button"
-              onClick={() => void onNewRequest()}
-              disabled={clearing || busy || listening}
-              className="mt-2 rounded-full border border-hair px-5 py-2 text-xs text-muted transition hover:border-amber hover:text-amber disabled:opacity-50"
-            >
-              {clearing ? 'Clearing…' : 'New request'}
-            </button>
-          )}
-        </section>
-
-        {import.meta.env.DEV && <StateStepper />}
+      {import.meta.env.DEV && <StateStepper />}
     </div>
   );
 }
