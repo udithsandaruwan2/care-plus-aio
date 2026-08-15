@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-15 — Step 73 deploy VM + observability. Next: Step 74 Play Store + App Store._
+_Last updated: 2026-08-15 — Step 75 launch checklist (Expo Go, PDPA notice, backups). Store submissions deferred._
 
 ---
 
@@ -49,6 +49,8 @@ Notes:
 - CI/CD: [docs/ops/ci-cd.md](docs/ops/ci-cd.md)
 - TLS proxy: [docs/ops/tls-proxy.md](docs/ops/tls-proxy.md)
 - Deploy VM + observability: [docs/ops/deploy.md](docs/ops/deploy.md)
+- Mobile (Expo Go / APK): [docs/ops/mobile-expo.md](docs/ops/mobile-expo.md)
+- Launch checklist: [docs/ops/launch-checklist.md](docs/ops/launch-checklist.md)
 
 ---
 
@@ -114,7 +116,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M14** i18n + a11y                   | 59–61   | ✅ done           |
 | **M15** Mobile Expo                   | 62–67   | ✅ done             |
 | **M16** Compliance                    | 68–71   | ✅ done             |
-| **M17** Ship                          | 72–75   | 72–73 ✅ · 74–75 ⬜    |
+| **M17** Ship                          | 72–75   | 72–73 ✅ · 74 deferred (Expo Go) · 75 ✅ |
 
 **Progress:** ~20 / ~80 steps. Voice → VEHMF → cards works (one-shot). Conversational loop planned as **M3c (15f–15j)**.
 
@@ -132,6 +134,10 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 ---
 
 ## Changelog (newest first)
+
+- **Step 75** — Launch checklist: public PDPA notice (`/privacy`), support email, Postgres backup script + runbook, Expo Go (store submissions deferred). Branch `feat/step75-launch-checklist`.
+
+- **Step 74** — Deferred: no Play/App Store accounts. Testers use Expo Go SDK 54; optional EAS preview APK later. See `docs/ops/mobile-expo.md`.
 
 - **Step 73** — Deploy VM + observability: Caddy TLS 1.3 in prod Compose, `infra/scripts/deploy.sh` (GHCR pull → migrate → health), JSON logs, Prometheus `GET /api/v1/metrics/`, optional Sentry DSN, `docs/ops/deploy.md`. Branch `feat/step73-deploy-observability`.
 

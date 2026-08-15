@@ -605,4 +605,4 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 
 ## Next up
 
-**Step 74 — Play Store + App Store submissions** (`feat/step74-store-submissions`).
+**Plan complete through M17** except store listings (Step 74 deferred — Expo Go). See [PROGRESS.md](../PROGRESS.md).

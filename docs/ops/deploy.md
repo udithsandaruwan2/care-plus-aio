@@ -113,3 +113,5 @@ export CAREPLUS_IMAGE=ghcr.io/udithsandaruwan2/care-plus-backend:<previous-sha>
 ```
 
 Images are tagged `:latest`, full git SHA, and 7-char short SHA ([ci-cd.md](ci-cd.md)).
+
+Backups: [backups.md](backups.md). Launch ticks: [launch-checklist.md](launch-checklist.md). Mobile: [mobile-expo.md](mobile-expo.md).

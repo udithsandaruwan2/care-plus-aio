@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { SUPPORT_EMAIL } from '../../config';
 
 export function PublicFooter() {
   const { user } = useAuth();
@@ -25,6 +26,9 @@ export function PublicFooter() {
             <Link to="/contact" className="hover:text-cyan">
               Contact
             </Link>
+            <Link to="/privacy" className="hover:text-cyan">
+              Privacy (PDPA)
+            </Link>
             {user ? (
               <Link to="/platform" className="hover:text-cyan">
                 Open app
@@ -38,7 +42,12 @@ export function PublicFooter() {
         </div>
         <div>
           <p className="font-display text-base text-mist">Support</p>
-          <p className="mt-2">Email: support@careplus.lk</p>
+          <p className="mt-2">
+            Email:{' '}
+            <a className="hover:text-cyan" href={`mailto:${SUPPORT_EMAIL}`}>
+              {SUPPORT_EMAIL}
+            </a>
+          </p>
           <p className="mt-2 text-xs">Mon–Sat, 8:00 AM – 8:00 PM (Asia/Colombo)</p>
         </div>
       </div>

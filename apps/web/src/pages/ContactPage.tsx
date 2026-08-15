@@ -6,6 +6,7 @@ import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
+import { SUPPORT_EMAIL } from '../config';
 
 function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -63,7 +64,7 @@ export function ContactPage() {
         <PageHeader
           eyebrow="Contact"
           title="Talk to Care Plus Sri Lanka"
-          subtitle="Tell us about your care need. We follow up in English, Sinhala, or Tamil."
+          subtitle={`Tell us about your care need. We follow up in English, Sinhala, or Tamil — or email ${SUPPORT_EMAIL}.`}
         />
       </div>
 
