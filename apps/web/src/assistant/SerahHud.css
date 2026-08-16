@@ -275,7 +275,7 @@
 
 .serah-stage.is-searching {
   display: grid;
-  grid-template-columns: 16.5rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   justify-items: stretch;
@@ -290,33 +290,44 @@
   min-height: 0;
   height: 100%;
   width: 100%;
-  max-width: 16.5rem;
-  padding: 4px 0 0;
-  gap: 8px;
+  max-width: none;
+  padding: 4px 8px 0;
+  gap: 10px;
 }
 
 .serah-stage.is-searching .serah-neural-field {
   flex: 0 0 auto;
-  width: 15rem;
-  height: 15rem;
-  max-width: 15rem;
-  max-height: 15rem;
+  width: min(20rem, 86%);
+  height: min(20rem, 86%);
+  max-width: 20rem;
+  max-height: 20rem;
+  aspect-ratio: 1;
 }
 
 .serah-stage.is-searching .serah-neural-field > [aria-hidden] {
   flex: none;
-  width: 15rem;
-  height: 15rem;
+  width: 100%;
+  height: 100%;
+}
+
+.serah-stage.is-searching .neural-dock {
+  width: 100%;
+  height: 100%;
 }
 
 .serah-stage.is-searching .serah-orb-hit {
-  width: 112px;
-  height: 112px;
+  width: 132px;
+  height: 132px;
 }
 
 .serah-stage.is-searching .serah-orb-hit-ring {
-  width: 84px;
-  height: 84px;
+  width: 96px;
+  height: 96px;
+}
+
+.serah-stage.is-searching .serah-field-chat {
+  width: 100%;
+  max-width: 28rem;
 }
 
 .serah-stage.is-searching .serah-match-projection {
@@ -374,14 +385,14 @@
   }
 
   .serah-stage.is-searching {
-    grid-template-columns: 16.5rem minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     justify-items: stretch;
     gap: 16px;
   }
 
   .serah-stage.is-searching .serah-core-wrapper {
-    max-width: 16.5rem;
+    max-width: none;
     transform: none;
     align-items: center;
     justify-content: flex-start;

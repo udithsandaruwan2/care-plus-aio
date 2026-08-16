@@ -114,9 +114,9 @@ flowchart TB
 3. **Live transcript:** streamed words appear as you speak (from Web Speech interim results).
 4. **Entity chips:** as Gemini extracts structured intent, chips pop in, color-coded (medical = teal,
    language = blue, level = mint).
-5. **Match projection:** when VEHMF is searching or cards are ready, a **compact orb** sits on
-   the left (~15rem, whole mesh in frame) with chat under it. Ranked caregiver cards take the
-   remaining width in a scrolling rail. The page does not scroll.
+5. **Match projection:** when VEHMF is searching or cards are ready, the stage splits **half
+   and half**: compact orb + chat on the left, ranked caregiver cards on the right (rail
+   scrolls; the page does not).
    Serah speaks when search starts (“I’m finding one… we can keep chatting”) and again when
    cards are ready (“Now you can see the results”). Talking does **not** hide the rail.
 

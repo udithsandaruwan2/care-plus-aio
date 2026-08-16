@@ -12,8 +12,8 @@ export function ChatBubbles({ messages, compact = false }: Props) {
 
   return (
     <div
-      className={`flex w-full max-w-md flex-col gap-1.5 overflow-y-auto px-1 ${
-        compact ? 'mt-0 max-h-full' : 'mt-4 max-h-52'
+      className={`flex w-full flex-col gap-1.5 overflow-y-auto px-1 ${
+        compact ? 'mt-0 max-h-full max-w-lg' : 'mt-4 max-h-52 max-w-md'
       }`}
       aria-live="polite"
       aria-label="Conversation with Serah"
@@ -31,7 +31,7 @@ function Bubble({ msg, compact = false }: { msg: ChatMessage; compact?: boolean 
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[85%] rounded-2xl leading-relaxed ${
-          compact ? 'px-2.5 py-1.5 text-xs' : 'px-3.5 py-2 text-sm'
+          compact ? 'px-3 py-2 text-sm' : 'px-3.5 py-2 text-sm'
         } ${
           isUser
             ? 'rounded-br-md bg-cyan/15 text-mist ring-1 ring-cyan/25'
