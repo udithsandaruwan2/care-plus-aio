@@ -100,4 +100,6 @@ PATIENT_NAMES = [
     "Nirosha Fernando",
     "Elderly Care Demo",
     "Post-op Recovery Demo",
+    "Amara Wickramasinghe",
+    "Selvam Arulthas",
 ]

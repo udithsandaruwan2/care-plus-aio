@@ -160,6 +160,7 @@ class Command(BaseCommand):
             city_name, lon, lat = SRI_LANKA_CITIES[(i * 3) % len(SRI_LANKA_CITIES)]
             lon += rng.uniform(-0.03, 0.03)
             lat += rng.uniform(-0.03, 0.03)
+            preferred = rng.choice(LANGUAGES)
 
             user = User.objects.create_user(
                 email=email,
@@ -168,13 +169,26 @@ class Command(BaseCommand):
                 first_name=name.split()[0],
                 last_name=" ".join(name.split()[1:]) or "Patient",
             )
+            langs = [preferred]
+            if preferred != "English" and rng.random() > 0.3:
+                langs.append("English")
+            conditions = rng.sample(SPECIALTIES, k=rng.randint(1, 2))
             PatientProfile.objects.create(
                 user=user,
                 display_name=name,
                 location=Point(lon, lat, srid=4326),
-                preferred_language=rng.choice(LANGUAGES),
-                conditions=rng.sample(SPECIALTIES, k=rng.randint(1, 2)),
+                city=city_name,
+                preferred_language=preferred,
+                languages=langs,
+                conditions=conditions,
                 care_level=rng.choice(CARE_LEVELS),
+                height_cm=rng.randint(148, 178),
+                weight_kg=round(rng.uniform(48.0, 88.0), 1),
+                blood_type=rng.choice(["A+", "O+", "B+", "AB+", "O-", "B-"]),
+                medications=["Metformin 500mg"] if "diabetes" in conditions else [],
+                allergies=["Penicillin"] if i % 5 == 0 else [],
+                emergency_contact_name=f"{name.split()[0]} family",
+                emergency_contact_phone=f"+9477{2000000 + i:07d}"[:12],
             )
             created += 1
         return created
