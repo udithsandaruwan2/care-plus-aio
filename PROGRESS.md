@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Serah Core field is clean white; status sits below the graph._
+_Last updated: 2026-08-16 — Match cards stay in a side rail; tapping Speak no longer clears them._
 
 ---
 
@@ -86,6 +86,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Serah neural stage field** — unclipped 3D connectome (hubs, synapses, traveling pulses) fills Serah Core; public landing uses the same mesh in a rounded well. Branch `feat/serah-neural-stage-field`.
 - ✅ **Public neural hero, no box** — landing page graph is transparent on white (no dark rounded card). Branch `fix/public-neural-well-box`.
 - ✅ **Serah stage composition** — removed the gray well smear; Goal lives in the HUD; copy sits under the graph instead of on it. Branch `fix/serah-stage-composition`.
+- ✅ **Serah match rail** — caregiver cards sit in a bordered scrolling rail; Speak keeps existing matches (New request still clears). Branch `fix/serah-match-rail`.
 
 ### Active track — research match loop
 

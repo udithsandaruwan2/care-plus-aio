@@ -168,7 +168,7 @@ export function HomePage() {
         </div>
 
         {showMatchPanel ? (
-          <div className="serah-match-projection">
+          <div className="serah-match-projection is-open">
             <MatchSearchPanel
               id={emergencyActive ? 'emergency-match' : undefined}
               matching={matching}

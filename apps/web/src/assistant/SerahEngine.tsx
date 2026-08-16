@@ -208,18 +208,23 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const current = useAssistant.getState().state;
-    const wasAsleep = useAssistant.getState().asleep;
-    if (
-      !wasAsleep &&
-      current !== AssistantState.CLARIFYING &&
-      current !== AssistantState.RESULTS &&
-      current !== AssistantState.CHAT_REPLY
-    ) {
+    const store = useAssistant.getState();
+    const keepResults =
+      store.asleep ||
+      store.matching ||
+      Boolean(store.match) ||
+      store.state === AssistantState.CLARIFYING ||
+      store.state === AssistantState.RESULTS ||
+      store.state === AssistantState.CHAT_REPLY ||
+      store.state === AssistantState.MATCHING ||
+      store.state === AssistantState.LISTENING ||
+      store.state === AssistantState.SPEAKING ||
+      store.state === AssistantState.EMERGENCY;
+    if (!keepResults) {
       reset();
     } else {
       setInterim('');
-      useAssistant.getState().setTranscript('');
+      store.setTranscript('');
     }
     setAsleep(false);
     setSessionLive(true);

@@ -139,9 +139,10 @@ function MatchCard({
 
   return (
     <article
-      className={`animate-[fadeIn_320ms_ease] rounded-2xl border bg-panel p-5 text-left shadow-[var(--cp-shadow-soft)] ${
+      className={`match-rail-card rounded-2xl border bg-panel p-4 text-left ${
         changed ? 'border-mint/50 ring-1 ring-mint/20' : 'border-hair'
       }`}
+      style={{ animationDelay: `${Math.max(0, hit.rank - 1) * 80}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -277,7 +278,7 @@ export function MatchResultCards({
   return (
     <section
       id={id}
-      className="mt-6 w-full max-w-md space-y-3"
+      className="w-full space-y-3"
       role="region"
       aria-label={heading}
       aria-live="polite"
