@@ -20,6 +20,15 @@ function errorMessage(err: unknown): string {
   return 'Something went wrong. Try again.';
 }
 
+const DEMO_PASSWORD = 'CarePlus!demo';
+const DEMO_ACCOUNTS = [
+  { email: 'demo.patient@careplus.local', label: 'Patient — active care' },
+  { email: 'demo.caregiver@careplus.local', label: 'Caregiver — inbox' },
+  { email: 'demo.admin@careplus.local', label: 'Admin' },
+  { email: 'demo.pay@careplus.local', label: 'Awaiting payment' },
+  { email: 'demo.onboarding@careplus.local', label: 'Incomplete profile' },
+] as const;
+
 export function LoginPage() {
   const { user, login } = useAuth();
   const { t } = useLocale();
@@ -112,6 +121,30 @@ export function LoginPage() {
             {t('action.createAccount')}
           </Link>
         </p>
+        {import.meta.env.DEV ? (
+          <div className="mt-5 rounded-xl border border-hair bg-soft p-3 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Demo accounts
+            </p>
+            <p className="mt-1 text-[11px] text-muted">Password: {DEMO_PASSWORD}</p>
+            <ul className="mt-2 space-y-1">
+              {DEMO_ACCOUNTS.map((account) => (
+                <li key={account.email}>
+                  <button
+                    type="button"
+                    className="text-left text-xs text-cyan hover:underline"
+                    onClick={() => {
+                      setEmail(account.email);
+                      setPassword(DEMO_PASSWORD);
+                    }}
+                  >
+                    {account.label} — {account.email}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <p className="mt-3 text-center text-xs text-muted">
           <Link to="/" className="hover:text-cyan">
             {t('login.backHome')}

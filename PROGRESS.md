@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Serah match progress, silent empty audio, hub companion dock._
+_Last updated: 2026-08-16 — Showcase synthetic data covering every live product situation._
 
 ---
 
@@ -36,9 +36,12 @@ cd "Care Plus"
 cp .env.example .env                      # fill in secrets (GEMINI_API_KEY, etc.)
 docker compose -f infra/docker-compose.yml up -d --build
 docker compose -f infra/docker-compose.yml exec -T backend python manage.py migrate --noinput
+docker compose -f infra/docker-compose.yml exec -T backend python manage.py seed_demo
 curl -fsS http://localhost:8000/api/v1/health/   # expect {"status":"ok","db":"ok","redis":"ok"}
 pnpm --filter @care-plus/web dev --host 127.0.0.1 --port 5173
 ```
+
+Demo logins (after `seed_demo`, password **`CarePlus!demo`**): `demo.patient@careplus.local` (active care), `demo.caregiver@careplus.local`, `demo.admin@careplus.local`. Dev login page lists click-to-fill accounts.
 
 Notes:
 
@@ -75,6 +78,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **M4** Step 16 — Domain profiles + Sri Lanka seed
 - ✅ **UI Medical Light** — Teal/white tokens, PublicLayout + Hub sidebar (`/hub`), Serah CSS orb HUD, restyled public/hub/mobile chrome. Branch `feat/ui-medical-light-redesign`.
 - ✅ **Serah match progress + companion** — VEHMF search shows a progress bar and skeleton cards; empty/ambient audio stays silent; goodbye sleeps until “Hey Serah”; hub pages keep a live bottom-right Serah bubble. Branch `feat/serah-match-progress-dock`.
+- ✅ **Showcase synthetic data** — `seed_demo` loads vocab, catalog, 30 SL caregivers, and every situation (pending/rejected/cancelled/expired hire, paid care, failed pay, messages, records, vitals/emergency, reviews, leads, admin). Branch `feat/showcase-synthetic-data`.
 
 ### Active track — research match loop
 
