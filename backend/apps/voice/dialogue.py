@@ -82,7 +82,10 @@ _SEARCH_PROMISE = re.compile(
     r"\b(vehmf|ranking caregivers|finding (your )?(best )?match|"
     r"searching for caregivers|i['’]?m on it|"
     r"let you know.{0,80}(match|result|vehmf|screen)|"
-    r"finishes matching|results are ready)\b",
+    r"finishes matching|results are ready|"
+    r"search going|get that search|let['’]?s (get )?(that )?(search|match)|"
+    r"start(ing)? (a |the )?search|looking for (your )?(a )?(caregiver|match)|"
+    r"find (you|your) (a )?(caregiver|match))\b",
     re.I,
 )
 
@@ -107,7 +110,9 @@ def _reply_promises_match(reply: str) -> bool:
 
 
 def _intent_ready_for_match(intent: dict) -> bool:
-    return bool((intent.get("condition") or "").strip())
+    if (intent.get("condition") or "").strip():
+        return True
+    return bool((intent.get("language") or "").strip() and (intent.get("care_level") or "").strip())
 
 
 def _load_session_match(session) -> dict | None:

@@ -322,6 +322,55 @@ class ProcessTurnLanguageMergeTests(TestCase):
         vehmf.assert_called_once()
         self.assertNotIn("I'll let you know", out["reply"])
 
+    def test_search_going_promise_runs_match_without_condition(self):
+        from apps.voice.asr import AsrResult
+
+        fake = AsrResult(
+            text="okay then",
+            source="client",
+            language_hint="English",
+            language_code="en",
+            languages=["English"],
+        )
+        prior = {
+            "language": "English",
+            "care_level": "intermediate",
+            "languages": ["English"],
+        }
+        with (
+            patch("apps.voice.dialogue.resolve_transcript", return_value=fake),
+            patch(
+                "apps.voice.dialogue._serah",
+                return_value=(
+                    "Great, let's get that search going for you in Colombo right away! "
+                    "Could you share any specific care requirements or preferences?",
+                    "gemini",
+                ),
+            ),
+            patch(
+                "apps.voice.dialogue._run_vehmf",
+                return_value={
+                    "request_id": None,
+                    "results": [{"display_name": "Nimal Perera", "score": 0.8, "explanation": ""}],
+                    "latency_ms": 1,
+                    "query": "",
+                    "emergency": False,
+                    "cf_enabled": False,
+                    "cf_version": "",
+                    "weights": {"cbf": 1, "cf": 0, "geo": 0, "trust": 0},
+                },
+            ) as vehmf,
+        ):
+            out = process_turn(
+                user=self.user,
+                client_text="okay then",
+                prior_intent=prior,
+                ui_language="English",
+            )
+        self.assertEqual(out["route"], "MATCH")
+        self.assertIsNotNone(out["match"])
+        vehmf.assert_called_once()
+
     def test_english_chat_skips_server_tts(self):
         with patch("apps.voice.tts.synthesize") as syn:
             out = process_turn(

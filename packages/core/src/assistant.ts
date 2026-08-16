@@ -70,9 +70,23 @@ export function canTransition(from: AssistantState, to: AssistantState): boolean
 }
 
 /** Client hint: this utterance is asking to run VEHMF (not general chat). */
+export function looksLikeSearchLaunch(text: string): boolean {
+  const raw = (text || '').trim();
+  if (!raw) return false;
+  return (
+    /^(start|begin|go|search|find|match)([\s!.]*|\s+(it|now|please|searching|matching))?$/i.test(
+      raw,
+    ) ||
+    /^go\s+ahead[\s!.]*$/i.test(raw) ||
+    /^(පටන්|ආරම්භ|හොයන්න)([\s!.]*|\s+ගන්න[\s!.]*)$/u.test(raw) ||
+    /^(தொடங்கு|தேடு)[\s!.]*$/u.test(raw)
+  );
+}
+
 export function looksLikeCareSeek(text: string): boolean {
   const raw = (text || '').trim();
   if (!raw) return false;
+  if (looksLikeSearchLaunch(raw)) return true;
   return (
     /\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|match me|vehmf)\b/i.test(raw) ||
     /\b(need|want)\s+(a\s+)?(someone|somebody|person)\b/i.test(raw) ||
@@ -100,6 +114,10 @@ export function looksLikeSearchPromise(text: string): boolean {
     /\blet you know\b/i.test(raw) ||
     /\bfinishes matching\b/i.test(raw) ||
     /\bresults are ready\b/i.test(raw) ||
+    /\bsearch going\b/i.test(raw) ||
+    /\bget that search\b/i.test(raw) ||
+    /\blet['’]?s (get )?(that )?(search|match)\b/i.test(raw) ||
+    /\bstart(ing)? (a |the )?search\b/i.test(raw) ||
     /\b(ranking|finding|searching)\s+(your\s+)?(best\s+)?(match|caregivers?)\b/i.test(raw)
   );
 }
@@ -119,13 +137,12 @@ export function shouldHoldMatchingUi(opts: {
   if (situation === 'goodbye' || situation === 'cancel' || situation === 'match_error') {
     return false;
   }
-  if (opts.route === 'CLARIFY') return false;
   const wantsSearch =
     opts.seeking ||
     opts.route === 'MATCH' ||
     opts.route === 'REFINE' ||
     looksLikeSearchPromise(opts.reply || '');
-  return wantsSearch && opts.hasCondition;
+  return wantsSearch;
 }
 
 /** Wake Serah after goodbye / sleep. */

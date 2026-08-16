@@ -16,14 +16,16 @@ const CONSENT_STATUS = 451;
 async function runClientMatch(): Promise<boolean> {
   const store = useAssistant.getState();
   const { intent } = store;
-  if (!intent.condition) return false;
+  if (!intent.condition && !intent.language && !intent.care_level && !intent.raw_text) {
+    return false;
+  }
   store.setMatching(true);
   store.setState(AssistantState.MATCHING, { force: true });
   store.setMatchError(null);
   try {
     const emergency = intent.urgency === 'urgent' || intent.urgency === 'critical';
     const result = await api.match({
-      condition: intent.condition,
+      condition: intent.condition || intent.raw_text || 'general care',
       language: intent.language || 'English',
       care_level: intent.care_level || 'intermediate',
       query: intent.raw_text ?? '',
