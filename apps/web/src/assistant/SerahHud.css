@@ -270,15 +270,8 @@
   width: 420px;
   height: 480px;
   flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 1.5rem;
-  border: 1px solid var(--cp-border-hair);
-  background: radial-gradient(
-    ellipse at 50% 42%,
-    #1e293b 0%,
-    #0f172a 48%,
-    #f8fafc 100%
-  );
+  overflow: visible;
+  background: transparent;
 }
 
 .neural-well .neural-field-canvas {
