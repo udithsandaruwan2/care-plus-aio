@@ -13,7 +13,7 @@ export function ChatBubbles({ messages, compact = false }: Props) {
   return (
     <div
       className={`flex w-full max-w-md flex-col gap-1.5 overflow-y-auto px-1 ${
-        compact ? 'mt-0 max-h-20' : 'mt-4 max-h-52'
+        compact ? 'mt-0 max-h-full' : 'mt-4 max-h-52'
       }`}
       aria-live="polite"
       aria-label="Conversation with Serah"

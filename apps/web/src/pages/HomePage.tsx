@@ -129,10 +129,10 @@ export function HomePage() {
           <div className="serah-neural-field">
             <div aria-hidden>
               <NeuralOrb
-                variant="stage"
+                variant={showMatchPanel ? 'dock' : 'stage'}
                 visual={visual}
                 state={state}
-                amplitude={Math.max(mic.amplitude, showMatchPanel ? 0.28 : 0.16)}
+                amplitude={Math.max(mic.amplitude, showMatchPanel ? 0.22 : 0.16)}
               />
             </div>
             <button
@@ -144,12 +144,12 @@ export function HomePage() {
             >
               <span className="serah-orb-hit-ring" />
             </button>
-            {showMatchPanel ? (
-              <div className="serah-field-chat">
-                <ChatBubbles messages={chat} compact />
-              </div>
-            ) : null}
           </div>
+          {showMatchPanel ? (
+            <div className="serah-field-chat">
+              <ChatBubbles messages={chat} compact />
+            </div>
+          ) : null}
           {!showMatchPanel ? (
             <>
               {asleep || state !== AssistantState.IDLE ? (

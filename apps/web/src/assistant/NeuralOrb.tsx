@@ -32,15 +32,17 @@ export function NeuralOrb({
   visual: OrbVisualState;
   state?: AssistantState;
   amplitude?: number;
-  variant?: 'hud' | 'hero' | 'stage' | 'well';
+  variant?: 'hud' | 'hero' | 'stage' | 'well' | 'dock';
   parallax?: { x: number; y: number };
 }) {
   const reducedMotion = useReducedMotion();
-  const layout = variant === 'stage' ? 'stage' : 'well';
+  const layout = variant === 'stage' ? 'stage' : variant === 'dock' ? 'dock' : 'well';
   const shell =
     variant === 'stage'
       ? `neural-stage state-${visual}`
-      : `neural-well state-${visual}`;
+      : variant === 'dock'
+        ? `neural-dock state-${visual}`
+        : `neural-well state-${visual}`;
 
   return (
     <div className={shell}>

@@ -155,13 +155,12 @@
 }
 
 .serah-field-chat {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
+  position: relative;
   z-index: 4;
   display: flex;
-  max-height: 5.5rem;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 auto;
   justify-content: center;
   overflow: hidden;
   pointer-events: auto;
@@ -276,7 +275,7 @@
 
 .serah-stage.is-searching {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 24rem);
+  grid-template-columns: 16.5rem minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   justify-items: stretch;
@@ -286,15 +285,38 @@
 
 .serah-stage.is-searching .serah-core-wrapper {
   transform: none;
-  justify-content: stretch;
+  align-items: center;
+  justify-content: flex-start;
   min-height: 0;
   height: 100%;
-  padding: 0;
+  width: 100%;
+  max-width: 16.5rem;
+  padding: 4px 0 0;
+  gap: 8px;
 }
 
 .serah-stage.is-searching .serah-neural-field {
-  height: 100%;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  width: 15rem;
+  height: 15rem;
+  max-width: 15rem;
+  max-height: 15rem;
+}
+
+.serah-stage.is-searching .serah-neural-field > [aria-hidden] {
+  flex: none;
+  width: 15rem;
+  height: 15rem;
+}
+
+.serah-stage.is-searching .serah-orb-hit {
+  width: 112px;
+  height: 112px;
+}
+
+.serah-stage.is-searching .serah-orb-hit-ring {
+  width: 84px;
+  height: 84px;
 }
 
 .serah-stage.is-searching .serah-match-projection {
@@ -309,8 +331,34 @@
 @media (max-width: 1023px) {
   .serah-stage.is-searching {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 44%) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     padding: 6px 10px 0;
+  }
+
+  .serah-stage.is-searching .serah-core-wrapper {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    max-height: 9.5rem;
+    padding: 0;
+    gap: 10px;
+  }
+
+  .serah-stage.is-searching .serah-neural-field,
+  .serah-stage.is-searching .serah-neural-field > [aria-hidden],
+  .serah-stage.is-searching .neural-dock {
+    width: 8.5rem;
+    height: 8.5rem;
+    max-width: 8.5rem;
+    max-height: 8.5rem;
+  }
+
+  .serah-stage.is-searching .serah-field-chat {
+    flex: 1 1 auto;
+    max-height: 9rem;
   }
 }
 
@@ -326,17 +374,17 @@
   }
 
   .serah-stage.is-searching {
-    grid-template-columns: minmax(0, 1fr) minmax(20rem, 25rem);
+    grid-template-columns: 16.5rem minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
     justify-items: stretch;
-    gap: 14px;
+    gap: 16px;
   }
 
   .serah-stage.is-searching .serah-core-wrapper {
-    max-width: none;
+    max-width: 16.5rem;
     transform: none;
-    align-items: stretch;
-    justify-content: stretch;
+    align-items: center;
+    justify-content: flex-start;
     overflow: hidden;
   }
 }
@@ -363,6 +411,21 @@
 }
 
 .neural-well .neural-field-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.neural-dock {
+  position: relative;
+  z-index: 1;
+  width: 15rem;
+  height: 15rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.neural-dock .neural-field-canvas {
   width: 100%;
   height: 100%;
 }
