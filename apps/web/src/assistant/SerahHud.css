@@ -16,21 +16,21 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(13, 148, 136, 0.06) 0%, transparent 60%);
+  background: transparent;
   transition: background 1s ease;
 }
 
 .serah-ambient-bg.state-listening {
-  background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
+  background: radial-gradient(circle at 50% 42%, rgba(59, 130, 246, 0.05) 0%, transparent 55%);
 }
 
 .serah-ambient-bg.state-processing,
 .serah-ambient-bg.state-matching {
-  background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.12) 0%, transparent 60%);
+  background: radial-gradient(circle at 50% 42%, rgba(59, 130, 246, 0.06) 0%, transparent 55%);
 }
 
 .serah-ambient-bg.state-speaking {
-  background: radial-gradient(circle at 50% 50%, rgba(13, 148, 136, 0.14) 0%, transparent 60%);
+  background: radial-gradient(circle at 50% 42%, rgba(13, 148, 136, 0.06) 0%, transparent 55%);
 }
 
 .serah-hud-top {
@@ -64,6 +64,12 @@
   font-weight: 700;
   letter-spacing: 0.18em;
   color: var(--cp-text-muted);
+}
+
+.hud-goal {
+  margin-left: 6px;
+  letter-spacing: 0.08em;
+  color: var(--cp-accent-cyan);
 }
 
 .status-indicator {
@@ -108,25 +114,20 @@
 }
 
 .serah-neural-field {
-  position: absolute;
-  inset: 0;
+  position: relative;
   z-index: 0;
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 62%;
+  align-items: stretch;
+  justify-content: center;
   overflow: hidden;
-  pointer-events: none;
 }
 
-.serah-neural-field::before {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: radial-gradient(
-    ellipse at 50% 42%,
-    rgba(15, 23, 42, 0.62) 0%,
-    rgba(15, 23, 42, 0.28) 42%,
-    transparent 72%
-  );
-  content: '';
-  pointer-events: none;
+.serah-neural-field > [aria-hidden] {
+  width: 100%;
+  height: 100%;
 }
 
 .neural-stage {
@@ -142,19 +143,20 @@
 }
 
 .serah-orb-hit {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   z-index: 2;
   display: grid;
   width: 168px;
   height: 168px;
-  flex-shrink: 0;
-  margin-top: 8%;
   place-items: center;
   border: 0;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
   outline: none;
+  transform: translate(-50%, -50%);
 }
 
 .serah-orb-hit:focus-visible {
@@ -165,7 +167,7 @@
   width: 118px;
   height: 118px;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 38%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 28%, transparent);
   pointer-events: none;
 }
 
@@ -178,16 +180,30 @@
   position: relative;
   z-index: 2;
   flex-shrink: 0;
-  margin-top: 4px;
+  margin: 4px 0 0;
+  font-family: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--cp-accent-cyan);
+}
+
+.serah-field-hint {
+  margin: 8px 0 0;
+  max-width: 28rem;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--cp-text-muted);
 }
 
 .serah-core-chat {
   position: relative;
   z-index: 2;
   display: flex;
+  max-height: 34%;
   min-height: 0;
   width: 100%;
-  flex: 1;
+  flex: 0 1 auto;
   flex-direction: column;
   align-items: center;
   overflow-x: hidden;
@@ -305,7 +321,7 @@
 }
 
 .hologram-transcript {
-  margin-top: 28px;
+  margin-top: 8px;
   max-width: 28rem;
   text-align: center;
   font-size: 0.95rem;

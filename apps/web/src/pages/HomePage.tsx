@@ -79,6 +79,7 @@ export function HomePage() {
         <div className="hud-status">
           <div className="status-indicator" />
           <span>{asleep ? 'SLEEPING' : visual.toUpperCase()}</span>
+          <span className="hud-goal">Goal {progress}%</span>
         </div>
         <LanguagePicker
           value={uiLanguage}
@@ -121,32 +122,38 @@ export function HomePage() {
 
       <div className={`serah-stage ${showMatchPanel ? 'is-searching' : ''}`}>
         <div className="serah-core-wrapper">
-          <div className="serah-neural-field" aria-hidden>
-            <NeuralOrb
-              variant="stage"
-              visual={visual}
-              state={state}
-              amplitude={Math.max(mic.amplitude, 0.14)}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => void toggleMic()}
-            aria-pressed={listening}
-            aria-label={listening ? 'Stop listening' : 'Tap to speak'}
-            className={`serah-orb-hit ${listening ? 'active' : ''}`}
-          >
-            <span className="serah-orb-hit-ring" />
-          </button>
-          <p className="serah-field-status font-display text-sm tracking-wide text-cyan" aria-live="polite">
-            {asleep
-              ? 'Sleeping — say Hey Serah to wake me'
-              : `${stateCopy(state, uiLanguage)} · Goal ${progress}%`}
-          </p>
-          <div className="serah-core-chat">
-            <div className={`hologram-transcript ${hologramText ? 'visible' : ''}`}>
-              <p>{hologramText || 'Tap the field or type below to talk with Serah.'}</p>
+          <div className="serah-neural-field">
+            <div aria-hidden>
+              <NeuralOrb
+                variant="stage"
+                visual={visual}
+                state={state}
+                amplitude={Math.max(mic.amplitude, 0.14)}
+              />
             </div>
+            <button
+              type="button"
+              onClick={() => void toggleMic()}
+              aria-pressed={listening}
+              aria-label={listening ? 'Stop listening' : 'Tap to speak'}
+              className={`serah-orb-hit ${listening ? 'active' : ''}`}
+            >
+              <span className="serah-orb-hit-ring" />
+            </button>
+          </div>
+          {asleep || state !== AssistantState.IDLE ? (
+            <p className="serah-field-status" aria-live="polite">
+              {asleep ? 'Sleeping — say Hey Serah to wake me' : stateCopy(state, uiLanguage)}
+            </p>
+          ) : null}
+          <div className="serah-core-chat">
+            {hologramText ? (
+              <div className="hologram-transcript visible">
+                <p>{hologramText}</p>
+              </div>
+            ) : (
+              <p className="serah-field-hint">Tap the field or type below to talk with Serah.</p>
+            )}
             <ChatBubbles messages={chat} compact={showMatchPanel} />
             {clarifyPrompt && (
               <p className="mt-2 max-w-md text-center text-sm text-amber" aria-live="polite">
@@ -154,7 +161,7 @@ export function HomePage() {
               </p>
             )}
             <div className="mt-3">
-              <EntityChips intent={intent} uiLanguage={uiLanguage} />
+              <EntityChips intent={intent} uiLanguage={uiLanguage} hideEmpty />
             </div>
             <Transcript transcript={transcript} interim={interim} />
           </div>
