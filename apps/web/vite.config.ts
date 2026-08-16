@@ -10,8 +10,16 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  optimizeDeps: {
+    // Workspace packages are source TS — prebundling them freezes stale exports
+    // and whitescreens the app after core/api-client changes.
+    exclude: ['@care-plus/core', '@care-plus/api-client', '@care-plus/ui-tokens'],
+  },
   server: {
     port: 5173,
+    fs: {
+      allow: [path.resolve(__dirname, '../..')],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
