@@ -60,71 +60,71 @@ export function CaregiverPresencePage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
-        <PageHeader
+      <PageHeader
         eyebrow="Presence"
         title="Availability"
         subtitle="Choose whether you appear available for new Serah matches across Sri Lanka."
       />
 
-        {loading && <p className="mt-10 text-sm text-muted">Loading…</p>}
+      {loading && <p className="mt-10 text-sm text-muted">Loading…</p>}
 
-        {error && (
-          <p className="mt-8 rounded-xl border border-rose/40 bg-rose/10 px-4 py-3 text-sm text-rose">
-            {error}
-          </p>
-        )}
+      {error && (
+        <p className="mt-8 rounded-xl border border-rose/40 bg-rose/10 px-4 py-3 text-sm text-rose">
+          {error}
+        </p>
+      )}
 
-        {!loading && profile && (
-          <section className="mt-10 space-y-6">
-            <div>
-              <p className="font-display text-xl text-mist">{profile.display_name}</p>
-              <p className="mt-1 text-sm text-muted">
-                {profile.city || 'Sri Lanka'}
-                {profile.specialties?.length
-                  ? ` · ${profile.specialties.slice(0, 3).join(', ')}`
-                  : ''}
-              </p>
-            </div>
+      {!loading && profile && (
+        <section className="mt-10 space-y-6">
+          <div>
+            <p className="font-display text-xl text-mist">{profile.display_name}</p>
+            <p className="mt-1 text-sm text-muted">
+              {profile.city || 'Sri Lanka'}
+              {profile.specialties?.length
+                ? ` · ${profile.specialties.slice(0, 3).join(', ')}`
+                : ''}
+            </p>
+          </div>
 
-            <div className="rounded-2xl border border-hair bg-panel/80 p-5 backdrop-blur-md">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-mist">Open for new matches</p>
-                  <p className="mt-1 text-xs text-muted">
-                    When off, you stay on browse (if shown) but are hidden from Serah&apos;s match
-                    rankings.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={available}
-                  disabled={saving}
-                  onClick={() => void toggleAvailability()}
-                  className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:opacity-50 ${
-                    available ? 'bg-mint/80' : 'bg-void ring-1 ring-hair'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-mist transition ${
-                      available ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+          <div className="rounded-2xl border border-hair bg-panel/80 p-5 backdrop-blur-md">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-mist">Open for new matches</p>
+                <p className="mt-1 text-xs text-muted">
+                  When off, you stay on browse (if shown) but are hidden from Serah&apos;s match
+                  rankings.
+                </p>
               </div>
-              <p className="mt-4 font-mono text-sm text-cyan">
-                {available ? 'Available now' : 'Unavailable — hidden from Serah’s ranked matches'}
-              </p>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={available}
+                disabled={saving}
+                onClick={() => void toggleAvailability()}
+                className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:opacity-50 ${
+                  available ? 'bg-mint/80' : 'bg-panel ring-1 ring-hair'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-mist transition ${
+                    available ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
+            <p className="mt-4 font-mono text-sm text-cyan">
+              {available ? 'Available now' : 'Unavailable — hidden from Serah’s ranked matches'}
+            </p>
+          </div>
 
-            <Link
-              to={`/caregivers/${profile.id}`}
-              className="inline-block text-sm text-cyan transition hover:underline"
-            >
-              View public profile →
-            </Link>
-          </section>
-        )}
-      </div>
+          <Link
+            to={`/caregivers/${profile.id}`}
+            className="inline-block text-sm text-cyan transition hover:underline"
+          >
+            View public profile →
+          </Link>
+        </section>
+      )}
+    </div>
   );
 }

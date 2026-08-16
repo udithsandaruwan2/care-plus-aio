@@ -1,12 +1,5 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
 import { ApiError } from '@care-plus/api-client';
 import { colors } from '@care-plus/ui-tokens';
@@ -89,7 +82,9 @@ function MatchCard({
     } catch (err) {
       if (err instanceof ApiError) {
         const body = err.body as { detail?: string } | null;
-        setFormError(typeof body?.detail === 'string' ? body.detail : `Request failed (${err.status})`);
+        setFormError(
+          typeof body?.detail === 'string' ? body.detail : `Request failed (${err.status})`,
+        );
       } else {
         setFormError(err instanceof Error ? err.message : 'Could not send request.');
       }
@@ -114,7 +109,9 @@ function MatchCard({
 
       {(hit.specialties?.length || hit.languages?.length) && (
         <Text style={styles.tags} numberOfLines={2}>
-          {[...(hit.specialties ?? []).slice(0, 3), ...(hit.languages ?? []).slice(0, 2)].join(' · ')}
+          {[...(hit.specialties ?? []).slice(0, 3), ...(hit.languages ?? []).slice(0, 2)].join(
+            ' · ',
+          )}
         </Text>
       )}
 
@@ -151,7 +148,7 @@ function MatchCard({
               style={[styles.primaryBtn, busy && styles.disabled]}
             >
               {busy ? (
-                <ActivityIndicator color={colors.bgVoid} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.primaryText}>Send request</Text>
               )}
@@ -183,11 +180,7 @@ type Props = {
   uiLanguage?: UiVoiceLanguage;
 };
 
-export function MatchResultCards({
-  match,
-  canRequestCare = true,
-  uiLanguage = 'English',
-}: Props) {
+export function MatchResultCards({ match, canRequestCare = true, uiLanguage = 'English' }: Props) {
   if (!match.results?.length) return null;
 
   return (
@@ -233,7 +226,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.borderHair,
-    backgroundColor: 'rgba(18, 22, 34, 0.9)',
+    backgroundColor: colors.bgPanel,
     padding: 14,
     gap: 8,
   },
@@ -335,7 +328,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   primaryText: {
-    color: colors.bgVoid,
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
   },

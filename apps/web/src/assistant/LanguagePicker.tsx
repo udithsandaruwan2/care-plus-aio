@@ -6,12 +6,13 @@ type Props = {
   value: UiVoiceLanguage;
   onChange: (lang: UiVoiceLanguage) => void;
   disabled?: boolean;
+  className?: string;
 };
 
 /**
  * Session language lock for captions + server ASR + Serah replies.
  */
-export function LanguagePicker({ value, onChange, disabled }: Props) {
+export function LanguagePicker({ value, onChange, disabled, className = '' }: Props) {
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (disabled) return;
     const idx = UI_VOICE_LANGUAGES.indexOf(value);
@@ -35,7 +36,7 @@ export function LanguagePicker({ value, onChange, disabled }: Props) {
 
   return (
     <div
-      className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center gap-2"
+      className={`flex flex-wrap items-center justify-center gap-2 ${className}`}
       role="radiogroup"
       aria-label="Conversation language"
       onKeyDown={onKeyDown}

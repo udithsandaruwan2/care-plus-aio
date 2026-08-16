@@ -30,11 +30,11 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
   useFocusTrap(accountOpen, accountMenuRef, closeAccount);
   useFocusTrap(menuOpen, mobileNavRef, closeMobile);
 
-  const isHome = location.pathname === '/platform';
+  const isHome = location.pathname === '/hub';
   const showBackButton = showBack && !isHome;
 
   const primaryNav = [
-    { to: '/platform', label: t('nav.home'), end: true },
+    { to: '/hub', label: t('nav.home'), end: true },
     { to: '/app', label: t('nav.assistant'), end: true },
     { to: '/requests', label: t('nav.requests') },
     { to: '/schedule', label: t('nav.schedule') },
@@ -47,7 +47,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate('/platform');
+      navigate('/hub');
     }
   }
 
@@ -66,7 +66,7 @@ export function AppTopBar({ showBack = true }: { showBack?: boolean }) {
               {t('action.back')}
             </button>
           )}
-          <Link to="/platform" className="flex items-center gap-2">
+          <Link to="/hub" className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-cyan" aria-hidden />
             <span className="font-display text-base text-mist">{brand.name}</span>
           </Link>

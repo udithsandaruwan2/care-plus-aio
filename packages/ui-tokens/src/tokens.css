@@ -1,48 +1,50 @@
 /**
- * Aurora Neural CSS custom properties.
+ * Care Plus Medical Light — CSS custom properties.
  * Import via `@care-plus/ui-tokens/css` or Tailwind theme extension.
  */
 :root,
-[data-theme='dark'] {
-  --cp-bg-void: #070b14;
-  --cp-bg-panel: rgba(18, 24, 40, 0.72);
-  --cp-bg-elevated: rgba(26, 34, 56, 0.82);
-  --cp-bg-soft: rgba(11, 16, 28, 0.62);
-  --cp-border-hair: rgba(148, 163, 184, 0.22);
-  --cp-border-strong: rgba(148, 163, 184, 0.34);
-  --cp-accent-cyan: #22d3ee;
-  --cp-accent-violet: #8b5cf6;
-  --cp-accent-mint: #34d399;
+[data-theme='light'] {
+  --cp-bg-void: #f8fafc;
+  --cp-bg-panel: #ffffff;
+  --cp-bg-elevated: #ffffff;
+  --cp-bg-soft: #f1f5f9;
+  --cp-border-hair: #e2e8f0;
+  --cp-border-strong: #cbd5e1;
+  --cp-accent-cyan: #0d9488;
+  --cp-accent-violet: #3b82f6;
+  --cp-accent-mint: #10b981;
   --cp-accent-amber: #f59e0b;
+  --cp-accent-rose: #ef4444;
+  --cp-text-primary: #0f172a;
+  --cp-text-muted: #475569;
+  --cp-text-inverse: #ffffff;
+  --cp-shadow-soft: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme='dark'] {
+  --cp-bg-void: #0f172a;
+  --cp-bg-panel: #1e293b;
+  --cp-bg-elevated: #334155;
+  --cp-bg-soft: #1e293b;
+  --cp-border-hair: rgba(148, 163, 184, 0.28);
+  --cp-border-strong: rgba(148, 163, 184, 0.4);
+  --cp-accent-cyan: #2dd4bf;
+  --cp-accent-violet: #60a5fa;
+  --cp-accent-mint: #34d399;
+  --cp-accent-amber: #fbbf24;
   --cp-accent-rose: #fb7185;
-  --cp-text-primary: #e5edff;
-  --cp-text-muted: #b0bcd6;
-  --cp-text-inverse: #09101f;
+  --cp-text-primary: #f8fafc;
+  --cp-text-muted: #94a3b8;
+  --cp-text-inverse: #0f172a;
   --cp-shadow-soft: 0 20px 45px -25px rgba(2, 8, 23, 0.75);
 }
 
-[data-theme='light'] {
-  --cp-bg-void: #f2f5fb;
-  --cp-bg-panel: rgba(255, 255, 255, 0.86);
-  --cp-bg-elevated: rgba(255, 255, 255, 0.96);
-  --cp-bg-soft: rgba(241, 245, 255, 0.72);
-  --cp-border-hair: rgba(15, 23, 42, 0.1);
-  --cp-border-strong: rgba(15, 23, 42, 0.2);
-  --cp-accent-cyan: #0891b2;
-  --cp-accent-violet: #7c3aed;
-  --cp-accent-mint: #059669;
-  --cp-accent-amber: #c2410c;
-  --cp-accent-rose: #dc2626;
-  --cp-text-primary: #101828;
-  --cp-text-muted: #4b5565;
-  --cp-text-inverse: #f8fafc;
-  --cp-shadow-soft: 0 20px 45px -28px rgba(15, 23, 42, 0.2);
-}
-
 :root {
-  --cp-font-display: 'Space Grotesk', 'Sora', system-ui, sans-serif;
+  --cp-font-display: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, sans-serif;
   --cp-font-body: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', system-ui, sans-serif;
   --cp-duration-fast: 150ms;
   --cp-duration-base: 260ms;
   --cp-duration-slow: 420ms;
+  --cp-radius-card: 16px;
+  --cp-radius-sidebar: 20px;
 }

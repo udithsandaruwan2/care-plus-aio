@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
+import { PublicPage } from '../components/layout/PublicPage';
+import { Card } from '../components/ui/Card';
 import { BackLink } from '../components/ui/BackLink';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SUPPORT_EMAIL } from '../config';
 
 export function PrivacyNoticePage() {
   return (
-    <div className="mx-auto max-w-2xl">
+    <PublicPage className="max-w-2xl">
       <BackLink to="/">Home</BackLink>
       <div className="mt-4">
         <PageHeader
@@ -15,7 +17,7 @@ export function PrivacyNoticePage() {
         />
       </div>
 
-      <div className="mt-8 space-y-6 text-sm leading-relaxed text-muted">
+      <Card className="mt-8 space-y-6 text-sm leading-relaxed text-muted">
         <section>
           <h2 className="font-display text-lg text-mist">Who we are</h2>
           <p className="mt-2">
@@ -73,7 +75,7 @@ export function PrivacyNoticePage() {
             encrypted at rest. Access to another person’s health data is role-gated and audited.
           </p>
         </section>
-      </div>
-    </div>
+      </Card>
+    </PublicPage>
   );
 }

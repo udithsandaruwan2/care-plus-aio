@@ -26,7 +26,7 @@ const CITIES: { name: string; lon: number; lat: number }[] = [
 ];
 
 const inputClass =
-  'w-full rounded-lg border border-hair bg-void/60 px-3 py-2 text-mist outline-none ring-cyan focus:ring-1';
+  'w-full rounded-lg border border-hair bg-panel px-3 py-2 text-mist outline-none ring-cyan focus:ring-1';
 
 export function CaregiverOnboardingPage() {
   const { user } = useAuth();
@@ -79,9 +79,7 @@ export function CaregiverOnboardingPage() {
         const docs = p.certification_docs || [];
         if (docs.length) {
           setCertDocsNote(
-            docs
-              .map((d) => (typeof d.name === 'string' ? d.name : JSON.stringify(d)))
-              .join(', '),
+            docs.map((d) => (typeof d.name === 'string' ? d.name : JSON.stringify(d))).join(', '),
           );
         }
         setConditions(vocab.results);
@@ -146,7 +144,7 @@ export function CaregiverOnboardingPage() {
   ]);
 
   if (user?.role !== 'caregiver') {
-    return <Navigate to="/platform" replace />;
+    return <Navigate to="/hub" replace />;
   }
 
   function onCityChange(name: string) {
@@ -203,179 +201,179 @@ export function CaregiverOnboardingPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
-        <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">
-          Caregiver onboarding
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-mist">{steps[step]}</h1>
-        <OnboardingProgressBar completion={completion} />
-        <p className="mt-2 text-sm text-muted">
-          Profile {completion}% complete — need 80% to appear in patient match results.
-        </p>
-        <MotionStepChips steps={steps} step={step} />
+      <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">
+        Caregiver onboarding
+      </p>
+      <h1 className="mt-2 font-display text-3xl font-semibold text-mist">{steps[step]}</h1>
+      <OnboardingProgressBar completion={completion} />
+      <p className="mt-2 text-sm text-muted">
+        Profile {completion}% complete — need 80% to appear in patient match results.
+      </p>
+      <MotionStepChips steps={steps} step={step} />
 
-        {loading ? (
-          <p className="mt-8 text-muted">Loading your profile…</p>
-        ) : (
-          <form
-            onSubmit={(e) => void saveStep(e)}
-            className="mt-8 space-y-5 rounded-2xl border border-hair bg-panel p-6 backdrop-blur-md"
-          >
-            {step === 0 && (
-              <>
-                <Field label="Display name">
-                  <input
-                    required
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="National ID (NIC)">
-                  <input
-                    required
-                    value={nicId}
-                    onChange={(e) => setNicId(e.target.value)}
-                    className={inputClass}
-                    placeholder="e.g. 199012345678 or 901234567V"
-                  />
-                </Field>
-                <Field label="City">
-                  <select
-                    value={city}
-                    onChange={(e) => onCityChange(e.target.value)}
-                    className={inputClass}
-                  >
-                    {CITIES.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </>
-            )}
-
-            {step === 1 && (
-              <>
-                <Field label="Languages spoken">
-                  <div className="flex flex-wrap gap-2">
-                    {LANGUAGES.map((lang) => (
-                      <button
-                        key={lang}
-                        type="button"
-                        onClick={() => toggleLanguage(lang)}
-                        className={`rounded-lg border px-3 py-1.5 text-sm ${
-                          languages.includes(lang)
-                            ? 'border-cyan text-cyan'
-                            : 'border-hair text-muted hover:border-cyan/40'
-                        }`}
-                      >
-                        {lang}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-                <Field label="Specialties (medical vocabulary)">
-                  <MotionSpecialtyGrid
-                    conditions={conditions}
-                    selected={selectedSpecialties}
-                    toggle={toggleSpecialty}
-                  />
-                </Field>
-                <Field label="Care levels you support">
-                  <MotionCareLevelRow levels={careLevels} toggle={toggleCareLevel} />
-                </Field>
-                <Field label="Certifications">
-                  <MotionCertGrid certs={certifications} toggle={toggleCertification} />
-                </Field>
-                <Field label="Years of experience">
-                  <input
-                    type="number"
-                    min={0}
-                    max={60}
-                    required
-                    value={yearsExperience}
-                    onChange={(e) => setYearsExperience(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <Field label="Short bio">
-                  <textarea
-                    required
-                    rows={4}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    className={inputClass}
-                    placeholder="Tell patients about your experience and approach…"
-                  />
-                </Field>
-                <Field label="Service radius (km)">
-                  <input
-                    type="number"
-                    min={1}
-                    max={200}
-                    required
-                    value={serviceRadiusKm}
-                    onChange={(e) => setServiceRadiusKm(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Certification documents (names only — uploads in Step 22d)">
-                  <textarea
-                    rows={2}
-                    value={certDocsNote}
-                    onChange={(e) => setCertDocsNote(e.target.value)}
-                    className={inputClass}
-                    placeholder="e.g. First Aid certificate, NVQ Level 4"
-                  />
-                </Field>
-                {profile?.is_match_eligible && (
-                  <p className="text-sm text-mint">
-                    Your profile is approved and eligible for matching.
-                  </p>
-                )}
-                {profile?.onboarding_complete && !profile?.is_match_eligible && (
-                  <p className="text-sm text-amber">
-                    Onboarding complete — waiting for admin approval before you appear in match.
-                  </p>
-                )}
-              </>
-            )}
-
-            {error && <p className="text-sm text-rose">{error}</p>}
-
-            <div className="flex gap-3 pt-2">
-              {step > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setStep(step - 1)}
-                  className="rounded-lg border border-hair px-4 py-2 text-sm text-muted hover:border-cyan"
+      {loading ? (
+        <p className="mt-8 text-muted">Loading your profile…</p>
+      ) : (
+        <form
+          onSubmit={(e) => void saveStep(e)}
+          className="mt-8 space-y-5 rounded-2xl border border-hair bg-panel p-6 backdrop-blur-md"
+        >
+          {step === 0 && (
+            <>
+              <Field label="Display name">
+                <input
+                  required
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="National ID (NIC)">
+                <input
+                  required
+                  value={nicId}
+                  onChange={(e) => setNicId(e.target.value)}
+                  className={inputClass}
+                  placeholder="e.g. 199012345678 or 901234567V"
+                />
+              </Field>
+              <Field label="City">
+                <select
+                  value={city}
+                  onChange={(e) => onCityChange(e.target.value)}
+                  className={inputClass}
                 >
-                  Back
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 rounded-lg bg-cyan/90 px-4 py-2.5 font-medium text-void hover:bg-cyan disabled:opacity-60"
-              >
-                {saving ? 'Saving…' : step < 2 ? 'Save & continue' : 'Finish onboarding'}
-              </button>
-            </div>
-          </form>
-        )}
+                  {CITIES.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </>
+          )}
 
-        <p className="mt-6 text-center text-sm text-muted">
-          <Link to="/platform" className="text-cyan hover:underline">
-            Back to home
-          </Link>
-        </p>
-      </div>
+          {step === 1 && (
+            <>
+              <Field label="Languages spoken">
+                <div className="flex flex-wrap gap-2">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => toggleLanguage(lang)}
+                      className={`rounded-lg border px-3 py-1.5 text-sm ${
+                        languages.includes(lang)
+                          ? 'border-cyan text-cyan'
+                          : 'border-hair text-muted hover:border-cyan/40'
+                      }`}
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="Specialties (medical vocabulary)">
+                <MotionSpecialtyGrid
+                  conditions={conditions}
+                  selected={selectedSpecialties}
+                  toggle={toggleSpecialty}
+                />
+              </Field>
+              <Field label="Care levels you support">
+                <MotionCareLevelRow levels={careLevels} toggle={toggleCareLevel} />
+              </Field>
+              <Field label="Certifications">
+                <MotionCertGrid certs={certifications} toggle={toggleCertification} />
+              </Field>
+              <Field label="Years of experience">
+                <input
+                  type="number"
+                  min={0}
+                  max={60}
+                  required
+                  value={yearsExperience}
+                  onChange={(e) => setYearsExperience(e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <Field label="Short bio">
+                <textarea
+                  required
+                  rows={4}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className={inputClass}
+                  placeholder="Tell patients about your experience and approach…"
+                />
+              </Field>
+              <Field label="Service radius (km)">
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  required
+                  value={serviceRadiusKm}
+                  onChange={(e) => setServiceRadiusKm(e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Certification documents (names only — uploads in Step 22d)">
+                <textarea
+                  rows={2}
+                  value={certDocsNote}
+                  onChange={(e) => setCertDocsNote(e.target.value)}
+                  className={inputClass}
+                  placeholder="e.g. First Aid certificate, NVQ Level 4"
+                />
+              </Field>
+              {profile?.is_match_eligible && (
+                <p className="text-sm text-mint">
+                  Your profile is approved and eligible for matching.
+                </p>
+              )}
+              {profile?.onboarding_complete && !profile?.is_match_eligible && (
+                <p className="text-sm text-amber">
+                  Onboarding complete — waiting for admin approval before you appear in match.
+                </p>
+              )}
+            </>
+          )}
+
+          {error && <p className="text-sm text-rose">{error}</p>}
+
+          <div className="flex gap-3 pt-2">
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={() => setStep(step - 1)}
+                className="rounded-lg border border-hair px-4 py-2 text-sm text-muted hover:border-cyan"
+              >
+                Back
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 rounded-lg bg-cyan/90 px-4 py-2.5 font-medium text-inverse hover:bg-cyan disabled:opacity-60"
+            >
+              {saving ? 'Saving…' : step < 2 ? 'Save & continue' : 'Finish onboarding'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <p className="mt-6 text-center text-sm text-muted">
+        <Link to="/hub" className="text-cyan hover:underline">
+          Back to home
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -390,7 +388,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function OnboardingProgressBar({ completion }: { completion: number }) {
   return (
-    <div className="mt-4 h-2 overflow-hidden rounded-full bg-void/80">
+    <div className="mt-4 h-2 overflow-hidden rounded-full bg-soft">
       <div
         className="h-full rounded-full bg-gradient-to-r from-cyan to-mint transition-all"
         style={{ width: `${Math.min(100, completion)}%` }}
@@ -406,7 +404,7 @@ function MotionStepChips({ steps, step }: { steps: string[]; step: number }) {
         <span
           key={label}
           className={`rounded-full px-2 py-0.5 text-xs ${
-            i === step ? 'bg-cyan/20 text-cyan' : 'bg-void/60 text-muted'
+            i === step ? 'bg-cyan/20 text-cyan' : 'bg-panel text-muted'
           }`}
         >
           {i + 1}. {label}
@@ -472,13 +470,7 @@ function MotionCareLevelRow({
   );
 }
 
-function MotionCertGrid({
-  certs,
-  toggle,
-}: {
-  certs: string[];
-  toggle: (cert: string) => void;
-}) {
+function MotionCertGrid({ certs, toggle }: { certs: string[]; toggle: (cert: string) => void }) {
   return (
     <div className="flex max-h-36 flex-wrap gap-2 overflow-y-auto">
       {CERTIFICATIONS.map((cert) => (

@@ -211,7 +211,7 @@ export function AdminCatalogPage() {
     return (
       <div className="mx-auto max-w-3xl">
         <p className="text-sm text-muted">Admin or auditor access required.</p>
-        <Link to="/platform" className="mt-4 inline-block text-sm text-cyan hover:underline">
+        <Link to="/hub" className="mt-4 inline-block text-sm text-cyan hover:underline">
           Back home
         </Link>
       </div>
@@ -262,7 +262,10 @@ export function AdminCatalogPage() {
       {tab === 'conditions' && (
         <section className="mt-6">
           {canWrite && (
-            <form onSubmit={(e) => void onCreateCondition(e)} className="mb-6 grid gap-3 sm:grid-cols-3">
+            <form
+              onSubmit={(e) => void onCreateCondition(e)}
+              className="mb-6 grid gap-3 sm:grid-cols-3"
+            >
               <Input
                 placeholder="slug"
                 value={condSlug}
@@ -321,9 +324,22 @@ export function AdminCatalogPage() {
       {tab === 'packages' && (
         <section className="mt-6">
           {canWrite && (
-            <form onSubmit={(e) => void onCreatePackage(e)} className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <Input placeholder="slug" value={pkgSlug} onChange={(e) => setPkgSlug(e.target.value)} required />
-              <Input placeholder="Name" value={pkgName} onChange={(e) => setPkgName(e.target.value)} required />
+            <form
+              onSubmit={(e) => void onCreatePackage(e)}
+              className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+            >
+              <Input
+                placeholder="slug"
+                value={pkgSlug}
+                onChange={(e) => setPkgSlug(e.target.value)}
+                required
+              />
+              <Input
+                placeholder="Name"
+                value={pkgName}
+                onChange={(e) => setPkgName(e.target.value)}
+                required
+              />
               <select
                 className="min-h-11 rounded-2xl border border-hair bg-elevated px-3 text-sm text-mist"
                 value={pkgLevel}
@@ -389,7 +405,10 @@ export function AdminCatalogPage() {
       {tab === 'addons' && (
         <section className="mt-6">
           {canWrite && (
-            <form onSubmit={(e) => void onCreateAddOn(e)} className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <form
+              onSubmit={(e) => void onCreateAddOn(e)}
+              className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+            >
               <Input
                 placeholder="slug"
                 value={addonSlug}

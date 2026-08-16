@@ -1,18 +1,18 @@
 /**
- * Aurora Neural design tokens — single source for web (Tailwind) and mobile.
+ * Care Plus Medical Light — shared tokens for web (Tailwind) and mobile.
  * @see docs/FRONTEND.md §2
  */
 export const colors = {
-  bgVoid: '#05060A',
-  bgPanel: 'rgba(18, 22, 34, 0.6)',
-  borderHair: 'rgba(148, 163, 184, 0.14)',
-  accentCyan: '#22D3EE',
-  accentViolet: '#8B5CF6',
-  accentMint: '#34D399',
+  bgVoid: '#F8FAFC',
+  bgPanel: '#FFFFFF',
+  borderHair: '#E2E8F0',
+  accentCyan: '#0D9488',
+  accentViolet: '#3B82F6',
+  accentMint: '#10B981',
   accentAmber: '#F59E0B',
-  accentRose: '#FB7185',
-  textPrimary: '#E5EDFF',
-  textMuted: '#8A94AD',
+  accentRose: '#EF4444',
+  textPrimary: '#0F172A',
+  textMuted: '#475569',
 } as const;
 
 export const motion = {
@@ -23,13 +23,13 @@ export const motion = {
 } as const;
 
 export const typography = {
-  display: '"Space Grotesk", "Sora", system-ui, sans-serif',
+  display: '"Inter", "Noto Sans Sinhala", "Noto Sans Tamil", system-ui, sans-serif',
   body: '"Inter", "Noto Sans Sinhala", "Noto Sans Tamil", system-ui, sans-serif',
 } as const;
 
 export const brand = {
   name: 'Care Plus',
-  theme: 'Aurora Neural',
+  theme: 'Medical Light',
 } as const;
 
 export type ColorToken = keyof typeof colors;

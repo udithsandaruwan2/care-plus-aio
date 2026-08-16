@@ -29,7 +29,7 @@ function Bubble({ msg }: { msg: ChatMessage }) {
         className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
           isUser
             ? 'rounded-br-md bg-cyan/15 text-mist ring-1 ring-cyan/25'
-            : 'rounded-bl-md bg-panel/90 text-mint ring-1 ring-hair'
+            : 'rounded-bl-md bg-soft text-mist ring-1 ring-hair'
         }`}
       >
         {!isUser && (

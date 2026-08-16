@@ -1,107 +1,143 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { brand } from '@care-plus/ui-tokens';
+import { Activity, HeartPulse, Mic, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { useLocale } from '../i18n/LocaleProvider';
 
-export function PublicHomePage() {
-  const { t } = useLocale();
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) {
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div>
-      <section className="relative -mx-5 overflow-hidden sm:-mx-8">
+    <div
+      ref={cardRef}
+      className="perspective-1000"
+      onMouseMove={(e) => {
+        const rect = cardRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setRotation({
+          x: ((y - rect.height / 2) / (rect.height / 2)) * -8,
+          y: ((x - rect.width / 2) / (rect.width / 2)) * 8,
+        });
+      }}
+      onMouseLeave={() => setRotation({ x: 0, y: 0 })}
+    >
+      <div
+        className="rounded-2xl border border-hair bg-panel p-6 shadow-[var(--cp-shadow-soft)] transition-transform duration-200"
+        style={{ transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)` }}
+      >
+        <div className="mb-4 text-cyan">{icon}</div>
+        <h3 className="font-display text-lg font-semibold text-mist">{title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-muted">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+export function PublicHomePage() {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: (e.clientY / window.innerHeight) * 2 - 1,
+      });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  return (
+    <div className="relative overflow-hidden bg-panel">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_20%,color-mix(in_oklab,var(--cp-cyan)_22%,transparent),transparent_55%),radial-gradient(ellipse_at_80%_10%,color-mix(in_oklab,var(--cp-violet)_18%,transparent),transparent_50%),linear-gradient(180deg,color-mix(in_oklab,var(--cp-panel)_40%,transparent),transparent)]"
-          aria-hidden
+          className="absolute -right-24 -top-24 h-[500px] w-[500px] rounded-full bg-cyan/15 blur-[80px]"
+          style={{ transform: `translate(${mousePos.x * -50}px, ${mousePos.y * -50}px)` }}
         />
-        <div className="relative mx-auto flex min-h-[78vh] max-w-6xl flex-col justify-center px-5 py-16 sm:px-8 sm:py-20">
-          <p className="font-display text-4xl tracking-tight text-mist sm:text-6xl">{brand.name}</p>
-          <h1 className="mt-4 max-w-2xl font-display text-2xl leading-snug text-mist/95 sm:text-3xl">
-            {t('home.headline')}
+        <div
+          className="absolute -bottom-40 -left-40 h-[600px] w-[600px] rounded-full bg-violet/10 blur-[80px]"
+          style={{ transform: `translate(${mousePos.x * 50}px, ${mousePos.y * 50}px)` }}
+        />
+      </div>
+
+      <section className="relative z-10 mx-auto flex min-h-[calc(100vh-80px)] max-w-6xl items-center justify-between gap-10 px-6 py-16">
+        <div className="max-w-xl">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan/20 bg-cyan/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan">
+            <Activity size={14} /> Serah Neural Core v2.0
+          </div>
+          <h1
+            className="font-display text-4xl font-bold leading-tight text-mist sm:text-5xl"
+            style={{ transform: `translate(${mousePos.x * 12}px, ${mousePos.y * 12}px)` }}
+          >
+            Match with Caregivers
+            <br />
+            using your{' '}
+            <span className="bg-gradient-to-r from-cyan to-violet bg-clip-text text-transparent">
+              Voice.
+            </span>
           </h1>
-          <p className="mt-4 max-w-xl text-base text-muted">{t('home.support')}</p>
+          <p className="mt-5 max-w-lg text-base leading-relaxed text-muted">
+            Speak naturally in English, Sinhala, or Tamil. Serah captures your need; VEHMF ranks
+            caregivers on skills, history, distance, and trust.
+          </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/caregivers">
-              <Button className="px-6">{t('action.browseCaregivers')}</Button>
+            <Link to="/app">
+              <Button className="gap-2 px-6">
+                <Mic size={18} />
+                Initiate Voice Match
+              </Button>
             </Link>
-            <Link to="/register">
+            <Link to="/caregivers">
               <Button tone="ghost" className="px-6">
-                {t('action.getStarted')}
+                Explore Directory
               </Button>
             </Link>
           </div>
         </div>
-      </section>
-
-      <section className="mt-16">
-        <h2 className="font-display text-2xl text-mist">{t('home.howTitle')}</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">{t('home.howSubtitle')}</p>
-        <ol className="mt-8 grid gap-8 sm:grid-cols-3">
-          <li>
-            <p className="font-display text-cyan">01</p>
-            <p className="mt-2 font-display text-lg text-mist">{t('home.step1Title')}</p>
-            <p className="mt-1 text-sm text-muted">{t('home.step1Body')}</p>
-          </li>
-          <li>
-            <p className="font-display text-cyan">02</p>
-            <p className="mt-2 font-display text-lg text-mist">{t('home.step2Title')}</p>
-            <p className="mt-1 text-sm text-muted">{t('home.step2Body')}</p>
-          </li>
-          <li>
-            <p className="font-display text-cyan">03</p>
-            <p className="mt-2 font-display text-lg text-mist">{t('home.step3Title')}</p>
-            <p className="mt-1 text-sm text-muted">{t('home.step3Body')}</p>
-          </li>
-        </ol>
-      </section>
-
-      <section id="about" className="mt-20">
-        <h2 className="font-display text-2xl text-mist">{t('home.whyTitle')}</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">{t('home.whySubtitle')}</p>
-        <div className="mt-8 grid gap-10 md:grid-cols-3">
-          <div>
-            <p className="font-display text-lg text-mist">{t('home.why1Title')}</p>
-            <p className="mt-2 text-sm text-muted">{t('home.why1Body')}</p>
-          </div>
-          <div>
-            <p className="font-display text-lg text-mist">{t('home.why2Title')}</p>
-            <p className="mt-2 text-sm text-muted">{t('home.why2Body')}</p>
-          </div>
-          <div>
-            <p className="font-display text-lg text-mist">{t('home.why3Title')}</p>
-            <p className="mt-2 text-sm text-muted">{t('home.why3Body')}</p>
-          </div>
+        <div
+          className="relative hidden h-72 w-72 lg:block"
+          style={{
+            transform: `perspective(1000px) rotateY(${mousePos.x * -12}deg) rotateX(${mousePos.y * 12}deg)`,
+          }}
+          aria-hidden
+        >
+          <div className="absolute inset-8 rounded-3xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)]" />
+          <div className="absolute inset-16 rounded-full bg-gradient-to-br from-cyan/40 to-violet/30 blur-sm" />
+          <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan shadow-[0_0_40px_rgba(13,148,136,0.45)]" />
         </div>
       </section>
 
-      <section id="testimonials" className="mt-20">
-        <h2 className="font-display text-2xl text-mist">{t('home.storiesTitle')}</h2>
-        <p className="mt-2 text-sm text-muted">{t('home.storiesSubtitle')}</p>
-        <div className="mt-8 space-y-8">
-          <blockquote className="border-l-2 border-cyan/40 pl-5">
-            <p className="text-mist">{t('home.quote1')}</p>
-            <footer className="mt-2 text-xs text-muted">{t('home.quote1By')}</footer>
-          </blockquote>
-          <blockquote className="border-l-2 border-cyan/40 pl-5">
-            <p className="text-mist">{t('home.quote2')}</p>
-            <footer className="mt-2 text-xs text-muted">{t('home.quote2By')}</footer>
-          </blockquote>
-          <blockquote className="border-l-2 border-cyan/40 pl-5">
-            <p className="text-mist">{t('home.quote3')}</p>
-            <footer className="mt-2 text-xs text-muted">{t('home.quote3By')}</footer>
-          </blockquote>
-        </div>
-      </section>
-
-      <section className="mt-20 mb-4">
-        <h2 className="font-display text-2xl text-mist">{t('home.helpTitle')}</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted">{t('home.helpBody')}</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/contact">
-            <Button>{t('action.contactUs')}</Button>
-          </Link>
-          <Link to="/caregivers">
-            <Button tone="ghost">{t('action.exploreCaregivers')}</Button>
-          </Link>
+      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-20">
+        <h2 className="text-center font-display text-2xl font-bold text-mist">
+          Next-Level Innovation
+        </h2>
+        <div className="mx-auto mt-2 h-1 w-16 rounded-full bg-cyan" />
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <FeatureCard
+            icon={<Mic size={32} />}
+            title="Voice-First Matching"
+            description="Tell Serah what you need. She captures condition, care level, and language to find your match."
+          />
+          <FeatureCard
+            icon={<ShieldCheck size={32} />}
+            title="VEHMF Verification"
+            description="Every caregiver is ranked on skills, history, distance, and trust — never by a generative model."
+          />
+          <FeatureCard
+            icon={<HeartPulse size={32} />}
+            title="Secure Operations"
+            description="Clear LKR pricing, demo checkout, and OTP-gated medical record sharing."
+          />
         </div>
       </section>
     </div>

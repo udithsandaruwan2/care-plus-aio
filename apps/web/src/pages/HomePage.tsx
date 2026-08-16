@@ -1,5 +1,6 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Activity, Mic, Send } from 'lucide-react';
 import { AssistantState, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { useAuth } from '../auth/AuthContext';
 import { useCaregiverProfile } from '../auth/useCaregiverProfile';
@@ -7,8 +8,6 @@ import { usePatientProfile } from '../auth/usePatientProfile';
 import { api } from '../auth/api';
 import { useMicAmplitude } from '../neural-core/useMicAmplitude';
 import { useAssistant } from '../assistant/store';
-import { useReducedMotion } from '../assistant/useReducedMotion';
-import { GoalRing } from '../assistant/GoalRing';
 import { ChatBubbles } from '../assistant/ChatBubbles';
 import { EntityChips } from '../assistant/EntityChips';
 import { Transcript } from '../assistant/Transcript';
@@ -19,9 +18,11 @@ import { useMatchSocket } from '../assistant/useMatch';
 import { useAudioRecorder } from '../assistant/useAudioRecorder';
 import { useVoiceTurn } from '../assistant/useVoiceTurn';
 import { LanguagePicker } from '../assistant/LanguagePicker';
+import { NeuralOrb, orbVisualState } from '../assistant/NeuralOrb';
 import { stateCopy } from '../assistant/locale';
 import { uiLanguageToRecognition } from '../assistant/uiVoiceLanguage';
-import { PageHeader } from '../components/ui/PageHeader';
+import { Button } from '../components/ui/Button';
+import '../assistant/SerahHud.css';
 
 const CLARIFY_PROMPTS: Record<string, string> = {
   condition: 'What condition or symptom should I focus on?',
@@ -29,20 +30,17 @@ const CLARIFY_PROMPTS: Record<string, string> = {
   care_level: 'How much support do you need — basic, intermediate, or advanced?',
 };
 
-const NeuralCoreCanvas = lazy(() =>
-  import('../neural-core/NeuralCoreCanvas').then((m) => ({ default: m.NeuralCoreCanvas })),
-);
-
 export function HomePage() {
   const { user } = useAuth();
   const { canRequestCare, completionPercent } = usePatientProfile();
   const { isMatchEligible, completionPercent: cgCompletion } = useCaregiverProfile();
   const [emergencyMatchId, setEmergencyMatchId] = useState<number | null>(null);
   const [conversationOn, setConversationOn] = useState(false);
+  const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
+  const [textInput, setTextInput] = useState('');
   const conversationOnRef = useRef(false);
   conversationOnRef.current = conversationOn;
   const mic = useMicAmplitude();
-  const reducedMotion = useReducedMotion();
   const recorder = useAudioRecorder();
   const {
     state,
@@ -116,6 +114,8 @@ export function HomePage() {
 
   const listening = mic.active || speech.listening;
   const emergencyActive = state === AssistantState.EMERGENCY && emergencyMatchId != null;
+  const visual = orbVisualState(state, listening);
+  const showMatches = Boolean(match?.results?.length);
 
   useEffect(() => {
     if (consentNeeded) consentBtnRef.current?.focus();
@@ -187,32 +187,42 @@ export function HomePage() {
     }
   }
 
+  async function onTextSubmit(e: FormEvent) {
+    e.preventDefault();
+    const line = textInput.trim();
+    if (!line || busy || listening) return;
+    setTextInput('');
+    await runTurn({ text: line, audio: null });
+  }
+
   const progress = Math.round(goalRingProgress(intent) * 100);
   const missingField = nextMissingField(intent);
   const clarifyPrompt =
     state === AssistantState.CLARIFYING && missingField ? CLARIFY_PROMPTS[missingField] : null;
+  const hologramText = interim || transcript || chat.at(-1)?.text || '';
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col">
-      <PageHeader
-        eyebrow="Assistant"
-        title="Talk with Serah"
-        subtitle="Choose Sinhala, Tamil, or English, then speak. Serah replies in that language and ranks caregivers when you need care."
-        actions={
-          <Link
-            to="/platform"
-            className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted hover:border-cyan hover:text-cyan"
-          >
-            Manage care →
-          </Link>
-        }
-      />
+    <div className="serah-immersive-container">
+      <div className={`serah-ambient-bg state-${visual}`} aria-hidden />
 
-      <div className="mt-4">
-        <LanguagePicker value={uiLanguage} onChange={setUiLanguage} disabled={listening || busy} />
+      <div className="serah-hud-top">
+        <div className="hud-brand">
+          <Activity color="var(--cp-accent-cyan)" size={22} />
+          <span>SERAH NEURAL CORE v2.0</span>
+        </div>
+        <div className="hud-status">
+          <div className="status-indicator" />
+          <span>{visual.toUpperCase()}</span>
+        </div>
+        <LanguagePicker
+          value={uiLanguage}
+          onChange={setUiLanguage}
+          disabled={listening || busy}
+          className="justify-end"
+        />
       </div>
 
-      <div className="mx-auto mt-3 flex w-full max-w-xl flex-wrap justify-center gap-2 text-xs">
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-2 px-4 pt-3 text-xs">
         {user?.role === 'patient' && !canRequestCare && (
           <Link
             to="/onboarding"
@@ -231,68 +241,71 @@ export function HomePage() {
         )}
       </div>
 
-      <section className="relative mx-auto mt-4 flex w-full max-w-lg flex-col items-center">
-        {emergencyActive && (
-          <div className="mb-3 w-full rounded-2xl border border-rose/50 bg-rose/10 p-4 text-left backdrop-blur">
-            <p className="font-display text-sm tracking-wide text-rose">EMERGENCY alert</p>
-            <p className="mt-1 text-xs text-muted">
-              Serah detected a critical health signal and pushed your nearest advanced caregiver.
-            </p>
-            <a
-              href="#emergency-match"
-              className="mt-3 inline-block rounded-full border border-rose/40 px-3 py-1.5 text-xs text-rose transition hover:bg-rose/10"
-            >
-              View emergency match
-            </a>
-          </div>
-        )}
+      {emergencyActive && (
+        <div className="relative z-10 mx-auto mt-3 w-full max-w-lg rounded-2xl border border-rose/50 bg-rose/10 p-4 text-left">
+          <p className="font-display text-sm tracking-wide text-rose">EMERGENCY alert</p>
+          <p className="mt-1 text-xs text-muted">
+            Serah detected a critical health signal and pushed your nearest advanced caregiver.
+          </p>
+          <a href="#emergency-match" className="mt-3 inline-block text-xs font-semibold text-rose">
+            View emergency match
+          </a>
+        </div>
+      )}
+
+      <div className={`serah-core-wrapper ${showMatches ? 'shifted' : ''}`}>
         <button
           type="button"
-          onClick={toggleMic}
+          onClick={() => void toggleMic()}
           aria-pressed={listening}
           aria-label={listening ? 'Stop listening' : 'Tap to speak'}
           className="cursor-pointer rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
         >
-          <GoalRing intent={intent} size={288}>
-            <Suspense
-              fallback={
-                <div className="flex h-full items-center justify-center text-sm text-muted">
-                  Loading assistant…
-                </div>
-              }
-            >
-              <NeuralCoreCanvas
-                amplitude={mic.amplitude}
-                state={state}
-                reducedMotion={reducedMotion}
-                className="pointer-events-none h-full w-full"
-              />
-            </Suspense>
-          </GoalRing>
+          <NeuralOrb visual={visual} />
         </button>
-
-        <p className="mt-2 font-display text-sm tracking-wide text-cyan" aria-live="polite">
-          {stateCopy(state, uiLanguage)}
+        <p className="mt-3 font-display text-sm tracking-wide text-cyan" aria-live="polite">
+          {stateCopy(state, uiLanguage)} · Goal {progress}%
         </p>
+        <div className={`hologram-transcript ${hologramText ? 'visible' : ''}`}>
+          <p>{hologramText || 'Tap the orb or type below to talk with Serah.'}</p>
+        </div>
         <ChatBubbles messages={chat} />
         {clarifyPrompt && (
-          <p className="mt-1 text-sm text-amber" aria-live="polite">
+          <p className="mt-2 max-w-md text-center text-sm text-amber" aria-live="polite">
             {clarifyPrompt} Keep talking — your other details stay.
           </p>
         )}
+        <div className="mt-3">
+          <EntityChips intent={intent} uiLanguage={uiLanguage} />
+        </div>
+        <Transcript transcript={transcript} interim={interim} />
+      </div>
+
+      {showMatches ? (
+        <div className="serah-match-projection mx-auto lg:absolute lg:right-8 lg:top-28 lg:mx-0">
+          <MatchResultCards
+            id={emergencyActive ? 'emergency-match' : undefined}
+            match={match!}
+            canRequestCare={canRequestCare}
+            uiLanguage={uiLanguage}
+          />
+        </div>
+      ) : null}
+
+      <div className="serah-hud-bottom">
         {(mic.error || speech.error) && (
-          <p className="mt-1 text-sm text-rose" role="alert">
+          <p className="text-sm text-rose" role="alert">
             {mic.error ?? speech.error}
           </p>
         )}
         {turnError && !consentNeeded && (
-          <p className="mt-1 text-sm text-rose" role="alert">
+          <p className="text-sm text-rose" role="alert">
             {turnError}
           </p>
         )}
         {consentNeeded && (
           <div
-            className="mt-3 w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center"
+            className="w-full max-w-sm rounded-xl border border-amber/40 bg-amber/5 p-4 text-center"
             role="alertdialog"
             aria-labelledby="consent-title"
           >
@@ -302,65 +315,64 @@ export function HomePage() {
             <button
               ref={consentBtnRef}
               type="button"
-              onClick={onGrantConsent}
-              className="mt-3 rounded-full bg-amber/90 px-5 py-2 text-sm font-medium text-void transition hover:bg-amber focus-visible:ring-2 focus-visible:ring-cyan"
+              onClick={() => void onGrantConsent()}
+              className="mt-3 rounded-xl bg-amber px-5 py-2 text-sm font-semibold text-inverse"
             >
               Enable AI processing
             </button>
           </div>
         )}
         {!speech.supported && (
-          <p className="mt-1 text-xs text-amber" role="status">
+          <p className="text-xs text-amber" role="status">
             Live captions unsupported here — audio still uploads for Serah (try Chrome/Edge).
           </p>
         )}
-        <p className="mt-1 text-xs text-muted" aria-live="polite">
-          Goal {progress}% · level {(mic.amplitude * 100).toFixed(0)}%
-        </p>
 
-        <Transcript transcript={transcript} interim={interim} />
-        <div className="mt-3">
-          <EntityChips intent={intent} uiLanguage={uiLanguage} />
-        </div>
-
-        {match ? (
-          <MatchResultCards
-            id={emergencyActive ? 'emergency-match' : undefined}
-            match={match}
-            canRequestCare={canRequestCare}
-            uiLanguage={uiLanguage}
-          />
-        ) : null}
-
-        <button
-          type="button"
-          onClick={toggleMic}
-          disabled={busy && !listening}
-          aria-pressed={listening}
-          aria-label={
-            listening
-              ? 'Stop listening and send'
-              : busy
-                ? 'Serah is speaking'
-                : 'Tap to speak with Serah'
-          }
-          className={`mt-4 rounded-full px-6 py-2.5 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-cyan disabled:opacity-50 ${
-            listening
-              ? 'bg-rose/20 text-rose ring-1 ring-rose/50'
-              : 'bg-cyan/90 text-void hover:bg-cyan'
-          }`}
-        >
-          {listening
-            ? 'Stop / send'
-            : busy
-              ? 'Serah is speaking…'
-              : state === AssistantState.CLARIFYING ||
-                  state === AssistantState.RESULTS ||
-                  state === AssistantState.EMERGENCY ||
-                  state === AssistantState.CHAT_REPLY
-                ? 'Continue talking'
-                : 'Tap to speak with Serah'}
-        </button>
+        {inputMode === 'voice' ? (
+          <>
+            <button
+              type="button"
+              onClick={() => void toggleMic()}
+              disabled={busy && !listening}
+              aria-pressed={listening}
+              className={`serah-mic-btn ${listening ? 'active' : ''}`}
+            >
+              <Mic size={28} />
+            </button>
+            <span className="text-xs font-medium text-muted">
+              {listening ? 'Tap to stop' : busy ? 'Serah is speaking…' : 'Tap to speak'}
+            </span>
+            <button
+              type="button"
+              className="text-xs font-semibold text-cyan hover:underline"
+              onClick={() => setInputMode('text')}
+            >
+              Or type a message…
+            </button>
+          </>
+        ) : (
+          <form className="serah-text-controls" onSubmit={(e) => void onTextSubmit(e)}>
+            <button
+              type="button"
+              className="rounded-xl border border-hair px-3 text-cyan"
+              onClick={() => setInputMode('voice')}
+              aria-label="Switch to voice"
+            >
+              <Mic size={18} />
+            </button>
+            <input
+              className="min-h-11 flex-1 rounded-xl border border-hair bg-panel px-3.5 text-sm text-mist outline-none focus:border-cyan"
+              autoFocus
+              placeholder="Type your care need…"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              disabled={busy || listening}
+            />
+            <Button type="submit" disabled={!textInput.trim() || busy} className="min-h-11 px-4">
+              <Send size={18} />
+            </Button>
+          </form>
+        )}
 
         {(match ||
           state === AssistantState.CLARIFYING ||
@@ -371,12 +383,12 @@ export function HomePage() {
             type="button"
             onClick={() => void onNewRequest()}
             disabled={clearing || busy || listening}
-            className="mt-2 rounded-full border border-hair px-5 py-2 text-xs text-muted transition hover:border-amber hover:text-amber disabled:opacity-50"
+            className="rounded-xl border border-hair px-5 py-2 text-xs text-muted transition hover:border-amber hover:text-amber disabled:opacity-50"
           >
             {clearing ? 'Clearing…' : 'New request'}
           </button>
         )}
-      </section>
+      </div>
 
       {import.meta.env.DEV && <StateStepper />}
     </div>

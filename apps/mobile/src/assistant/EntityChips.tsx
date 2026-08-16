@@ -15,7 +15,8 @@ const CHIP_COLOR: Record<string, string> = {
 
 export function EntityChips({ intent }: Props) {
   const chips: { key: string; label: string; value: string }[] = [];
-  if (intent.condition) chips.push({ key: 'condition', label: 'Condition', value: intent.condition });
+  if (intent.condition)
+    chips.push({ key: 'condition', label: 'Condition', value: intent.condition });
   if (intent.language) chips.push({ key: 'language', label: 'Language', value: intent.language });
   if (intent.languages?.length && intent.languages.length > 1) {
     chips.push({ key: 'languages', label: 'Languages', value: intent.languages.join(', ') });
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
   chip: {
     borderRadius: 12,
     borderWidth: 1,
-    backgroundColor: 'rgba(18, 22, 34, 0.85)',
+    backgroundColor: colors.bgPanel,
     paddingHorizontal: 10,
     paddingVertical: 8,
     minWidth: 96,

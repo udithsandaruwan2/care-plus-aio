@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import type { CarePackage, CatalogAddOn } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { PublicPage } from '../components/layout/PublicPage';
 import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
 import { formatLkr } from '../lib/formatLkr';
 
@@ -30,7 +32,7 @@ export function CatalogPage() {
   }, []);
 
   return (
-    <div>
+    <PublicPage>
       <BackLink to="/">Home</BackLink>
       <div className="mt-4">
         <PageHeader
@@ -58,49 +60,53 @@ export function CatalogPage() {
         </p>
       )}
 
-      <section className="mt-10 space-y-4">
-        <h2 className="font-display text-lg text-mist">Packages</h2>
+      <section className="mt-10">
+        <h2 className="font-display text-lg font-semibold text-mist">Packages</h2>
         {!loading && !error && packages.length === 0 && (
-          <p className="text-sm text-muted">
+          <p className="mt-3 text-sm text-muted">
             No packages published yet. Check back soon or contact Care Plus Sri Lanka.
           </p>
         )}
-        {packages.map((pkg) => (
-          <article key={pkg.id} className="border-b border-hair/70 py-4 last:border-0">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-display text-lg text-mist">{pkg.name}</p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-muted">
-                  {pkg.care_level} · {pkg.default_days} days default
-                </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {packages.map((pkg) => (
+            <Card key={pkg.id}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-display text-lg font-semibold text-mist">{pkg.name}</p>
+                  <p className="mt-1 text-xs uppercase tracking-wide text-muted">
+                    {pkg.care_level} · {pkg.default_days} days default
+                  </p>
+                </div>
+                <p className="font-semibold text-cyan">{formatLkr(pkg.price_lkr)}</p>
               </div>
-              <p className="text-mint">{formatLkr(pkg.price_lkr)}</p>
-            </div>
-            {pkg.description && <p className="mt-3 text-sm text-mist/90">{pkg.description}</p>}
-          </article>
-        ))}
+              {pkg.description && <p className="mt-3 text-sm text-muted">{pkg.description}</p>}
+            </Card>
+          ))}
+        </div>
       </section>
 
-      <section className="mt-12 space-y-4">
-        <h2 className="font-display text-lg text-mist">Add-ons</h2>
+      <section className="mt-12">
+        <h2 className="font-display text-lg font-semibold text-mist">Add-ons</h2>
         {!loading && !error && addons.length === 0 && (
-          <p className="text-sm text-muted">No add-ons published yet. Check back soon.</p>
+          <p className="mt-3 text-sm text-muted">No add-ons published yet. Check back soon.</p>
         )}
-        {addons.map((addon) => (
-          <article key={addon.id} className="border-b border-hair/70 py-4 last:border-0">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-display text-lg text-mist">{addon.name}</p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-muted">{addon.category}</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {addons.map((addon) => (
+            <Card key={addon.id}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-display text-lg font-semibold text-mist">{addon.name}</p>
+                  <p className="mt-1 text-xs uppercase tracking-wide text-muted">
+                    {addon.category}
+                  </p>
+                </div>
+                <p className="font-semibold text-cyan">{formatLkr(addon.price_lkr)}</p>
               </div>
-              <p className="text-mint">{formatLkr(addon.price_lkr)}</p>
-            </div>
-            {addon.description && (
-              <p className="mt-3 text-sm text-mist/90">{addon.description}</p>
-            )}
-          </article>
-        ))}
+              {addon.description && <p className="mt-3 text-sm text-muted">{addon.description}</p>}
+            </Card>
+          ))}
+        </div>
       </section>
-    </div>
+    </PublicPage>
   );
 }

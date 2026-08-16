@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError, userNeedsOtp } from '@care-plus/api-client';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 
@@ -19,7 +20,7 @@ export function OtpPage() {
   const { user, requestOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? '/platform';
+  const from = (location.state as { from?: string } | null)?.from ?? '/hub';
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -50,7 +51,7 @@ export function OtpPage() {
     setBusy(true);
     try {
       await verifyOtp(code.trim());
-      navigate(from === '/login' ? '/platform' : from, { replace: true });
+      navigate(from === '/login' ? '/hub' : from, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -59,35 +60,37 @@ export function OtpPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <PageHeader
-        eyebrow="Security"
-        title="Verify your email"
-        subtitle="Demo verification — no email is sent. Use the code shown below."
-      />
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Verification code</span>
-          <Input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            required
-          />
-        </label>
-        {demoCode && (
-          <p className="rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 font-mono text-lg tracking-[0.4em] text-amber">
-            {demoCode}
-          </p>
-        )}
-        {info && <p className="text-sm text-mint">{info}</p>}
-        {error && <p className="text-sm text-rose">{error}</p>}
-        <Button type="submit" disabled={busy || code.length !== 6}>
-          {busy ? 'Verifying…' : 'Verify'}
-        </Button>
-      </form>
+    <div className="mx-auto max-w-md py-6">
+      <Card className="p-8">
+        <PageHeader
+          eyebrow="Security"
+          title="Verify your email"
+          subtitle="Demo verification — no email is sent. Use the code shown below."
+        />
+        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs uppercase tracking-wide text-muted">Verification code</span>
+            <Input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              required
+            />
+          </label>
+          {demoCode && (
+            <p className="rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 font-mono text-lg tracking-[0.4em] text-amber">
+              {demoCode}
+            </p>
+          )}
+          {info && <p className="text-sm text-mint">{info}</p>}
+          {error && <p className="text-sm text-rose">{error}</p>}
+          <Button type="submit" disabled={busy || code.length !== 6} className="w-full">
+            {busy ? 'Verifying…' : 'Verify'}
+          </Button>
+        </form>
+      </Card>
     </div>
   );
 }

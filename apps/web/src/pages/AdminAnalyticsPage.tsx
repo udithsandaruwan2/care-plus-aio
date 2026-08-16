@@ -57,7 +57,7 @@ export function AdminAnalyticsPage() {
     return (
       <div className="mx-auto max-w-3xl">
         <p className="text-sm text-muted">Admin or auditor access required.</p>
-        <Link to="/platform" className="mt-4 inline-block text-sm text-cyan hover:underline">
+        <Link to="/hub" className="mt-4 inline-block text-sm text-cyan hover:underline">
           Back home
         </Link>
       </div>

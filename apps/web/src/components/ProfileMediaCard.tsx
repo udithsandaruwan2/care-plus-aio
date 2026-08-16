@@ -35,7 +35,11 @@ export function ProfileMediaCard({
       }
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Upload failed.',
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Upload failed.',
       );
     } finally {
       setBusy(false);
@@ -50,7 +54,11 @@ export function ProfileMediaCard({
       onCaregiverProfile?.(await api.uploadMyCaregiverDocument(file, file.name));
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Upload failed.',
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Upload failed.',
       );
     } finally {
       setBusy(false);
@@ -59,7 +67,7 @@ export function ProfileMediaCard({
 
   return (
     <div className="flex flex-wrap items-start gap-4">
-      <div className="h-20 w-20 overflow-hidden rounded-2xl border border-hair bg-void/60">
+      <div className="h-20 w-20 overflow-hidden rounded-2xl border border-hair bg-panel">
         {src ? (
           <img src={src} alt="Profile" className="h-full w-full object-cover" />
         ) : (
@@ -102,7 +110,12 @@ export function ProfileMediaCard({
               return (
                 <li key={typeof doc.id === 'string' ? doc.id : i}>
                   {href ? (
-                    <a href={href} className="text-cyan hover:underline" target="_blank" rel="noreferrer">
+                    <a
+                      href={href}
+                      className="text-cyan hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       {name}
                     </a>
                   ) : (

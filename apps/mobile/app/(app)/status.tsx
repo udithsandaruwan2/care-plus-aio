@@ -5,14 +5,10 @@ import { api, apiBaseUrl } from '../../src/api';
 import { getCachedPushToken, registerForPushAlerts } from '../../src/notifications/registerPush';
 
 type HealthState =
-  | { status: 'loading' }
-  | { status: 'ok'; detail: string }
-  | { status: 'error'; message: string };
+  { status: 'loading' } | { status: 'ok'; detail: string } | { status: 'error'; message: string };
 
 type PushState =
-  | { status: 'idle' }
-  | { status: 'working' }
-  | { status: 'result'; label: string; detail?: string };
+  { status: 'idle' } | { status: 'working' } | { status: 'result'; label: string; detail?: string };
 
 /** Dev/status screen — health check + push registration probe (Step 67). */
 export default function StatusScreen() {
@@ -63,9 +59,7 @@ export default function StatusScreen() {
       )}
       {health.status === 'ok' && <Text style={styles.ok}>API healthy · {health.detail}</Text>}
       {health.status === 'error' && (
-        <Text style={styles.error}>
-          Offline — start Docker backend on :8000. {health.message}
-        </Text>
+        <Text style={styles.error}>Offline — start Docker backend on :8000. {health.message}</Text>
       )}
 
       <Pressable
@@ -137,7 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(34, 211, 238, 0.45)',
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: 'rgba(13, 148, 136, 0.12)',
     paddingHorizontal: 16,
     paddingVertical: 10,
   },

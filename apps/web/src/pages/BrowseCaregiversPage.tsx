@@ -4,6 +4,7 @@ import type { CaregiverProfile } from '@care-plus/api-client';
 import { CaregiverMap } from '../components/CaregiverMap';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { PublicPage } from '../components/layout/PublicPage';
 import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -70,17 +71,14 @@ export function BrowseCaregiversPage() {
     };
   }, [filters]);
 
-  const selected = useMemo(
-    () => rows.find((r) => r.id === selectedId) ?? null,
-    [rows, selectedId],
-  );
+  const selected = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
 
   function toggleChip<K extends 'language' | 'specialty'>(key: K, value: string) {
     setFilters((f) => ({ ...f, [key]: f[key] === value ? '' : value }));
   }
 
   return (
-    <div>
+    <PublicPage>
       <BackLink to="/">Home</BackLink>
       <div className="mt-4">
         <PageHeader
@@ -173,7 +171,7 @@ export function BrowseCaregiversPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <CaregiverMap caregivers={rows} selectedId={selectedId} onSelect={setSelectedId} />
 
-        <div className="max-h-[35rem] space-y-2 overflow-y-auto rounded-[1.5rem] border border-hair bg-panel/50 p-3">
+        <div className="max-h-[35rem] space-y-2 overflow-y-auto rounded-2xl border border-hair bg-panel p-3 shadow-[var(--cp-shadow-soft)]">
           {!loading && !error && rows.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-muted">
               No caregivers match. Try another city (e.g. Colombo, Kandy), clear language/specialty,
@@ -189,8 +187,8 @@ export function BrowseCaregiversPage() {
                 onClick={() => setSelectedId(cg.id)}
                 className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                   active
-                    ? 'border-cyan/60 bg-cyan/10'
-                    : 'border-hair bg-soft/40 hover:border-cyan/30'
+                    ? 'border-cyan/60 bg-cyan/10 shadow-sm'
+                    : 'border-hair bg-soft hover:border-cyan/30'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -214,9 +212,11 @@ export function BrowseCaregiversPage() {
       </div>
 
       {selected && (
-        <div className="mt-6 rounded-[1.5rem] border border-hair bg-panel/60 p-5">
+        <div className="mt-6 rounded-2xl border border-hair bg-panel p-5 shadow-[var(--cp-shadow-soft)]">
           <p className="font-display text-lg text-mist">{selected.display_name}</p>
-          <p className="mt-1 text-sm text-muted">{selected.bio || 'Community caregiver on Care Plus.'}</p>
+          <p className="mt-1 text-sm text-muted">
+            {selected.bio || 'Community caregiver on Care Plus.'}
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link to={`/caregivers/${selected.id}`}>
               <Button>View full profile</Button>
@@ -229,6 +229,6 @@ export function BrowseCaregiversPage() {
           </div>
         </div>
       )}
-    </div>
+    </PublicPage>
   );
 }

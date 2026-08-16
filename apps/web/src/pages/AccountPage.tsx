@@ -11,7 +11,7 @@ function SettingsLink({ to, title, desc }: { to: string; title: string; desc: st
   return (
     <Link
       to={to}
-      className="rounded-2xl border border-hair bg-panel/50 p-4 transition hover:border-cyan/40"
+      className="rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-4 transition hover:border-cyan/40"
     >
       <p className="font-display text-base text-mist">{title}</p>
       <p className="mt-1 text-sm text-muted">{desc}</p>
@@ -33,7 +33,7 @@ export function AccountPage() {
         subtitle="Manage your Care Plus profile, completion, and alerts."
       />
 
-      <section className="mt-6 rounded-2xl border border-hair bg-panel/50 p-5">
+      <section className="mt-6 rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
         <p className="font-display text-lg text-mist">Identity</p>
         <p className="mt-2 text-sm text-muted">
           Signed in as <span className="text-mist">{user?.email ?? 'unknown'}</span>
@@ -66,7 +66,7 @@ export function AccountPage() {
         )}
       </section>
 
-      <section className="mt-6 rounded-2xl border border-hair bg-panel/50 p-5">
+      <section className="mt-6 rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
         <p className="font-display text-lg text-mist">Profile completion</p>
         {user?.role === 'patient' && (
           <div className="mt-2 text-sm text-muted">

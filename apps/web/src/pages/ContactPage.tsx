@@ -2,6 +2,8 @@ import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError } from '@care-plus/api-client';
 import { api } from '../auth/api';
+import { PublicPage } from '../components/layout/PublicPage';
+import { Card } from '../components/ui/Card';
 import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -58,7 +60,7 @@ export function ContactPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl">
+    <PublicPage className="max-w-xl">
       <BackLink to="/">Home</BackLink>
       <div className="mt-4">
         <PageHeader
@@ -80,63 +82,64 @@ export function ContactPage() {
         </p>
       )}
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Name</span>
-          <Input required value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Email</span>
-          <Input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Phone (+94)</span>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+94 7X XXX XXXX"
-          />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">City</span>
-          <Input
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="e.g. Colombo, Kandy, Galle"
-          />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Language</span>
-          <select
-            value={preferredLanguage}
-            onChange={(e) => setPreferredLanguage(e.target.value)}
-            className="min-h-11 w-full rounded-2xl border border-hair bg-elevated px-3.5 py-2.5 text-sm text-mist outline-none focus:border-strong"
-          >
-            <option value="English">English</option>
-            <option value="Sinhala">Sinhala</option>
-            <option value="Tamil">Tamil</option>
-          </select>
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Message</span>
-          <textarea
-            rows={4}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="w-full rounded-2xl border border-hair bg-elevated px-3.5 py-2.5 text-sm text-mist outline-none focus:border-strong"
-          />
-        </label>
-        <Button type="submit" disabled={busy} className="w-full">
-          {busy ? 'Sending…' : 'Send enquiry'}
-        </Button>
-      </form>
-
+      <Card className="mt-8">
+        <form onSubmit={onSubmit} className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs uppercase tracking-wide text-muted">Name</span>
+            <Input required value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs uppercase tracking-wide text-muted">Email</span>
+            <Input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs uppercase tracking-wide text-muted">Phone (+94)</span>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+94 7X XXX XXXX"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs uppercase tracking-wide text-muted">City</span>
+            <Input
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="e.g. Colombo, Kandy, Galle"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs uppercase tracking-wide text-muted">Language</span>
+            <select
+              value={preferredLanguage}
+              onChange={(e) => setPreferredLanguage(e.target.value)}
+              className="min-h-11 w-full rounded-2xl border border-hair bg-elevated px-3.5 py-2.5 text-sm text-mist outline-none focus:border-strong"
+            >
+              <option value="English">English</option>
+              <option value="Sinhala">Sinhala</option>
+              <option value="Tamil">Tamil</option>
+            </select>
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs uppercase tracking-wide text-muted">Message</span>
+            <textarea
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full rounded-2xl border border-hair bg-elevated px-3.5 py-2.5 text-sm text-mist outline-none focus:border-strong"
+            />
+          </label>
+          <Button type="submit" disabled={busy} className="w-full">
+            {busy ? 'Sending…' : 'Send enquiry'}
+          </Button>
+        </form>
+      </Card>
       <p className="mt-6 text-center text-xs text-muted">
         Already have an account?{' '}
         <Link to="/login" className="text-cyan hover:underline">
           Sign in
         </Link>
       </p>
-    </div>
+    </PublicPage>
   );
 }

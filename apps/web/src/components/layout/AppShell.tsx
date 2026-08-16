@@ -1,20 +1,23 @@
 import { Outlet } from 'react-router-dom';
-import { AtmosphereShell } from '../AtmosphereShell';
 import { SkipLink } from '../../a11y/SkipLink';
-import { AppTopBar } from './AppTopBar';
+import { HubSidebar } from './HubSidebar';
+import { HubTopbar } from './HubTopbar';
 
 export function AppShell() {
   return (
-    <AtmosphereShell>
+    <div className="flex min-h-screen bg-void">
       <SkipLink />
-      <AppTopBar />
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="mx-auto flex min-h-[calc(100%-4rem)] w-full max-w-6xl flex-col px-4 py-6 outline-none sm:px-6 sm:py-8"
-      >
-        <Outlet />
-      </main>
-    </AtmosphereShell>
+      <HubSidebar />
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <HubTopbar />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto px-8 pb-8 outline-none"
+        >
+          <Outlet />
+        </main>
+      </div>
+    </div>
   );
 }

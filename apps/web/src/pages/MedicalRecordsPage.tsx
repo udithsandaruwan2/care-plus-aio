@@ -1,17 +1,13 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
-import type {
-  ConditionTerm,
-  MedicalRecordDetail,
-  MedicalRecordList,
-} from '@care-plus/api-client';
+import type { ConditionTerm, MedicalRecordDetail, MedicalRecordList } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { useCurrentCareRelationship } from '../auth/useCurrentCareRelationship';
 
 const inputClass =
-  'w-full rounded-lg border border-hair bg-void/60 px-3 py-2 text-mist outline-none ring-cyan focus:ring-1';
+  'w-full rounded-lg border border-hair bg-panel px-3 py-2 text-mist outline-none ring-cyan focus:ring-1';
 
 function apiOrigin(): string {
   const base = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1';
@@ -109,7 +105,10 @@ export function MedicalRecordsPage() {
     }
     void loadList();
     if (isPatient) {
-      api.vocabConditions().then((v) => setConditions(v.results)).catch(() => setConditions([]));
+      api
+        .vocabConditions()
+        .then((v) => setConditions(v.results))
+        .catch(() => setConditions([]));
     }
   }, [isPatient, isCaregiver, loadList]);
 
@@ -123,7 +122,7 @@ export function MedicalRecordsPage() {
   }, [selectedId, loadDetail]);
 
   if (user && user.role !== 'patient' && user.role !== 'caregiver') {
-    return <Navigate to="/platform" replace />;
+    return <Navigate to="/hub" replace />;
   }
 
   const partnerLabel =
@@ -249,314 +248,320 @@ export function MedicalRecordsPage() {
         }
       />
 
-        {isCaregiver && (
-          <p className="mt-4 rounded-xl border border-violet/30 bg-violet/5 px-4 py-3 text-xs text-violet">
-            Read-only while care is active · access is audited under Sri Lanka data-protection rules
-          </p>
-        )}
+      {isCaregiver && (
+        <p className="mt-4 rounded-xl border border-violet/30 bg-violet/5 px-4 py-3 text-xs text-violet">
+          Read-only while care is active · access is audited under Sri Lanka data-protection rules
+        </p>
+      )}
 
-        {isPatient && !showCreate && (
-          <button
-            type="button"
-            onClick={() => {
-              setShowCreate(true);
-              setSelectedId(null);
-              setDetail(null);
-              setForm(emptyForm());
-              setCreateFile(null);
-            }}
-            className="mt-6 self-start rounded-lg border border-cyan/40 bg-cyan/10 px-4 py-2 text-sm text-cyan transition hover:bg-cyan/20"
-          >
-            + New record
-          </button>
-        )}
+      {isPatient && !showCreate && (
+        <button
+          type="button"
+          onClick={() => {
+            setShowCreate(true);
+            setSelectedId(null);
+            setDetail(null);
+            setForm(emptyForm());
+            setCreateFile(null);
+          }}
+          className="mt-6 self-start rounded-lg border border-cyan/40 bg-cyan/10 px-4 py-2 text-sm text-cyan transition hover:bg-cyan/20"
+        >
+          + New record
+        </button>
+      )}
 
-        {error && (
-          <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
-            {error}
-          </p>
-        )}
+      {error && (
+        <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
+          {error}
+        </p>
+      )}
 
-        {isPatient && showCreate && (
-          <form
-            onSubmit={(e) => void onCreate(e)}
-            className="mt-6 space-y-4 rounded-2xl border border-cyan/30 bg-panel/70 p-5 backdrop-blur-md"
-          >
-            <h2 className="font-display text-lg text-mist">New record</h2>
-            <label className="block text-sm text-muted">
-              Condition
-              <select
-                className={`${inputClass} mt-1`}
-                value={form.condition_slug}
-                onChange={(e) => setForm((f) => ({ ...f, condition_slug: e.target.value }))}
-                required
-              >
-                <option value="">Select condition…</option>
-                {conditions.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.canonical_en}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm text-muted">
-              Title
-              <input
-                className={`${inputClass} mt-1`}
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                required
-              />
-            </label>
-            <label className="block text-sm text-muted">
-              Description
-              <textarea
-                className={`${inputClass} mt-1 min-h-[80px]`}
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              />
-            </label>
-            <label className="block text-sm text-muted">
-              Sensitive notes (encrypted)
-              <textarea
-                className={`${inputClass} mt-1 min-h-[80px]`}
-                value={form.sensitive_notes}
-                onChange={(e) => setForm((f) => ({ ...f, sensitive_notes: e.target.value }))}
-              />
-            </label>
-            <label className="block text-sm text-muted">
-              Recorded date
-              <input
-                type="date"
-                className={`${inputClass} mt-1`}
-                value={form.recorded_at}
-                onChange={(e) => setForm((f) => ({ ...f, recorded_at: e.target.value }))}
-              />
-            </label>
-            <label className="block text-sm text-muted">
-              Attachment (optional)
-              <input
-                type="file"
-                className="mt-1 block w-full text-sm text-muted"
-                onChange={(e) => setCreateFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={busy}
-                className="rounded-lg bg-cyan px-4 py-2 text-sm font-medium text-void disabled:opacity-50"
-              >
-                {busy ? 'Saving…' : 'Create record'}
-              </button>
+      {isPatient && showCreate && (
+        <form
+          onSubmit={(e) => void onCreate(e)}
+          className="mt-6 space-y-4 rounded-2xl border border-cyan/30 bg-panel/70 p-5 backdrop-blur-md"
+        >
+          <h2 className="font-display text-lg text-mist">New record</h2>
+          <label className="block text-sm text-muted">
+            Condition
+            <select
+              className={`${inputClass} mt-1`}
+              value={form.condition_slug}
+              onChange={(e) => setForm((f) => ({ ...f, condition_slug: e.target.value }))}
+              required
+            >
+              <option value="">Select condition…</option>
+              {conditions.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.canonical_en}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm text-muted">
+            Title
+            <input
+              className={`${inputClass} mt-1`}
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              required
+            />
+          </label>
+          <label className="block text-sm text-muted">
+            Description
+            <textarea
+              className={`${inputClass} mt-1 min-h-[80px]`}
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </label>
+          <label className="block text-sm text-muted">
+            Sensitive notes (encrypted)
+            <textarea
+              className={`${inputClass} mt-1 min-h-[80px]`}
+              value={form.sensitive_notes}
+              onChange={(e) => setForm((f) => ({ ...f, sensitive_notes: e.target.value }))}
+            />
+          </label>
+          <label className="block text-sm text-muted">
+            Recorded date
+            <input
+              type="date"
+              className={`${inputClass} mt-1`}
+              value={form.recorded_at}
+              onChange={(e) => setForm((f) => ({ ...f, recorded_at: e.target.value }))}
+            />
+          </label>
+          <label className="block text-sm text-muted">
+            Attachment (optional)
+            <input
+              type="file"
+              className="mt-1 block w-full text-sm text-muted"
+              onChange={(e) => setCreateFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={busy}
+              className="rounded-lg bg-cyan px-4 py-2 text-sm font-medium text-inverse disabled:opacity-50"
+            >
+              {busy ? 'Saving…' : 'Create record'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="rounded-lg border border-hair px-4 py-2 text-sm text-muted"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading && <p className="mt-8 text-sm text-muted">Loading records…</p>}
+
+      {!loading && !showCreate && rows.length === 0 && (
+        <p className="mt-8 text-sm text-muted">
+          {isCaregiver
+            ? 'No notes yet for this patient — ask them to add the first record.'
+            : 'No records yet. Add a clinical note (clinic letters, prescriptions, discharge notes).'}
+        </p>
+      )}
+
+      {!showCreate && rows.length > 0 && (
+        <ul className="mt-6 space-y-3">
+          {rows.map((row) => (
+            <li key={row.id}>
               <button
                 type="button"
-                onClick={() => setShowCreate(false)}
-                className="rounded-lg border border-hair px-4 py-2 text-sm text-muted"
+                onClick={() => void onSelectRecord(row.id)}
+                className={`w-full rounded-2xl border p-5 text-left backdrop-blur-md transition ${
+                  selectedId === row.id
+                    ? 'border-cyan/50 bg-cyan/5'
+                    : 'border-hair bg-panel/70 hover:border-cyan/30'
+                }`}
               >
-                Cancel
+                <p className="font-display text-lg text-mist">{row.title}</p>
+                <p className="mt-1 text-xs text-muted">
+                  {row.condition_name} · {formatDate(row.recorded_at)} · {row.attachment_count}{' '}
+                  attachment{row.attachment_count === 1 ? '' : 's'}
+                </p>
               </button>
-            </div>
-          </form>
-        )}
+            </li>
+          ))}
+        </ul>
+      )}
 
-        {loading && <p className="mt-8 text-sm text-muted">Loading records…</p>}
-
-        {!loading && !showCreate && rows.length === 0 && (
-          <p className="mt-8 text-sm text-muted">
-            {isCaregiver
-              ? 'No notes yet for this patient — ask them to add the first record.'
-              : 'No records yet. Add a clinical note (clinic letters, prescriptions, discharge notes).'}
-          </p>
-        )}
-
-        {!showCreate && rows.length > 0 && (
-          <ul className="mt-6 space-y-3">
-            {rows.map((row) => (
-              <li key={row.id}>
-                <button
-                  type="button"
-                  onClick={() => void onSelectRecord(row.id)}
-                  className={`w-full rounded-2xl border p-5 text-left backdrop-blur-md transition ${
-                    selectedId === row.id
-                      ? 'border-cyan/50 bg-cyan/5'
-                      : 'border-hair bg-panel/70 hover:border-cyan/30'
-                  }`}
-                >
-                  <p className="font-display text-lg text-mist">{row.title}</p>
-                  <p className="mt-1 text-xs text-muted">
-                    {row.condition_name} · {formatDate(row.recorded_at)} · {row.attachment_count}{' '}
-                    attachment{row.attachment_count === 1 ? '' : 's'}
+      {selectedId != null && !showCreate && (
+        <section className="mt-8 rounded-2xl border border-hair bg-panel/70 p-5 backdrop-blur-md">
+          {detailLoading && <p className="text-sm text-muted">Loading detail…</p>}
+          {!detailLoading && detail && (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted">
+                    {detail.condition_name}
                   </p>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {selectedId != null && !showCreate && (
-          <section className="mt-8 rounded-2xl border border-hair bg-panel/70 p-5 backdrop-blur-md">
-            {detailLoading && <p className="text-sm text-muted">Loading detail…</p>}
-            {!detailLoading && detail && (
-              <>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-muted">{detail.condition_name}</p>
-                    <h2 className="mt-1 font-display text-xl text-mist">{detail.title}</h2>
-                    <p className="mt-1 text-xs text-muted">
-                      Recorded {formatDate(detail.recorded_at)} · updated{' '}
-                      {formatDate(detail.updated_at)}
-                    </p>
+                  <h2 className="mt-1 font-display text-xl text-mist">{detail.title}</h2>
+                  <p className="mt-1 text-xs text-muted">
+                    Recorded {formatDate(detail.recorded_at)} · updated{' '}
+                    {formatDate(detail.updated_at)}
+                  </p>
+                </div>
+                {isPatient && !editing && (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditing(true)}
+                      className="rounded-lg border border-cyan/40 px-3 py-1.5 text-xs text-cyan"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onDelete()}
+                      disabled={busy}
+                      className="rounded-lg border border-rose/40 px-3 py-1.5 text-xs text-rose"
+                    >
+                      Delete
+                    </button>
                   </div>
-                  {isPatient && !editing && (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditing(true)}
-                        className="rounded-lg border border-cyan/40 px-3 py-1.5 text-xs text-cyan"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void onDelete()}
-                        disabled={busy}
-                        className="rounded-lg border border-rose/40 px-3 py-1.5 text-xs text-rose"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {editing && isPatient ? (
-                  <form onSubmit={(e) => void onSaveEdit(e)} className="mt-4 space-y-3">
-                    <label className="block text-sm text-muted">
-                      Condition
-                      <select
-                        className={`${inputClass} mt-1`}
-                        value={form.condition_slug}
-                        onChange={(e) => setForm((f) => ({ ...f, condition_slug: e.target.value }))}
-                      >
-                        {conditions.map((c) => (
-                          <option key={c.slug} value={c.slug}>
-                            {c.canonical_en}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="block text-sm text-muted">
-                      Title
-                      <input
-                        className={`${inputClass} mt-1`}
-                        value={form.title}
-                        onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                      />
-                    </label>
-                    <label className="block text-sm text-muted">
-                      Description
-                      <textarea
-                        className={`${inputClass} mt-1 min-h-[80px]`}
-                        value={form.description}
-                        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                      />
-                    </label>
-                    <label className="block text-sm text-muted">
-                      Sensitive notes
-                      <textarea
-                        className={`${inputClass} mt-1 min-h-[80px]`}
-                        value={form.sensitive_notes}
-                        onChange={(e) => setForm((f) => ({ ...f, sensitive_notes: e.target.value }))}
-                      />
-                    </label>
-                    <label className="block text-sm text-muted">
-                      Recorded date
-                      <input
-                        type="date"
-                        className={`${inputClass} mt-1`}
-                        value={form.recorded_at}
-                        onChange={(e) => setForm((f) => ({ ...f, recorded_at: e.target.value }))}
-                      />
-                    </label>
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        disabled={busy}
-                        className="rounded-lg bg-cyan px-4 py-2 text-sm text-void disabled:opacity-50"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditing(false)}
-                        className="rounded-lg border border-hair px-4 py-2 text-sm text-muted"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <>
-                    {detail.description && (
-                      <p className="mt-4 text-sm text-mist/90 whitespace-pre-wrap">{detail.description}</p>
-                    )}
-                    {detail.sensitive_notes && (
-                      <div className="mt-4 rounded-xl border border-violet/30 bg-violet/5 px-4 py-3">
-                        <p className="text-xs uppercase tracking-wide text-violet">Sensitive notes</p>
-                        <p className="mt-2 text-sm text-mist whitespace-pre-wrap">{detail.sensitive_notes}</p>
-                      </div>
-                    )}
-                  </>
                 )}
+              </div>
 
-                <div className="mt-6">
-                  <h3 className="font-display text-sm text-mist">Attachments</h3>
-                  {(detail.attachments ?? []).length === 0 && (
-                    <p className="mt-2 text-sm text-muted">No files attached yet.</p>
+              {editing && isPatient ? (
+                <form onSubmit={(e) => void onSaveEdit(e)} className="mt-4 space-y-3">
+                  <label className="block text-sm text-muted">
+                    Condition
+                    <select
+                      className={`${inputClass} mt-1`}
+                      value={form.condition_slug}
+                      onChange={(e) => setForm((f) => ({ ...f, condition_slug: e.target.value }))}
+                    >
+                      {conditions.map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {c.canonical_en}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm text-muted">
+                    Title
+                    <input
+                      className={`${inputClass} mt-1`}
+                      value={form.title}
+                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    />
+                  </label>
+                  <label className="block text-sm text-muted">
+                    Description
+                    <textarea
+                      className={`${inputClass} mt-1 min-h-[80px]`}
+                      value={form.description}
+                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    />
+                  </label>
+                  <label className="block text-sm text-muted">
+                    Sensitive notes
+                    <textarea
+                      className={`${inputClass} mt-1 min-h-[80px]`}
+                      value={form.sensitive_notes}
+                      onChange={(e) => setForm((f) => ({ ...f, sensitive_notes: e.target.value }))}
+                    />
+                  </label>
+                  <label className="block text-sm text-muted">
+                    Recorded date
+                    <input
+                      type="date"
+                      className={`${inputClass} mt-1`}
+                      value={form.recorded_at}
+                      onChange={(e) => setForm((f) => ({ ...f, recorded_at: e.target.value }))}
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={busy}
+                      className="rounded-lg bg-cyan px-4 py-2 text-sm text-inverse disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(false)}
+                      className="rounded-lg border border-hair px-4 py-2 text-sm text-muted"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {detail.description && (
+                    <p className="mt-4 text-sm text-mist/90 whitespace-pre-wrap">
+                      {detail.description}
+                    </p>
                   )}
-                  <ul className="mt-2 space-y-2">
-                    {(detail.attachments ?? []).map((att) => (
-                      <li
-                        key={att.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hair px-3 py-2"
-                      >
-                        <span className="text-sm text-mist">
-                          {att.original_name}{' '}
-                          <span className="text-xs text-muted">({formatBytes(att.size_bytes)})</span>
-                        </span>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void onDownloadAttachment(att.id)}
-                          className="rounded border border-cyan/40 px-2 py-1 text-xs text-cyan"
-                        >
-                          Download
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {isPatient && !editing && (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <input
-                        type="file"
-                        className="text-sm text-muted"
-                        onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                      />
-                      <button
-                        type="button"
-                        disabled={busy || !uploadFile}
-                        onClick={() => void onUploadAttachment()}
-                        className="rounded-lg border border-cyan/40 px-3 py-1.5 text-xs text-cyan disabled:opacity-50"
-                      >
-                        Upload
-                      </button>
+                  {detail.sensitive_notes && (
+                    <div className="mt-4 rounded-xl border border-violet/30 bg-violet/5 px-4 py-3">
+                      <p className="text-xs uppercase tracking-wide text-violet">Sensitive notes</p>
+                      <p className="mt-2 text-sm text-mist whitespace-pre-wrap">
+                        {detail.sensitive_notes}
+                      </p>
                     </div>
                   )}
-                </div>
-              </>
-            )}
-          </section>
-        )}
+                </>
+              )}
+
+              <div className="mt-6">
+                <h3 className="font-display text-sm text-mist">Attachments</h3>
+                {(detail.attachments ?? []).length === 0 && (
+                  <p className="mt-2 text-sm text-muted">No files attached yet.</p>
+                )}
+                <ul className="mt-2 space-y-2">
+                  {(detail.attachments ?? []).map((att) => (
+                    <li
+                      key={att.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-hair px-3 py-2"
+                    >
+                      <span className="text-sm text-mist">
+                        {att.original_name}{' '}
+                        <span className="text-xs text-muted">({formatBytes(att.size_bytes)})</span>
+                      </span>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void onDownloadAttachment(att.id)}
+                        className="rounded border border-cyan/40 px-2 py-1 text-xs text-cyan"
+                      >
+                        Download
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {isPatient && !editing && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <input
+                      type="file"
+                      className="text-sm text-muted"
+                      onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                    />
+                    <button
+                      type="button"
+                      disabled={busy || !uploadFile}
+                      onClick={() => void onUploadAttachment()}
+                      className="rounded-lg border border-cyan/40 px-3 py-1.5 text-xs text-cyan disabled:opacity-50"
+                    >
+                      Upload
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      )}
     </div>
   );
 }

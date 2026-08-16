@@ -1,6 +1,4 @@
 import type { ReactNode } from 'react';
-import { AtmosphereShell } from '../AtmosphereShell';
-import { AIAssistantDock } from '../layout/AIAssistantDock';
 
 export function PageShell({
   children,
@@ -9,11 +7,5 @@ export function PageShell({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <AtmosphereShell>
-      <main className={className}>{children}</main>
-      <AIAssistantDock />
-    </AtmosphereShell>
-  );
+  return <main className={className}>{children}</main>;
 }
-

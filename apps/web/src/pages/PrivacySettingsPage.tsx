@@ -77,7 +77,7 @@ export function PrivacySettingsPage() {
         subtitle="Download a copy of your Care Plus data, or permanently erase your account (PDPA)."
       />
 
-      <section className="rounded-2xl border border-hair bg-panel/50 p-5">
+      <section className="rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
         <p className="font-display text-lg text-mist">Export my data</p>
         <p className="mt-1 text-sm text-muted">
           Includes profile, consent history, voice intents, health samples, medical records, and
@@ -103,7 +103,7 @@ export function PrivacySettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-rose/30 bg-panel/50 p-5">
+      <section className="rounded-2xl border border-rose/30 bg-panel shadow-[var(--cp-shadow-soft)] p-5">
         <p className="font-display text-lg text-mist">Erase my account</p>
         <p className="mt-1 text-sm text-muted">
           Deactivates your login, anonymizes identity, wipes health/intent data, and removes you
@@ -115,7 +115,7 @@ export function PrivacySettingsPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-hair bg-void px-3 py-2 text-mist"
+            className="mt-1 w-full rounded-xl border border-hair bg-panel px-3 py-2 text-mist"
             autoComplete="current-password"
           />
         </label>
@@ -125,7 +125,7 @@ export function PrivacySettingsPage() {
             type="text"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-hair bg-void px-3 py-2 text-mist"
+            className="mt-1 w-full rounded-xl border border-hair bg-panel px-3 py-2 text-mist"
             placeholder="erase"
           />
         </label>

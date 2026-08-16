@@ -88,7 +88,7 @@ export function LeadsPage() {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col">
         <p className="text-sm text-muted">Admin access required for the leads queue.</p>
-        <Link to="/platform" className="mt-4 inline-block text-sm text-cyan hover:underline">
+        <Link to="/hub" className="mt-4 inline-block text-sm text-cyan hover:underline">
           Back home
         </Link>
       </div>
