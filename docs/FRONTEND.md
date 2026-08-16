@@ -3,7 +3,7 @@
 > **Status:** Living frontend design (v0.3) — companion to [ARCHITECTURE.md](ARCHITECTURE.md),
 > [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md), and [PRODUCT_VISION.md](PRODUCT_VISION.md).
 > **Scope:** The **web app**, the **cross-platform mobile app (Android + iOS)**, the shared
-> **design system**, and the signature **Serah HUD** (CSS neural orb + VEHMF match cards).
+> **design system**, and the signature **Serah HUD** (3D neural stage field + VEHMF match cards).
 > **Priorities:** medical-light trust UX → realtime voice matching → resource efficiency (must stay smooth on mid-range phones).
 > **Product completeness** (marketplace, hire, records, Serah, admin) follows the Old→New matrix in PRODUCT_VISION — screens expand beyond Serah as milestones M4b–M13 land.
 
@@ -82,16 +82,17 @@ Dark tokens live under `[data-theme='dark']` in `packages/ui-tokens` (slate pane
 
 ## 3. Serah HUD — Realtime AI Voice Assistant
 
-The signature screen on **web `/app` and mobile Serah**: a **CSS neural orb HUD** (rings + core)
-driven by `AssistantState`, with hologram transcript, chat, and VEHMF match cards. The old Three.js
-void-brain canvas is optional and is not the default chrome.
+The signature screen on **web `/app` and mobile Serah**: a **3D neural stage field**
+(linked neurons + traveling pulses) driven by `AssistantState`, with hologram transcript,
+chat, and VEHMF match cards overlaid. Mobile still uses a Skia particle disk. The old
+circular CSS orb crop is gone on web.
 
 ```mermaid
 flowchart TB
     subgraph Screen["Voice Assistant Screen"]
         direction TB
         HUD["SERAH NEURAL CORE · state"]
-        ORB["CSS neural orb<br/>idle / listening / thinking / matching"]
+        ORB["3D connectome field<br/>idle / listening / thinking / matching"]
         TR["Hologram transcript + chat"]
         CH["Entity chips: [Diabetes] [Sinhala] [Intermediate]"]
         MIC["Mic deck + optional text input"]
@@ -104,17 +105,19 @@ flowchart TB
 
 ### Anatomy
 
-1. **Neural orb:** CSS rings around a teal core. Listening = blue pulse; thinking/matching = indigo
-   spin; speaking = audio pulse. Driven by the live `useVoiceTurn` FSM — not mock timeouts.
+1. **Neural stage field:** sparse R3F connectome (hubs, synapses, traveling pulses) in a
+   soft slate well. Listening = amplitude on nodes; thinking/matching = faster pulses;
+   speaking = center-out wave. Driven by the live `useVoiceTurn` FSM — not mock timeouts.
+   Tap-to-speak is a faint hit ring over the field; the bottom mic deck stays.
 2. **Goal progress:** intent fields (`condition`, `language`, `care_level`) still fill as Serah
    captures them; shown as HUD copy rather than a 3D ring by default.
 3. **Live transcript:** streamed words appear as you speak (from Web Speech interim results).
 4. **Entity chips:** as Gemini extracts structured intent, chips pop in, color-coded (medical = teal,
    language = blue, level = mint).
 5. **Match projection:** when VEHMF is searching or cards are ready, the HUD stays a **split
-   stage**: orb + chat stay on the left (orb pinned, chat scrolls), and a right-hand panel
-   scrolls independently with progress / skeletons, then ranked caregiver cards. Talking to
-   Serah does **not** hide that panel or push the orb under the fold.
+   stage**: the neural field + chat stay on the left (field fills the column, chat scrolls), and a
+   right-hand panel scrolls independently with progress / skeletons, then ranked caregiver cards.
+   Talking to Serah does **not** hide that panel or push the field under the fold.
 
 ### Color = state (instant legibility)
 
@@ -147,13 +150,13 @@ stateDiagram-v2
 
 | State        | Orb visual                   | UI feedback                       | Copy example                        |
 | ------------ | ---------------------------- | --------------------------------- | ----------------------------------- |
-| `IDLE`       | dim slow breathing           | "Tap to speak" hint               | —                                   |
-| `LISTENING`  | cyan, amplitude-reactive     | live transcript, mic ring         | "Listening…"                        |
-| `THINKING`   | violet swirl, particles fire | shimmer skeleton                  | "Replying…"                         |
+| `IDLE`       | slow connectome drift        | "Tap to speak" hint               | —                                   |
+| `LISTENING`  | cyan, amplitude on nodes     | live transcript, mic ring         | "Listening…"                        |
+| `THINKING`   | violet, faster pulses        | shimmer skeleton                  | "Replying…"                         |
 | `CLARIFYING` | soft violet pulse            | highlight empty Goal-Ring segment | "Which language do you prefer?"     |
-| `SPEAKING`   | warm glow + waveform         | TTS plays; caption shown          | reads extracted intent back         |
-| `MATCHING`   | fast orbit                   | orb left (pinned); progress + thinking + skeletons | "VEHMF is ranking caregivers…"      |
-| `RESULTS`    | recedes, mint                | cards scroll on the right; orb stays usable        | "Look at the cards and pick…"       |
+| `SPEAKING`   | mint/amber center-out wave   | TTS plays; caption shown          | reads extracted intent back         |
+| `MATCHING`   | faster pulses                | field left; progress + thinking + skeletons | "VEHMF is ranking caregivers…"      |
+| `RESULTS`    | mint, calmer                 | cards scroll on the right; field stays usable      | "Look at the cards and pick…"       |
 | `EMERGENCY`  | rose flash + fast pulse      | full-screen alert, call button    | "Health alert — dispatching nurse." |
 
 Empty / ambient audio is **silent** (keep listening). Do not claim “I heard audio but couldn’t understand.” After **goodbye**, Serah sleeps and keeps listening for **Hey Serah**. A bottom-right companion bubble stays on other hub pages while the session is live. While VEHMF is running, chat and silent turns keep the search panel up until cards arrive or the user cancels.
@@ -178,7 +181,7 @@ flowchart LR
         WS[WebSocket client<br/>reconnecting]
         AU[Web Audio API<br/>Analyser → amplitude]
         SP[Web Speech API<br/>ASR + TTS]
-        TF[react-three-fiber<br/>Neural Core + Bloom]
+        TF[react-three-fiber<br/>Neural stage field]
         FM[Framer Motion UI]
     end
     SP --> Z
@@ -321,9 +324,9 @@ Efficiency is a first-class goal (per ARCHITECTURE.md), and 3D/animation is wher
 
 | Rule                    | Web                                                                          | Mobile                                               |
 | ----------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Render only when needed | R3F `frameloop="demand"`; render on audio/state change, pause in IDLE        | Skia redraws driven by Reanimated shared values only |
-| Cap resolution          | `dpr={[1, 1.75]}`                                                            | reduce particle count on low RAM                     |
-| Cheap glow              | single Bloom pass, low samples                                               | precomputed radial-gradient glow sprite              |
+| Render only when needed | R3F `frameloop="demand"`; pause when tab hidden / reduced-motion             | Skia redraws driven by Reanimated shared values only |
+| Cap resolution          | `dpr={[1, 1.5]}`                                                             | reduce particle count on low RAM                     |
+| Cheap glow              | additive neuron/synapse materials (no Bloom pass)                            | precomputed radial-gradient glow sprite              |
 | Geometry budget         | ≤ ~2–4k points in the neural mesh                                            | ≤ ~800 particles                                     |
 | Bundle size             | route-based code splitting; Three.js lazy-loaded on the assistant route only | Hermes engine + tree-shaking                         |
 | Battery/thermal         | pause visualization when tab hidden                                          | pause on background / low-power mode                 |

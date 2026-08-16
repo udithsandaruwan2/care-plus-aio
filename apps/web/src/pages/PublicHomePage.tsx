@@ -107,7 +107,13 @@ export function PublicHomePage() {
           </div>
         </div>
         <div className="relative hidden lg:block" aria-hidden>
-          <NeuralOrb visual="idle" state={AssistantState.IDLE} amplitude={0.22} variant="hero" />
+          <NeuralOrb
+            variant="well"
+            visual="idle"
+            state={AssistantState.IDLE}
+            amplitude={0.22}
+            parallax={mousePos}
+          />
         </div>
       </section>
 

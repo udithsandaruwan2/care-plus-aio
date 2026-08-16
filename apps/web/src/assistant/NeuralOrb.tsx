@@ -26,30 +26,34 @@ export function NeuralOrb({
   visual,
   state = AssistantState.IDLE,
   amplitude = 0.18,
-  variant = 'hud',
+  variant = 'stage',
+  parallax,
 }: {
   visual: OrbVisualState;
   state?: AssistantState;
   amplitude?: number;
-  variant?: 'hud' | 'hero';
+  variant?: 'hud' | 'hero' | 'stage' | 'well';
+  parallax?: { x: number; y: number };
 }) {
   const reducedMotion = useReducedMotion();
+  const layout = variant === 'stage' ? 'stage' : 'well';
+  const shell =
+    variant === 'stage'
+      ? `neural-stage state-${visual}`
+      : `neural-well state-${visual}`;
 
   return (
-    <div className={`neural-orb state-${visual} ${variant === 'hero' ? 'neural-orb-hero' : ''}`}>
-      <div className="orb-ring orb-ring-1" />
-      <div className="orb-ring orb-ring-2" />
-      <div className="orb-ring orb-ring-3" />
-      <div className="orb-core">
-        <Suspense fallback={<div className="orb-core-canvas" />}>
-          <NeuralCoreCanvas
-            amplitude={amplitude}
-            state={state}
-            reducedMotion={reducedMotion}
-            className="orb-core-canvas"
-          />
-        </Suspense>
-      </div>
+    <div className={shell}>
+      <Suspense fallback={<div className="neural-field-canvas" />}>
+        <NeuralCoreCanvas
+          amplitude={amplitude}
+          state={state}
+          reducedMotion={reducedMotion}
+          layout={layout}
+          parallax={parallax}
+          className="neural-field-canvas"
+        />
+      </Suspense>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { colors } from '@care-plus/ui-tokens';
@@ -17,19 +17,25 @@ const STATE_COLOR: Record<AssistantState, string> = {
   [S.EMERGENCY]: colors.accentRose,
 };
 
-/** Volume-filling neuron count — dense enough to read as a brain, light enough for 60fps. */
-const NEURON_COUNT = 420;
-const RADIUS = 1.12;
-/** Max synapse length (world units). */
-const LINK_DISTANCE = 0.38;
-/** Cap synapse segments so the mesh stays cheap. */
-const MAX_LINKS = 640;
+const SHELL_COUNT = 96;
+const HUB_COUNT = 8;
+const LONG_RANGE = 10;
+const PULSE_COUNT = 12;
+const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
 type NeuralMeshProps = {
   amplitude: number;
   state: AssistantState;
   /** When false, skip continuous animation (idle static frame). */
   animate: boolean;
+  /** Stage fills a pane; well is the tighter public hero. */
+  spread?: number;
+};
+
+type Neuron = {
+  pos: THREE.Vector3;
+  radius: number;
+  hub: boolean;
 };
 
 /** Deterministic PRNG so the neuron cloud is stable across renders. */
@@ -43,137 +49,262 @@ function mulberry32(seed: number) {
   };
 }
 
+function buildConnectome(spread: number) {
+  const rand = mulberry32(20260718);
+  const radius = 1.08 * spread;
+  const neurons: Neuron[] = [];
+
+  for (let i = 0; i < SHELL_COUNT; i++) {
+    const y = 1 - (i / (SHELL_COUNT - 1)) * 2;
+    const rxy = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = GOLDEN * i;
+    const jitter = 0.035 * (rand() - 0.5);
+    const r = radius * (0.9 + rand() * 0.1);
+    neurons.push({
+      pos: new THREE.Vector3(
+        Math.cos(theta) * rxy * r + jitter,
+        y * r,
+        Math.sin(theta) * rxy * r,
+      ),
+      radius: i % 7 === 0 ? 0.04 : 0.024,
+      hub: false,
+    });
+  }
+
+  for (let i = 0; i < HUB_COUNT; i++) {
+    const u = rand();
+    const v = rand();
+    const theta = Math.acos(2 * u - 1);
+    const phi = 2 * Math.PI * v;
+    const r = radius * (0.1 + 0.28 * rand());
+    neurons.push({
+      pos: new THREE.Vector3(
+        r * Math.sin(theta) * Math.cos(phi),
+        r * Math.sin(theta) * Math.sin(phi),
+        r * Math.cos(theta),
+      ),
+      radius: 0.056,
+      hub: true,
+    });
+  }
+
+  const edges: Array<[number, number]> = [];
+  const seen = new Set<string>();
+  const addEdge = (a: number, b: number) => {
+    if (a === b) return;
+    const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    edges.push([a, b]);
+  };
+
+  for (let i = 0; i < neurons.length; i++) {
+    const dists: Array<{ j: number; d: number }> = [];
+    for (let j = 0; j < neurons.length; j++) {
+      if (i === j) continue;
+      dists.push({ j, d: neurons[i].pos.distanceToSquared(neurons[j].pos) });
+    }
+    dists.sort((a, b) => a.d - b.d);
+    const k = neurons[i].hub ? 4 : 2 + (i % 2);
+    for (let n = 0; n < k && n < dists.length; n++) addEdge(i, dists[n].j);
+  }
+
+  let longRange = 0;
+  let guard = 0;
+  const minLong = (radius * 0.85) ** 2;
+  while (longRange < LONG_RANGE && guard < 120) {
+    guard += 1;
+    const a = Math.floor(rand() * neurons.length);
+    const b = Math.floor(rand() * neurons.length);
+    if (neurons[a].pos.distanceToSquared(neurons[b].pos) < minLong) continue;
+    const before = edges.length;
+    addEdge(a, b);
+    if (edges.length > before) longRange += 1;
+  }
+
+  const linePositions = new Float32Array(edges.length * 6);
+  edges.forEach(([a, b], i) => {
+    const o = i * 6;
+    linePositions[o] = neurons[a].pos.x;
+    linePositions[o + 1] = neurons[a].pos.y;
+    linePositions[o + 2] = neurons[a].pos.z;
+    linePositions[o + 3] = neurons[b].pos.x;
+    linePositions[o + 4] = neurons[b].pos.y;
+    linePositions[o + 5] = neurons[b].pos.z;
+  });
+
+  const pulseEdges = Array.from({ length: PULSE_COUNT }, (_, i) => {
+    const edge = edges[Math.floor(rand() * edges.length)] ?? edges[0] ?? [0, 1];
+    return { a: edge[0], b: edge[1], offset: (i / PULSE_COUNT + rand() * 0.12) % 1 };
+  });
+
+  return { neurons, linePositions, pulseEdges };
+}
+
 /**
- * Organic Neural Core: a volume-filled point cloud of neurons + synapse chords.
- * No solid fill mesh — glow comes from additive points/lines only, so amplitude
- * never "paints a square" inside the canvas.
+ * Sparse 3D connectome: hub neurons, local synapses, long-range axons, traveling pulses.
+ * Additive materials only — no Bloom pass (that painted a square on the canvas).
  */
-export function NeuralMesh({ amplitude, state, animate }: NeuralMeshProps) {
+export function NeuralMesh({ amplitude, state, animate, spread = 1 }: NeuralMeshProps) {
   const group = useRef<THREE.Group>(null);
-  const pointsMat = useRef<THREE.PointsMaterial>(null);
+  const nodeMesh = useRef<THREE.InstancedMesh>(null);
+  const pulseMesh = useRef<THREE.InstancedMesh>(null);
   const lineMat = useRef<THREE.LineBasicMaterial>(null);
   const hazeMat = useRef<THREE.MeshBasicMaterial>(null);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
   const { invalidate } = useThree();
   const color = useMemo(() => new THREE.Color(STATE_COLOR[state]), [state]);
 
-  const { positions, linePositions } = useMemo(() => {
-    const rand = mulberry32(20260718);
-    const neurons: THREE.Vector3[] = [];
+  const { neurons, linePositions, pulseEdges } = useMemo(
+    () => buildConnectome(spread),
+    [spread],
+  );
 
-    for (let i = 0; i < NEURON_COUNT; i++) {
-      // Uniform sphere directions; radius bias leaves a denser cortex shell
-      // with enough interior volume that the core reads as a living brain.
-      const u = rand();
-      const v = rand();
-      const theta = Math.acos(2 * u - 1);
-      const phi = 2 * Math.PI * v;
-      const shell = rand();
-      // ~55% near the cortex shell, rest fill the interior.
-      const r =
-        shell < 0.55 ? RADIUS * (0.72 + 0.28 * rand()) : RADIUS * (0.12 + 0.6 * Math.cbrt(rand()));
-      neurons.push(
-        new THREE.Vector3(
-          r * Math.sin(theta) * Math.cos(phi),
-          r * Math.sin(theta) * Math.sin(phi),
-          r * Math.cos(theta),
-        ),
-      );
-    }
+  const nodeGeo = useMemo(() => new THREE.SphereGeometry(1, 10, 10), []);
+  const nodeMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: STATE_COLOR[S.IDLE],
+        transparent: true,
+        opacity: 0.92,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    [],
+  );
+  const pulseGeo = useMemo(() => new THREE.SphereGeometry(1, 8, 8), []);
+  const pulseMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: STATE_COLOR[S.IDLE],
+        transparent: true,
+        opacity: 0.95,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    [],
+  );
 
-    const positions = new Float32Array(neurons.length * 3);
-    neurons.forEach((p, i) => {
-      positions[i * 3] = p.x;
-      positions[i * 3 + 1] = p.y;
-      positions[i * 3 + 2] = p.z;
+  useEffect(() => {
+    return () => {
+      nodeGeo.dispose();
+      nodeMat.dispose();
+      pulseGeo.dispose();
+      pulseMat.dispose();
+    };
+  }, [nodeGeo, nodeMat, pulseGeo, pulseMat]);
+
+  useLayoutEffect(() => {
+    const mesh = nodeMesh.current;
+    if (!mesh) return;
+    neurons.forEach((n, i) => {
+      dummy.position.copy(n.pos);
+      dummy.scale.setScalar(n.radius);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
     });
+    mesh.instanceMatrix.needsUpdate = true;
 
-    const segs: number[] = [];
-    const linkDistSq = LINK_DISTANCE * LINK_DISTANCE;
-    for (let i = 0; i < neurons.length && segs.length < MAX_LINKS * 6; i++) {
-      // Prefer a few nearest neighbours over an all-pairs flood.
-      let linked = 0;
-      for (let j = i + 1; j < neurons.length && linked < 4; j++) {
-        if (neurons[i].distanceToSquared(neurons[j]) < linkDistSq) {
-          segs.push(
-            neurons[i].x,
-            neurons[i].y,
-            neurons[i].z,
-            neurons[j].x,
-            neurons[j].y,
-            neurons[j].z,
-          );
-          linked += 1;
-          if (segs.length >= MAX_LINKS * 6) break;
-        }
-      }
-    }
-
-    return { positions, linePositions: new Float32Array(segs) };
-  }, []);
+    const pulses = pulseMesh.current;
+    if (!pulses) return;
+    pulseEdges.forEach((p, i) => {
+      const from = neurons[p.a]?.pos;
+      const to = neurons[p.b]?.pos;
+      if (!from || !to) return;
+      dummy.position.lerpVectors(from, to, p.offset);
+      dummy.scale.setScalar(0.018);
+      dummy.updateMatrix();
+      pulses.setMatrixAt(i, dummy.matrix);
+    });
+    pulses.instanceMatrix.needsUpdate = true;
+  }, [dummy, neurons, pulseEdges]);
 
   useFrame(({ clock }) => {
     if (!animate) return;
     const t = clock.getElapsedTime();
     const amp = Math.min(amplitude, 0.7);
     const live = 0.16 + amp;
-    const breath = 1 + Math.sin(t * 1.15) * 0.04;
-    const pulse = 1 + amp * 0.22;
-    const fire = 0.5 + 0.5 * Math.sin(t * (2.4 + amp * 6));
+    const breath = 1 + Math.sin(t * 1.05) * 0.035;
+    const ampPulse = 1 + amp * 0.18;
+    const fire = 0.5 + 0.5 * Math.sin(t * (2.2 + amp * 5));
+    const thinking =
+      state === S.THINKING || state === S.MATCHING || state === S.CLARIFYING;
+    const speaking = state === S.SPEAKING || state === S.CHAT_REPLY;
+    const emergency = state === S.EMERGENCY;
+    const spin = 0.12 + amp * 0.35 + (thinking ? 0.18 : 0) + (emergency ? 0.4 : 0);
+
     if (group.current) {
-      group.current.scale.setScalar(breath * pulse);
-      group.current.rotation.y = t * (0.22 + amp * 0.85);
-      group.current.rotation.x = Math.sin(t * 0.42) * 0.14;
-      group.current.rotation.z = Math.cos(t * 0.28) * 0.06;
+      group.current.scale.setScalar(breath * ampPulse);
+      group.current.rotation.y = t * spin;
+      group.current.rotation.x = Math.sin(t * 0.38) * 0.12;
+      group.current.rotation.z = Math.cos(t * 0.26) * 0.05;
     }
-    if (pointsMat.current) {
-      pointsMat.current.color.copy(color);
-      pointsMat.current.opacity = 0.72 + live * 0.22 + fire * 0.08;
-      pointsMat.current.size = 0.034 + amp * 0.028;
+
+    const nodes = nodeMesh.current;
+    if (nodes) {
+      nodeMat.color.copy(color);
+      nodeMat.opacity = 0.78 + live * 0.18 + fire * 0.06;
+      neurons.forEach((n, i) => {
+        const dist = n.pos.length();
+        const wave = speaking ? 1 + Math.sin(t * 3.1 - dist * 3.6) * 0.14 : 1;
+        const listen = 1 + amp * (n.hub ? 0.28 : 0.16);
+        dummy.position.copy(n.pos);
+        dummy.scale.setScalar(n.radius * listen * wave);
+        dummy.updateMatrix();
+        nodes.setMatrixAt(i, dummy.matrix);
+      });
+      nodes.instanceMatrix.needsUpdate = true;
     }
+
     if (lineMat.current) {
       lineMat.current.color.copy(color);
-      lineMat.current.opacity = 0.28 + live * 0.28 + fire * 0.12;
+      lineMat.current.opacity = 0.22 + live * 0.28 + (thinking ? 0.12 : 0);
     }
     if (hazeMat.current) {
       hazeMat.current.color.copy(color);
-      hazeMat.current.opacity = 0.06 + amp * 0.1;
+      hazeMat.current.opacity = 0.05 + amp * 0.08;
     }
+
+    const pulses = pulseMesh.current;
+    if (pulses) {
+      pulseMat.color.copy(color);
+      const speed = 0.18 + amp * 0.55 + (thinking ? 0.35 : 0) + (emergency ? 0.55 : 0);
+      pulseEdges.forEach((p, i) => {
+        const from = neurons[p.a]?.pos;
+        const to = neurons[p.b]?.pos;
+        if (!from || !to) return;
+        const u = (p.offset + t * speed) % 1;
+        dummy.position.lerpVectors(from, to, u);
+        dummy.scale.setScalar(0.018 + amp * 0.012 + fire * 0.006);
+        dummy.updateMatrix();
+        pulses.setMatrixAt(i, dummy.matrix);
+      });
+      pulses.instanceMatrix.needsUpdate = true;
+    }
+
     invalidate();
   });
 
   return (
     <group ref={group}>
-      {/* Soft volumetric haze — additive + tiny opacity so it never reads as a fill. */}
       <mesh>
-        <sphereGeometry args={[0.78, 32, 32]} />
+        <sphereGeometry args={[0.62 * spread, 24, 24]} />
         <meshBasicMaterial
           ref={hazeMat}
           color={color}
           transparent
-          opacity={0.08}
+          opacity={0.07}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Neuron somas. */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        </bufferGeometry>
-        <pointsMaterial
-          ref={pointsMat}
-          color={color}
-          size={0.036}
-          sizeAttenuation
-          transparent
-          opacity={0.82}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </points>
+      <instancedMesh
+        ref={nodeMesh}
+        args={[nodeGeo, nodeMat, neurons.length]}
+        frustumCulled={false}
+      />
 
-      {/* Synaptic links between neighbouring neurons. */}
       <lineSegments>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[linePositions, 3]} />
@@ -182,11 +313,17 @@ export function NeuralMesh({ amplitude, state, animate }: NeuralMeshProps) {
           ref={lineMat}
           color={color}
           transparent
-          opacity={0.32}
+          opacity={0.34}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
       </lineSegments>
+
+      <instancedMesh
+        ref={pulseMesh}
+        args={[pulseGeo, pulseMat, PULSE_COUNT]}
+        frustumCulled={false}
+      />
     </group>
   );
 }
