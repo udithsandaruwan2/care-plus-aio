@@ -322,6 +322,42 @@ class ProcessTurnLanguageMergeTests(TestCase):
         vehmf.assert_called_once()
         self.assertNotIn("I'll let you know", out["reply"])
 
+    def test_english_chat_skips_server_tts(self):
+        with patch("apps.voice.tts.synthesize") as syn:
+            out = process_turn(
+                user=self.user,
+                client_text="hello",
+                ui_language="English",
+            )
+        syn.assert_not_called()
+        self.assertEqual(out["tts_source"], "browser")
+
+    @override_settings(TTS_BACKEND="auto")
+    def test_sinhala_chat_attaches_server_audio(self):
+        from apps.voice.tts import TtsResult
+
+        with patch(
+            "apps.voice.tts.synthesize",
+            return_value=TtsResult(audio=b"abcd", mime="audio/mpeg", source="edge"),
+        ):
+            out = process_turn(
+                user=self.user,
+                client_text="හායි",
+                ui_language="Sinhala",
+            )
+        self.assertEqual(out["reply_lang"], "si-LK")
+        self.assertEqual(out["tts_source"], "edge")
+        self.assertTrue(out["reply_audio_base64"])
+
+    def test_ui_picker_locks_spoken_lang_not_caregiver_chip(self):
+        out = process_turn(
+            user=self.user,
+            client_text="hello",
+            ui_language="Sinhala",
+            prior_intent={"language": "English", "languages": ["English"]},
+        )
+        self.assertEqual(out["reply_lang"], "si-LK")
+
 
 class ReplyGroundingTests(SimpleTestCase):
     def test_post_match_chat_without_results_does_not_claim_visible_cards(self):

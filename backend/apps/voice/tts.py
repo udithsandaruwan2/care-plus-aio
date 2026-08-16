@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import concurrent.futures
 import logging
 import shutil
 import subprocess
@@ -250,6 +251,16 @@ def _edge_voice(lang: str) -> str:
     return _EDGE_VOICES.get(lang) or _EDGE_VOICES.get(bcp) or _EDGE_VOICES["en-US"]
 
 
+def _run_coroutine(factory, timeout: float = 60):
+    """Run an async factory from sync Django, including under uvicorn's loop."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(factory())
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(lambda: asyncio.run(factory())).result(timeout=timeout)
+
+
 def synthesize_edge_tts(text: str, lang: str) -> TtsResult:
     """Microsoft Edge neural TTS — Sinhala/Tamil/English without Gemini quota."""
     if not text.strip():
@@ -273,7 +284,7 @@ def synthesize_edge_tts(text: str, lang: str) -> TtsResult:
         return b"".join(chunks)
 
     try:
-        audio = asyncio.run(_stream())
+        audio = _run_coroutine(_stream)
     except Exception:
         logger.exception("edge-tts failed")
         return _empty("edge")
