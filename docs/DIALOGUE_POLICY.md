@@ -23,7 +23,8 @@ GEMINI_API_KEY=
 - `GET /api/v1/voice/policy/` — `{ chat_backend, match_engine: "vehmf", gemini_ranks_caregivers: false, … }`
 - Each `POST /voice/turn/` audits `route`, `situation`, `chat_source`, `chat_backend`, `match_engine`
 - General talk → **CHAT** (Gemini + history). Explicit caregiver ask → **VEHMF**. Then CHAT resumes with match context.
-- CHAT / ACTION / CLARIFY skip server TTS (browser speech) so replies stay instant.
+- English **CHAT / ACTION / CLARIFY** may skip server TTS (browser `speechSynthesis`) so replies stay instant.
+- **Sinhala and Tamil always use server TTS** (Edge neural → Gemini TTS → espeak-ng). Chrome/Firefox almost never ship those voices, so browser speech is silent.
 - Gemini chat receives recent `DialogueSession` turns plus grounded VEHMF names/XAI after a match.
 - Intent Gemini runs only on explicit caregiver-seeking / refine / emergency turns.
 

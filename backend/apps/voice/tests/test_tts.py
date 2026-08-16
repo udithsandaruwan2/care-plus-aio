@@ -1,10 +1,18 @@
 """TTS router unit tests (no live Gemini / Piper / Edge)."""
 
+import asyncio
 from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 
-from apps.voice.tts import TtsResult, pack_for_api, synthesize, synthesize_espeak, synthesize_piper
+from apps.voice.tts import (
+    TtsResult,
+    _run_coroutine,
+    pack_for_api,
+    synthesize,
+    synthesize_espeak,
+    synthesize_piper,
+)
 
 
 class TtsRouterTests(SimpleTestCase):
@@ -62,3 +70,12 @@ class TtsRouterTests(SimpleTestCase):
     def test_espeak_missing_returns_empty(self, _which):
         out = synthesize_espeak("hello", "si-LK")
         self.assertFalse(out.audio)
+
+    def test_run_coroutine_from_running_event_loop(self):
+        async def _ping():
+            return b"ok"
+
+        async def _outer():
+            return _run_coroutine(_ping)
+
+        self.assertEqual(asyncio.run(_outer()), b"ok")

@@ -61,6 +61,14 @@ def _tts_lang(primary: str | None, languages: list[str] | None) -> str:
     return "en-US"
 
 
+def _use_server_voice(reply_lang: str, *, has_match: bool = False) -> bool:
+    """Browsers almost never ship Sinhala/Tamil voices — those must be server audio."""
+    if has_match:
+        return True
+    lang = (reply_lang or "").lower()
+    return lang.startswith("si") or lang.startswith("ta")
+
+
 def _route(text: str, intent: dict, has_prior_match: bool) -> str:
     """Backward-compatible wrapper used by unit tests."""
     return classify_turn(text, intent, has_prior_match=has_prior_match).route
@@ -461,7 +469,11 @@ def process_turn(
     )
     route = decision.route
     situation = decision.situation
-    reply_lang = _tts_lang(base.get("language") or ui, base.get("languages"))
+    # UI picker locks what Serah speaks; caregiver language chips stay on intent.
+    if ui:
+        reply_lang = _tts_lang(ui, [ui])
+    else:
+        reply_lang = _tts_lang(base.get("language"), base.get("languages"))
 
     context_match = visible_match or history_match
     chat_history = list(session.turns or [])[-8:]
@@ -648,5 +660,5 @@ def process_turn(
         },
         reply,
         reply_lang,
-        server_voice=bool(match_payload),
+        server_voice=_use_server_voice(reply_lang, has_match=bool(match_payload)),
     )
