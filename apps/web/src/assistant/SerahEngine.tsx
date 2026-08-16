@@ -172,8 +172,9 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
 
   const listening = mic.active || speech.listening;
   const state = useAssistant((s) => s.state);
+  const matching = useAssistant((s) => s.matching);
   const emergencyActive = state === AssistantState.EMERGENCY && emergencyMatchId != null;
-  const visual = orbVisualState(state, listening);
+  const visual = orbVisualState(state, listening, matching);
 
   useEffect(() => {
     if (consentNeeded) consentBtnRef.current?.focus();

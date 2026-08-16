@@ -3,7 +3,9 @@ import { ApiError, AI_CONSENT_SCOPE, type VoiceLanguage } from '@care-plus/api-c
 import {
   AssistantState,
   looksLikeCareSeek,
+  looksLikeSearchPromise,
   nextMissingField,
+  shouldHoldMatchingUi,
   type IntentDraft,
 } from '@care-plus/core';
 import { api } from '../api';
@@ -11,10 +13,40 @@ import { useAssistant } from './store';
 
 const CONSENT_STATUS = 451;
 
+async function runClientMatch(): Promise<boolean> {
+  const store = useAssistant.getState();
+  const { intent } = store;
+  if (!intent.condition) return false;
+  store.setMatching(true);
+  store.setState(AssistantState.MATCHING, { force: true });
+  store.setMatchError(null);
+  try {
+    const emergency = intent.urgency === 'urgent' || intent.urgency === 'critical';
+    const result = await api.match({
+      condition: intent.condition,
+      language: intent.language || 'English',
+      care_level: intent.care_level || 'intermediate',
+      query: intent.raw_text ?? '',
+      k: 5,
+      emergency,
+    });
+    store.setMatch(result);
+    store.setMatching(false);
+    store.setState(AssistantState.RESULTS, { force: true });
+    return true;
+  } catch (err) {
+    store.setMatching(false);
+    store.setMatchError(err instanceof Error ? err.message : 'Match failed.');
+    store.setState(AssistantState.IDLE, { force: true });
+    return false;
+  }
+}
+
 function applyTurnState(
   result: Awaited<ReturnType<typeof api.voiceTurn>>,
   store: ReturnType<typeof useAssistant.getState>,
-) {
+  seeking: boolean,
+): 'matched' | 'hold' | 'done' {
   if (result.clear_match) {
     store.setMatch(null);
   }
@@ -41,18 +73,44 @@ function applyTurnState(
     store.setMatch(result.match);
     store.setMatching(false);
     store.setState(AssistantState.RESULTS, { force: true });
-    return;
+    return 'matched';
+  }
+
+  const intent = useAssistant.getState().intent;
+  const hold = shouldHoldMatchingUi({
+    seeking,
+    route: result.route,
+    situation: result.situation,
+    reply: result.reply,
+    hasMatch: false,
+    clearMatch: result.clear_match,
+    hasCondition: Boolean(intent.condition),
+  });
+
+  if (hold) {
+    store.setMatching(true);
+    store.setState(AssistantState.MATCHING, { force: true });
+    return 'hold';
   }
 
   store.setMatching(false);
 
+  if (
+    (seeking || looksLikeSearchPromise(result.reply || '')) &&
+    !intent.condition &&
+    result.route !== 'CLARIFY'
+  ) {
+    store.setState(AssistantState.CLARIFYING, { force: true });
+    return 'done';
+  }
+
   if (result.route === 'CLARIFY') {
     store.setState(AssistantState.CLARIFYING, { force: true });
-    return;
+    return 'done';
   }
   if (result.route === 'EMERGENCY') {
     store.setState(AssistantState.EMERGENCY, { force: true });
-    return;
+    return 'done';
   }
   if (result.route === 'ACTION' || result.route === 'CHAT') {
     if (store.match && !result.clear_match) {
@@ -60,13 +118,14 @@ function applyTurnState(
     } else {
       store.setState(AssistantState.CHAT_REPLY, { force: true });
     }
-    return;
+    return 'done';
   }
   if (result.intent && !nextMissingField(result.intent as IntentDraft)) {
     store.setState(AssistantState.SPEAKING, { force: true });
   } else {
     store.setState(AssistantState.IDLE, { force: true });
   }
+  return 'done';
 }
 
 /** Text-first conversational turn → /voice/turn/ (audio upload lands later). */
@@ -124,7 +183,14 @@ export function useVoiceTurn() {
         store.appendChat({ role: 'serah', text: result.reply, route: result.route });
       }
 
-      applyTurnState(result, store);
+      const stillSeeking =
+        looksLikeCareSeek(userLine) ||
+        looksLikeCareSeek(result.transcript || '') ||
+        looksLikeSearchPromise(result.reply || '');
+      const outcome = applyTurnState(result, store, stillSeeking);
+      if (outcome === 'hold') {
+        void runClientMatch();
+      }
 
       if (result.reply?.trim()) {
         const current = useAssistant.getState().state;

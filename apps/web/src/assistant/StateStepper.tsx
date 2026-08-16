@@ -30,7 +30,14 @@ export function StateStepper() {
           <button
             key={s}
             type="button"
-            onClick={() => setState(s, { force: true })}
+            onClick={() => {
+              if (s === AssistantState.MATCHING) {
+                setMatching(true);
+              } else if (s === AssistantState.IDLE || s === AssistantState.CLARIFYING) {
+                setMatching(false);
+              }
+              setState(s, { force: true });
+            }}
             className={`rounded-md border px-2 py-1 text-xs transition ${
               state === s ? 'border-cyan text-cyan' : 'border-hair text-muted hover:border-cyan/40'
             }`}

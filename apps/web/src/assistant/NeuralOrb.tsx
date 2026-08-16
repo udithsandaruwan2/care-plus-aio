@@ -9,10 +9,15 @@ const NeuralCoreCanvas = lazy(() =>
 
 export type OrbVisualState = 'idle' | 'listening' | 'processing' | 'speaking' | 'matching';
 
-export function orbVisualState(state: AssistantState, listening: boolean): OrbVisualState {
+export function orbVisualState(
+  state: AssistantState,
+  listening: boolean,
+  matching = false,
+): OrbVisualState {
+  if (matching && !listening) return 'matching';
   if (listening || state === AssistantState.LISTENING) return 'listening';
   if (state === AssistantState.THINKING) return 'processing';
-  if (state === AssistantState.MATCHING) return 'matching';
+  if (state === AssistantState.MATCHING || matching) return 'matching';
   if (state === AssistantState.SPEAKING || state === AssistantState.CHAT_REPLY) return 'speaking';
   return 'idle';
 }

@@ -46,6 +46,7 @@ export function useMatchSocket(opts?: {
         if (msg.type === 'match.results' && msg.payload) {
           const store = useAssistant.getState();
           store.setMatch(msg.payload);
+          store.setMatching(false);
           if ((msg.payload as { emergency_context?: unknown }).emergency_context) {
             store.setState(AssistantState.EMERGENCY, { force: true });
             onEmergencyMatch?.(msg.payload);
@@ -68,33 +69,43 @@ export function useMatchSocket(opts?: {
   }, [user?.id, onCareUpdated, onEmergencyMatch]);
 }
 
+/** Runs VEHMF from the current intent. Used by the voice loop when chat promised a search. */
+export async function runClientMatch(): Promise<boolean> {
+  const store = useAssistant.getState();
+  const { intent } = store;
+  if (!intent.condition) return false;
+
+  store.setMatching(true);
+  store.setState(AssistantState.MATCHING, { force: true });
+  store.setMatchError(null);
+  try {
+    const emergency = intent.urgency === 'urgent' || intent.urgency === 'critical';
+    const result = await api.match({
+      condition: intent.condition,
+      language: intent.language || 'English',
+      care_level: intent.care_level || 'intermediate',
+      query: intent.raw_text ?? '',
+      k: 5,
+      emergency,
+    });
+    store.setMatch(result);
+    store.setMatching(false);
+    store.setState(AssistantState.RESULTS, { force: true });
+    return true;
+  } catch (err) {
+    store.setMatching(false);
+    store.setMatchError(err instanceof Error ? err.message : 'Match failed.');
+    store.setState(AssistantState.IDLE, { force: true });
+    return false;
+  }
+}
+
 /**
  * Runs VEHMF after intent is complete: SPEAKING → MATCHING → RESULTS.
  */
 export function useMatch() {
   const runMatch = useCallback(async () => {
-    const store = useAssistant.getState();
-    const { intent } = store;
-    if (!intent.condition || !intent.language || !intent.care_level) return;
-
-    store.setState(AssistantState.MATCHING, { force: true });
-    store.setMatchError(null);
-    try {
-      const emergency = intent.urgency === 'urgent' || intent.urgency === 'critical';
-      const result = await api.match({
-        condition: intent.condition,
-        language: intent.language,
-        care_level: intent.care_level,
-        query: intent.raw_text ?? '',
-        k: 5,
-        emergency,
-      });
-      store.setMatch(result);
-      store.setState(AssistantState.RESULTS, { force: true });
-    } catch (err) {
-      store.setMatchError(err instanceof Error ? err.message : 'Match failed.');
-      store.setState(AssistantState.IDLE, { force: true });
-    }
+    await runClientMatch();
   }, []);
 
   return { runMatch };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -24,6 +24,24 @@ import { useVoiceTurn } from '../../src/assistant/useVoiceTurn';
 import type { UiVoiceLanguage } from '../../src/assistant/uiVoiceLanguage';
 
 const LANGS: UiVoiceLanguage[] = ['English', 'Sinhala', 'Tamil'];
+
+const THINKING_LINES = [
+  'Checking who is nearby…',
+  'Ranking by skill and language…',
+  'Scoring trust and distance…',
+  'VEHMF is weighting this list…',
+];
+
+function SearchThinking() {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % THINKING_LINES.length);
+    }, 1700);
+    return () => clearInterval(timer);
+  }, []);
+  return <Text style={{ color: colors.textMuted, fontSize: 13, opacity: 0.8 }}>{THINKING_LINES[index]}</Text>;
+}
 
 export default function SerahScreen() {
   const { user } = useAuth();
@@ -131,6 +149,7 @@ export default function SerahScreen() {
               <View style={styles.searchFill} />
             </View>
             <Text style={styles.muted}>You can keep chatting while Serah ranks matches.</Text>
+            <SearchThinking />
             <View style={styles.skeleton} />
             <View style={styles.skeleton} />
             <View style={styles.skeleton} />

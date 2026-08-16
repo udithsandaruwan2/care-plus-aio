@@ -265,6 +265,63 @@ class ProcessTurnLanguageMergeTests(TestCase):
         self.assertEqual(out["route"], "MATCH")
         vehmf.assert_called_once()
 
+    def test_gemini_vehmf_promise_still_runs_match(self):
+        from apps.voice.asr import AsrResult
+
+        fake = AsrResult(
+            text="please go ahead",
+            source="client",
+            language_hint="English",
+            language_code="en",
+            languages=["English"],
+        )
+        prior = {
+            "condition": "dengue",
+            "language": "English",
+            "care_level": "basic",
+            "languages": ["English"],
+        }
+        with (
+            patch("apps.voice.dialogue.resolve_transcript", return_value=fake),
+            patch(
+                "apps.voice.dialogue._serah",
+                return_value=(
+                    "I'm on it! I'll let you know the moment VEHMF finishes matching "
+                    "and the results are ready to show on your screen.",
+                    "gemini",
+                ),
+            ),
+            patch(
+                "apps.voice.dialogue._run_vehmf",
+                return_value={
+                    "request_id": None,
+                    "results": [
+                        {
+                            "display_name": "Nimal Perera",
+                            "score": 0.8,
+                            "explanation": "Matched because: strong medical/skill match.",
+                        }
+                    ],
+                    "latency_ms": 1,
+                    "query": "dengue",
+                    "emergency": False,
+                    "cf_enabled": False,
+                    "cf_version": "",
+                    "weights": {"cbf": 1, "cf": 0, "geo": 0, "trust": 0},
+                },
+            ) as vehmf,
+        ):
+            out = process_turn(
+                user=self.user,
+                client_text="please go ahead",
+                prior_intent=prior,
+                ui_language="English",
+            )
+        self.assertEqual(out["route"], "MATCH")
+        self.assertIsNotNone(out["match"])
+        vehmf.assert_called_once()
+        self.assertNotIn("I'll let you know", out["reply"])
+
 
 class ReplyGroundingTests(SimpleTestCase):
     def test_post_match_chat_without_results_does_not_claim_visible_cards(self):

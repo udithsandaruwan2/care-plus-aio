@@ -322,8 +322,9 @@ def gemini_chat_reply(
         "emergency": "Urge real emergency services first; offer caregiver search second.",
         "general": (
             "Continue the conversation as a warm, useful companion. Answer what they said. "
-            "If they want a person to care for them, do not pretend matches are visible — "
-            "VEHMF must run first. Only invite a caregiver search if they have not already asked."
+            "If they want a person to care for them, do not pretend matches are visible and "
+            "do not say VEHMF is running or that results will appear later — matching is a "
+            "separate engine route. Only invite a caregiver search if they have not already asked."
         ),
     }.get(
         situation, "Be warm and brief. Continue the conversation. Don’t force caregiver matching."
@@ -347,7 +348,9 @@ def gemini_chat_reply(
                 "Reply in 1–3 short spoken sentences that continue the dialogue. "
                 "Never invent caregiver names, scores, or rankings. "
                 "Never pick or re-rank caregivers — VEHMF does that locally when they ask. "
-                "If no caregiver list is active, NEVER say options, cards, or results are on screen. "
+                "Never say you are waiting for VEHMF, that matching is in progress, or that "
+                "you will show caregiver results later. If no caregiver list is in the grounding "
+                "block, do not mention matching, ranking, cards, or results on screen. "
                 "Do not say goodbye unless the user is clearly leaving. "
                 f"Situation={situation}. has_prior_match={has_prior_match}. "
                 f"Guidance: {guidance}\n"

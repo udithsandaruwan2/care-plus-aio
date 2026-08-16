@@ -119,47 +119,49 @@ export function HomePage() {
         </div>
       )}
 
-      <div className={`serah-core-wrapper ${showMatchPanel ? 'shifted' : ''}`}>
-        <button
-          type="button"
-          onClick={() => void toggleMic()}
-          aria-pressed={listening}
-          aria-label={listening ? 'Stop listening' : 'Tap to speak'}
-          className="cursor-pointer rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
-        >
-          <NeuralOrb visual={visual} state={state} amplitude={Math.max(mic.amplitude, 0.14)} />
-        </button>
-        <p className="mt-3 font-display text-sm tracking-wide text-cyan" aria-live="polite">
-          {asleep
-            ? 'Sleeping — say Hey Serah to wake me'
-            : `${stateCopy(state, uiLanguage)} · Goal ${progress}%`}
-        </p>
-        <div className={`hologram-transcript ${hologramText ? 'visible' : ''}`}>
-          <p>{hologramText || 'Tap the orb or type below to talk with Serah.'}</p>
-        </div>
-        <ChatBubbles messages={chat} />
-        {clarifyPrompt && (
-          <p className="mt-2 max-w-md text-center text-sm text-amber" aria-live="polite">
-            {clarifyPrompt} Keep talking — your other details stay.
+      <div className={`serah-stage ${showMatchPanel ? 'is-searching' : ''}`}>
+        <div className="serah-core-wrapper">
+          <button
+            type="button"
+            onClick={() => void toggleMic()}
+            aria-pressed={listening}
+            aria-label={listening ? 'Stop listening' : 'Tap to speak'}
+            className="cursor-pointer rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+          >
+            <NeuralOrb visual={visual} state={state} amplitude={Math.max(mic.amplitude, 0.14)} />
+          </button>
+          <p className="mt-3 font-display text-sm tracking-wide text-cyan" aria-live="polite">
+            {asleep
+              ? 'Sleeping — say Hey Serah to wake me'
+              : `${stateCopy(state, uiLanguage)} · Goal ${progress}%`}
           </p>
-        )}
-        <div className="mt-3">
-          <EntityChips intent={intent} uiLanguage={uiLanguage} />
+          <div className={`hologram-transcript ${hologramText ? 'visible' : ''}`}>
+            <p>{hologramText || 'Tap the orb or type below to talk with Serah.'}</p>
+          </div>
+          <ChatBubbles messages={chat} />
+          {clarifyPrompt && (
+            <p className="mt-2 max-w-md text-center text-sm text-amber" aria-live="polite">
+              {clarifyPrompt} Keep talking — your other details stay.
+            </p>
+          )}
+          <div className="mt-3">
+            <EntityChips intent={intent} uiLanguage={uiLanguage} />
+          </div>
+          <Transcript transcript={transcript} interim={interim} />
         </div>
-        <Transcript transcript={transcript} interim={interim} />
-      </div>
 
-      {showMatchPanel ? (
-        <div className="serah-match-projection mx-auto lg:absolute lg:right-8 lg:top-28 lg:mx-0">
-          <MatchSearchPanel
-            id={emergencyActive ? 'emergency-match' : undefined}
-            matching={matching}
-            match={match}
-            canRequestCare={canRequestCare}
-            uiLanguage={uiLanguage}
-          />
-        </div>
-      ) : null}
+        {showMatchPanel ? (
+          <div className="serah-match-projection">
+            <MatchSearchPanel
+              id={emergencyActive ? 'emergency-match' : undefined}
+              matching={matching}
+              match={match}
+              canRequestCare={canRequestCare}
+              uiLanguage={uiLanguage}
+            />
+          </div>
+        ) : null}
+      </div>
 
       <div className="serah-hud-bottom">
         {(mic.error || speech.error) && (

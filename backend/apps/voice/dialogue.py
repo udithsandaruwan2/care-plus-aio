@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 from apps.matching.engine import run_match
@@ -18,7 +19,7 @@ from .models import create_voice_intent
 from .policy import resolve_chat_backend
 from .refine import apply_deltas_to_intent, parse_refine_deltas
 from .replies import serah_reply
-from .router import classify_turn, needs_slot_extraction
+from .router import classify_turn, is_care_seek, needs_slot_extraction
 from .session import (
     get_or_create_active_session,
     open_questions_for_intent,
@@ -67,6 +68,38 @@ def _route(text: str, intent: dict, has_prior_match: bool) -> str:
 
 def _match_has_results(match: dict | None) -> bool:
     return bool(match and isinstance(match.get("results"), list) and match["results"])
+
+
+_SEARCH_PROMISE = re.compile(
+    r"\b(vehmf|ranking caregivers|finding (your )?(best )?match|"
+    r"searching for caregivers|i['’]?m on it|"
+    r"let you know.{0,80}(match|result|vehmf|screen)|"
+    r"finishes matching|results are ready)\b",
+    re.I,
+)
+
+_NO_MATCH_SALVAGE = {
+    "thanks",
+    "goodbye",
+    "cancel",
+    "affirm",
+    "about_match",
+    "post_match_chat",
+    "greeting",
+    "smalltalk",
+    "faq",
+    "request",
+    "empty",
+    "emergency",
+}
+
+
+def _reply_promises_match(reply: str) -> bool:
+    return bool(_SEARCH_PROMISE.search(reply or ""))
+
+
+def _intent_ready_for_match(intent: dict) -> bool:
+    return bool((intent.get("condition") or "").strip())
 
 
 def _load_session_match(session) -> dict | None:
@@ -531,6 +564,29 @@ def process_turn(
             match=context_match,
             history=chat_history,
         )
+        # Gemini sometimes promises VEHMF without the MATCH route. Run it now.
+        if situation not in _NO_MATCH_SALVAGE and (
+            is_care_seek(text) or _reply_promises_match(reply)
+        ):
+            if _intent_ready_for_match(base):
+                try:
+                    match_payload = _run_vehmf(user, base)
+                    reply = _match_reply(match_payload.get("results") or [], reply_lang)
+                    route = "MATCH"
+                    situation = "match"
+                    chat_source = "vehmf"
+                except Exception as exc:
+                    logger.exception("Salvaged VEHMF after chat promise failed")
+                    reply = f"Matching is briefly unavailable ({exc}). Try again in a moment."
+                    route = "CHAT"
+                    situation = "match_error"
+                    match_payload = None
+                    chat_source = "none"
+            else:
+                route = "CLARIFY"
+                situation = "clarify"
+                reply = _clarify_reply(base, reply_lang)
+                chat_source = "stub"
 
     intent_out = {
         "condition": base.get("condition") or "",

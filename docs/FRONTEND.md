@@ -111,7 +111,9 @@ flowchart TB
 3. **Live transcript:** streamed words appear as you speak (from Web Speech interim results).
 4. **Entity chips:** as Gemini extracts structured intent, chips pop in, color-coded (medical = teal,
    language = blue, level = mint).
-5. **Match projection:** restyled VEHMF cards (overall %, CBF/CF/geo/trust bars, Request).
+5. **Match projection:** when VEHMF is searching, the neural orb slides left and a right-hand
+   panel shows a progress bar, light “thinking” copy, and skeleton caregiver cards. Ranked cards
+   replace the skeletons when the match payload arrives (overall %, CBF/CF/geo/trust bars, Request).
 
 ### Color = state (instant legibility)
 
@@ -149,8 +151,8 @@ stateDiagram-v2
 | `THINKING`   | violet swirl, particles fire | shimmer skeleton                  | "Replying…"                         |
 | `CLARIFYING` | soft violet pulse            | highlight empty Goal-Ring segment | "Which language do you prefer?"     |
 | `SPEAKING`   | warm glow + waveform         | TTS plays; caption shown          | reads extracted intent back         |
-| `MATCHING`   | fast orbit                   | progress bar + skeleton cards     | "VEHMF is ranking caregivers…"      |
-| `RESULTS`    | recedes to corner, mint      | result cards slide in with XAI    | "Look at the cards and pick…"       |
+| `MATCHING`   | fast orbit                   | orb left; progress + thinking + skeletons | "VEHMF is ranking caregivers…"      |
+| `RESULTS`    | recedes to corner, mint      | result cards slide in with XAI            | "Look at the cards and pick…"       |
 | `EMERGENCY`  | rose flash + fast pulse      | full-screen alert, call button    | "Health alert — dispatching nurse." |
 
 Empty / ambient audio is **silent** (keep listening). Do not claim “I heard audio but couldn’t understand.” After **goodbye**, Serah sleeps and keeps listening for **Hey Serah**. A bottom-right companion bubble stays on other hub pages while the session is live.
