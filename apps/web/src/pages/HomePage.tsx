@@ -68,12 +68,12 @@ export function HomePage() {
   const showMatchPanel = matching || Boolean(match);
 
   return (
-    <div className="serah-immersive-container">
+    <div className={`serah-immersive-container min-h-0 flex-1${showMatchPanel ? ' is-searching' : ''}`}>
       <div className={`serah-ambient-bg state-${visual}`} aria-hidden />
 
       <div className="serah-hud-top">
         <div className="hud-brand">
-          <Activity color="var(--cp-accent-cyan)" size={22} />
+          <Activity color="var(--cp-accent-cyan)" size={20} />
           <span>SERAH NEURAL CORE v2.0</span>
         </div>
         <div className="hud-status">
@@ -89,38 +89,42 @@ export function HomePage() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-shrink-0 flex-wrap justify-center gap-2 px-4 pt-3 text-xs">
-        {user?.role === 'patient' && !canRequestCare && (
-          <Link
-            to="/onboarding"
-            className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
-          >
-            Complete profile ({completionPercent}%)
-          </Link>
-        )}
-        {user?.role === 'caregiver' && !isMatchEligible && (
-          <Link
-            to="/caregiver-onboarding"
-            className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
-          >
-            Complete caregiver profile ({cgCompletion}%)
-          </Link>
-        )}
-      </div>
+      {!showMatchPanel &&
+        ((user?.role === 'patient' && !canRequestCare) ||
+          (user?.role === 'caregiver' && !isMatchEligible)) && (
+        <div className="serah-profile-banners">
+          {user?.role === 'patient' && !canRequestCare && (
+            <Link
+              to="/onboarding"
+              className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
+            >
+              Complete profile ({completionPercent}%)
+            </Link>
+          )}
+          {user?.role === 'caregiver' && !isMatchEligible && (
+            <Link
+              to="/caregiver-onboarding"
+              className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
+            >
+              Complete caregiver profile ({cgCompletion}%)
+            </Link>
+          )}
+        </div>
+      )}
 
       {emergencyActive && (
-        <div className="relative z-10 mx-auto mt-3 w-full max-w-lg flex-shrink-0 rounded-2xl border border-rose/50 bg-rose/10 p-4 text-left">
+        <div className="serah-emergency-banner">
           <p className="font-display text-sm tracking-wide text-rose">EMERGENCY alert</p>
           <p className="mt-1 text-xs text-muted">
             Serah detected a critical health signal and pushed your nearest advanced caregiver.
           </p>
-          <a href="#emergency-match" className="mt-3 inline-block text-xs font-semibold text-rose">
+          <a href="#emergency-match" className="mt-2 inline-block text-xs font-semibold text-rose">
             View emergency match
           </a>
         </div>
       )}
 
-      <div className={`serah-stage ${showMatchPanel ? 'is-searching' : ''}`}>
+      <div className={`serah-stage${showMatchPanel ? ' is-searching' : ''}`}>
         <div className="serah-core-wrapper">
           <div className="serah-neural-field">
             <div aria-hidden>
@@ -128,7 +132,7 @@ export function HomePage() {
                 variant="stage"
                 visual={visual}
                 state={state}
-                amplitude={Math.max(mic.amplitude, 0.14)}
+                amplitude={Math.max(mic.amplitude, showMatchPanel ? 0.28 : 0.16)}
               />
             </div>
             <button
@@ -140,35 +144,44 @@ export function HomePage() {
             >
               <span className="serah-orb-hit-ring" />
             </button>
-          </div>
-          {asleep || state !== AssistantState.IDLE ? (
-            <p className="serah-field-status" aria-live="polite">
-              {asleep ? 'Sleeping — say Hey Serah to wake me' : stateCopy(state, uiLanguage)}
-            </p>
-          ) : null}
-          <div className="serah-core-chat">
-            {hologramText ? (
-              <div className="hologram-transcript visible">
-                <p>{hologramText}</p>
+            {showMatchPanel ? (
+              <div className="serah-field-chat">
+                <ChatBubbles messages={chat} compact />
               </div>
-            ) : (
-              <p className="serah-field-hint">Tap the field or type below to talk with Serah.</p>
-            )}
-            <ChatBubbles messages={chat} compact={showMatchPanel} />
-            {clarifyPrompt && (
-              <p className="mt-2 max-w-md text-center text-sm text-amber" aria-live="polite">
-                {clarifyPrompt} Keep talking — your other details stay.
-              </p>
-            )}
-            <div className="mt-3">
-              <EntityChips intent={intent} uiLanguage={uiLanguage} hideEmpty />
-            </div>
-            <Transcript transcript={transcript} interim={interim} />
+            ) : null}
           </div>
+          {!showMatchPanel ? (
+            <>
+              {asleep || state !== AssistantState.IDLE ? (
+                <p className="serah-field-status" aria-live="polite">
+                  {asleep ? 'Sleeping — say Hey Serah to wake me' : stateCopy(state, uiLanguage)}
+                </p>
+              ) : null}
+              <div className="serah-core-chat">
+                {hologramText ? (
+                  <div className="hologram-transcript visible">
+                    <p>{hologramText}</p>
+                  </div>
+                ) : (
+                  <p className="serah-field-hint">Tap the field or type below to talk with Serah.</p>
+                )}
+                <ChatBubbles messages={chat} />
+                {clarifyPrompt && (
+                  <p className="mt-2 max-w-md text-center text-sm text-amber" aria-live="polite">
+                    {clarifyPrompt} Keep talking — your other details stay.
+                  </p>
+                )}
+                <div className="mt-3">
+                  <EntityChips intent={intent} uiLanguage={uiLanguage} hideEmpty />
+                </div>
+                <Transcript transcript={transcript} interim={interim} />
+              </div>
+            </>
+          ) : null}
         </div>
 
         {showMatchPanel ? (
-          <div className="serah-match-projection">
+          <div className="serah-match-projection is-open">
             <MatchSearchPanel
               id={emergencyActive ? 'emergency-match' : undefined}
               matching={matching}
@@ -216,82 +229,84 @@ export function HomePage() {
           </p>
         )}
 
-        {inputMode === 'voice' ? (
-          <>
-            <button
-              type="button"
-              onClick={() => void toggleMic()}
-              disabled={busy && !listening}
-              aria-pressed={listening}
-              className={`serah-mic-btn ${listening ? 'active' : ''}`}
-            >
-              <Mic size={28} />
-            </button>
-            <span className="text-xs font-medium text-muted">
-              {listening
-                ? 'Tap to stop'
-                : matching
-                  ? 'Searching — you can still type'
-                  : busy
-                    ? 'Serah is speaking…'
-                    : asleep
-                      ? 'Say Hey Serah'
-                      : 'Tap to speak'}
-            </span>
-            <button
-              type="button"
-              className="text-xs font-semibold text-cyan hover:underline"
-              onClick={() => setInputMode('text')}
-            >
-              Or type a message…
-            </button>
-          </>
-        ) : (
-          <form className="serah-text-controls" onSubmit={(e) => void onTextSubmit(e)}>
-            <button
-              type="button"
-              className="rounded-xl border border-hair px-3 text-cyan"
-              onClick={() => setInputMode('voice')}
-              aria-label="Switch to voice"
-            >
-              <Mic size={18} />
-            </button>
-            <input
-              className="min-h-11 flex-1 rounded-xl border border-hair bg-panel px-3.5 text-sm text-mist outline-none focus:border-cyan"
-              autoFocus
-              placeholder={asleep ? 'Say or type Hey Serah…' : 'Type your care need…'}
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              disabled={listening}
-            />
-            <Button
-              type="submit"
-              disabled={!textInput.trim() || listening}
-              className="min-h-11 px-4"
-            >
-              <Send size={18} />
-            </Button>
-          </form>
-        )}
+        <div className="serah-hud-dock">
+          {inputMode === 'voice' ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void toggleMic()}
+                disabled={busy && !listening}
+                aria-pressed={listening}
+                className={`serah-mic-btn ${listening ? 'active' : ''}`}
+              >
+                <Mic size={22} />
+              </button>
+              <span className="text-xs font-medium text-muted">
+                {listening
+                  ? 'Tap to stop'
+                  : matching
+                    ? 'Searching — keep chatting'
+                    : busy
+                      ? 'Serah is speaking…'
+                      : asleep
+                        ? 'Say Hey Serah'
+                        : 'Tap to speak'}
+              </span>
+              <button
+                type="button"
+                className="text-xs font-semibold text-cyan hover:underline"
+                onClick={() => setInputMode('text')}
+              >
+                Type instead
+              </button>
+            </>
+          ) : (
+            <form className="serah-text-controls" onSubmit={(e) => void onTextSubmit(e)}>
+              <button
+                type="button"
+                className="rounded-xl border border-hair px-3 text-cyan"
+                onClick={() => setInputMode('voice')}
+                aria-label="Switch to voice"
+              >
+                <Mic size={18} />
+              </button>
+              <input
+                className="min-h-10 flex-1 rounded-xl border border-hair bg-panel px-3.5 text-sm text-mist outline-none focus:border-cyan"
+                autoFocus
+                placeholder={asleep ? 'Say or type Hey Serah…' : 'Type your care need…'}
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                disabled={listening}
+              />
+              <Button
+                type="submit"
+                disabled={!textInput.trim() || listening}
+                className="min-h-10 px-4"
+              >
+                <Send size={18} />
+              </Button>
+            </form>
+          )}
 
-        {(match ||
-          matching ||
-          state === AssistantState.CLARIFYING ||
-          state === AssistantState.RESULTS ||
-          state === AssistantState.EMERGENCY ||
-          state === AssistantState.CHAT_REPLY) && (
-          <button
-            type="button"
-            onClick={() => void onNewRequest()}
-            disabled={clearing || busy || listening}
-            className="rounded-xl border border-hair px-5 py-2 text-xs text-muted transition hover:border-amber hover:text-amber disabled:opacity-50"
-          >
-            {clearing ? 'Clearing…' : 'New request'}
-          </button>
-        )}
+          {(match ||
+            matching ||
+            state === AssistantState.CLARIFYING ||
+            state === AssistantState.RESULTS ||
+            state === AssistantState.EMERGENCY ||
+            state === AssistantState.CHAT_REPLY) && (
+            <button
+              type="button"
+              onClick={() => void onNewRequest()}
+              disabled={clearing || busy || listening}
+              className="rounded-xl border border-hair px-4 py-2 text-xs text-muted transition hover:border-amber hover:text-amber disabled:opacity-50"
+            >
+              {clearing ? 'Clearing…' : 'New request'}
+            </button>
+          )}
+        </div>
       </div>
 
-      {import.meta.env.DEV && <StateStepper />}
+      {import.meta.env.DEV && !showMatchPanel && <StateStepper />}
     </div>
   );
 }

@@ -5,6 +5,46 @@ import { api } from '../auth/api';
 import { getAccessToken } from '../auth/session';
 import { useAuth } from '../auth/AuthContext';
 import { useAssistant } from './store';
+import { matchVoiceCopy } from './locale';
+import { speakSerah, stopSpeaking } from './useTts';
+
+let lastReadyRequestId: number | null = null;
+let findingAnnounced = false;
+
+function lastSerahLine(): string {
+  const chat = useAssistant.getState().chat;
+  for (let i = chat.length - 1; i >= 0; i--) {
+    if (chat[i]?.role === 'serah') return chat[i]?.text ?? '';
+  }
+  return '';
+}
+
+function announceSerah(text: string, route: 'MATCH' | 'ACTION') {
+  if (!text.trim()) return;
+  if (lastSerahLine() === text) return;
+  const store = useAssistant.getState();
+  stopSpeaking();
+  store.appendChat({ role: 'serah', text, route });
+  void speakSerah(text, store.uiLanguage);
+}
+
+export function announceMatchFinding() {
+  if (findingAnnounced) return;
+  findingAnnounced = true;
+  announceSerah(matchVoiceCopy(useAssistant.getState().uiLanguage).finding, 'MATCH');
+}
+
+export function announceMatchReady(requestId?: number) {
+  if (requestId != null && lastReadyRequestId === requestId) return;
+  if (requestId != null) lastReadyRequestId = requestId;
+  findingAnnounced = false;
+  announceSerah(matchVoiceCopy(useAssistant.getState().uiLanguage).resultsReady, 'ACTION');
+}
+
+export function resetMatchNarration() {
+  lastReadyRequestId = null;
+  findingAnnounced = false;
+}
 
 function wsBase(): string {
   const fromEnv = import.meta.env.VITE_WS_BASE_URL as string | undefined;
@@ -53,6 +93,7 @@ export function useMatchSocket(opts?: {
           } else {
             store.setState(AssistantState.RESULTS, { force: true });
           }
+          announceMatchReady(msg.payload.request_id);
         }
         if (msg.type === 'care_relationship.updated') {
           onCareUpdated?.();
@@ -80,6 +121,7 @@ export async function runClientMatch(): Promise<boolean> {
   store.setMatching(true);
   store.setState(AssistantState.MATCHING, { force: true });
   store.setMatchError(null);
+  announceMatchFinding();
   try {
     const emergency = intent.urgency === 'urgent' || intent.urgency === 'critical';
     const result = await api.match({
@@ -93,6 +135,7 @@ export async function runClientMatch(): Promise<boolean> {
     store.setMatch(result);
     store.setMatching(false);
     store.setState(AssistantState.RESULTS, { force: true });
+    announceMatchReady(result.request_id);
     return true;
   } catch (err) {
     store.setMatching(false);

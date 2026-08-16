@@ -15,7 +15,7 @@ import { api } from '../auth/api';
 import { useMicAmplitude } from '../neural-core/useMicAmplitude';
 import { useAssistant } from './store';
 import { useSpeechRecognition } from './useSpeechRecognition';
-import { useMatchSocket } from './useMatch';
+import { resetMatchNarration, useMatchSocket } from './useMatch';
 import { useAudioRecorder } from './useAudioRecorder';
 import { useVoiceTurn } from './useVoiceTurn';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
@@ -208,18 +208,23 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const current = useAssistant.getState().state;
-    const wasAsleep = useAssistant.getState().asleep;
-    if (
-      !wasAsleep &&
-      current !== AssistantState.CLARIFYING &&
-      current !== AssistantState.RESULTS &&
-      current !== AssistantState.CHAT_REPLY
-    ) {
+    const store = useAssistant.getState();
+    const keepResults =
+      store.asleep ||
+      store.matching ||
+      Boolean(store.match) ||
+      store.state === AssistantState.CLARIFYING ||
+      store.state === AssistantState.RESULTS ||
+      store.state === AssistantState.CHAT_REPLY ||
+      store.state === AssistantState.MATCHING ||
+      store.state === AssistantState.LISTENING ||
+      store.state === AssistantState.SPEAKING ||
+      store.state === AssistantState.EMERGENCY;
+    if (!keepResults) {
       reset();
     } else {
       setInterim('');
-      useAssistant.getState().setTranscript('');
+      store.setTranscript('');
     }
     setAsleep(false);
     setSessionLive(true);
@@ -268,6 +273,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       // Still reset local state so the user can start fresh.
     } finally {
       reset();
+      resetMatchNarration();
       setSessionLive(false);
       setClearing(false);
     }

@@ -43,7 +43,36 @@
   gap: 12px;
   border-bottom: 1px solid var(--cp-border-hair);
   background: linear-gradient(to bottom, var(--cp-bg-panel), transparent);
-  padding: 20px 28px;
+  padding: 12px 20px;
+}
+
+.serah-immersive-container.is-searching .serah-hud-top {
+  padding: 8px 16px;
+}
+
+.serah-profile-banners {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 16px 0;
+  font-size: 0.75rem;
+}
+
+.serah-emergency-banner {
+  position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  width: min(100%, 32rem);
+  margin: 8px auto 0;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-rose) 50%, transparent);
+  background: color-mix(in srgb, var(--cp-accent-rose) 10%, transparent);
+  padding: 10px 14px;
+  text-align: left;
 }
 
 .hud-brand {
@@ -119,15 +148,30 @@
   display: flex;
   min-height: 0;
   width: 100%;
-  flex: 1 1 62%;
+  flex: 1 1 auto;
   align-items: stretch;
   justify-content: center;
   overflow: hidden;
 }
 
+.serah-field-chat {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  z-index: 4;
+  display: flex;
+  max-height: 5.5rem;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
 .serah-neural-field > [aria-hidden] {
   width: 100%;
   height: 100%;
+  min-height: 0;
+  flex: 1;
 }
 
 .neural-stage {
@@ -215,20 +259,59 @@
   z-index: 6;
   display: flex;
   min-height: 0;
-  width: min(100%, 28rem);
+  width: 100%;
   flex: 1;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0 16px 8px;
-  opacity: 0;
-  transform: translateX(36px);
-  animation: serah-panel-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 22%, var(--cp-border-hair));
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--cp-bg-panel) 96%, white);
+  box-shadow: var(--cp-shadow-soft);
+  padding: 12px;
+}
+
+.serah-match-projection.is-open {
+  animation: serah-panel-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.serah-stage.is-searching {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17.5rem, 24rem);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  justify-items: stretch;
+  gap: 12px;
+  padding: 8px 16px 0;
 }
 
 .serah-stage.is-searching .serah-core-wrapper {
   transform: none;
-  justify-content: flex-start;
+  justify-content: stretch;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+}
+
+.serah-stage.is-searching .serah-neural-field {
+  height: 100%;
+  flex: 1 1 auto;
+}
+
+.serah-stage.is-searching .serah-match-projection {
+  justify-self: stretch;
+  align-self: stretch;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+}
+
+@media (max-width: 1023px) {
+  .serah-stage.is-searching {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 44%) minmax(0, 1fr);
+    padding: 6px 10px 0;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -238,42 +321,31 @@
     align-items: stretch;
     justify-items: center;
     gap: 8px;
-    padding: 12px 28px 0;
-    transition: grid-template-columns 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+    padding: 8px 20px 0;
+    transition: grid-template-columns 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .serah-stage.is-searching {
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 25rem);
+    grid-template-rows: minmax(0, 1fr);
     justify-items: stretch;
+    gap: 14px;
   }
 
   .serah-stage.is-searching .serah-core-wrapper {
     max-width: none;
     transform: none;
-    align-items: center;
-    justify-content: flex-start;
+    align-items: stretch;
+    justify-content: stretch;
     overflow: hidden;
   }
-
-  .serah-stage.is-searching .serah-match-projection {
-    justify-self: stretch;
-    align-self: stretch;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    margin: 0;
-    padding-right: 8px;
-  }
-}
-
-.serah-stage.is-searching .hologram-transcript {
-  margin-top: 8px;
-  font-size: 0.85rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .serah-core-wrapper,
   .serah-match-projection,
+  .serah-match-projection.is-open,
+  .match-rail-card,
   .serah-stage {
     transition: none;
     animation: none;
@@ -336,21 +408,31 @@
   flex-shrink: 0;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 16px 20px 24px;
+  gap: 6px;
+  border-top: 1px solid var(--cp-border-hair);
+  padding: 8px 16px 10px;
+}
+
+.serah-hud-dock {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
 }
 
 .serah-mic-btn {
   display: flex;
-  height: 64px;
-  width: 64px;
+  height: 44px;
+  width: 44px;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 999px;
   background: var(--cp-accent-cyan);
   color: var(--cp-text-inverse);
-  box-shadow: 0 10px 24px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.32);
   transition:
     transform 0.2s ease,
     filter 0.2s ease;
@@ -399,11 +481,46 @@
 @keyframes serah-panel-in {
   from {
     opacity: 0;
-    transform: translateX(40px);
+    transform: translate3d(16px, 10px, 0) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
+  }
+}
+
+.match-rail {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.match-rail-head {
+  flex-shrink: 0;
+}
+
+.match-rail-body {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.match-rail-card {
+  animation: serah-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes serah-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -565,6 +682,7 @@
   .status-indicator,
   .serah-mic-btn.active,
   .match-skeleton-card,
+  .match-rail-card,
   .match-search-fill-indeterminate,
   .serah-dock-orb-mini.live {
     animation: none !important;

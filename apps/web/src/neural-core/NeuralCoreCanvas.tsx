@@ -93,7 +93,7 @@ export function NeuralCoreCanvas({
       }}
     >
       <Canvas
-        frameloop="demand"
+        frameloop={animate ? 'always' : 'demand'}
         dpr={[1, 1.5]}
         camera={{ position: [0, 0, cameraZ], fov: stage ? 42 : 40 }}
         gl={{
