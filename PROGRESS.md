@@ -88,6 +88,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Serah stage composition** — removed the gray well smear; Goal lives in the HUD; copy sits under the graph instead of on it. Branch `fix/serah-stage-composition`.
 - ✅ **Serah match rail** — caregiver cards sit in a bordered scrolling rail; Speak keeps existing matches (New request still clears). Branch `fix/serah-match-rail`.
 - ✅ **Serah search fit + voice** — matching stage fills the viewport (graph | rail, no page scroll); Serah narrates finding vs results-ready. Branch `fix/serah-match-rail`.
+- ✅ **Serah compact match orb** — after recommendations, the neural mesh shrinks to a left dock; cards take the remaining width without overflowing. Branch `fix/serah-compact-match-orb`.
 
 ### Active track — research match loop
 

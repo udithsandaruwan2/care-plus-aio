@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import type { AssistantState } from '@care-plus/core';
 import { NeuralMesh } from './NeuralMesh';
 
-export type NeuralLayout = 'stage' | 'well';
+export type NeuralLayout = 'stage' | 'well' | 'dock';
 
 type Props = {
   amplitude: number;
@@ -79,8 +79,10 @@ export function NeuralCoreCanvas({
   const pageVisible = usePageVisible();
   const animate = !reducedMotion && pageVisible;
   const stage = layout === 'stage';
-  const cameraZ = stage ? 4.2 : 3.7;
-  const spread = stage ? 1.18 : 1;
+  const dock = layout === 'dock';
+  const cameraZ = dock ? 5.8 : stage ? 4.2 : 3.7;
+  const spread = dock ? 0.82 : stage ? 1.18 : 1;
+  const fov = dock ? 34 : stage ? 42 : 40;
 
   return (
     <div
@@ -88,14 +90,14 @@ export function NeuralCoreCanvas({
       style={{
         width: '100%',
         height: '100%',
-        overflow: stage ? 'hidden' : 'visible',
+        overflow: 'hidden',
         background: 'transparent',
       }}
     >
       <Canvas
         frameloop={animate ? 'always' : 'demand'}
         dpr={[1, 1.5]}
-        camera={{ position: [0, 0, cameraZ], fov: stage ? 42 : 40 }}
+        camera={{ position: [0, 0, cameraZ], fov }}
         gl={{
           antialias: true,
           alpha: true,
