@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Public landing neural net sits on white, no dark card._
+_Last updated: 2026-08-16 — Serah Core field is clean white; status sits below the graph._
 
 ---
 
@@ -85,6 +85,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Serah keep results layout** — talking during search no longer hides the loading/results panel; orb stays pinned on the left while caregiver cards scroll on the right. Branch `fix/serah-keep-results-layout`.
 - ✅ **Serah neural stage field** — unclipped 3D connectome (hubs, synapses, traveling pulses) fills Serah Core; public landing uses the same mesh in a rounded well. Branch `feat/serah-neural-stage-field`.
 - ✅ **Public neural hero, no box** — landing page graph is transparent on white (no dark rounded card). Branch `fix/public-neural-well-box`.
+- ✅ **Serah stage composition** — removed the gray well smear; Goal lives in the HUD; copy sits under the graph instead of on it. Branch `fix/serah-stage-composition`.
 
 ### Active track — research match loop
 

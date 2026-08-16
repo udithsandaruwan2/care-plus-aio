@@ -115,7 +115,7 @@ export function NeuralCoreCanvas({
             state={state}
             animate={animate}
             spread={spread}
-            surface={stage ? 'dark' : 'light'}
+            surface="light"
           />
         </Suspense>
       </Canvas>

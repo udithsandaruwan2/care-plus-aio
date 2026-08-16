@@ -19,9 +19,11 @@ const CHIPS: ChipDef[] = [
 export function EntityChips({
   intent,
   uiLanguage = 'English',
+  hideEmpty = false,
 }: {
   intent: IntentDraft;
   uiLanguage?: UiVoiceLanguage;
+  hideEmpty?: boolean;
 }) {
   const labels = chipLabels(uiLanguage);
   const languageLabel =
@@ -38,6 +40,7 @@ export function EntityChips({
 
   const active = CHIPS.filter((c) => values[c.key]);
   if (active.length === 0) {
+    if (hideEmpty) return null;
     return <p className="text-xs text-muted">{labels.empty}</p>;
   }
   return (
