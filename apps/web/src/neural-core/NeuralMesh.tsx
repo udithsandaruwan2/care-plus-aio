@@ -114,28 +114,29 @@ export function NeuralMesh({ amplitude, state, animate }: NeuralMeshProps) {
   useFrame(({ clock }) => {
     if (!animate) return;
     const t = clock.getElapsedTime();
-    // Clamp audio drive so loud mic input can't turn the cloud into a solid blob.
-    const amp = Math.min(amplitude, 0.55);
-    const breath = 1 + Math.sin(t * 1.35) * 0.028;
-    const pulse = 1 + amp * 0.18;
+    const amp = Math.min(amplitude, 0.7);
+    const live = 0.16 + amp;
+    const breath = 1 + Math.sin(t * 1.15) * 0.04;
+    const pulse = 1 + amp * 0.22;
+    const fire = 0.5 + 0.5 * Math.sin(t * (2.4 + amp * 6));
     if (group.current) {
       group.current.scale.setScalar(breath * pulse);
-      group.current.rotation.y = t * (0.1 + amp * 0.45);
-      group.current.rotation.x = Math.sin(t * 0.38) * 0.1;
-      group.current.rotation.z = Math.cos(t * 0.22) * 0.04;
+      group.current.rotation.y = t * (0.22 + amp * 0.85);
+      group.current.rotation.x = Math.sin(t * 0.42) * 0.14;
+      group.current.rotation.z = Math.cos(t * 0.28) * 0.06;
     }
     if (pointsMat.current) {
       pointsMat.current.color.copy(color);
-      pointsMat.current.opacity = 0.55 + amp * 0.35;
-      pointsMat.current.size = 0.028 + amp * 0.018;
+      pointsMat.current.opacity = 0.72 + live * 0.22 + fire * 0.08;
+      pointsMat.current.size = 0.034 + amp * 0.028;
     }
     if (lineMat.current) {
       lineMat.current.color.copy(color);
-      lineMat.current.opacity = 0.18 + amp * 0.32;
+      lineMat.current.opacity = 0.28 + live * 0.28 + fire * 0.12;
     }
     if (hazeMat.current) {
       hazeMat.current.color.copy(color);
-      hazeMat.current.opacity = 0.03 + amp * 0.06;
+      hazeMat.current.opacity = 0.06 + amp * 0.1;
     }
     invalidate();
   });
@@ -149,7 +150,7 @@ export function NeuralMesh({ amplitude, state, animate }: NeuralMeshProps) {
           ref={hazeMat}
           color={color}
           transparent
-          opacity={0.03}
+          opacity={0.08}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
@@ -163,10 +164,10 @@ export function NeuralMesh({ amplitude, state, animate }: NeuralMeshProps) {
         <pointsMaterial
           ref={pointsMat}
           color={color}
-          size={0.03}
+          size={0.036}
           sizeAttenuation
           transparent
-          opacity={0.65}
+          opacity={0.82}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -181,7 +182,7 @@ export function NeuralMesh({ amplitude, state, animate }: NeuralMeshProps) {
           ref={lineMat}
           color={color}
           transparent
-          opacity={0.22}
+          opacity={0.32}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
