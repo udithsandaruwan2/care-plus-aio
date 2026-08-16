@@ -372,6 +372,7 @@ export const VoiceTurnResponse = z.object({
   asr_language: z.string().optional().default(''),
   asr_language_code: z.string().optional().default(''),
   reply: z.string(),
+  silent: z.boolean().optional().default(false),
   reply_lang: z.string(),
   reply_audio_base64: z.string().optional().default(''),
   reply_audio_mime: z.string().optional().default(''),

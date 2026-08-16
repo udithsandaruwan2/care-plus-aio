@@ -116,6 +116,34 @@ export function matchUi(lang: UiVoiceLanguage) {
   return MATCH_UI[lang];
 }
 
+const MATCH_SEARCH: Record<
+  UiVoiceLanguage,
+  { searching: string; ready: string; keepChatting: string; noMatches: string }
+> = {
+  Sinhala: {
+    searching: 'VEHMF පරිචාරකයින් සොයමින්…',
+    ready: 'ගැලපීම් සූදානම්',
+    keepChatting: 'සොයන අතර Serah සමඟ කතා කරන්න පුළුවන්.',
+    noMatches: 'තවම පරිචාරකයින් හමු නොවීය.',
+  },
+  Tamil: {
+    searching: 'VEHMF பராமரிப்பாளர்களைத் தேடுகிறது…',
+    ready: 'பொருத்தங்கள் தயார்',
+    keepChatting: 'தேடும்போது Serah உடன் பேசலாம்.',
+    noMatches: 'பொருத்தம் இல்லை.',
+  },
+  English: {
+    searching: 'VEHMF is ranking caregivers…',
+    ready: 'Matches ready',
+    keepChatting: 'You can keep chatting with Serah while this runs.',
+    noMatches: 'No caregivers matched yet.',
+  },
+};
+
+export function matchSearchCopy(lang: UiVoiceLanguage) {
+  return MATCH_SEARCH[lang];
+}
+
 const STATE_COPY_LOCAL: Record<UiVoiceLanguage, Record<string, string>> = {
   Sinhala: {
     IDLE: 'කතා කරන්න ටැප් කරන්න',

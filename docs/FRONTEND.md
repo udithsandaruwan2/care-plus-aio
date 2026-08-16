@@ -149,9 +149,11 @@ stateDiagram-v2
 | `THINKING`   | violet swirl, particles fire | shimmer skeleton                  | "Replying…"                         |
 | `CLARIFYING` | soft violet pulse            | highlight empty Goal-Ring segment | "Which language do you prefer?"     |
 | `SPEAKING`   | warm glow + waveform         | TTS plays; caption shown          | reads extracted intent back         |
-| `MATCHING`   | fast orbit                   | Goal Ring 100%, spinner           | "Finding your best match…"          |
-| `RESULTS`    | recedes to corner, mint      | result cards slide in with XAI    | "3 matches. Top: 12 min away."      |
+| `MATCHING`   | fast orbit                   | progress bar + skeleton cards     | "VEHMF is ranking caregivers…"      |
+| `RESULTS`    | recedes to corner, mint      | result cards slide in with XAI    | "Look at the cards and pick…"       |
 | `EMERGENCY`  | rose flash + fast pulse      | full-screen alert, call button    | "Health alert — dispatching nurse." |
+
+Empty / ambient audio is **silent** (keep listening). Do not claim “I heard audio but couldn’t understand.” After **goodbye**, Serah sleeps and keeps listening for **Hey Serah**. A bottom-right companion bubble stays on other hub pages while the session is live.
 
 **Realtime feedback channels**
 
@@ -188,7 +190,7 @@ flowchart LR
 **Key modules**
 
 - `neural-core/` — R3F scene, audio-reactive shader material, bloom, `frameloop="demand"` when idle.
-- `assistant/` — FSM store, mic controller, transcript, entity chips, Goal Ring.
+- `assistant/` — FSM store, mic controller (`SerahEngineProvider` in AppShell), transcript, entity chips, Goal Ring, match search skeletons, companion dock.
 - `realtime/` — WS client + typed event handlers (match, alerts).
 - `features/` — matching, scheduling, health-dashboard (charts via `visx`/`recharts`), consent.
 - `auth/` — JWT storage (httpOnly cookie preferred), RBAC-aware routing.

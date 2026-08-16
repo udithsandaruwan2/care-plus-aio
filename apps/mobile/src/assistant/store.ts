@@ -27,6 +27,7 @@ type AssistantStore = {
   matchError: string | null;
   sessionId: number | null;
   uiLanguage: UiVoiceLanguage;
+  matching: boolean;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -38,6 +39,7 @@ type AssistantStore = {
   appendChat: (msg: Omit<ChatMessage, 'id'>) => void;
   setSessionId: (id: number | null) => void;
   setUiLanguage: (lang: UiVoiceLanguage) => void;
+  setMatching: (matching: boolean) => void;
   reset: () => void;
 };
 
@@ -51,6 +53,7 @@ const initial = {
   matchError: null as string | null,
   sessionId: null as number | null,
   uiLanguage: loadUiVoiceLanguage(),
+  matching: false,
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -84,6 +87,8 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
     saveUiVoiceLanguage(lang);
     set({ uiLanguage: lang });
   },
+
+  setMatching: (matching) => set({ matching }),
 
   reset: () =>
     set({

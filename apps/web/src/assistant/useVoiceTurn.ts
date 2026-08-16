@@ -38,12 +38,21 @@ function applyTurnState(
     store.setIntent(draft);
   }
 
+  if (result.situation === 'goodbye') {
+    store.setAsleep(true);
+    store.setMatching(false);
+    store.setState(AssistantState.IDLE, { force: true });
+    return;
+  }
+
   if (result.match) {
-    store.setState(AssistantState.MATCHING, { force: true });
     store.setMatch(result.match);
+    store.setMatching(false);
     store.setState(AssistantState.RESULTS, { force: true });
     return;
   }
+
+  store.setMatching(false);
 
   if (result.route === 'CLARIFY') {
     store.setState(AssistantState.CLARIFYING, { force: true });
@@ -68,6 +77,10 @@ function applyTurnState(
   }
 }
 
+function isSilentTurn(result: Awaited<ReturnType<typeof api.voiceTurn>>): boolean {
+  return Boolean(result.silent) || (result.situation === 'empty' && !result.reply?.trim());
+}
+
 /**
  * Conversational turn: captions + audio → server ASR/router → Serah TTS + optional match.
  */
@@ -85,12 +98,16 @@ export function useVoiceTurn() {
       const store = useAssistant.getState();
       const hasVisibleMatch = Boolean(store.match?.results?.length);
       const userLine = opts.text.trim();
+      const seeking = looksLikeCareSeek(opts.text);
       setBusy(true);
       setError(null);
-      store.setState(
-        looksLikeCareSeek(opts.text) ? AssistantState.MATCHING : AssistantState.THINKING,
-        { force: true },
-      );
+      store.setSessionLive(true);
+      if (seeking) {
+        store.setMatching(true);
+        store.setState(AssistantState.MATCHING, { force: true });
+      } else {
+        store.setState(AssistantState.THINKING, { force: true });
+      }
       stopSpeaking();
 
       try {
@@ -112,6 +129,13 @@ export function useVoiceTurn() {
         setTtsSource(result.tts_source || null);
         setSerahReply(result.reply);
 
+        if (isSilentTurn(result)) {
+          store.setMatching(false);
+          setBusy(false);
+          if (opts.continueListening) opts.continueListening();
+          return;
+        }
+
         if (result.transcript) {
           store.setTranscript(result.transcript);
           store.setInterim('');
@@ -131,7 +155,7 @@ export function useVoiceTurn() {
 
         applyTurnState(result, store);
 
-        if (result.reply?.trim()) {
+        if (result.reply?.trim() && result.situation !== 'goodbye') {
           const current = useAssistant.getState().state;
           if (
             current !== AssistantState.RESULTS &&
@@ -142,10 +166,15 @@ export function useVoiceTurn() {
           }
         }
 
-        await speakSerah(result.reply, result.reply_lang, {
-          audioBase64: result.reply_audio_base64,
-          audioMime: result.reply_audio_mime,
-        });
+        // Unlock chat/mic while Serah speaks so matching cards stay usable.
+        setBusy(false);
+
+        if (result.reply?.trim()) {
+          await speakSerah(result.reply, result.reply_lang, {
+            audioBase64: result.reply_audio_base64,
+            audioMime: result.reply_audio_mime,
+          });
+        }
 
         const after = useAssistant.getState();
         if (opts.continueListening) {
@@ -156,6 +185,7 @@ export function useVoiceTurn() {
           after.setState(AssistantState.RESULTS, { force: true });
         }
       } catch (err) {
+        store.setMatching(false);
         setSerahReply(null);
         setAsrSource(null);
         setTtsSource(null);

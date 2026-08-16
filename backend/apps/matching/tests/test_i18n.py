@@ -28,6 +28,12 @@ class MatchI18nTests(SimpleTestCase):
         self.assertIn("பொருந்துவதற்கான காரணம்", out)
         self.assertNotIn("Matched because", out)
 
+    def test_english_match_reply_asks_user_to_pick(self):
+        results = [{"display_name": "Nimal Perera", "score": 0.8, "explanation": ""}]
+        reply = match_spoken_reply(results, "en-US")
+        self.assertIn("Nimal Perera", reply)
+        self.assertIn("Look at the cards", reply)
+
     def test_english_unchanged(self):
         en = "Matched because: strong medical/skill match."
         self.assertEqual(localize_explanation(en, "en-US"), en)

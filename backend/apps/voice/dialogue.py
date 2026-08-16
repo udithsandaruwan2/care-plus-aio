@@ -106,20 +106,6 @@ def _clarify_reply(intent: dict, lang: str) -> str:
     return "Tell me a bit more so I can find the right caregiver."
 
 
-def _empty_catch_reply(lang: str, *, had_audio: bool) -> str:
-    if lang.startswith("si"):
-        if had_audio:
-            return "ශබ්දය ඇසුණත් වචන හඳුනාගත්තේ නැහැ — ටිකක් දිගට කතා කරලා නැවත උත්සාහ කරන්න."
-        return "මයිකය ඇසුණේ නැහැ — mic එක තියලා පැහැදිලිව කතා කරන්න, නතර වුණාට පස්සේ යවන්න."
-    if lang.startswith("ta"):
-        if had_audio:
-            return "ஒலி கேட்டது, ஆனால் சொற்கள் புரியவில்லை — சற்று நீளமாகப் பேசி மீண்டும் முயலுங்கள்."
-        return "மைக் கேட்கவில்லை — மைக்கை அழுத்தித் தெளிவாகப் பேசுங்கள், நிறுத்தியதும் அனுப்பும்."
-    if had_audio:
-        return "I heard audio but couldn’t understand the words — speak a bit longer and try again."
-    return "I didn’t catch any speech — hold the mic, speak clearly, then pause so I can reply."
-
-
 def _attach_tts(payload: dict, reply: str, reply_lang: str, *, server_voice: bool = True) -> dict:
     from .tts import pack_for_api, synthesize
 
@@ -343,17 +329,17 @@ def process_turn(
     text = asr.text.strip()
     reply_lang = _tts_lang(ui, [ui] if ui else None) if ui else "en-US"
     if not text:
-        had_audio = bool(audio)
-        reply = _empty_catch_reply(reply_lang, had_audio=had_audio)
+        # Silence / ambient noise is not a turn — keep listening, do not invent a reply.
         return _attach_tts(
             {
                 "route": "CHAT",
                 "situation": "empty",
+                "silent": True,
                 "transcript": "",
                 "asr_source": asr.source,
                 "asr_language": asr.language_hint or ui or "",
                 "asr_language_code": asr.language_code or "",
-                "reply": reply,
+                "reply": "",
                 "reply_lang": reply_lang,
                 "intent": None,
                 "match": None,
@@ -363,7 +349,7 @@ def process_turn(
                 "chat_backend": resolve_chat_backend(),
                 "match_engine": "",
             },
-            reply,
+            "",
             reply_lang,
             server_voice=False,
         )

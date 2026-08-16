@@ -18,7 +18,7 @@ const STEP_ORDER: AssistantState[] = [
  * Neural Core color + Goal Ring can be verified without the full voice flow.
  */
 export function StateStepper() {
-  const { state, setState, setIntentField, reset } = useAssistant();
+  const { state, setState, setIntentField, setMatching, reset } = useAssistant();
 
   return (
     <div className="mt-6 rounded-2xl border border-hair bg-panel p-4 backdrop-blur-md">
@@ -63,6 +63,16 @@ export function StateStepper() {
           className="rounded-md border border-mint/40 px-2 py-1 text-xs text-mint"
         >
           + care level
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMatching(true);
+            setState(AssistantState.MATCHING, { force: true });
+          }}
+          className="rounded-md border border-mint/40 px-2 py-1 text-xs text-mint"
+        >
+          + matching UI
         </button>
         <button
           type="button"
