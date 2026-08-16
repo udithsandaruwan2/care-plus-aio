@@ -118,25 +118,43 @@ export function matchUi(lang: UiVoiceLanguage) {
 
 const MATCH_SEARCH: Record<
   UiVoiceLanguage,
-  { searching: string; ready: string; keepChatting: string; noMatches: string }
+  { searching: string; ready: string; keepChatting: string; noMatches: string; thinking: string[] }
 > = {
   Sinhala: {
     searching: 'VEHMF පරිචාරකයින් සොයමින්…',
     ready: 'ගැලපීම් සූදානම්',
     keepChatting: 'සොයන අතර Serah සමඟ කතා කරන්න පුළුවන්.',
     noMatches: 'තවම පරිචාරකයින් හමු නොවීය.',
+    thinking: [
+      'ආසන්න පරිචාරකයින් පරීක්ෂා කරමින්…',
+      'කුසලතා සහ භාෂාව අනුව ශ්‍රේණිගත කරමින්…',
+      'විශ්වාසය සහ දුර ලකුණු කරමින්…',
+      'VEHMF ලැයිස්තුව බර කරමින්…',
+    ],
   },
   Tamil: {
     searching: 'VEHMF பராமரிப்பாளர்களைத் தேடுகிறது…',
     ready: 'பொருத்தங்கள் தயார்',
     keepChatting: 'தேடும்போது Serah உடன் பேசலாம்.',
     noMatches: 'பொருத்தம் இல்லை.',
+    thinking: [
+      'அருகிலுள்ள பராமரிப்பாளர்களைச் சரிபார்க்கிறது…',
+      'திறன் மற்றும் மொழி அடிப்படையில் தரவரிசை…',
+      'நம்பிக்கை மற்றும் தூரத்தை மதிப்பிடுகிறது…',
+      'VEHMF பட்டியலை எடைபோடுகிறது…',
+    ],
   },
   English: {
     searching: 'VEHMF is ranking caregivers…',
     ready: 'Matches ready',
     keepChatting: 'You can keep chatting with Serah while this runs.',
     noMatches: 'No caregivers matched yet.',
+    thinking: [
+      'Checking who is nearby…',
+      'Ranking by skill and language…',
+      'Scoring trust and distance…',
+      'VEHMF is weighting this list…',
+    ],
   },
 };
 

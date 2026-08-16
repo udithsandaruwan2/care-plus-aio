@@ -100,10 +100,14 @@ _REFINE = re.compile(
 
 # Care-seeking: named roles, or "someone to take care of me" (ASR often drops "caregiver").
 _MATCH_SEEK = re.compile(
-    r"\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|"
-    r"find\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant|someone)|"
+    r"\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|vehmf|"
+    r"find\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant|someone|somebody|person)|"
     r"(need|want|get)\s*(me\s*)?(a\s*)?(caregiver|nurse|carer|attendant)|"
-    r"(looking|search(ing)?)\s*for\s*(a\s*)?(caregiver|nurse|carer|attendant|someone)|"
+    r"(looking|search(ing)?)\s*for\s*(a\s*)?(caregiver|nurse|carer|attendant|someone|somebody|person|care)|"
+    r"help\s+me\s+find|"
+    r"(start|begin|run)\s+(the\s+)?(search|match|matching|vehmf)|"
+    r"(search|match|find)\s+now|"
+    r"go\s+ahead\s+(and\s+)?(search|match|find)|"
     r"match\s*me|show\s*(me\s*)?(the\s*)?(caregivers?|nurses?|matches|options)|"
     r"book\s*(a\s*)?(caregiver|nurse)|hire\s*(a\s*)?(caregiver|nurse)|"
     r"need\s+(a\s+)?(someone|somebody|person)|"

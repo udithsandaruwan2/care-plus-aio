@@ -112,6 +112,18 @@ class RouterFixtureTests(SimpleTestCase):
         )
         self.assertEqual(d.route, "MATCH")
 
+    def test_find_someone_for_me_is_match(self):
+        d = classify_turn(
+            "find someone for me",
+            COMPLETE,
+            has_prior_match=False,
+        )
+        self.assertEqual(d.route, "MATCH")
+
+    def test_start_matching_is_match(self):
+        d = classify_turn("start matching", COMPLETE, has_prior_match=False)
+        self.assertEqual(d.route, "MATCH")
+
     def test_greeting_is_chat(self):
         d = classify_turn("hello there", {}, has_prior_match=False)
         self.assertEqual(d.route, "CHAT")

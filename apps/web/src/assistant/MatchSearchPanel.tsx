@@ -18,6 +18,25 @@ function SkeletonCard({ delay }: { delay: number }) {
   );
 }
 
+function ThinkingLine({ lines }: { lines: string[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (lines.length < 2) return;
+    const timer = window.setInterval(() => {
+      setIndex((i) => (i + 1) % lines.length);
+    }, 1700);
+    return () => window.clearInterval(timer);
+  }, [lines]);
+
+  const line = lines[index] ?? lines[0] ?? '';
+  return (
+    <p key={line} className="match-thinking-line" aria-live="polite">
+      {line}
+    </p>
+  );
+}
+
 /** Progress + loading cards while VEHMF ranks caregivers; real cards when ready. */
 export function MatchSearchPanel({
   matching,
@@ -53,7 +72,7 @@ export function MatchSearchPanel({
   return (
     <section
       id={id}
-      className="mt-6 w-full max-w-md space-y-3"
+      className="w-full max-w-md space-y-3"
       role="region"
       aria-label={matching ? copy.searching : copy.ready}
       aria-live="polite"
@@ -74,6 +93,7 @@ export function MatchSearchPanel({
           >
             <div className="match-search-fill" style={{ width: `${progress}%` }} />
           </div>
+          <ThinkingLine lines={copy.thinking} />
           <p className="text-xs text-muted">{copy.keepChatting}</p>
         </div>
       ) : null}

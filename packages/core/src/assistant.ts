@@ -60,7 +60,7 @@ export const TRANSITIONS: Record<AssistantState, AssistantState[]> = {
   CLARIFYING: ['LISTENING', 'CHAT_REPLY', 'EMERGENCY'],
   SPEAKING: ['MATCHING', 'CHAT_REPLY', 'IDLE'],
   CHAT_REPLY: ['LISTENING', 'MATCHING', 'RESULTS', 'CLARIFYING', 'IDLE', 'EMERGENCY'],
-  MATCHING: ['RESULTS', 'CHAT_REPLY', 'EMERGENCY'],
+  MATCHING: ['RESULTS', 'CHAT_REPLY', 'EMERGENCY', 'LISTENING', 'IDLE'],
   RESULTS: ['LISTENING', 'CHAT_REPLY', 'MATCHING', 'CLARIFYING', 'IDLE', 'EMERGENCY'],
   EMERGENCY: ['RESULTS', 'IDLE', 'CHAT_REPLY'],
 };
@@ -74,13 +74,58 @@ export function looksLikeCareSeek(text: string): boolean {
   const raw = (text || '').trim();
   if (!raw) return false;
   return (
-    /\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|match me)\b/i.test(raw) ||
+    /\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|match me|vehmf)\b/i.test(raw) ||
     /\b(need|want)\s+(a\s+)?(someone|somebody|person)\b/i.test(raw) ||
+    /\b(find|get|search(ing)?\s+for|look(ing)?\s+for)\s+(me\s+)?(a\s+)?(someone|somebody|person|care)\b/i.test(
+      raw,
+    ) ||
+    /\bhelp\s+me\s+find\b/i.test(raw) ||
+    /\b(start|begin|run)\s+(the\s+)?(search|match|matching|vehmf)\b/i.test(raw) ||
+    /\b(search|match|find)\s+now\b/i.test(raw) ||
+    /\bgo\s+ahead\s+(and\s+)?(search|match|find)\b/i.test(raw) ||
     /\bwho\s+can\s+(take\s*care|look\s*after|care\s+for|help)\b/i.test(raw) ||
     /\btake\s*care\s+of\s+(me|my|him|her|them|us)\b/i.test(raw) ||
     /පරිචාරක|பராமரிப்பாளர்|රැකබලා/.test(raw) ||
     /(හොය|සොය).{0,24}(කෙනෙක්|කෙනෙකු|පරිචාරක|caregiver|nurse)/.test(raw)
   );
+}
+
+/** Serah claimed a caregiver search is running (Gemini chat must not stall the UI). */
+export function looksLikeSearchPromise(text: string): boolean {
+  const raw = (text || '').trim();
+  if (!raw) return false;
+  return (
+    /\bvehmf\b/i.test(raw) ||
+    /\bi['’]?m on it\b/i.test(raw) ||
+    /\blet you know\b/i.test(raw) ||
+    /\bfinishes matching\b/i.test(raw) ||
+    /\bresults are ready\b/i.test(raw) ||
+    /\b(ranking|finding|searching)\s+(your\s+)?(best\s+)?(match|caregivers?)\b/i.test(raw)
+  );
+}
+
+/** Keep the search stage up after a turn until cards arrive or we must clarify. */
+export function shouldHoldMatchingUi(opts: {
+  seeking: boolean;
+  route?: string;
+  situation?: string;
+  reply?: string;
+  hasMatch: boolean;
+  clearMatch?: boolean;
+  hasCondition: boolean;
+}): boolean {
+  if (opts.hasMatch || opts.clearMatch) return false;
+  const situation = opts.situation || '';
+  if (situation === 'goodbye' || situation === 'cancel' || situation === 'match_error') {
+    return false;
+  }
+  if (opts.route === 'CLARIFY') return false;
+  const wantsSearch =
+    opts.seeking ||
+    opts.route === 'MATCH' ||
+    opts.route === 'REFINE' ||
+    looksLikeSearchPromise(opts.reply || '');
+  return wantsSearch && opts.hasCondition;
 }
 
 /** Wake Serah after goodbye / sleep. */

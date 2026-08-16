@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Showcase synthetic data covering every live product situation._
+_Last updated: 2026-08-16 — Serah Core search stage (orb left + VEHMF progress)._
 
 ---
 
@@ -79,6 +79,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **UI Medical Light** — Teal/white tokens, PublicLayout + Hub sidebar (`/hub`), Serah CSS orb HUD, restyled public/hub/mobile chrome. Branch `feat/ui-medical-light-redesign`.
 - ✅ **Serah match progress + companion** — VEHMF search shows a progress bar and skeleton cards; empty/ambient audio stays silent; goodbye sleeps until “Hey Serah”; hub pages keep a live bottom-right Serah bubble. Branch `feat/serah-match-progress-dock`.
 - ✅ **Showcase synthetic data** — `seed_demo` loads vocab, catalog, 30 SL caregivers, and every situation (pending/rejected/cancelled/expired hire, paid care, failed pay, messages, records, vitals/emergency, reviews, leads, admin). Branch `feat/showcase-synthetic-data`.
+- ✅ **Serah search stage** — caregiver search keeps the matching UI on (orb slides left, progress + thinking copy + skeleton cards) even if chat promised VEHMF; backend salvage runs the real match. Branch `feat/serah-match-search-stage`.
 
 ### Active track — research match loop
 
