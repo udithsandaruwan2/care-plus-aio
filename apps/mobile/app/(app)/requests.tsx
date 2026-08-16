@@ -133,7 +133,7 @@ export default function RequestsScreen() {
                   style={[styles.acceptBtn, busy && styles.disabled]}
                 >
                   {busy && rejectFor !== r.id ? (
-                    <ActivityIndicator color={colors.bgVoid} />
+                    <ActivityIndicator color="#FFFFFF" />
                   ) : (
                     <Text style={styles.acceptText}>Accept</Text>
                   )}
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.borderHair,
-    backgroundColor: 'rgba(18, 22, 34, 0.9)',
+    backgroundColor: colors.bgPanel,
     padding: 14,
     gap: 6,
   },
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
   },
-  acceptText: { color: colors.bgVoid, fontWeight: '700', fontSize: 13 },
+  acceptText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
   rejectBtn: {
     flex: 1,
     borderRadius: 999,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.borderHair,
-    backgroundColor: 'rgba(5,6,10,0.6)',
+    backgroundColor: colors.bgPanel,
     color: colors.textPrimary,
     paddingHorizontal: 12,
     paddingVertical: 10,

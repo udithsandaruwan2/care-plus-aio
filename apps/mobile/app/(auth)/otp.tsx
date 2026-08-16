@@ -92,7 +92,7 @@ export default function OtpScreen() {
         style={({ pressed }) => [styles.button, pressed && styles.pressed]}
       >
         {busy ? (
-          <ActivityIndicator color={colors.bgVoid} />
+          <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.buttonText}>Verify</Text>
         )}
@@ -131,5 +131,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pressed: { opacity: 0.85 },
-  buttonText: { color: colors.bgVoid, fontWeight: '600' },
+  buttonText: { color: '#FFFFFF', fontWeight: '600' },
 });

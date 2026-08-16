@@ -185,9 +185,7 @@ export function SchedulePage() {
       const offer = parseConflictFallback(err);
       if (offer) {
         setFallback(offer);
-        setError(
-          'That window was just taken. VEHMF found another caregiver for the same time.',
-        );
+        setError('That window was just taken. VEHMF found another caregiver for the same time.');
       } else if (err instanceof ApiError && err.status === 409) {
         setError('That time window overlaps an existing booking.');
       } else {
@@ -310,7 +308,10 @@ export function SchedulePage() {
             <Button tone="ghost" disabled={busy} onClick={() => setFallback(null)}>
               Dismiss
             </Button>
-            <Link to={`/caregivers/${fallback.caregiver_id}`} className="text-sm text-cyan hover:underline self-center">
+            <Link
+              to={`/caregivers/${fallback.caregiver_id}`}
+              className="text-sm text-cyan hover:underline self-center"
+            >
               View profile
             </Link>
           </div>
@@ -363,7 +364,9 @@ export function SchedulePage() {
           ))}
         </ul>
         {cancelled.length > 0 && (
-          <p className="mt-4 text-xs text-muted">{cancelled.length} cancelled shift(s) in history.</p>
+          <p className="mt-4 text-xs text-muted">
+            {cancelled.length} cancelled shift(s) in history.
+          </p>
         )}
       </section>
 
@@ -403,8 +406,7 @@ export function SchedulePage() {
           {occurrences.length > 0 && (
             <ul className="mt-4 space-y-2">
               {occurrences.map((occ) => {
-                const active =
-                  picked?.starts_at === occ.starts_at && picked?.slotId === occ.slotId;
+                const active = picked?.starts_at === occ.starts_at && picked?.slotId === occ.slotId;
                 return (
                   <li key={`${occ.slotId}-${occ.starts_at}`}>
                     <button
@@ -462,11 +464,11 @@ export function SchedulePage() {
             {slots.map((slot) => (
               <li
                 key={slot.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hair bg-panel/50 px-4 py-3 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] px-4 py-3 text-sm"
               >
                 <span className="text-mist">
-                  {slot.weekday_label ?? weekdayLabel(slot.weekday)} ·{' '}
-                  {slot.start_time.slice(0, 5)} – {slot.end_time.slice(0, 5)}
+                  {slot.weekday_label ?? weekdayLabel(slot.weekday)} · {slot.start_time.slice(0, 5)}{' '}
+                  – {slot.end_time.slice(0, 5)}
                 </span>
                 <button
                   type="button"

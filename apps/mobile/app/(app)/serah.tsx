@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Redirect } from 'expo-router';
 import { AssistantState, STATE_COPY } from '@care-plus/core';
-import { brand, colors } from '@care-plus/ui-tokens';
+import { colors } from '@care-plus/ui-tokens';
 import { useAuth } from '../../src/auth/AuthContext';
 import { usePatientProfile } from '../../src/auth/usePatientProfile';
 import { NeuralCoreSkia } from '../../src/neural-core/NeuralCoreSkia';
@@ -62,8 +62,8 @@ export default function SerahScreen() {
       keyboardVerticalOffset={80}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.eyebrow}>{brand.name}</Text>
-        <Text style={styles.title}>Serah</Text>
+        <Text style={styles.eyebrow}>SERAH NEURAL CORE</Text>
+        <Text style={styles.title}>Talk with Serah</Text>
         <Text style={styles.subtitle}>
           {STATE_COPY[state]}
           {user.role === 'patient' ? ` · profile ${completionPercent}%` : ''}
@@ -124,11 +124,7 @@ export default function SerahScreen() {
         </View>
 
         {match?.results?.length ? (
-          <MatchResultCards
-            match={match}
-            canRequestCare={canRequestCare}
-            uiLanguage={uiLanguage}
-          />
+          <MatchResultCards match={match} canRequestCare={canRequestCare} uiLanguage={uiLanguage} />
         ) : null}
       </ScrollView>
 
@@ -152,11 +148,7 @@ export default function SerahScreen() {
             pressed && styles.pressed,
           ]}
         >
-          {busy ? (
-            <ActivityIndicator color={colors.bgVoid} />
-          ) : (
-            <Text style={styles.sendText}>Send</Text>
-          )}
+          {busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.sendText}>Send</Text>}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -210,7 +202,7 @@ const styles = StyleSheet.create({
   },
   langChipActive: {
     borderColor: colors.accentCyan,
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: 'rgba(13, 148, 136, 0.12)',
   },
   langText: {
     color: colors.textMuted,
@@ -258,12 +250,12 @@ const styles = StyleSheet.create({
   },
   bubbleUser: {
     alignSelf: 'flex-end',
-    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+    backgroundColor: 'rgba(13, 148, 136, 0.12)',
     maxWidth: '88%',
   },
   bubbleSerah: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(18, 22, 34, 0.9)',
+    backgroundColor: colors.bgPanel,
     maxWidth: '88%',
   },
   bubbleRole: {
@@ -290,7 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.borderHair,
-    backgroundColor: 'rgba(18, 22, 34, 0.9)',
+    backgroundColor: colors.bgPanel,
     color: colors.textPrimary,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -308,7 +300,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   sendText: {
-    color: colors.bgVoid,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   pressed: {

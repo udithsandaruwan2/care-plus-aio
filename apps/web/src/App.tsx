@@ -52,7 +52,8 @@ export function App() {
 
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            <Route path="/platform" element={<PlatformHubPage />} />
+            <Route path="/hub" element={<PlatformHubPage />} />
+            <Route path="/platform" element={<Navigate to="/hub" replace />} />
             <Route path="/app" element={<HomePage />} />
             <Route path="/onboarding" element={<PatientOnboardingPage />} />
             <Route path="/caregiver-onboarding" element={<CaregiverOnboardingPage />} />

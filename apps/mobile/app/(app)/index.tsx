@@ -76,14 +76,10 @@ export default function HubScreen() {
       </View>
 
       {user.role === 'patient' && (
-        <Text style={styles.hint}>
-          {t('en', 'hub.patientProfileHint', { percent: '—' })}
-        </Text>
+        <Text style={styles.hint}>{t('en', 'hub.patientProfileHint', { percent: '—' })}</Text>
       )}
       {user.role === 'caregiver' && (
-        <Text style={styles.hint}>
-          {t('en', 'hub.caregiverProfileHint', { percent: '—' })}
-        </Text>
+        <Text style={styles.hint}>{t('en', 'hub.caregiverProfileHint', { percent: '—' })}</Text>
       )}
 
       <Text style={styles.section}>{t('en', 'hub.quickActions')}</Text>
@@ -163,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.borderHair,
-    backgroundColor: 'rgba(18, 22, 34, 0.85)',
+    backgroundColor: colors.bgPanel,
     padding: 12,
     gap: 4,
   },
@@ -195,7 +191,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.borderHair,
-    backgroundColor: 'rgba(18, 22, 34, 0.85)',
+    backgroundColor: colors.bgPanel,
     padding: 14,
     gap: 4,
   },

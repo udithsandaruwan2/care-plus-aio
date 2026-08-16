@@ -124,7 +124,9 @@ export function CareRequestsPage() {
       />
 
       {!isPatient && !isCaregiver && (
-        <p className="mt-8 text-sm text-muted">Only patients and caregivers can view care requests.</p>
+        <p className="mt-8 text-sm text-muted">
+          Only patients and caregivers can view care requests.
+        </p>
       )}
 
       {loading && <p className="mt-8 text-sm text-muted">Loading…</p>}
@@ -135,7 +137,7 @@ export function CareRequestsPage() {
       )}
 
       {!loading && (isPatient || isCaregiver) && rows.length === 0 && (
-        <div className="mt-8 rounded-2xl border border-hair bg-panel/50 p-5">
+        <div className="mt-8 rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
           <p className="text-sm text-muted">
             {isCaregiver
               ? 'Inbox empty. Requests appear when families send one from Serah matches or caregiver profiles.'

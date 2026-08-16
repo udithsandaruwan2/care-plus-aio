@@ -45,7 +45,7 @@ export function EntityChips({
       {active.map((c) => (
         <span
           key={c.key}
-          className={`animate-[fadeIn_260ms_ease] rounded-full border bg-void/40 px-3 py-1 text-xs ${c.className}`}
+          className={`animate-[fadeIn_260ms_ease] rounded-full border bg-soft px-3 py-1 text-xs ${c.className}`}
         >
           <span className="opacity-60">{labels[c.labelKey]}:</span> {values[c.key]}
         </span>

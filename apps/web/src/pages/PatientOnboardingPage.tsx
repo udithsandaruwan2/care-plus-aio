@@ -17,7 +17,7 @@ const CITIES: { name: string; lon: number; lat: number }[] = [
 ];
 
 const inputClass =
-  'w-full rounded-lg border border-hair bg-void/60 px-3 py-2 text-mist outline-none ring-cyan focus:ring-1';
+  'w-full rounded-lg border border-hair bg-panel px-3 py-2 text-mist outline-none ring-cyan focus:ring-1';
 
 function splitList(value: string): string[] {
   return value
@@ -141,7 +141,7 @@ export function PatientOnboardingPage() {
   ]);
 
   if (user?.role !== 'patient') {
-    return <Navigate to="/platform" replace />;
+    return <Navigate to="/hub" replace />;
   }
 
   function onCityChange(name: string) {
@@ -186,187 +186,189 @@ export function PatientOnboardingPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
-        <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">Patient onboarding</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-mist">{steps[step]}</h1>
-        <OnboardingProgressBar completion={completion} />
-        <p className="mt-2 text-sm text-muted">
-          Profile {completion}% complete — need 80% to request care.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {steps.map((label, i) => (
-            <span
-              key={label}
-              className={`rounded-full px-2 py-0.5 text-xs ${
-                i === step ? 'bg-cyan/20 text-cyan' : 'bg-void/60 text-muted'
-              }`}
-            >
-              {i + 1}. {label}
-            </span>
-          ))}
-        </div>
-
-        {loading ? (
-          <p className="mt-8 text-muted">Loading your profile…</p>
-        ) : (
-          <form
-            onSubmit={(e) => void saveStep(e)}
-            className="mt-8 space-y-5 rounded-2xl border border-hair bg-panel p-6 backdrop-blur-md"
+      <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">
+        Patient onboarding
+      </p>
+      <h1 className="mt-2 font-display text-3xl font-semibold text-mist">{steps[step]}</h1>
+      <OnboardingProgressBar completion={completion} />
+      <p className="mt-2 text-sm text-muted">
+        Profile {completion}% complete — need 80% to request care.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {steps.map((label, i) => (
+          <span
+            key={label}
+            className={`rounded-full px-2 py-0.5 text-xs ${
+              i === step ? 'bg-cyan/20 text-cyan' : 'bg-panel text-muted'
+            }`}
           >
-            {step === 0 && (
-              <>
-                <Field label="Display name">
-                  <input
-                    required
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Preferred language">
-                  <select
-                    value={preferredLanguage}
-                    onChange={(e) => setPreferredLanguage(e.target.value)}
-                    className={inputClass}
-                  >
-                    {LANGUAGES.map((l) => (
-                      <option key={l} value={l}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Languages spoken">
-                  <MotionLanguageRow languages={languages} toggleLanguage={toggleLanguage} />
-                </Field>
-                <Field label="City">
-                  <select
-                    value={city}
-                    onChange={(e) => onCityChange(e.target.value)}
-                    className={inputClass}
-                  >
-                    {CITIES.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </>
-            )}
-
-            {step === 1 && (
-              <>
-                <MotionHealthFields
-                  heightCm={heightCm}
-                  setHeightCm={setHeightCm}
-                  weightKg={weightKg}
-                  setWeightKg={setWeightKg}
-                  bloodType={bloodType}
-                  setBloodType={setBloodType}
-                />
-                <Field label="Known conditions (medical vocabulary)">
-                  <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
-                    {conditions.map((c) => (
-                      <button
-                        key={c.slug}
-                        type="button"
-                        onClick={() => toggleCondition(c.slug)}
-                        className={`rounded-full border px-3 py-1 text-xs ${
-                          selectedConditions.includes(c.slug)
-                            ? 'border-mint text-mint'
-                            : 'border-hair text-muted hover:border-cyan/40'
-                        }`}
-                      >
-                        {c.canonical_en}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-                <Field label="Medications (comma-separated)">
-                  <textarea
-                    value={medicationsText}
-                    onChange={(e) => setMedicationsText(e.target.value)}
-                    rows={2}
-                    className={inputClass}
-                    placeholder="e.g. metformin, amlodipine"
-                  />
-                </Field>
-                <Field label="Allergies (comma-separated)">
-                  <textarea
-                    value={allergiesText}
-                    onChange={(e) => setAllergiesText(e.target.value)}
-                    rows={2}
-                    className={inputClass}
-                    placeholder="e.g. peanuts, penicillin"
-                  />
-                </Field>
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <Field label="Care level needed">
-                  <select
-                    value={careLevel}
-                    onChange={(e) => setCareLevel(e.target.value)}
-                    className={inputClass}
-                  >
-                    {CARE_LEVELS.map((l) => (
-                      <option key={l} value={l}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Emergency contact name">
-                  <input
-                    required
-                    value={emergencyName}
-                    onChange={(e) => setEmergencyName(e.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Emergency contact phone">
-                  <input
-                    required
-                    value={emergencyPhone}
-                    onChange={(e) => setEmergencyPhone(e.target.value)}
-                    className={inputClass}
-                    placeholder="+94…"
-                  />
-                </Field>
-              </>
-            )}
-
-            {error && <p className="text-sm text-rose">{error}</p>}
-
-            <div className="flex gap-3 pt-2">
-              {step > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setStep(step - 1)}
-                  className="rounded-lg border border-hair px-4 py-2 text-sm text-muted hover:border-cyan"
-                >
-                  Back
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 rounded-lg bg-cyan/90 px-4 py-2.5 font-medium text-void hover:bg-cyan disabled:opacity-60"
-              >
-                {saving ? 'Saving…' : step < 2 ? 'Save & continue' : 'Finish onboarding'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        <p className="mt-6 text-center text-sm text-muted">
-          <Link to="/platform" className="text-cyan hover:underline">
-            Back to home
-          </Link>
-        </p>
+            {i + 1}. {label}
+          </span>
+        ))}
       </div>
+
+      {loading ? (
+        <p className="mt-8 text-muted">Loading your profile…</p>
+      ) : (
+        <form
+          onSubmit={(e) => void saveStep(e)}
+          className="mt-8 space-y-5 rounded-2xl border border-hair bg-panel p-6 backdrop-blur-md"
+        >
+          {step === 0 && (
+            <>
+              <Field label="Display name">
+                <input
+                  required
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Preferred language">
+                <select
+                  value={preferredLanguage}
+                  onChange={(e) => setPreferredLanguage(e.target.value)}
+                  className={inputClass}
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Languages spoken">
+                <MotionLanguageRow languages={languages} toggleLanguage={toggleLanguage} />
+              </Field>
+              <Field label="City">
+                <select
+                  value={city}
+                  onChange={(e) => onCityChange(e.target.value)}
+                  className={inputClass}
+                >
+                  {CITIES.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <MotionHealthFields
+                heightCm={heightCm}
+                setHeightCm={setHeightCm}
+                weightKg={weightKg}
+                setWeightKg={setWeightKg}
+                bloodType={bloodType}
+                setBloodType={setBloodType}
+              />
+              <Field label="Known conditions (medical vocabulary)">
+                <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
+                  {conditions.map((c) => (
+                    <button
+                      key={c.slug}
+                      type="button"
+                      onClick={() => toggleCondition(c.slug)}
+                      className={`rounded-full border px-3 py-1 text-xs ${
+                        selectedConditions.includes(c.slug)
+                          ? 'border-mint text-mint'
+                          : 'border-hair text-muted hover:border-cyan/40'
+                      }`}
+                    >
+                      {c.canonical_en}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              <Field label="Medications (comma-separated)">
+                <textarea
+                  value={medicationsText}
+                  onChange={(e) => setMedicationsText(e.target.value)}
+                  rows={2}
+                  className={inputClass}
+                  placeholder="e.g. metformin, amlodipine"
+                />
+              </Field>
+              <Field label="Allergies (comma-separated)">
+                <textarea
+                  value={allergiesText}
+                  onChange={(e) => setAllergiesText(e.target.value)}
+                  rows={2}
+                  className={inputClass}
+                  placeholder="e.g. peanuts, penicillin"
+                />
+              </Field>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <Field label="Care level needed">
+                <select
+                  value={careLevel}
+                  onChange={(e) => setCareLevel(e.target.value)}
+                  className={inputClass}
+                >
+                  {CARE_LEVELS.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Emergency contact name">
+                <input
+                  required
+                  value={emergencyName}
+                  onChange={(e) => setEmergencyName(e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Emergency contact phone">
+                <input
+                  required
+                  value={emergencyPhone}
+                  onChange={(e) => setEmergencyPhone(e.target.value)}
+                  className={inputClass}
+                  placeholder="+94…"
+                />
+              </Field>
+            </>
+          )}
+
+          {error && <p className="text-sm text-rose">{error}</p>}
+
+          <div className="flex gap-3 pt-2">
+            {step > 0 && (
+              <button
+                type="button"
+                onClick={() => setStep(step - 1)}
+                className="rounded-lg border border-hair px-4 py-2 text-sm text-muted hover:border-cyan"
+              >
+                Back
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 rounded-lg bg-cyan/90 px-4 py-2.5 font-medium text-inverse hover:bg-cyan disabled:opacity-60"
+            >
+              {saving ? 'Saving…' : step < 2 ? 'Save & continue' : 'Finish onboarding'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <p className="mt-6 text-center text-sm text-muted">
+        <Link to="/hub" className="text-cyan hover:underline">
+          Back to home
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -381,7 +383,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function OnboardingProgressBar({ completion }: { completion: number }) {
   return (
-    <div className="mt-4 h-2 overflow-hidden rounded-full bg-void/80">
+    <div className="mt-4 h-2 overflow-hidden rounded-full bg-soft">
       <div
         className="h-full rounded-full bg-gradient-to-r from-cyan to-mint transition-all"
         style={{ width: `${Math.min(100, completion)}%` }}

@@ -1,12 +1,12 @@
 import { FormEvent, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Activity } from 'lucide-react';
 import { ApiError, userNeedsOtp } from '@care-plus/api-client';
 import { useAuth } from '../auth/AuthContext';
 import { readBookingIntent } from '../booking/intent';
-import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import { PageHeader } from '../components/ui/PageHeader';
 
 function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
@@ -35,7 +35,7 @@ export function RegisterPage() {
 
   if (user) {
     if (userNeedsOtp(user)) return <Navigate to="/otp" replace />;
-    return <Navigate to="/platform" replace />;
+    return <Navigate to="/hub" replace />;
   }
 
   async function onSubmit(e: FormEvent) {
@@ -62,87 +62,81 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <BackLink to="/">Home</BackLink>
-      <div className="mt-4">
-        <PageHeader
-          eyebrow="Care Plus"
-          title="Create account"
-          subtitle="Join as a patient or caregiver to book home care in Sri Lanka."
-        />
-      </div>
+    <div className="flex min-h-[calc(100vh-12rem)] items-center justify-center px-6 py-12">
+      <Card className="w-full max-w-md p-8">
+        <div className="mb-6 text-center">
+          <Activity className="mx-auto text-cyan" size={32} />
+          <h1 className="mt-3 font-display text-2xl font-bold text-mist">Create an Account</h1>
+          <p className="mt-2 text-sm text-muted">Join Care Plus as a patient or caregiver.</p>
+        </div>
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Email</span>
-          <Input
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-xs uppercase tracking-wide text-muted">Password</span>
-          <Input
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <fieldset className="space-y-2">
-          <legend className="text-xs uppercase tracking-wide text-muted">I am a</legend>
-          <div className="flex gap-3">
-            {(['patient', 'caregiver'] as const).map((r) => (
-              <label
-                key={r}
-                className={`flex-1 cursor-pointer rounded-2xl border px-3 py-2.5 text-center text-sm capitalize ${
-                  role === r
-                    ? 'border-cyan text-cyan'
-                    : 'border-hair text-muted hover:border-cyan/40'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="role"
-                  value={r}
-                  checked={role === r}
-                  onChange={() => setRole(r)}
-                  className="sr-only"
-                />
-                {r}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-        {error && (
-          <p className="text-sm text-rose" role="alert">
-            {error}
-          </p>
-        )}
-        <Button type="submit" disabled={busy} className="w-full">
-          {busy ? 'Creating…' : 'Create account'}
-        </Button>
-      </form>
+        <div className="mb-5 flex gap-2">
+          {(['patient', 'caregiver'] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRole(r)}
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold capitalize transition ${
+                role === r
+                  ? 'border-cyan bg-cyan/10 text-cyan'
+                  : 'border-hair text-muted hover:border-cyan/40'
+              }`}
+            >
+              I&apos;m a {r}
+            </button>
+          ))}
+        </div>
 
-      <p className="mt-4 text-center text-xs text-muted">
-        By creating an account you agree to our{' '}
-        <Link to="/privacy" className="text-cyan hover:underline">
-          privacy notice (PDPA)
-        </Link>
-        .
-      </p>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">Email</span>
+            <Input
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Password
+            </span>
+            <Input
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="Min. 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          {error && (
+            <p className="text-sm text-rose" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" disabled={busy} className="w-full">
+            {busy ? 'Creating…' : 'Create account'}
+          </Button>
+        </form>
 
-      <p className="mt-6 text-center text-sm text-muted">
-        Already registered?{' '}
-        <Link to="/login" className="text-cyan hover:underline">
-          Sign in
-        </Link>
-      </p>
+        <p className="mt-4 text-center text-xs text-muted">
+          By creating an account you agree to our{' '}
+          <Link to="/privacy" className="text-cyan hover:underline">
+            privacy notice (PDPA)
+          </Link>
+          .
+        </p>
+        <p className="mt-6 text-center text-sm text-muted">
+          Already registered?{' '}
+          <Link to="/login" className="font-semibold text-cyan hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </Card>
     </div>
   );
 }

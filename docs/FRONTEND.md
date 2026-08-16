@@ -1,19 +1,19 @@
 # Care Plus — Frontend & Mobile Blueprint
 
-> **Status:** Living frontend design (v0.2) — companion to [ARCHITECTURE.md](ARCHITECTURE.md),
+> **Status:** Living frontend design (v0.3) — companion to [ARCHITECTURE.md](ARCHITECTURE.md),
 > [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md), and [PRODUCT_VISION.md](PRODUCT_VISION.md).
 > **Scope:** The **web app**, the **cross-platform mobile app (Android + iOS)**, the shared
-> **design system**, and the signature **"Neural Core" realtime AI voice-assistant interface**.
-> **Priorities:** immersive sci-fi UX → realtime responsiveness → resource efficiency (must stay smooth on mid-range phones and integrated GPUs).
-> **Product completeness** (marketplace, hire, records, Serah, admin) follows the Old→New matrix in PRODUCT_VISION — screens expand beyond the Neural Core as milestones M4b–M13 land.
+> **design system**, and the signature **Serah HUD** (CSS neural orb + VEHMF match cards).
+> **Priorities:** medical-light trust UX → realtime voice matching → resource efficiency (must stay smooth on mid-range phones).
+> **Product completeness** (marketplace, hire, records, Serah, admin) follows the Old→New matrix in PRODUCT_VISION — screens expand beyond Serah as milestones M4b–M13 land.
 
 ---
 
 ## Table of Contents
 
 1. [Platform Decisions (and why)](#1-platform-decisions-and-why)
-2. [The "Aurora Neural" Design System](#2-the-aurora-neural-design-system)
-3. [The Neural Core — Realtime AI Voice Assistant](#3-the-neural-core--realtime-ai-voice-assistant)
+2. [The Care Plus Medical Light Design System](#2-the-care-plus-medical-light-design-system)
+3. [Serah HUD — Realtime AI Voice Assistant](#3-serah-hud--realtime-ai-voice-assistant)
 4. [Assistant State Machine & Realtime Feedback](#4-assistant-state-machine--realtime-feedback)
 5. [Web App Architecture](#5-web-app-architecture)
 6. [Mobile App Architecture](#6-mobile-app-architecture)
@@ -33,7 +33,7 @@
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Web: Django templates vs React?** | **React 18 + TypeScript (Vite)**. Django stays a pure JSON/WebSocket API.                                     | The signature interface needs 3D/WebGL, audio-reactive shaders, spring physics and streaming state. Django templates + server-rendered HTML cannot drive a 60 fps audio-reactive brain or fine-grained realtime UI. A SPA + WebSocket is the right tool. |
 | **Mobile: framework?**              | **React Native + TypeScript via Expo (managed workflow)**.                                                    | One TS codebase → Android **and** iOS. Expo gives OTA updates, push (FCM/APNs), audio, and native builds without heavy native tooling. Confirms your instinct (TS/JS + RN).                                                                              |
-| **Web ↔ Mobile code sharing?**     | **Monorepo (pnpm workspaces + Turborepo)**. Share design tokens, typed API client, Zod schemas, state stores. | Write the API/validation/theme once; only the _rendering_ layer differs (DOM vs native).                                                                                                                                                                 |
+| **Web ↔ Mobile code sharing?**      | **Monorepo (pnpm workspaces + Turborepo)**. Share design tokens, typed API client, Zod schemas, state stores. | Write the API/validation/theme once; only the _rendering_ layer differs (DOM vs native).                                                                                                                                                                 |
 | **3D on web**                       | `react-three-fiber` + `drei` + `@react-three/postprocessing` (Bloom).                                         | Declarative Three.js in React; GPU bloom gives the "glow" cheaply.                                                                                                                                                                                       |
 | **3D/glow on mobile**               | `@shopify/react-native-skia` + `react-native-reanimated`.                                                     | Skia runs shaders/particles on the GPU on-device without a full 3D engine → battery-friendly.                                                                                                                                                            |
 | **State**                           | **Zustand** (UI/assistant state) + **TanStack Query** (server state).                                         | Tiny, fast, no boilerplate; Query handles caching/retries for REST.                                                                                                                                                                                      |
@@ -44,75 +44,79 @@
 
 ---
 
-## 2. The "Aurora Neural" Design System
+## 2. The Care Plus Medical Light Design System
 
-A dark, holographic, sci-fi medical theme — calm and trustworthy, not gamer-loud.
+A **white medical / teal** visual system derived from the `front` mock: slate canvas, elevated
+white cards, teal `#0D9488` primary. Calm and clinical — not a dark sci-fi void. Dark theme remains
+an optional Topbar control.
 
 ### Palette (design tokens)
 
-| Token           | Hex                      | Use                                |
-| --------------- | ------------------------ | ---------------------------------- |
-| `bg/void`       | `#05060A`                | App background (deep space)        |
-| `bg/panel`      | `rgba(18,22,34,0.6)`     | Glassmorphic cards (blur + border) |
-| `border/hair`   | `rgba(148,163,184,0.14)` | 1px panel edges                    |
-| `accent/cyan`   | `#22D3EE`                | Primary — listening, links, focus  |
-| `accent/violet` | `#8B5CF6`                | Cognition — thinking / AI          |
-| `accent/mint`   | `#34D399`                | Success / positive match           |
-| `accent/amber`  | `#F59E0B`                | Warning                            |
-| `accent/rose`   | `#FB7185`                | Emergency / health-critical        |
-| `text/primary`  | `#E5EDFF`                | Body text                          |
-| `text/muted`    | `#8A94AD`                | Secondary text                     |
+| Token           | Hex (light default) | Use                                  |
+| --------------- | ------------------- | ------------------------------------ |
+| `bg/void`       | `#F8FAFC`           | App canvas (slate-50)                |
+| `bg/panel`      | `#FFFFFF`           | Elevated cards, sidebar, forms       |
+| `border/hair`   | `#E2E8F0`           | 1px card and sidebar edges           |
+| `accent/cyan`   | `#0D9488`           | Primary — buttons, links, Serah idle |
+| `accent/violet` | `#3B82F6`           | Secondary / thinking                 |
+| `accent/mint`   | `#10B981`           | Success / positive match             |
+| `accent/amber`  | `#F59E0B`           | Warning                              |
+| `accent/rose`   | `#EF4444`           | Emergency / health-critical          |
+| `text/primary`  | `#0F172A`           | Body text                            |
+| `text/muted`    | `#475569`           | Secondary text                       |
+
+Dark tokens live under `[data-theme='dark']` in `packages/ui-tokens` (slate panels, brighter teal).
 
 ### Language
 
-- **Glassmorphism** panels floating over a subtle animated star/nebula gradient.
-- **Neon rim-light** + soft **bloom** on interactive elements.
-- **Micro-motion everywhere:** nothing snaps; everything eases (spring, 200–400 ms).
-- **Typography:** display = _Space Grotesk_ / _Sora_; body = _Inter_; Sinhala/Tamil = _Noto Sans Sinhala/Tamil_ (co-registered so mixed-script text never breaks).
-- **Iconography:** thin-line, rounded (Lucide).
+- **White elevated cards** (16–20px radius, slate-200 borders, soft shadow) — not blur-on-dark glass.
+- **Public layout:** top navbar (Find Caregivers / Packages / Contact) + footer PDPA links.
+- **Hub layout:** sticky 260px rounded sidebar + search topbar; role-aware nav (`/hub` dashboard).
+- **Typography:** _Inter_ for display and body; Sinhala/Tamil = _Noto Sans Sinhala/Tamil_.
+- **Iconography:** Lucide, thin-line, rounded.
 - **Motion tokens:** `spring.soft = {stiffness:180, damping:22}`, durations `fast 150 / base 260 / slow 420`.
 
 > Tokens live once in `packages/ui-tokens` and are consumed by both Tailwind (web) and the RN theme (mobile).
 
 ---
 
-## 3. The Neural Core — Realtime AI Voice Assistant
+## 3. Serah HUD — Realtime AI Voice Assistant
 
-The centerpiece on the home/voice screen of **both** web and mobile: a **living, glowing brain**
-that reacts to your voice in real time and visibly "thinks", with a **Goal Ring** and streaming feedback.
+The signature screen on **web `/app` and mobile Serah**: a **CSS neural orb HUD** (rings + core)
+driven by `AssistantState`, with hologram transcript, chat, and VEHMF match cards. The old Three.js
+void-brain canvas is optional and is not the default chrome.
 
 ```mermaid
 flowchart TB
     subgraph Screen["Voice Assistant Screen"]
         direction TB
-        GR["◍ Goal Ring<br/>(fills as intent fields captured)"]
-        BR["🧠 Neural Core<br/>audio-reactive glowing brain"]
-        TR["Live transcript (streaming)"]
+        HUD["SERAH NEURAL CORE · state"]
+        ORB["CSS neural orb<br/>idle / listening / thinking / matching"]
+        TR["Hologram transcript + chat"]
         CH["Entity chips: [Diabetes] [Sinhala] [Intermediate]"]
-        MIC["Push-to-talk / wake mic"]
+        MIC["Mic deck + optional text input"]
+        MC["Match cards · CBF/CF/geo/trust"]
     end
-    GR --- BR
-    BR --- TR --- CH --- MIC
+    HUD --- ORB
+    ORB --- TR --- CH --- MIC
+    ORB --- MC
 ```
 
 ### Anatomy
 
-1. **Neural Core (the brain):** a low-poly icosphere/point-cloud "neural mesh" of nodes + synapse
-   lines. Its **scale, emissive intensity, and color pulse** are driven live by microphone
-   amplitude (Web Audio `AnalyserNode` on web; audio metering on mobile). Idle = slow breathing;
-   speech = reactive pulsing.
-2. **Goal Ring:** a circular progress arc around the brain. The assistant needs a few fields to
-   match (`condition`, `language`, `care_level`, optional `urgency`). Each captured field fills a
-   segment of the ring → the user _sees the goal being reached_. Full ring = "ready to match".
+1. **Neural orb:** CSS rings around a teal core. Listening = blue pulse; thinking/matching = indigo
+   spin; speaking = audio pulse. Driven by the live `useVoiceTurn` FSM — not mock timeouts.
+2. **Goal progress:** intent fields (`condition`, `language`, `care_level`) still fill as Serah
+   captures them; shown as HUD copy rather than a 3D ring by default.
 3. **Live transcript:** streamed words appear as you speak (from Web Speech interim results).
-4. **Entity chips:** as Gemini extracts structured intent, chips pop in with a spring + glow,
-   color-coded (medical = cyan, language = violet, level = mint).
-5. **Ambient synapse particles:** subtle background firing that intensifies during "thinking".
+4. **Entity chips:** as Gemini extracts structured intent, chips pop in, color-coded (medical = teal,
+   language = blue, level = mint).
+5. **Match projection:** restyled VEHMF cards (overall %, CBF/CF/geo/trust bars, Request).
 
 ### Color = state (instant legibility)
 
-- Cyan pulse = **listening**, violet swirl = **thinking**, mint glow = **results ready**,
-  rose flash = **emergency** (wired to the health-anomaly flow so the brain literally "alarms").
+- Teal pulse = **idle / speaking**, blue = **listening**, indigo = **thinking / matching**,
+  mint = **results ready**, rose = **emergency**.
 
 ---
 
@@ -138,7 +142,7 @@ stateDiagram-v2
     EMERGENCY --> RESULTS: emergency re-match
 ```
 
-| State        | Brain visual                 | UI feedback                       | Copy example                        |
+| State        | Orb visual                   | UI feedback                       | Copy example                        |
 | ------------ | ---------------------------- | --------------------------------- | ----------------------------------- |
 | `IDLE`       | dim slow breathing           | "Tap to speak" hint               | —                                   |
 | `LISTENING`  | cyan, amplitude-reactive     | live transcript, mic ring         | "Listening…"                        |

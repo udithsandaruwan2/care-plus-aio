@@ -57,14 +57,17 @@ export function MessagesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const loadMessages = useCallback((threadId: number, afterId = 0) => {
-    return api
-      .listMessages(threadId, { after_id: afterId || undefined, limit: 100 })
-      .then((rows) => mergeMessages(rows))
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Could not load messages.');
-      });
-  }, [mergeMessages]);
+  const loadMessages = useCallback(
+    (threadId: number, afterId = 0) => {
+      return api
+        .listMessages(threadId, { after_id: afterId || undefined, limit: 100 })
+        .then((rows) => mergeMessages(rows))
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : 'Could not load messages.');
+        });
+    },
+    [mergeMessages],
+  );
 
   const markRead = useCallback((threadId: number, lastId: number) => {
     if (lastId <= 0) return;
@@ -136,7 +139,7 @@ export function MessagesPage() {
   }
 
   if (user && !isPatient && !isCaregiver) {
-    return <Navigate to="/platform" replace />;
+    return <Navigate to="/hub" replace />;
   }
 
   return (
@@ -153,86 +156,85 @@ export function MessagesPage() {
         }
       />
 
-        {error && (
-          <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
-            {error}
+      {error && (
+        <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
+          {error}
+        </p>
+      )}
+
+      {loading && <p className="mt-8 text-sm text-muted">Loading conversation…</p>}
+
+      {!loading && !thread && (
+        <div className="mt-8 rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
+          <p className="text-sm text-muted">
+            Messaging opens after a care link is active — accept a request, then complete checkout
+            (LKR).
           </p>
-        )}
-
-        {loading && <p className="mt-8 text-sm text-muted">Loading conversation…</p>}
-
-        {!loading && !thread && (
-          <div className="mt-8 rounded-2xl border border-hair bg-panel/50 p-5">
-            <p className="text-sm text-muted">
-              Messaging opens after a care link is active — accept a request, then complete checkout
-              (LKR).
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link to="/caregivers">
-                <Button>Browse caregivers</Button>
-              </Link>
-              <Link to="/requests">
-                <Button tone="ghost">Open requests</Button>
-              </Link>
-            </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to="/caregivers">
+              <Button>Browse caregivers</Button>
+            </Link>
+            <Link to="/requests">
+              <Button tone="ghost">Open requests</Button>
+            </Link>
           </div>
-        )}
+        </div>
+      )}
 
-        {thread && (
-          <>
-            <div className="mt-6 flex min-h-[320px] flex-1 flex-col rounded-2xl border border-hair bg-panel/70 p-4 backdrop-blur-md">
-              <ul className="flex-1 space-y-3 overflow-y-auto pr-1">
-                {messages.length === 0 && (
-                  <li className="text-center text-sm text-muted">
-                    No messages yet. Introduce yourself to start the care chat.
-                  </li>
-                )}
-                {messages.map((msg) => (
-                  <li
-                    key={msg.id}
-                    className={`flex ${msg.is_mine ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
-                        msg.is_mine
-                          ? 'bg-cyan/20 text-mist'
-                          : 'border border-hair bg-void/40 text-mist'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{msg.body}</p>
-                      <p className="mt-1 text-[10px] text-muted">
-                        {formatTime(msg.created_at)}
-                        {msg.is_mine && (
-                          <span className="ml-2">
-                            {msg.read_at ? '· Read' : '· Sent'}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-                <div ref={bottomRef} />
-              </ul>
-
-              <form onSubmit={(e) => void onSend(e)} className="mt-4 flex gap-2 border-t border-hair pt-4">
-                <input
-                  className="flex-1 rounded-lg border border-hair bg-void/60 px-3 py-2 text-sm text-mist outline-none ring-cyan focus:ring-1"
-                  placeholder="Type a message…"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  maxLength={4000}
-                />
-                <button
-                  type="submit"
-                  disabled={sending || !body.trim()}
-                  className="rounded-lg bg-cyan px-4 py-2 text-sm font-medium text-void disabled:opacity-50"
+      {thread && (
+        <>
+          <div className="mt-6 flex min-h-[320px] flex-1 flex-col rounded-2xl border border-hair bg-panel/70 p-4 backdrop-blur-md">
+            <ul className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {messages.length === 0 && (
+                <li className="text-center text-sm text-muted">
+                  No messages yet. Introduce yourself to start the care chat.
+                </li>
+              )}
+              {messages.map((msg) => (
+                <li
+                  key={msg.id}
+                  className={`flex ${msg.is_mine ? 'justify-end' : 'justify-start'}`}
                 >
-                  {sending ? '…' : 'Send'}
-                </button>
-              </form>
-            </div>
-          </>
-        )}
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
+                      msg.is_mine ? 'bg-cyan/20 text-mist' : 'border border-hair bg-soft text-mist'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.body}</p>
+                    <p className="mt-1 text-[10px] text-muted">
+                      {formatTime(msg.created_at)}
+                      {msg.is_mine && (
+                        <span className="ml-2">{msg.read_at ? '· Read' : '· Sent'}</span>
+                      )}
+                    </p>
+                  </div>
+                </li>
+              ))}
+              <div ref={bottomRef} />
+            </ul>
+
+            <form
+              onSubmit={(e) => void onSend(e)}
+              className="mt-4 flex gap-2 border-t border-hair pt-4"
+            >
+              <input
+                className="flex-1 rounded-lg border border-hair bg-panel px-3 py-2 text-sm text-mist outline-none ring-cyan focus:ring-1"
+                placeholder="Type a message…"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                maxLength={4000}
+              />
+              <button
+                type="submit"
+                disabled={sending || !body.trim()}
+                className="rounded-lg bg-cyan px-4 py-2 text-sm font-medium text-inverse disabled:opacity-50"
+              >
+                {sending ? '…' : 'Send'}
+              </button>
+            </form>
+          </div>
+        </>
+      )}
     </div>
   );
 }

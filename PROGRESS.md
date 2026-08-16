@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Care-seeking (“take care of me”) runs VEHMF and keeps match cards on screen._
+_Last updated: 2026-08-16 — Medical Light UI: teal/white tokens, hub sidebar, Serah CSS orb HUD (web + mobile)._
 
 ---
 
@@ -57,7 +57,7 @@ Notes:
 ## Decisions locked (lean profile)
 
 See DEVELOPMENT_PLAN §0. Highlights: Web Speech + whisper fallback · VEHMF matching ·
-TimescaleDB · e5-base embeddings · Aurora Neural UI · Care Plus brand · canonical medical vocab ·
+TimescaleDB · e5-base embeddings · Medical Light UI · Care Plus brand · canonical medical vocab ·
 real PaymentIntent (mock provider in dev).
 
 ---
@@ -73,6 +73,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **M2** Steps 9–12 — Web shell + Neural Core
 - ✅ **M3** Steps 13–15 — Voice → intent → chips/ring
 - ✅ **M4** Step 16 — Domain profiles + Sri Lanka seed
+- ✅ **UI Medical Light** — Teal/white tokens, PublicLayout + Hub sidebar (`/hub`), Serah CSS orb HUD, restyled public/hub/mobile chrome. Branch `feat/ui-medical-light-redesign`.
 
 ### Active track — research match loop
 
@@ -100,24 +101,24 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 
 ### Expanded product tracks (from Old Care Plus)
 
-| Milestone                             | Steps   | Status            |
-| ------------------------------------- | ------- | ----------------- |
-| **M3b** Medical vocab + Serah chat    | 15b–15e | ✅ (vocab + `/voice/turn/` chat/TTS) |
-| **M3c** Conversational dialogue loop  | 15f–15j | ✅ done        |
-| **M4b** Marketplace browse/map/detail | 20b–20e | ✅ done        |
-| **M5** CF personalization             | 21–22   | ✅ done          |
-| **M5b** Rich onboarding / OTP         | 22b–22f | ✅ done            |
-| **M6** Hire lifecycle (`CareRequest`) | 23–28   | ✅ done            |
-| **M7** Catalog + checkout + payments  | 29–33   | ✅ done            |
-| **M8** Medical records                | 34–37   | ✅ done          |
-| **M9** Messaging + notifications      | 38–41   | ✅ done          |
-| **M10** Reviews → trust               | 42–44   | ✅ done          |
-| **M11** Health monitoring + emergency | 45–49   | ✅ done         |
-| **M12** Scheduling + Redlock          | 50–53   | ✅ done          |
-| **M13** Admin console                 | 54–58   | ✅ done          |
-| **M14** i18n + a11y                   | 59–61   | ✅ done           |
-| **M15** Mobile Expo                   | 62–67   | ✅ done             |
-| **M16** Compliance                    | 68–71   | ✅ done             |
+| Milestone                             | Steps   | Status                                                          |
+| ------------------------------------- | ------- | --------------------------------------------------------------- |
+| **M3b** Medical vocab + Serah chat    | 15b–15e | ✅ (vocab + `/voice/turn/` chat/TTS)                            |
+| **M3c** Conversational dialogue loop  | 15f–15j | ✅ done                                                         |
+| **M4b** Marketplace browse/map/detail | 20b–20e | ✅ done                                                         |
+| **M5** CF personalization             | 21–22   | ✅ done                                                         |
+| **M5b** Rich onboarding / OTP         | 22b–22f | ✅ done                                                         |
+| **M6** Hire lifecycle (`CareRequest`) | 23–28   | ✅ done                                                         |
+| **M7** Catalog + checkout + payments  | 29–33   | ✅ done                                                         |
+| **M8** Medical records                | 34–37   | ✅ done                                                         |
+| **M9** Messaging + notifications      | 38–41   | ✅ done                                                         |
+| **M10** Reviews → trust               | 42–44   | ✅ done                                                         |
+| **M11** Health monitoring + emergency | 45–49   | ✅ done                                                         |
+| **M12** Scheduling + Redlock          | 50–53   | ✅ done                                                         |
+| **M13** Admin console                 | 54–58   | ✅ done                                                         |
+| **M14** i18n + a11y                   | 59–61   | ✅ done                                                         |
+| **M15** Mobile Expo                   | 62–67   | ✅ done                                                         |
+| **M16** Compliance                    | 68–71   | ✅ done                                                         |
 | **M17** Ship                          | 72–75   | 72–73 ✅ · **74 deferred** (Expo Go, no store accounts) · 75 ✅ |
 
 **Progress:** numbered plan implemented. Remaining ops choice: enable `OTP_ENABLED` in production if desired; Play/App Store when accounts exist.

@@ -76,7 +76,7 @@ export function AdminAuditPage() {
     return (
       <div className="mx-auto max-w-3xl">
         <p className="text-sm text-muted">Admin or auditor access required.</p>
-        <Link to="/platform" className="mt-4 inline-block text-sm text-cyan hover:underline">
+        <Link to="/hub" className="mt-4 inline-block text-sm text-cyan hover:underline">
           Back home
         </Link>
       </div>
@@ -150,10 +150,7 @@ export function AdminAuditPage() {
 
       <ul className="mt-4 space-y-2">
         {rows.map((row) => (
-          <li
-            key={row.id}
-            className="rounded-xl border border-hair bg-panel/60 px-4 py-3 text-sm"
-          >
+          <li key={row.id} className="rounded-xl border border-hair bg-panel/60 px-4 py-3 text-sm">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="font-display text-mist">{row.action}</p>
               <p className="text-xs text-muted">{formatTs(row.ts)}</p>

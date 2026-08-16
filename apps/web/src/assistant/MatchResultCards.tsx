@@ -8,23 +8,25 @@ import type { UiVoiceLanguage } from './uiVoiceLanguage';
 import { useAssistant } from './store';
 import { speakSerah } from './useTts';
 
-function FactorBar({ label, value, className }: { label: string; value: number; className: string }) {
+function FactorBar({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: number;
+  className: string;
+}) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
   return (
-    <div
-      className="flex items-center gap-2 text-[10px]"
-      role="img"
-      aria-label={`${label} ${pct} percent`}
-    >
-      <span className="w-10 shrink-0 text-mist/80" aria-hidden>
-        {label}
-      </span>
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-void/60" aria-hidden>
+    <div className="space-y-1" role="img" aria-label={`${label} ${pct} percent`}>
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="text-muted">{label}</span>
+        <span className="font-semibold text-mist">{pct}%</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-soft" aria-hidden>
         <div className={`h-full rounded-full ${className}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="w-7 text-right font-mono text-mist/80" aria-hidden>
-        {pct}
-      </span>
     </div>
   );
 }
@@ -137,14 +139,14 @@ function MatchCard({
 
   return (
     <article
-      className={`animate-[fadeIn_320ms_ease] rounded-2xl border bg-panel/80 p-4 text-left backdrop-blur-md ${
+      className={`animate-[fadeIn_320ms_ease] rounded-2xl border bg-panel p-5 text-left shadow-[var(--cp-shadow-soft)] ${
         changed ? 'border-mint/50 ring-1 ring-mint/20' : 'border-hair'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-display text-sm text-mist">
-            <span className="mr-2 font-mono text-cyan">#{hit.rank}</span>
+          <p className="font-display text-base font-semibold text-mist">
+            <span className="mr-2 font-mono text-sm text-cyan">#{hit.rank}</span>
             {hit.display_name}
             <RankChange hit={hit} />
           </p>
@@ -154,25 +156,30 @@ function MatchCard({
             {km ? ` · ${km}` : ''}
           </p>
         </div>
-        <div className="text-right">
-          <p className="font-mono text-lg text-mint">{(hit.score * 100).toFixed(0)}</p>
-          <p className="text-[10px] uppercase tracking-wide text-muted">{ui.score}</p>
+        <div className="flex h-14 w-14 flex-col items-center justify-center rounded-full border-2 border-cyan/40 bg-cyan/10">
+          <p className="font-display text-lg font-bold leading-none text-cyan">
+            {(hit.score * 100).toFixed(0)}
+          </p>
+          <p className="mt-0.5 text-[9px] uppercase tracking-wide text-muted">{ui.score}</p>
         </div>
       </div>
 
-      <div className="mt-3 space-y-1">
-        <FactorBar label="CBF" value={hit.breakdown.cbf} className="bg-cyan" />
-        <FactorBar label="CF" value={hit.breakdown.cf} className="bg-violet" />
-        <FactorBar label="Geo" value={hit.breakdown.geo} className="bg-mint" />
+      <div className="mt-4 space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+          VEHMF analysis
+        </p>
+        <FactorBar label="Skills (CBF)" value={hit.breakdown.cbf} className="bg-cyan" />
+        <FactorBar label="History (CF)" value={hit.breakdown.cf} className="bg-violet" />
+        <FactorBar label="Distance (Geo)" value={hit.breakdown.geo} className="bg-mint" />
         <FactorBar label="Trust" value={hit.breakdown.trust} className="bg-amber" />
       </div>
 
-      <p className="mt-3 text-xs text-cyan/90">{explanation}</p>
+      <p className="mt-3 rounded-xl bg-soft px-3 py-2 text-xs text-muted">{explanation}</p>
 
       <div className="mt-3 flex flex-col gap-2">
         <Link
           to={`/caregivers/${hit.caregiver_id}`}
-          className="block w-full rounded-full border border-hair px-3 py-1.5 text-center text-xs text-muted transition hover:border-cyan hover:text-cyan"
+          className="block w-full rounded-xl border border-hair px-3 py-2 text-center text-xs font-semibold text-muted transition hover:border-cyan hover:text-cyan"
         >
           {ui.viewProfile}
         </Link>
@@ -180,7 +187,7 @@ function MatchCard({
           <button
             type="button"
             disabled={!canRequestCare || busy || sent || hit.is_available === false}
-            className="w-full rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan transition hover:bg-cyan/10 disabled:cursor-not-allowed disabled:border-hair disabled:text-muted"
+            className="w-full rounded-xl bg-cyan px-3 py-2 text-xs font-semibold text-inverse transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted"
             onClick={startRequest}
           >
             {sent
@@ -205,7 +212,7 @@ function MatchCard({
           </button>
         )}
         {showForm && !sent && (
-          <div className="space-y-2 rounded-xl border border-hair bg-soft/40 p-3">
+          <div className="space-y-2 rounded-xl border border-hair bg-soft p-3">
             <label className="block space-y-1">
               <span className="text-[11px] text-muted">Optional message for the caregiver</span>
               <input

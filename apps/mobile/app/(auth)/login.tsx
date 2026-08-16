@@ -103,7 +103,7 @@ export default function LoginScreen() {
         ]}
       >
         {busy ? (
-          <ActivityIndicator color={colors.bgVoid} />
+          <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.buttonText}>{t('en', 'action.signIn')}</Text>
         )}
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderHair,
     borderRadius: 12,
-    backgroundColor: 'rgba(18, 22, 34, 0.85)',
+    backgroundColor: colors.bgPanel,
     color: colors.textPrimary,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   buttonText: {
-    color: colors.bgVoid,
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 15,
   },

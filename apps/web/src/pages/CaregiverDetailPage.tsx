@@ -5,6 +5,7 @@ import { ApiError } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { clearBookingIntent, readBookingIntent, saveBookingIntent } from '../booking/intent';
+import { PublicPage } from '../components/layout/PublicPage';
 import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -119,7 +120,7 @@ export function CaregiverDetailPage() {
   }
 
   return (
-    <div>
+    <PublicPage>
       <BackLink to="/caregivers">Caregivers</BackLink>
       <div className="mt-4">
         <PageHeader
@@ -172,11 +173,15 @@ export function CaregiverDetailPage() {
           <dl className="grid gap-6 sm:grid-cols-2">
             <div>
               <dt className="text-[11px] uppercase tracking-wide text-muted">Languages</dt>
-              <dd className="mt-1 text-sm text-cyan">{(profile.languages || []).join(' · ') || '—'}</dd>
+              <dd className="mt-1 text-sm text-cyan">
+                {(profile.languages || []).join(' · ') || '—'}
+              </dd>
             </div>
             <div>
               <dt className="text-[11px] uppercase tracking-wide text-muted">Care levels</dt>
-              <dd className="mt-1 text-sm text-mint">{(profile.care_levels || []).join(' · ') || '—'}</dd>
+              <dd className="mt-1 text-sm text-mint">
+                {(profile.care_levels || []).join(' · ') || '—'}
+              </dd>
             </div>
             <div>
               <dt className="text-[11px] uppercase tracking-wide text-muted">Specialties</dt>
@@ -301,16 +306,11 @@ export function CaregiverDetailPage() {
           </div>
         </section>
       )}
-    </div>
+    </PublicPage>
   );
 }
 
-function AvailabilitySlots({
-  caregiverId,
-}: {
-  caregiverId: number;
-  caregiverName?: string;
-}) {
+function AvailabilitySlots({ caregiverId }: { caregiverId: number; caregiverName?: string }) {
   const [slots, setSlots] = useState<
     Array<{
       id: number;
@@ -347,8 +347,7 @@ function AvailabilitySlots({
       {slots.map((s) => (
         <li key={s.id} className="rounded-xl border border-hair/80 bg-soft/40 px-3 py-2">
           <span className="text-mist">{s.weekday_label ?? 'Day'}</span> · {s.start_time.slice(0, 5)}{' '}
-          - {s.end_time.slice(0, 5)}{' '}
-          <span className="text-[11px] text-muted">({s.timezone})</span>
+          - {s.end_time.slice(0, 5)} <span className="text-[11px] text-muted">({s.timezone})</span>
         </li>
       ))}
     </ul>

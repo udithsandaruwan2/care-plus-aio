@@ -65,7 +65,7 @@ export function AdminUsersPage() {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col">
         <p className="text-sm text-muted">Admin or auditor access required.</p>
-        <Link to="/platform" className="mt-4 inline-block text-sm text-cyan hover:underline">
+        <Link to="/hub" className="mt-4 inline-block text-sm text-cyan hover:underline">
           Back home
         </Link>
       </div>
@@ -159,11 +159,7 @@ export function AdminUsersPage() {
                 disabled={busyId === row.id || row.id === user?.id}
                 onClick={() => void onToggleActive(row)}
               >
-                {busyId === row.id
-                  ? 'Saving…'
-                  : row.is_active
-                    ? 'Disable'
-                    : 'Enable'}
+                {busyId === row.id ? 'Saving…' : row.is_active ? 'Disable' : 'Enable'}
               </Button>
             )}
           </li>

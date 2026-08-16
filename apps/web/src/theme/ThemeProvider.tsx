@@ -13,15 +13,15 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function detectSystem(): 'dark' | 'light' {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'light';
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function readInitialMode(): ThemeMode {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'light';
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === 'dark' || stored === 'light' || stored === 'system') return stored;
-  return 'system';
+  return 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -55,4 +55,3 @@ export function useTheme() {
   if (!ctx) throw new Error('useTheme must be used inside ThemeProvider');
   return ctx;
 }
-

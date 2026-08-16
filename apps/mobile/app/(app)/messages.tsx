@@ -101,7 +101,9 @@ export default function MessagesScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.title}>Messages</Text>
-        <Text style={styles.muted}>Messaging is for patients and caregivers with an active care link.</Text>
+        <Text style={styles.muted}>
+          Messaging is for patients and caregivers with an active care link.
+        </Text>
       </View>
     );
   }
@@ -119,8 +121,8 @@ export default function MessagesScreen() {
       <View style={styles.center}>
         <Text style={styles.title}>Messages</Text>
         <Text style={styles.muted}>
-          No active care link yet. When a request is accepted and care starts, chat with your partner
-          here.
+          No active care link yet. When a request is accepted and care starts, chat with your
+          partner here.
         </Text>
         <Pressable onPress={() => void loadThread()} style={styles.refresh}>
           <Text style={styles.refreshText}>Check again</Text>
@@ -196,7 +198,7 @@ export default function MessagesScreen() {
           style={[styles.send, (sending || !text.trim()) && styles.disabled]}
         >
           {sending ? (
-            <ActivityIndicator color={colors.bgVoid} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.sendText}>Send</Text>
           )}
@@ -231,11 +233,11 @@ const styles = StyleSheet.create({
   },
   mine: {
     alignSelf: 'flex-end',
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    backgroundColor: 'rgba(13, 148, 136, 0.12)',
   },
   theirs: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(18, 22, 34, 0.9)',
+    backgroundColor: colors.bgPanel,
   },
   bubbleMeta: {
     color: colors.textMuted,
@@ -256,7 +258,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.borderHair,
-    backgroundColor: 'rgba(18, 22, 34, 0.9)',
+    backgroundColor: colors.bgPanel,
     color: colors.textPrimary,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
     minWidth: 72,
     alignItems: 'center',
   },
-  sendText: { color: colors.bgVoid, fontWeight: '700' },
+  sendText: { color: '#FFFFFF', fontWeight: '700' },
   disabled: { opacity: 0.4 },
   refresh: {
     alignSelf: 'flex-start',
