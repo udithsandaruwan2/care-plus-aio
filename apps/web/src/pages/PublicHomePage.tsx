@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, HeartPulse, Mic, ShieldCheck } from 'lucide-react';
+import { AssistantState } from '@care-plus/core';
+import { NeuralOrb } from '../assistant/NeuralOrb';
 import { Button } from '../components/ui/Button';
 
 function FeatureCard({
@@ -104,16 +106,8 @@ export function PublicHomePage() {
             </Link>
           </div>
         </div>
-        <div
-          className="relative hidden h-72 w-72 lg:block"
-          style={{
-            transform: `perspective(1000px) rotateY(${mousePos.x * -12}deg) rotateX(${mousePos.y * 12}deg)`,
-          }}
-          aria-hidden
-        >
-          <div className="absolute inset-8 rounded-3xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)]" />
-          <div className="absolute inset-16 rounded-full bg-gradient-to-br from-cyan/40 to-violet/30 blur-sm" />
-          <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan shadow-[0_0_40px_rgba(13,148,136,0.45)]" />
+        <div className="relative hidden lg:block" aria-hidden>
+          <NeuralOrb visual="idle" state={AssistantState.IDLE} amplitude={0.22} variant="hero" />
         </div>
       </section>
 

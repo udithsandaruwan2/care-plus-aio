@@ -1,7 +1,6 @@
 import { Suspense, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import type { AssistantState } from '@care-plus/core';
-import { AssistantState as S } from '@care-plus/core';
 import { NeuralMesh } from './NeuralMesh';
 
 type Props = {
@@ -28,18 +27,11 @@ function DemandController({ animate }: { animate: boolean }) {
  * pass. Bloom previously painted a visible square matching the canvas bounds
  * when the core lit up.
  *
- * `frameloop="demand"` — idle stays on a single static frame (~0% GPU);
- * while listening/animating, the mesh calls `invalidate()` each frame.
+ * `frameloop="demand"` — the mesh calls `invalidate()` each frame while motion
+ * is allowed, so the neuron cloud stays live at idle and reacts to amplitude.
  */
 export function NeuralCoreCanvas({ amplitude, state, className, reducedMotion }: Props) {
-  const animate =
-    !reducedMotion &&
-    (state === S.LISTENING ||
-      state === S.THINKING ||
-      state === S.CHAT_REPLY ||
-      state === S.MATCHING ||
-      state === S.EMERGENCY ||
-      amplitude > 0.02);
+  const animate = !reducedMotion;
 
   return (
     <div

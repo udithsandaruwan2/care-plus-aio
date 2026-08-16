@@ -1,12 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Canvas,
-  Circle,
-  Group,
-  BlurMask,
-  vec,
-} from '@shopify/react-native-skia';
+import { Canvas, Circle, Group, BlurMask, vec } from '@shopify/react-native-skia';
 import {
   useSharedValue,
   useDerivedValue,
@@ -49,28 +43,38 @@ type Props = {
   amplitude?: number;
 };
 
-/** Lean Skia neuron cloud — Aurora Neural state colors + soft pulse. */
+/** Lean Skia neuron cloud — live idle drift + stronger pulse while Serah is working. */
 export function NeuralCoreSkia({ state, amplitude = 0.25 }: Props) {
   const color = STATE_COLOR[state] ?? colors.accentCyan;
-  const pulse = useSharedValue(0.85);
+  const pulse = useSharedValue(0.92);
+  const spin = useSharedValue(0);
   const active =
     state === AssistantState.LISTENING ||
     state === AssistantState.THINKING ||
     state === AssistantState.MATCHING ||
-    state === AssistantState.EMERGENCY;
+    state === AssistantState.EMERGENCY ||
+    state === AssistantState.CHAT_REPLY;
 
   useEffect(() => {
-    if (active) {
-      pulse.value = withRepeat(
-        withTiming(1.12, { duration: 900, easing: Easing.inOut(Easing.sin) }),
-        -1,
-        true,
-      );
-    } else {
-      cancelAnimation(pulse);
-      pulse.value = withTiming(0.92 + amplitude * 0.15, { duration: 280 });
-    }
+    pulse.value = withRepeat(
+      withTiming(active ? 1.08 + amplitude * 0.1 : 1.04, {
+        duration: active ? 700 : 1600,
+        easing: Easing.inOut(Easing.sin),
+      }),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(pulse);
   }, [active, amplitude, pulse]);
+
+  useEffect(() => {
+    spin.value = withRepeat(
+      withTiming(Math.PI * 2, { duration: 18000, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(spin);
+  }, [spin]);
 
   const particles = useMemo(() => {
     const rand = mulberry32(42);
@@ -94,7 +98,14 @@ export function NeuralCoreSkia({ state, amplitude = 0.25 }: Props) {
   const transform = useDerivedValue(() => {
     const s = pulse.value;
     const c = SIZE / 2;
-    return [{ translateX: c }, { translateY: c }, { scale: s }, { translateX: -c }, { translateY: -c }];
+    return [
+      { translateX: c },
+      { translateY: c },
+      { rotate: spin.value },
+      { scale: s },
+      { translateX: -c },
+      { translateY: -c },
+    ];
   });
 
   return (
@@ -105,7 +116,14 @@ export function NeuralCoreSkia({ state, amplitude = 0.25 }: Props) {
             <BlurMask blur={28} style="normal" />
           </Circle>
           {particles.map((p, i) => (
-            <Circle key={i} cx={p.x} cy={p.y} r={p.r} color={color} opacity={0.55 + (i % 5) * 0.08} />
+            <Circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={p.r}
+              color={color}
+              opacity={0.55 + (i % 5) * 0.08}
+            />
           ))}
           <Circle c={vec(SIZE / 2, SIZE / 2)} r={SIZE * 0.08} color={color} opacity={0.85}>
             <BlurMask blur={10} style="solid" />
@@ -120,6 +138,12 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
+    width: SIZE,
+    height: SIZE,
+    borderRadius: SIZE / 2,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
   },
   canvas: {
     width: SIZE,

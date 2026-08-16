@@ -261,7 +261,7 @@ export function HomePage() {
           aria-label={listening ? 'Stop listening' : 'Tap to speak'}
           className="cursor-pointer rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan"
         >
-          <NeuralOrb visual={visual} />
+          <NeuralOrb visual={visual} state={state} amplitude={Math.max(mic.amplitude, 0.14)} />
         </button>
         <p className="mt-3 font-display text-sm tracking-wide text-cyan" aria-live="polite">
           {stateCopy(state, uiLanguage)} · Goal {progress}%
