@@ -30,6 +30,8 @@ type NeuralMeshProps = {
   animate: boolean;
   /** Stage fills a pane; well is the tighter public hero. */
   spread?: number;
+  /** Light = public white page (normal blend). Dark = Serah slate well (additive). */
+  surface?: 'dark' | 'light';
 };
 
 type Neuron = {
@@ -145,7 +147,13 @@ function buildConnectome(spread: number) {
  * Sparse 3D connectome: hub neurons, local synapses, long-range axons, traveling pulses.
  * Additive materials only — no Bloom pass (that painted a square on the canvas).
  */
-export function NeuralMesh({ amplitude, state, animate, spread = 1 }: NeuralMeshProps) {
+export function NeuralMesh({
+  amplitude,
+  state,
+  animate,
+  spread = 1,
+  surface = 'dark',
+}: NeuralMeshProps) {
   const group = useRef<THREE.Group>(null);
   const nodeMesh = useRef<THREE.InstancedMesh>(null);
   const pulseMesh = useRef<THREE.InstancedMesh>(null);
@@ -160,17 +168,18 @@ export function NeuralMesh({ amplitude, state, animate, spread = 1 }: NeuralMesh
     [spread],
   );
 
+  const additive = surface === 'dark';
   const nodeGeo = useMemo(() => new THREE.SphereGeometry(1, 10, 10), []);
   const nodeMat = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
         color: STATE_COLOR[S.IDLE],
         transparent: true,
-        opacity: 0.92,
+        opacity: additive ? 0.92 : 0.88,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
       }),
-    [],
+    [additive],
   );
   const pulseGeo = useMemo(() => new THREE.SphereGeometry(1, 8, 8), []);
   const pulseMat = useMemo(
@@ -178,11 +187,11 @@ export function NeuralMesh({ amplitude, state, animate, spread = 1 }: NeuralMesh
       new THREE.MeshBasicMaterial({
         color: STATE_COLOR[S.IDLE],
         transparent: true,
-        opacity: 0.95,
+        opacity: additive ? 0.95 : 0.9,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
       }),
-    [],
+    [additive],
   );
 
   useEffect(() => {
@@ -258,11 +267,13 @@ export function NeuralMesh({ amplitude, state, animate, spread = 1 }: NeuralMesh
 
     if (lineMat.current) {
       lineMat.current.color.copy(color);
-      lineMat.current.opacity = 0.22 + live * 0.28 + (thinking ? 0.12 : 0);
+      lineMat.current.opacity = additive
+        ? 0.22 + live * 0.28 + (thinking ? 0.12 : 0)
+        : 0.38 + live * 0.22 + (thinking ? 0.1 : 0);
     }
     if (hazeMat.current) {
       hazeMat.current.color.copy(color);
-      hazeMat.current.opacity = 0.05 + amp * 0.08;
+      hazeMat.current.opacity = additive ? 0.05 + amp * 0.08 : 0.04 + amp * 0.03;
     }
 
     const pulses = pulseMesh.current;
@@ -287,17 +298,19 @@ export function NeuralMesh({ amplitude, state, animate, spread = 1 }: NeuralMesh
 
   return (
     <group ref={group}>
-      <mesh>
-        <sphereGeometry args={[0.62 * spread, 24, 24]} />
-        <meshBasicMaterial
-          ref={hazeMat}
-          color={color}
-          transparent
-          opacity={0.07}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
+      {additive ? (
+        <mesh>
+          <sphereGeometry args={[0.62 * spread, 24, 24]} />
+          <meshBasicMaterial
+            ref={hazeMat}
+            color={color}
+            transparent
+            opacity={0.07}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ) : null}
 
       <instancedMesh
         ref={nodeMesh}
@@ -313,9 +326,9 @@ export function NeuralMesh({ amplitude, state, animate, spread = 1 }: NeuralMesh
           ref={lineMat}
           color={color}
           transparent
-          opacity={0.34}
+          opacity={additive ? 0.34 : 0.42}
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={additive ? THREE.AdditiveBlending : THREE.NormalBlending}
         />
       </lineSegments>
 

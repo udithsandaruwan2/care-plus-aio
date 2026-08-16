@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Serah Core is a 3D neural stage field (linked neurons + pulses)._
+_Last updated: 2026-08-16 — Public landing neural net sits on white, no dark card._
 
 ---
 
@@ -84,6 +84,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Start → search UI** — “start” / “let’s get that search going” now runs VEHMF and shows the matching panel even without a condition chip. Branch `fix/serah-start-shows-search`.
 - ✅ **Serah keep results layout** — talking during search no longer hides the loading/results panel; orb stays pinned on the left while caregiver cards scroll on the right. Branch `fix/serah-keep-results-layout`.
 - ✅ **Serah neural stage field** — unclipped 3D connectome (hubs, synapses, traveling pulses) fills Serah Core; public landing uses the same mesh in a rounded well. Branch `feat/serah-neural-stage-field`.
+- ✅ **Public neural hero, no box** — landing page graph is transparent on white (no dark rounded card). Branch `fix/public-neural-well-box`.
 
 ### Active track — research match loop
 

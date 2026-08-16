@@ -88,7 +88,7 @@ export function NeuralCoreCanvas({
       style={{
         width: '100%',
         height: '100%',
-        overflow: 'hidden',
+        overflow: stage ? 'hidden' : 'visible',
         background: 'transparent',
       }}
     >
@@ -115,6 +115,7 @@ export function NeuralCoreCanvas({
             state={state}
             animate={animate}
             spread={spread}
+            surface={stage ? 'dark' : 'light'}
           />
         </Suspense>
       </Canvas>
