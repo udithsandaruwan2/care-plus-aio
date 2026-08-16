@@ -10,7 +10,7 @@ import {
 } from '@care-plus/core';
 import { api } from '../auth/api';
 import { useAssistant } from './store';
-import { runClientMatch } from './useMatch';
+import { announceMatchFinding, announceMatchReady, runClientMatch } from './useMatch';
 import { speakSerah, stopSpeaking } from './useTts';
 
 const CONSENT_STATUS = 451;
@@ -182,9 +182,6 @@ export function useVoiceTurn() {
         if (lineText) {
           store.appendChat({ role: 'user', text: lineText, route: result.route });
         }
-        if (result.reply?.trim()) {
-          store.appendChat({ role: 'serah', text: result.reply, route: result.route });
-        }
 
         const stillSeeking =
           seeking ||
@@ -192,11 +189,21 @@ export function useVoiceTurn() {
           looksLikeCareSeek(result.transcript || '') ||
           looksLikeSearchPromise(result.reply || '');
         const outcome = applyTurnState(result, store, stillSeeking);
-        if (outcome === 'hold') {
-          void runClientMatch();
+        const skipSearchNarration = outcome === 'hold' || outcome === 'matched';
+
+        if (result.reply?.trim() && !skipSearchNarration) {
+          store.appendChat({ role: 'serah', text: result.reply, route: result.route });
         }
 
-        if (result.reply?.trim() && result.situation !== 'goodbye') {
+        if (outcome === 'hold') {
+          announceMatchFinding();
+          void runClientMatch();
+        }
+        if (outcome === 'matched' && result.match) {
+          announceMatchReady(result.match.request_id);
+        }
+
+        if (result.reply?.trim() && result.situation !== 'goodbye' && !skipSearchNarration) {
           const current = useAssistant.getState().state;
           if (
             current !== AssistantState.RESULTS &&
@@ -210,7 +217,7 @@ export function useVoiceTurn() {
         // Unlock chat/mic while Serah speaks so matching cards stay usable.
         setBusy(false);
 
-        if (result.reply?.trim()) {
+        if (result.reply?.trim() && !skipSearchNarration) {
           await speakSerah(result.reply, result.reply_lang, {
             audioBase64: result.reply_audio_base64,
             audioMime: result.reply_audio_mime,

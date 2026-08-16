@@ -15,7 +15,7 @@ import { api } from '../auth/api';
 import { useMicAmplitude } from '../neural-core/useMicAmplitude';
 import { useAssistant } from './store';
 import { useSpeechRecognition } from './useSpeechRecognition';
-import { useMatchSocket } from './useMatch';
+import { resetMatchNarration, useMatchSocket } from './useMatch';
 import { useAudioRecorder } from './useAudioRecorder';
 import { useVoiceTurn } from './useVoiceTurn';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
@@ -273,6 +273,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       // Still reset local state so the user can start fresh.
     } finally {
       reset();
+      resetMatchNarration();
       setSessionLive(false);
       setClearing(false);
     }

@@ -21,7 +21,7 @@ export function AppShell() {
             tabIndex={-1}
             className={
               serahCore
-                ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-8 outline-none'
+                ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 outline-none'
                 : 'flex-1 overflow-y-auto px-8 pb-8 outline-none'
             }
           >

@@ -228,9 +228,12 @@ export function NeuralMesh({
     pulses.instanceMatrix.needsUpdate = true;
   }, [dummy, neurons, pulseEdges]);
 
-  useFrame(({ clock }) => {
+  const spinVel = useRef(0.16);
+
+  useFrame(({ clock }, delta) => {
     if (!animate) return;
     const t = clock.getElapsedTime();
+    const dt = Math.min(delta, 0.05);
     const amp = Math.min(amplitude, 0.7);
     const live = 0.16 + amp;
     const breath = 1 + Math.sin(t * 1.05) * 0.035;
@@ -240,11 +243,13 @@ export function NeuralMesh({
       state === S.THINKING || state === S.MATCHING || state === S.CLARIFYING;
     const speaking = state === S.SPEAKING || state === S.CHAT_REPLY;
     const emergency = state === S.EMERGENCY;
-    const spin = 0.12 + amp * 0.35 + (thinking ? 0.18 : 0) + (emergency ? 0.4 : 0);
+    const targetSpin =
+      0.16 + amp * 0.38 + (thinking ? 0.26 : 0) + (speaking ? 0.1 : 0) + (emergency ? 0.42 : 0);
+    spinVel.current += (targetSpin - spinVel.current) * Math.min(1, dt * 3.2);
 
     if (group.current) {
       group.current.scale.setScalar(breath * ampPulse);
-      group.current.rotation.y = t * spin;
+      group.current.rotation.y += dt * spinVel.current;
       group.current.rotation.x = Math.sin(t * 0.38) * 0.12;
       group.current.rotation.z = Math.cos(t * 0.26) * 0.05;
     }

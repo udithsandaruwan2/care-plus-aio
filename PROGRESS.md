@@ -87,6 +87,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Public neural hero, no box** — landing page graph is transparent on white (no dark rounded card). Branch `fix/public-neural-well-box`.
 - ✅ **Serah stage composition** — removed the gray well smear; Goal lives in the HUD; copy sits under the graph instead of on it. Branch `fix/serah-stage-composition`.
 - ✅ **Serah match rail** — caregiver cards sit in a bordered scrolling rail; Speak keeps existing matches (New request still clears). Branch `fix/serah-match-rail`.
+- ✅ **Serah search fit + voice** — matching stage fills the viewport (graph | rail, no page scroll); Serah narrates finding vs results-ready. Branch `fix/serah-match-rail`.
 
 ### Active track — research match loop
 

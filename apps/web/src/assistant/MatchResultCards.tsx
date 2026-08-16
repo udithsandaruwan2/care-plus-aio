@@ -139,14 +139,14 @@ function MatchCard({
 
   return (
     <article
-      className={`match-rail-card rounded-2xl border bg-panel p-4 text-left ${
+      className={`match-rail-card rounded-2xl border bg-panel p-3 text-left ${
         changed ? 'border-mint/50 ring-1 ring-mint/20' : 'border-hair'
       }`}
       style={{ animationDelay: `${Math.max(0, hit.rank - 1) * 80}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-display text-base font-semibold text-mist">
+          <p className="font-display text-sm font-semibold text-mist">
             <span className="mr-2 font-mono text-sm text-cyan">#{hit.rank}</span>
             {hit.display_name}
             <RankChange hit={hit} />
@@ -157,15 +157,15 @@ function MatchCard({
             {km ? ` · ${km}` : ''}
           </p>
         </div>
-        <div className="flex h-14 w-14 flex-col items-center justify-center rounded-full border-2 border-cyan/40 bg-cyan/10">
-          <p className="font-display text-lg font-bold leading-none text-cyan">
+        <div className="flex h-11 w-11 flex-col items-center justify-center rounded-full border-2 border-cyan/40 bg-cyan/10">
+          <p className="font-display text-base font-bold leading-none text-cyan">
             {(hit.score * 100).toFixed(0)}
           </p>
-          <p className="mt-0.5 text-[9px] uppercase tracking-wide text-muted">{ui.score}</p>
+          <p className="mt-0.5 text-[8px] uppercase tracking-wide text-muted">{ui.score}</p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-3 space-y-1.5">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
           VEHMF analysis
         </p>

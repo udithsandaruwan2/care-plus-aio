@@ -72,13 +72,13 @@ export function MatchSearchPanel({
   return (
     <section
       id={id}
-      className="w-full space-y-3"
+      className="match-rail"
       role="region"
       aria-label={matching ? copy.searching : copy.ready}
       aria-live="polite"
     >
       {matching ? (
-        <div className="space-y-2 px-1">
+        <div className="match-rail-head space-y-2">
           <div className="flex items-center justify-between gap-2">
             <h2 className="font-display text-sm tracking-wide text-mist">{copy.searching}</h2>
             <span className="font-mono text-[11px] text-mint">{progress}%</span>
@@ -98,27 +98,29 @@ export function MatchSearchPanel({
         </div>
       ) : null}
 
-      {matching && !hasResults ? (
-        <div className="space-y-3">
-          <SkeletonCard delay={0} />
-          <SkeletonCard delay={120} />
-          <SkeletonCard delay={240} />
-        </div>
-      ) : null}
+      <div className="match-rail-body space-y-3">
+        {matching && !hasResults ? (
+          <>
+            <SkeletonCard delay={0} />
+            <SkeletonCard delay={120} />
+            <SkeletonCard delay={240} />
+          </>
+        ) : null}
 
-      {hasResults && match ? (
-        <div className={matching ? 'opacity-70' : undefined}>
-          <MatchResultCards
-            match={match}
-            canRequestCare={canRequestCare}
-            uiLanguage={uiLanguage}
-          />
-        </div>
-      ) : null}
+        {hasResults && match ? (
+          <div className={matching ? 'opacity-70' : undefined}>
+            <MatchResultCards
+              match={match}
+              canRequestCare={canRequestCare}
+              uiLanguage={uiLanguage}
+            />
+          </div>
+        ) : null}
 
-      {!matching && match && !hasResults ? (
-        <p className="text-center text-sm text-muted">{copy.noMatches}</p>
-      ) : null}
+        {!matching && match && !hasResults ? (
+          <p className="text-center text-sm text-muted">{copy.noMatches}</p>
+        ) : null}
+      </div>
     </section>
   );
 }

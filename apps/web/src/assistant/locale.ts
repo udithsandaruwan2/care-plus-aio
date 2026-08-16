@@ -123,7 +123,7 @@ const MATCH_SEARCH: Record<
   Sinhala: {
     searching: 'VEHMF පරිචාරකයින් සොයමින්…',
     ready: 'ගැලපීම් සූදානම්',
-    keepChatting: 'සොයන අතර Serah සමඟ කතා කරන්න පුළුවන්.',
+    keepChatting: 'සොයන අතර කතා කරගෙන යන්න පුළුවන්.',
     noMatches: 'තවම පරිචාරකයින් හමු නොවීය.',
     thinking: [
       'ආසන්න පරිචාරකයින් පරීක්ෂා කරමින්…',
@@ -135,7 +135,7 @@ const MATCH_SEARCH: Record<
   Tamil: {
     searching: 'VEHMF பராமரிப்பாளர்களைத் தேடுகிறது…',
     ready: 'பொருத்தங்கள் தயார்',
-    keepChatting: 'தேடும்போது Serah உடன் பேசலாம்.',
+    keepChatting: 'தேடும்போது பேசிக்கொண்டே இருக்கலாம்.',
     noMatches: 'பொருத்தம் இல்லை.',
     thinking: [
       'அருகிலுள்ள பராமரிப்பாளர்களைச் சரிபார்க்கிறது…',
@@ -147,7 +147,7 @@ const MATCH_SEARCH: Record<
   English: {
     searching: 'VEHMF is ranking caregivers…',
     ready: 'Matches ready',
-    keepChatting: 'You can keep chatting with Serah while this runs.',
+    keepChatting: 'We can keep chatting while this runs.',
     noMatches: 'No caregivers matched yet.',
     thinking: [
       'Checking who is nearby…',
@@ -160,6 +160,27 @@ const MATCH_SEARCH: Record<
 
 export function matchSearchCopy(lang: UiVoiceLanguage) {
   return MATCH_SEARCH[lang];
+}
+
+const MATCH_VOICE: Record<UiVoiceLanguage, { finding: string; resultsReady: string }> = {
+  Sinhala: {
+    finding:
+      'මම එකක් සොයනවා. සොයන අතර අපිට කතා කරගෙන යන්න පුළුවන්.',
+    resultsReady: 'දැන් ප්‍රතිඵල පෙනෙනවා. කාඩ් බලලා කෙනෙක් තෝරන්න.',
+  },
+  Tamil: {
+    finding:
+      'நான் ஒருவரைத் தேடுகிறேன். தேடும்போது பேசிக்கொண்டே இருக்கலாம்.',
+    resultsReady: 'இப்போது முடிவுகளைப் பார்க்கலாம். அட்டைகளைப் பார்த்து ஒருவரைத் தேர்ந்தெடுங்கள்.',
+  },
+  English: {
+    finding: "I'm finding one for you. We can keep chatting while I search.",
+    resultsReady: 'Now you can see the results. Look at the cards and pick someone.',
+  },
+};
+
+export function matchVoiceCopy(lang: UiVoiceLanguage) {
+  return MATCH_VOICE[lang];
 }
 
 const STATE_COPY_LOCAL: Record<UiVoiceLanguage, Record<string, string>> = {
