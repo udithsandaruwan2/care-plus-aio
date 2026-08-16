@@ -21,7 +21,7 @@ export function StateStepper() {
   const { state, setState, setIntentField, setMatching, reset } = useAssistant();
 
   return (
-    <div className="mt-6 rounded-2xl border border-hair bg-panel p-4 backdrop-blur-md">
+    <div className="serah-dev-stepper mt-4 rounded-2xl border border-hair bg-panel p-4 backdrop-blur-md">
       <p className="mb-2 text-xs uppercase tracking-wide text-muted">
         Dev · step assistant states
       </p>

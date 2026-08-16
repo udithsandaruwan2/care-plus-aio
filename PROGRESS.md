@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Saying “start” actually opens the caregiver search UI._
+_Last updated: 2026-08-16 — Serah Core keeps the search panel while you talk; orb stays on screen with cards._
 
 ---
 
@@ -82,6 +82,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Serah search stage** — caregiver search keeps the matching UI on (orb slides left, progress + thinking copy + skeleton cards) even if chat promised VEHMF; backend salvage runs the real match. Branch `feat/serah-match-search-stage`.
 - ✅ **Sinhala/Tamil Serah voice** — chat replies in සිංහල/தமிழ் use server TTS (Edge/Gemini/espeak); browsers have no those voices so speechSynthesis was silent. Branch `fix/sinhala-serah-voice`.
 - ✅ **Start → search UI** — “start” / “let’s get that search going” now runs VEHMF and shows the matching panel even without a condition chip. Branch `fix/serah-start-shows-search`.
+- ✅ **Serah keep results layout** — talking during search no longer hides the loading/results panel; orb stays pinned on the left while caregiver cards scroll on the right. Branch `fix/serah-keep-results-layout`.
 
 ### Active track — research match loop
 
