@@ -2,15 +2,18 @@ import type { ChatMessage } from './store';
 
 type Props = {
   messages: ChatMessage[];
+  compact?: boolean;
 };
 
 /** Scrollable Serah ↔ patient thread (Step 15h). */
-export function ChatBubbles({ messages }: Props) {
+export function ChatBubbles({ messages, compact = false }: Props) {
   if (!messages.length) return null;
 
   return (
     <div
-      className="mt-4 flex max-h-52 w-full max-w-md flex-col gap-2 overflow-y-auto px-1"
+      className={`mt-4 flex w-full max-w-md flex-col gap-2 overflow-y-auto px-1 ${
+        compact ? 'max-h-36' : 'max-h-52'
+      }`}
       aria-live="polite"
       aria-label="Conversation with Serah"
     >

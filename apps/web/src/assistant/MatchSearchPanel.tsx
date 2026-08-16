@@ -72,7 +72,7 @@ export function MatchSearchPanel({
   return (
     <section
       id={id}
-      className="w-full max-w-md space-y-3"
+      className="w-full space-y-3"
       role="region"
       aria-label={matching ? copy.searching : copy.ready}
       aria-live="polite"

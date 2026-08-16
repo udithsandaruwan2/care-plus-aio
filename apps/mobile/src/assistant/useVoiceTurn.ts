@@ -48,7 +48,7 @@ function applyTurnState(
   result: Awaited<ReturnType<typeof api.voiceTurn>>,
   store: ReturnType<typeof useAssistant.getState>,
   seeking: boolean,
-): 'matched' | 'hold' | 'done' {
+): 'matched' | 'hold' | 'keep' | 'done' {
   if (result.clear_match) {
     store.setMatch(null);
   }
@@ -79,20 +79,23 @@ function applyTurnState(
   }
 
   const intent = useAssistant.getState().intent;
+  const hasCards = Boolean(store.match?.results?.length) && !result.clear_match;
+  const searchInFlight = store.matching && !seeking && !result.clear_match && !hasCards;
   const hold = shouldHoldMatchingUi({
     seeking,
     route: result.route,
     situation: result.situation,
     reply: result.reply,
-    hasMatch: false,
+    hasMatch: hasCards,
     clearMatch: result.clear_match,
     hasCondition: Boolean(intent.condition),
+    searchInFlight,
   });
 
   if (hold) {
     store.setMatching(true);
     store.setState(AssistantState.MATCHING, { force: true });
-    return 'hold';
+    return searchInFlight ? 'keep' : 'hold';
   }
 
   store.setMatching(false);
@@ -165,7 +168,6 @@ export function useVoiceTurn() {
       setConsentNeeded(false);
 
       if (result.silent || (result.situation === 'empty' && !result.reply?.trim())) {
-        store.setMatching(false);
         return;
       }
 

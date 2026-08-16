@@ -131,12 +131,15 @@ export function shouldHoldMatchingUi(opts: {
   hasMatch: boolean;
   clearMatch?: boolean;
   hasCondition: boolean;
+  /** VEHMF is already running — keep skeletons even if this turn is chat. */
+  searchInFlight?: boolean;
 }): boolean {
   if (opts.hasMatch || opts.clearMatch) return false;
   const situation = opts.situation || '';
   if (situation === 'goodbye' || situation === 'cancel' || situation === 'match_error') {
     return false;
   }
+  if (opts.searchInFlight) return true;
   const wantsSearch =
     opts.seeking ||
     opts.route === 'MATCH' ||
