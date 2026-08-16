@@ -124,6 +124,18 @@ class RouterFixtureTests(SimpleTestCase):
         d = classify_turn("start matching", COMPLETE, has_prior_match=False)
         self.assertEqual(d.route, "MATCH")
 
+    def test_bare_start_with_language_and_level_is_match(self):
+        d = classify_turn(
+            "start",
+            {"language": "English", "care_level": "intermediate"},
+            has_prior_match=False,
+        )
+        self.assertEqual(d.route, "MATCH")
+
+    def test_bare_start_without_slots_clarifies(self):
+        d = classify_turn("start", {}, has_prior_match=False)
+        self.assertEqual(d.route, "CLARIFY")
+
     def test_greeting_is_chat(self):
         d = classify_turn("hello there", {}, has_prior_match=False)
         self.assertEqual(d.route, "CHAT")

@@ -152,13 +152,26 @@ _CANCEL = re.compile(
 )
 
 
+# Short “go” phrases after chips are filled (ASR often just says "start").
+_LAUNCH = re.compile(
+    r"^(start|begin|go|search|find|match|go\s+ahead)"
+    r"(\s+(it|now|please|searching|matching))?[\s!.]*$|"
+    r"^(පටන්|ආරම්භ|හොයන්න)([\s!.]*|\s+ගන්න[\s!.]*)$|"
+    r"^(தொடங்கு|தேடு)[\s!.]*$",
+    re.I,
+)
+
+
 def _complete(intent: dict) -> bool:
-    """Engine can run once the care condition is known; language/level default."""
-    return bool((intent.get("condition") or "").strip())
+    """VEHMF can rank once a condition is known, or language + care level are set."""
+    if (intent.get("condition") or "").strip():
+        return True
+    return bool((intent.get("language") or "").strip() and (intent.get("care_level") or "").strip())
 
 
 def is_care_seek(text: str) -> bool:
-    return bool(_MATCH_SEEK.search((text or "").strip()))
+    raw = (text or "").strip()
+    return bool(_MATCH_SEEK.search(raw) or _LAUNCH.match(raw))
 
 
 def needs_slot_extraction(text: str, *, has_prior_match: bool = False) -> bool:
@@ -166,7 +179,7 @@ def needs_slot_extraction(text: str, *, has_prior_match: bool = False) -> bool:
     raw = (text or "").strip()
     if not raw:
         return False
-    if _EMERGENCY.search(raw) or _MATCH_SEEK.search(raw) or _NEW_SEARCH.search(raw):
+    if _EMERGENCY.search(raw) or _MATCH_SEEK.search(raw) or _LAUNCH.match(raw) or _NEW_SEARCH.search(raw):
         return True
     if has_prior_match and _REFINE.search(raw):
         return True
@@ -219,8 +232,7 @@ def classify_turn(
             return RouteDecision("REFINE", "refine")
         if _NEW_SEARCH.search(raw):
             return RouteDecision("MATCH", "new_search", clear_match=True)
-        if _MATCH_SEEK.search(raw):
-            # New caregiver ask while cards visible — re-match with current/new chips
+        if _MATCH_SEEK.search(raw) or _LAUNCH.match(raw):
             if _complete(intent):
                 return RouteDecision("MATCH", "rematch")
             return RouteDecision("CLARIFY", "clarify_after_match")
@@ -235,7 +247,7 @@ def classify_turn(
             return RouteDecision("MATCH", "new_search")
         return RouteDecision("CLARIFY", "clarify")
 
-    if _MATCH_SEEK.search(raw):
+    if _MATCH_SEEK.search(raw) or _LAUNCH.match(raw):
         if _complete(intent):
             return RouteDecision("MATCH", "match")
         return RouteDecision("CLARIFY", "clarify")
