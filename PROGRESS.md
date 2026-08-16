@@ -8,7 +8,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Medical Light UI: teal/white tokens, hub sidebar, Serah CSS orb HUD (web + mobile)._
+_Last updated: 2026-08-16 — Serah match progress, silent empty audio, hub companion dock._
 
 ---
 
@@ -74,6 +74,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **M3** Steps 13–15 — Voice → intent → chips/ring
 - ✅ **M4** Step 16 — Domain profiles + Sri Lanka seed
 - ✅ **UI Medical Light** — Teal/white tokens, PublicLayout + Hub sidebar (`/hub`), Serah CSS orb HUD, restyled public/hub/mobile chrome. Branch `feat/ui-medical-light-redesign`.
+- ✅ **Serah match progress + companion** — VEHMF search shows a progress bar and skeleton cards; empty/ambient audio stays silent; goodbye sleeps until “Hey Serah”; hub pages keep a live bottom-right Serah bubble. Branch `feat/serah-match-progress-dock`.
 
 ### Active track — research match loop
 

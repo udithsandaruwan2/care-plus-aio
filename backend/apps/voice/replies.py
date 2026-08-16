@@ -60,10 +60,10 @@ def stub_for_situation(
 
     if situation == "goodbye":
         if _si(lang):
-            return "බලමු! Care Plus එකේ ඕනෑම වෙලාවක ආයෙත් කතා කරන්න."
+            return "බලමු. මම නිහඬව ඉන්නම් — ආයෙත් අවශ්‍ය නම් Hey Serah කියන්න."
         if _ta(lang):
-            return "சந்திப்போம்! தேவைப்பட்டால் மீண்டும் Care Plus-இல் பேசுங்கள்."
-        return "Goodbye — come back anytime you need Care Plus."
+            return "சந்திப்போம். நான் அமைதியாக இருப்பேன் — தேவைப்பட்டால் Hey Serah என்று சொல்லுங்கள்."
+        return "Goodbye — I’ll stay quiet. Say Hey Serah when you want me back."
 
     if situation == "affirm":
         if _si(lang):

@@ -69,7 +69,9 @@ class VoiceTurnApiTests(APITestCase):
     def test_process_turn_empty(self):
         out = process_turn(user=self.user, client_text="")
         self.assertEqual(out["route"], "CHAT")
-        self.assertIn("catch", out["reply"].lower())
+        self.assertEqual(out["situation"], "empty")
+        self.assertTrue(out.get("silent"))
+        self.assertEqual(out["reply"], "")
 
     def test_process_turn_empty_with_audio_hint(self):
         out = process_turn(
@@ -79,7 +81,9 @@ class VoiceTurnApiTests(APITestCase):
             content_type="audio/webm",
             ui_language="English",
         )
-        self.assertIn("heard audio", out["reply"].lower())
+        self.assertTrue(out.get("silent"))
+        self.assertEqual(out["reply"], "")
+        self.assertNotIn("heard audio", out["reply"].lower())
 
     def test_ui_language_locks_reply_lang(self):
         self.client.force_authenticate(self.user)

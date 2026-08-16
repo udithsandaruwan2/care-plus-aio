@@ -1,26 +1,19 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Mic, Send } from 'lucide-react';
 import { AssistantState, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { useAuth } from '../auth/AuthContext';
 import { useCaregiverProfile } from '../auth/useCaregiverProfile';
 import { usePatientProfile } from '../auth/usePatientProfile';
-import { api } from '../auth/api';
-import { useMicAmplitude } from '../neural-core/useMicAmplitude';
 import { useAssistant } from '../assistant/store';
 import { ChatBubbles } from '../assistant/ChatBubbles';
 import { EntityChips } from '../assistant/EntityChips';
 import { Transcript } from '../assistant/Transcript';
 import { StateStepper } from '../assistant/StateStepper';
-import { useSpeechRecognition } from '../assistant/useSpeechRecognition';
-import { MatchResultCards } from '../assistant/MatchResultCards';
-import { useMatchSocket } from '../assistant/useMatch';
-import { useAudioRecorder } from '../assistant/useAudioRecorder';
-import { useVoiceTurn } from '../assistant/useVoiceTurn';
+import { MatchSearchPanel } from '../assistant/MatchSearchPanel';
 import { LanguagePicker } from '../assistant/LanguagePicker';
-import { NeuralOrb, orbVisualState } from '../assistant/NeuralOrb';
+import { NeuralOrb } from '../assistant/NeuralOrb';
+import { useSerahEngine } from '../assistant/SerahEngine';
 import { stateCopy } from '../assistant/locale';
-import { uiLanguageToRecognition } from '../assistant/uiVoiceLanguage';
 import { Button } from '../components/ui/Button';
 import '../assistant/SerahHud.css';
 
@@ -34,172 +27,45 @@ export function HomePage() {
   const { user } = useAuth();
   const { canRequestCare, completionPercent } = usePatientProfile();
   const { isMatchEligible, completionPercent: cgCompletion } = useCaregiverProfile();
-  const [emergencyMatchId, setEmergencyMatchId] = useState<number | null>(null);
-  const [conversationOn, setConversationOn] = useState(false);
-  const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
-  const [textInput, setTextInput] = useState('');
-  const conversationOnRef = useRef(false);
-  conversationOnRef.current = conversationOn;
-  const mic = useMicAmplitude();
-  const recorder = useAudioRecorder();
+  const {
+    listening,
+    busy,
+    inputMode,
+    setInputMode,
+    textInput,
+    setTextInput,
+    mic,
+    speech,
+    turnError,
+    consentNeeded,
+    emergencyActive,
+    visual,
+    clearing,
+    consentBtnRef,
+    toggleMic,
+    onGrantConsent,
+    onNewRequest,
+    onTextSubmit,
+  } = useSerahEngine();
   const {
     state,
     intent,
     transcript,
     interim,
     match,
+    matching,
+    asleep,
     chat,
     uiLanguage,
-    setState,
-    setInterim,
-    appendTranscript,
     setUiLanguage,
-    reset,
   } = useAssistant();
-  const asrLang = uiLanguageToRecognition(uiLanguage);
-  const {
-    runTurn,
-    busy,
-    error: turnError,
-    consentNeeded,
-    grantConsent,
-    stopSpeaking,
-  } = useVoiceTurn();
-  useMatchSocket({
-    onEmergencyMatch: (payload) => setEmergencyMatchId(payload.request_id),
-  });
-
-  const endingRef = useRef(false);
-  const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
-  const consentBtnRef = useRef<HTMLButtonElement>(null);
-  const [clearing, setClearing] = useState(false);
-
-  const speech = useSpeechRecognition({
-    lang: asrLang,
-    onInterim: (text) => {
-      setInterim(text);
-    },
-    onFinal: (text) => {
-      appendTranscript(text);
-    },
-    onEnd: () => {
-      if (endingRef.current) return;
-      endingRef.current = true;
-      void (async () => {
-        mic.stop();
-        const audio = await recorder.stop();
-        const text = useAssistant.getState().transcript;
-        await runTurn({
-          text,
-          audio,
-          continueListening: () => {
-            if (!conversationOnRef.current) return;
-            void resumeListeningRef.current();
-          },
-        });
-        endingRef.current = false;
-      })();
-    },
-  });
-
-  resumeListeningRef.current = async () => {
-    endingRef.current = false;
-    setInterim('');
-    useAssistant.getState().setTranscript('');
-    await mic.start();
-    await recorder.start();
-    speech.start();
-    setState(AssistantState.LISTENING, { force: true });
-  };
-
-  const listening = mic.active || speech.listening;
-  const emergencyActive = state === AssistantState.EMERGENCY && emergencyMatchId != null;
-  const visual = orbVisualState(state, listening);
-  const showMatches = Boolean(match?.results?.length);
-
-  useEffect(() => {
-    if (consentNeeded) consentBtnRef.current?.focus();
-  }, [consentNeeded]);
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'Escape') return;
-      if (!(mic.active || speech.listening || busy)) return;
-      e.preventDefault();
-      if (busy) {
-        setConversationOn(false);
-        stopSpeaking();
-      }
-      speech.stop();
-    }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mic.active, speech, busy, stopSpeaking]);
-
-  async function toggleMic() {
-    if (listening || busy) {
-      if (busy) {
-        setConversationOn(false);
-        stopSpeaking();
-      }
-      speech.stop();
-      return;
-    }
-
-    const current = useAssistant.getState().state;
-    if (
-      current !== AssistantState.CLARIFYING &&
-      current !== AssistantState.RESULTS &&
-      current !== AssistantState.CHAT_REPLY
-    ) {
-      reset();
-    } else {
-      setInterim('');
-      useAssistant.getState().setTranscript('');
-    }
-    setConversationOn(true);
-    endingRef.current = false;
-    await mic.start();
-    await recorder.start();
-    speech.start();
-    setState(AssistantState.LISTENING, { force: true });
-  }
-
-  async function onGrantConsent() {
-    const ok = await grantConsent();
-    if (ok) {
-      await runTurn({ text: useAssistant.getState().transcript, audio: null });
-    }
-  }
-
-  async function onNewRequest() {
-    if (clearing || busy || listening) return;
-    setClearing(true);
-    stopSpeaking();
-    setConversationOn(false);
-    try {
-      await api.clearVoiceSession();
-    } catch {
-      // Still reset local state so the user can start fresh.
-    } finally {
-      reset();
-      setClearing(false);
-    }
-  }
-
-  async function onTextSubmit(e: FormEvent) {
-    e.preventDefault();
-    const line = textInput.trim();
-    if (!line || busy || listening) return;
-    setTextInput('');
-    await runTurn({ text: line, audio: null });
-  }
 
   const progress = Math.round(goalRingProgress(intent) * 100);
   const missingField = nextMissingField(intent);
   const clarifyPrompt =
     state === AssistantState.CLARIFYING && missingField ? CLARIFY_PROMPTS[missingField] : null;
   const hologramText = interim || transcript || chat.at(-1)?.text || '';
+  const showMatchPanel = matching || Boolean(match);
 
   return (
     <div className="serah-immersive-container">
@@ -212,7 +78,7 @@ export function HomePage() {
         </div>
         <div className="hud-status">
           <div className="status-indicator" />
-          <span>{visual.toUpperCase()}</span>
+          <span>{asleep ? 'SLEEPING' : visual.toUpperCase()}</span>
         </div>
         <LanguagePicker
           value={uiLanguage}
@@ -253,7 +119,7 @@ export function HomePage() {
         </div>
       )}
 
-      <div className={`serah-core-wrapper ${showMatches ? 'shifted' : ''}`}>
+      <div className={`serah-core-wrapper ${showMatchPanel ? 'shifted' : ''}`}>
         <button
           type="button"
           onClick={() => void toggleMic()}
@@ -264,7 +130,9 @@ export function HomePage() {
           <NeuralOrb visual={visual} state={state} amplitude={Math.max(mic.amplitude, 0.14)} />
         </button>
         <p className="mt-3 font-display text-sm tracking-wide text-cyan" aria-live="polite">
-          {stateCopy(state, uiLanguage)} · Goal {progress}%
+          {asleep
+            ? 'Sleeping — say Hey Serah to wake me'
+            : `${stateCopy(state, uiLanguage)} · Goal ${progress}%`}
         </p>
         <div className={`hologram-transcript ${hologramText ? 'visible' : ''}`}>
           <p>{hologramText || 'Tap the orb or type below to talk with Serah.'}</p>
@@ -281,11 +149,12 @@ export function HomePage() {
         <Transcript transcript={transcript} interim={interim} />
       </div>
 
-      {showMatches ? (
+      {showMatchPanel ? (
         <div className="serah-match-projection mx-auto lg:absolute lg:right-8 lg:top-28 lg:mx-0">
-          <MatchResultCards
+          <MatchSearchPanel
             id={emergencyActive ? 'emergency-match' : undefined}
-            match={match!}
+            matching={matching}
+            match={match}
             canRequestCare={canRequestCare}
             uiLanguage={uiLanguage}
           />
@@ -340,7 +209,15 @@ export function HomePage() {
               <Mic size={28} />
             </button>
             <span className="text-xs font-medium text-muted">
-              {listening ? 'Tap to stop' : busy ? 'Serah is speaking…' : 'Tap to speak'}
+              {listening
+                ? 'Tap to stop'
+                : matching
+                  ? 'Searching — you can still type'
+                  : busy
+                    ? 'Serah is speaking…'
+                    : asleep
+                      ? 'Say Hey Serah'
+                      : 'Tap to speak'}
             </span>
             <button
               type="button"
@@ -363,18 +240,23 @@ export function HomePage() {
             <input
               className="min-h-11 flex-1 rounded-xl border border-hair bg-panel px-3.5 text-sm text-mist outline-none focus:border-cyan"
               autoFocus
-              placeholder="Type your care need…"
+              placeholder={asleep ? 'Say or type Hey Serah…' : 'Type your care need…'}
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              disabled={busy || listening}
+              disabled={listening}
             />
-            <Button type="submit" disabled={!textInput.trim() || busy} className="min-h-11 px-4">
+            <Button
+              type="submit"
+              disabled={!textInput.trim() || listening}
+              className="min-h-11 px-4"
+            >
               <Send size={18} />
             </Button>
           </form>
         )}
 
         {(match ||
+          matching ||
           state === AssistantState.CLARIFYING ||
           state === AssistantState.RESULTS ||
           state === AssistantState.EMERGENCY ||

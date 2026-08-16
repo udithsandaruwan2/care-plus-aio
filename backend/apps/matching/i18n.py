@@ -124,26 +124,33 @@ def match_spoken_reply(
         if lk == "si":
             return (
                 f"ඔබ කිව්වා දැන් යාවත්කාලීන කළා ({filter_note}). "
-                f"දැන් {n} දෙනෙක් — හොඳම තේරීම {name}, ගැලපුම් ලකුණු {score}%. {explanation}"
+                f"දැන් {n} දෙනෙක් — හොඳම තේරීම {name}, ගැලපුම් ලකුණු {score}%. "
+                f"කාඩ් බලලා ඔබට හොඳම කෙනා තෝරන්න. {explanation}"
             )
         if lk == "ta":
             return (
                 f"நீங்கள் சொன்னபடி புதுப்பித்தேன் ({filter_note}). "
-                f"இப்போது {n} பேர் — சிறந்தது {name}, பொருத்த மதிப்பு {score}%. {explanation}"
+                f"இப்போது {n} பேர் — சிறந்தது {name}, பொருத்த மதிப்பு {score}%. "
+                f"அட்டைகளைப் பார்த்து உங்களுக்குச் சிறந்தவரைத் தேர்ந்தெடுங்கள். {explanation}"
             )
         return (
             f"Updated shortlist ({filter_note}). Now {n} caregivers — best is {name} "
-            f"(score {score}%). {explanation}"
+            f"(score {score}%). Look at the cards and pick the best one for you. {explanation}"
         )
 
     if lk == "si":
         return (
             f"මට සුදුසු පරිචාරකයින් {n} දෙනෙක් හොයාගත්තා. "
-            f"හොඳම තේරීම {name} — ගැලපුම් ලකුණු {score}%. {explanation}"
+            f"හොඳම තේරීම {name} — ගැලපුම් ලකුණු {score}%. "
+            f"කාඩ් බලලා ඔබට හොඳම කෙනා තෝරන්න. {explanation}"
         )
     if lk == "ta":
         return (
             f"உங்களுக்கு ஏற்ற பராமரிப்பாளர்கள் {n} பேரைக் கண்டேன். "
-            f"சிறந்தது {name} — பொருத்த மதிப்பு {score}%. {explanation}"
+            f"சிறந்தது {name} — பொருத்த மதிப்பு {score}%. "
+            f"அட்டைகளைப் பார்த்து உங்களுக்குச் சிறந்தவரைத் தேர்ந்தெடுங்கள். {explanation}"
         )
-    return f"I found {n} caregivers. Best match is {name} (score {score}%). {explanation}"
+    return (
+        f"I found {n} caregivers. Best match is {name} (score {score}%). "
+        f"Look at the cards and pick the best one for you. {explanation}"
+    )

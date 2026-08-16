@@ -33,6 +33,12 @@ type AssistantStore = {
   sessionId: number | null;
   /** Locks captions, ASR, and Serah reply language. */
   uiLanguage: UiVoiceLanguage;
+  /** VEHMF search in flight — show progress + skeleton cards. */
+  matching: boolean;
+  /** After goodbye: ignore utterances until a wake word. */
+  asleep: boolean;
+  /** User started a Serah session (mic or typed). Survives hub navigation. */
+  sessionLive: boolean;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -46,6 +52,9 @@ type AssistantStore = {
   appendChat: (msg: Omit<ChatMessage, 'id'>) => void;
   setSessionId: (id: number | null) => void;
   setUiLanguage: (lang: UiVoiceLanguage) => void;
+  setMatching: (matching: boolean) => void;
+  setAsleep: (asleep: boolean) => void;
+  setSessionLive: (sessionLive: boolean) => void;
   reset: () => void;
 };
 
@@ -59,6 +68,9 @@ const initial = {
   matchError: null as string | null,
   sessionId: null as number | null,
   uiLanguage: loadUiVoiceLanguage(),
+  matching: false,
+  asleep: false,
+  sessionLive: false,
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -96,10 +108,15 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
     set({ uiLanguage: lang });
   },
 
+  setMatching: (matching) => set({ matching }),
+  setAsleep: (asleep) => set({ asleep }),
+  setSessionLive: (sessionLive) => set({ sessionLive }),
+
   reset: () =>
     set({
       ...initial,
       uiLanguage: get().uiLanguage,
+      sessionLive: get().sessionLive,
     }),
 }));
 

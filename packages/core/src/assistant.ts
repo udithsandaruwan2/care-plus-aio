@@ -82,3 +82,26 @@ export function looksLikeCareSeek(text: string): boolean {
     /(හොය|සොය).{0,24}(කෙනෙක්|කෙනෙකු|පරිචාරක|caregiver|nurse)/.test(raw)
   );
 }
+
+/** Wake Serah after goodbye / sleep. */
+export function looksLikeWake(text: string): boolean {
+  const raw = (text || '').trim();
+  if (!raw) return false;
+  const lower = raw.toLowerCase();
+  if (/\b(hey|hi|hello)\s+serah\b/.test(lower) || /^serah\b/.test(lower)) return true;
+  if (/හායි\s*සෙරා|ආයුබෝවන්\s*සෙරා|^සෙරා\b/.test(raw)) return true;
+  if (/ஹாய்\s*சேரா|வணக்கம்\s*சேரா|^சேரா\b/.test(raw)) return true;
+  return false;
+}
+
+/** Drop a leading wake phrase so the rest of the utterance can run as a turn. */
+export function stripWakePrefix(text: string): string {
+  return text
+    .replace(/^(hey|hi|hello)\s+serah[,!.]?\s*/i, '')
+    .replace(/^serah[,!.]?\s*/i, '')
+    .replace(/^(හායි|ආයුබෝවන්)\s*සෙරා[,!.]?\s*/u, '')
+    .replace(/^සෙරා[,!.]?\s*/u, '')
+    .replace(/^(ஹாய்|வணக்கம்)\s*சேரா[,!.]?\s*/u, '')
+    .replace(/^சேரா[,!.]?\s*/u, '')
+    .trim();
+}

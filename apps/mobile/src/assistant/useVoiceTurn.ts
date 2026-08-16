@@ -38,11 +38,13 @@ function applyTurnState(
   }
 
   if (result.match) {
-    store.setState(AssistantState.MATCHING, { force: true });
     store.setMatch(result.match);
+    store.setMatching(false);
     store.setState(AssistantState.RESULTS, { force: true });
     return;
   }
+
+  store.setMatching(false);
 
   if (result.route === 'CLARIFY') {
     store.setState(AssistantState.CLARIFYING, { force: true });
@@ -81,10 +83,12 @@ export function useVoiceTurn() {
 
     setBusy(true);
     setError(null);
-    store.setState(
-      looksLikeCareSeek(userLine) ? AssistantState.MATCHING : AssistantState.THINKING,
-      { force: true },
-    );
+    if (looksLikeCareSeek(userLine)) {
+      store.setMatching(true);
+      store.setState(AssistantState.MATCHING, { force: true });
+    } else {
+      store.setState(AssistantState.THINKING, { force: true });
+    }
     store.setTranscript(userLine);
 
     try {
@@ -98,6 +102,11 @@ export function useVoiceTurn() {
         uiLanguage: store.uiLanguage,
       });
       setConsentNeeded(false);
+
+      if (result.silent || (result.situation === 'empty' && !result.reply?.trim())) {
+        store.setMatching(false);
+        return;
+      }
 
       if (result.transcript) {
         store.setTranscript(result.transcript);
@@ -133,6 +142,7 @@ export function useVoiceTurn() {
         after.setState(AssistantState.RESULTS, { force: true });
       }
     } catch (err) {
+      store.setMatching(false);
       if (err instanceof ApiError && err.status === CONSENT_STATUS) {
         setConsentNeeded(true);
         setError('AI processing needs your consent before we can understand your request.');

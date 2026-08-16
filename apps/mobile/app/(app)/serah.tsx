@@ -32,6 +32,7 @@ export default function SerahScreen() {
   const intent = useAssistant((s) => s.intent);
   const chat = useAssistant((s) => s.chat);
   const match = useAssistant((s) => s.match);
+  const matching = useAssistant((s) => s.matching);
   const uiLanguage = useAssistant((s) => s.uiLanguage);
   const setUiLanguage = useAssistant((s) => s.setUiLanguage);
   const reset = useAssistant((s) => s.reset);
@@ -122,6 +123,19 @@ export default function SerahScreen() {
             ))
           )}
         </View>
+
+        {matching && !match?.results?.length ? (
+          <View style={styles.searchPanel}>
+            <Text style={styles.searchTitle}>Finding caregivers…</Text>
+            <View style={styles.searchTrack}>
+              <View style={styles.searchFill} />
+            </View>
+            <Text style={styles.muted}>You can keep chatting while Serah ranks matches.</Text>
+            <View style={styles.skeleton} />
+            <View style={styles.skeleton} />
+            <View style={styles.skeleton} />
+          </View>
+        ) : null}
 
         {match?.results?.length ? (
           <MatchResultCards match={match} canRequestCare={canRequestCare} uiLanguage={uiLanguage} />
@@ -268,6 +282,35 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 14,
     lineHeight: 20,
+  },
+  searchPanel: {
+    gap: 10,
+    marginTop: 8,
+  },
+  searchTitle: {
+    color: colors.accentCyan,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  searchTrack: {
+    height: 6,
+    overflow: 'hidden',
+    borderRadius: 999,
+    backgroundColor: 'rgba(13, 148, 136, 0.16)',
+  },
+  searchFill: {
+    width: '55%',
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: colors.accentMint,
+  },
+  skeleton: {
+    height: 88,
+    borderRadius: 16,
+    backgroundColor: colors.bgPanel,
+    borderWidth: 1,
+    borderColor: colors.borderHair,
+    opacity: 0.7,
   },
   composer: {
     flexDirection: 'row',
