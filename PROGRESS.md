@@ -89,6 +89,7 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 - ✅ **Serah match rail** — caregiver cards sit in a bordered scrolling rail; Speak keeps existing matches (New request still clears). Branch `fix/serah-match-rail`.
 - ✅ **Serah search fit + voice** — matching stage fills the viewport (graph | rail, no page scroll); Serah narrates finding vs results-ready. Branch `fix/serah-match-rail`.
 - ✅ **Serah compact match orb** — after recommendations, the neural mesh shrinks to a left dock; cards take the remaining width without overflowing. Branch `fix/serah-compact-match-orb`.
+- ✅ **Serah half split** — match stage is 50/50 orb+chat | caregiver cards. Branch `fix/serah-half-split`.
 
 ### Active track — research match loop
 
