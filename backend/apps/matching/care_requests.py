@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import Role
 
-from .interactions import log_interaction
+from .interactions import log_interaction, log_reject_interaction
 from .models import (
     ACTIVE_CARE_REQUEST_STATUSES,
     CaregiverProfile,
@@ -187,6 +187,8 @@ def reject_care_request(
     if reason.strip():
         request.message = f"{request.message}\n\n[Rejection note] {reason.strip()}".strip()
     request.save(update_fields=["status", "responded_at", "message", "updated_at"])
+
+    log_reject_interaction(request)
 
     payload = _care_request_payload(request, event="rejected")
     if reason.strip():

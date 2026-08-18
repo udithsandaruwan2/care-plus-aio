@@ -32,8 +32,18 @@ def train_cf_als(*, factors: int = 32, iterations: int = 15) -> dict:
 
     acc: dict[tuple[int, int], float] = defaultdict(float)
     for patient_id, caregiver_id, weight in rows:
+        value = float(weight)
+        if value <= 0:
+            # REJECT is stored negative for Step 92; implicit ALS needs non-negative confidence.
+            continue
         key = (patient_to_idx[patient_id], caregiver_to_idx[caregiver_id])
-        acc[key] += float(weight)
+        acc[key] += value
+    acc = {k: v for k, v in acc.items() if v > 0}
+    if not acc:
+        raise ValueError(
+            "Need at least one non-negative interaction to train CF "
+            f"(have {len(rows)} row(s), all skipped)."
+        )
 
     row_idx, col_idx, data = zip(*((k[0], k[1], v) for k, v in acc.items()), strict=True)
     user_item = sp.coo_matrix(

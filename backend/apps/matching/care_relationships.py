@@ -96,6 +96,7 @@ def end_relationship(
     if rel.status == CareRelationshipStatus.ENDED:
         raise ValidationError("This care relationship has already ended.")
 
+    prior_status = rel.status
     now = timezone.now()
     rel.status = CareRelationshipStatus.ENDED
     rel.ended_at = now
@@ -103,4 +104,8 @@ def end_relationship(
         rel.end_reason = reason.strip()
     rel.save(update_fields=["status", "ended_at", "end_reason"])
     sync_caregiver_availability(rel.caregiver)
+    if prior_status == CareRelationshipStatus.ACTIVE:
+        from .interactions import log_complete_interaction
+
+        log_complete_interaction(rel)
     return rel

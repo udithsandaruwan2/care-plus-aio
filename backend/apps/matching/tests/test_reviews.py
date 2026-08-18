@@ -11,6 +11,8 @@ from apps.matching.models import (
     CaregiverProfile,
     CareRelationship,
     CareRelationshipStatus,
+    Interaction,
+    InteractionKind,
     PatientProfile,
     Review,
     ReviewStatus,
@@ -86,6 +88,14 @@ class ReviewApiTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
         self.assertEqual(resp.data["status"], ReviewStatus.PENDING)
         self.assertEqual(Review.objects.count(), 1)
+        self.assertTrue(
+            Interaction.objects.filter(
+                patient=self.patient,
+                caregiver=self.caregiver,
+                kind=InteractionKind.RATE,
+                weight=5.0,
+            ).exists()
+        )
 
     def test_cannot_create_review_before_relationship_ended(self):
         self.rel.status = CareRelationshipStatus.ACTIVE

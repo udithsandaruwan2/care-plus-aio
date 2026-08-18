@@ -13,8 +13,8 @@ from apps.matching.models import (
     CaregiverProfile,
     CareRelationship,
     CareRelationshipStatus,
-    CareRequest,
-    CareRequestStatus,
+    Interaction,
+    InteractionKind,
     PatientProfile,
 )
 
@@ -110,6 +110,14 @@ class CareRelationshipLifecycleTests(APITestCase):
         self.rel.refresh_from_db()
         self.assertEqual(self.rel.status, CareRelationshipStatus.ENDED)
         self.assertIsNotNone(self.rel.ended_at)
+        self.assertTrue(
+            Interaction.objects.filter(
+                patient=self.patient,
+                caregiver=self.caregiver,
+                kind=InteractionKind.COMPLETE,
+                weight=8.0,
+            ).exists()
+        )
 
     @override_settings(ONE_PRIMARY_CAREGIVER=True)
     def test_only_one_active_primary_per_patient(self):

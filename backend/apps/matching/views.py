@@ -28,7 +28,7 @@ from .cf_model import cf_model_info, get_cf_model
 from .embeddings import get_embedder, intent_to_text
 from .engine import run_match
 from .faiss_index import load_index
-from .interactions import log_interaction, record_match_interactions
+from .interactions import log_interaction, log_rate_interaction, record_match_interactions
 from .care_relationships import (
     activate_relationship,
     end_relationship,
@@ -913,6 +913,7 @@ class ReviewListCreateView(generics.ListCreateAPIView):
             comment=comment,
             status=ReviewStatus.PENDING,
         )
+        log_rate_interaction(row)
         return Response(
             ReviewSerializer(row).data,
             status=status.HTTP_201_CREATED,

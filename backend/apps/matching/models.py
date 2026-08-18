@@ -235,15 +235,18 @@ class InteractionKind(models.TextChoices):
     ACCEPT = "accept", "Accept"
     COMPLETE = "complete", "Complete"
     RATE = "rate", "Rate"
+    REJECT = "reject", "Reject"
 
 
-# Implicit-feedback confidence weights for ALS (Step 21).
+# Implicit-feedback confidence weights for ALS (Step 21 / Step 76).
+# REJECT is stored negative so Step 92 can train on it; current ALS skips <= 0.
 INTERACTION_WEIGHTS: dict[str, float] = {
     InteractionKind.VIEW: 1.0,
     InteractionKind.REQUEST: 3.0,
     InteractionKind.ACCEPT: 5.0,
     InteractionKind.COMPLETE: 8.0,
     InteractionKind.RATE: 1.0,
+    InteractionKind.REJECT: -1.0,
 }
 
 

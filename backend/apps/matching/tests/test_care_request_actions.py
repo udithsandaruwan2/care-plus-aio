@@ -118,6 +118,13 @@ class CareRequestActionTests(APITestCase):
                 action=AuditAction.REJECT_CARE_REQUEST,
             ).exists()
         )
+        self.assertTrue(
+            Interaction.objects.filter(
+                patient=self.patient,
+                caregiver=self.caregiver,
+                kind=InteractionKind.REJECT,
+            ).exists()
+        )
 
     def test_patient_cannot_accept(self):
         resp = self.client.patch(self.action_url, {"action": "accept"}, format="json")

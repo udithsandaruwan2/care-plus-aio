@@ -68,6 +68,8 @@ class Command(BaseCommand):
                 stats = build_showcase()
             self.stdout.write(self.style.SUCCESS(f"Showcase graph: {stats}"))
 
+        call_command("backfill_interactions", verbosity=options["verbosity"])
+
         hireable = sum(
             1
             for p in PatientProfile.objects.select_related("user")
