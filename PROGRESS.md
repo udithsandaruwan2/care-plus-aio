@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-19 — v0.4 engine plan added (Steps 76–106): telemetry, streaming turns, offline + local model, history trail, self-improving ranking._
+_Last updated: 2026-08-19 — Step 76 outcome interactions: COMPLETE / RATE / REJECT now feed CF training._
 
 ---
 
@@ -148,7 +148,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 
 | Milestone                                | Steps   | Status | Outcome                                                              |
 | ---------------------------------------- | ------- | ------ | -------------------------------------------------------------------- |
-| **M18** Signal & telemetry foundations   | 76–79   | 🔜 next | Outcomes logged, stages timed, AI decisions audited and reproducible |
+| **M18** Signal & telemetry foundations   | 76–79   | 76 ✅ · 77 🔜 | Outcomes logged, stages timed, AI decisions audited and reproducible |
 | **M19** Client efficiency                | 80–82   | ⬜      | Smaller first load, calmer render loop, network-tolerant boot        |
 | **M20** Conversation feel                | 83–87   | ⬜      | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | ⬜      | Registry, auto index rebuild, replay eval, gated promotion           |
@@ -156,11 +156,11 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | **M23** Adaptive ranking                 | 99–103  | ⬜      | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24** History surface & retention      | 104–106 | ⬜      | User-visible trail, complete export, retention policy                |
 
-**Why this order:** M18 captures the outcome signals (COMPLETE / RATE / REJECT) that are currently
-defined with training weights but never written, so collaborative filtering trains almost entirely
-on impressions. M21 and M23 are meaningless until it lands.
+**Why this order:** M18 captures the outcome signals that CF actually trains on. Step 76 now
+writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
+M21 and M23 stay after the rest of M18.
 
-**Next:** Step 76 — outcome interaction logging, branch `feat/step76-outcome-interactions`.
+**Next:** Step 77 — per-stage voice turn telemetry, branch `feat/step77-turn-telemetry`.
 
 ---
 
@@ -175,6 +175,10 @@ on impressions. M21 and M23 are meaningless until it lands.
 ---
 
 ## Changelog (newest first)
+
+- **Step 76** — Outcome interactions: COMPLETE on relationship end, RATE on review submit, REJECT on declined hire (weight −1.0); idempotent `backfill_interactions`; ALS skips non-positive weights. Branch `feat/step76-outcome-interactions`.
+
+- **Docs v0.4** — Engine plan Steps 76–106 (M18–M24): telemetry, streaming turns, offline + local model, history trail, self-improving ranking. Branch `docs/engine-development-plan-v04`.
 
 - **Demo gateways** — Stripe-lookalike checkout (test card `4242…`, no real charge); email OTP dummy code `123456` with no outbound mail (`OTP_DUMMY`). Branch `feat/dummy-stripe-otp`.
 
