@@ -2,13 +2,14 @@
 
 > **Purpose:** running record of _what's done_ and _what's next_, so work can resume
 > from any device. Committed to git (syncs across machines). Updated **feature by feature**.  
-> Full plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) **v0.3 (~80 steps)** ·  
+> Full plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) **v0.3 (~80 steps, complete)** ·  
+> Engine plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md) **v0.4 (Steps 76–106, active)** ·  
 > Vision (Old→New): [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) ·  
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-16 — Match cards stay in a side rail; tapping Speak no longer clears them._
+_Last updated: 2026-08-19 — v0.4 engine plan added (Steps 76–106): telemetry, streaming turns, offline + local model, history trail, self-improving ranking._
 
 ---
 
@@ -138,6 +139,28 @@ Legend: ✅ done · 🔜 next · ⬜ pending · ░ planned (detail in DEVELOPME
 | **M17** Ship                          | 72–75   | 72–73 ✅ · **74 deferred** (Expo Go, no store accounts) · 75 ✅ |
 
 **Progress:** numbered plan implemented. Remaining ops choice: enable `OTP_ENABLED` in production if desired; Play/App Store when accounts exist.
+
+---
+
+## Status board (v0.4 — engine & experience)
+
+Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per step, `feat/stepN-<slug>`.
+
+| Milestone                                | Steps   | Status | Outcome                                                              |
+| ---------------------------------------- | ------- | ------ | -------------------------------------------------------------------- |
+| **M18** Signal & telemetry foundations   | 76–79   | 🔜 next | Outcomes logged, stages timed, AI decisions audited and reproducible |
+| **M19** Client efficiency                | 80–82   | ⬜      | Smaller first load, calmer render loop, network-tolerant boot        |
+| **M20** Conversation feel                | 83–87   | ⬜      | Streaming turns, interruptible speech, recoverable failures          |
+| **M21** Model lifecycle                  | 88–92   | ⬜      | Registry, auto index rebuild, replay eval, gated promotion           |
+| **M22** Offline & local intelligence     | 93–98   | ⬜      | Installable PWA, cached reads, queued writes, local slot model       |
+| **M23** Adaptive ranking                 | 99–103  | ⬜      | Cold-start clustering, exploration, learned weights, A/B, fairness   |
+| **M24** History surface & retention      | 104–106 | ⬜      | User-visible trail, complete export, retention policy                |
+
+**Why this order:** M18 captures the outcome signals (COMPLETE / RATE / REJECT) that are currently
+defined with training weights but never written, so collaborative filtering trains almost entirely
+on impressions. M21 and M23 are meaningless until it lands.
+
+**Next:** Step 76 — outcome interaction logging, branch `feat/step76-outcome-interactions`.
 
 ---
 
