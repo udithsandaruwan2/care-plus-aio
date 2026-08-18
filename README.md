@@ -47,10 +47,17 @@ Android and iOS. Full design in [docs/FRONTEND.md](docs/FRONTEND.md).
 - **[docs/FRONTEND.md](docs/FRONTEND.md)** — web + mobile blueprint: the Aurora Neural design
   system, the Neural Core voice-assistant + state machine, web/mobile architecture, screen
   inventory, realtime contract, and efficiency rules.
+- **[docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md)** — v0.3 product build plan (M0–M17,
+  Steps 1–75), complete on `main`.
+- **[docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md)** — v0.4 engine plan (M18–M24,
+  Steps 76–106): telemetry and audit, streaming conversation, offline support with a local model,
+  AI decision history, and a ranking loop that learns from its outcomes.
 
 ## Status
 
 The numbered plan (M0–M17) is implemented on `main`. Testers use **web** and **Expo Go** (SDK 54). Play/App Store submissions are deferred until store accounts exist. See [PROGRESS.md](PROGRESS.md) and [docs/ops/launch-checklist.md](docs/ops/launch-checklist.md).
+
+Active work follows **[docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md)**, starting at Step 76.
 
 ## Tech stack (lean profile)
 

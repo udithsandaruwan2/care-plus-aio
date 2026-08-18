@@ -610,3 +610,7 @@ Rules: `.cursor/rules/git-workflow.mdc`.
 ## Next up
 
 **Plan complete through M17** except store listings (Step 74 deferred — Expo Go). See [PROGRESS.md](../PROGRESS.md).
+
+Work continues in **[DEVELOPMENT_PLAN_V2.md](DEVELOPMENT_PLAN_V2.md) (v0.4, Steps 76–106)** — engine
+telemetry, streaming conversation, offline support with a local model, a full AI decision history
+trail, and a ranking loop that learns from its own outcomes. Start at **Step 76**.
