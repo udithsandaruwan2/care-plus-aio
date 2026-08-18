@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 76.** M18 is the prerequisite for M21 and M23.
+**Start at Step 77.** M18 continues with per-stage voice turn telemetry.
 
 ---
 
@@ -69,20 +69,19 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 > **Why first:** every later milestone measures itself against data that is not being captured today.
 
-### Step 76 — Outcome interaction logging
+### Step 76 — Outcome interaction logging ✅ **DONE**
 
 **Branch:** `feat/step76-outcome-interactions`
 **Goal:** collaborative filtering trains on what actually happened, not on what was displayed.
-**Tasks:**
+**Done:**
 
-- Write an `Interaction` on care-relationship completion (`COMPLETE`, weight 8.0) in the relationship-end path.
-- Write an `Interaction` on review submission (`RATE`, weight 1.0 × rating) alongside the existing trust recompute.
-- Add a `REJECT` kind with a negative or zero weight and log it in `reject_care_request()`.
-- Add `backfill_interactions` management command that derives historical COMPLETE / RATE / REJECT rows from existing `CareRelationship`, `Review`, and `CareRequest` records. Must be idempotent.
-- Files: `backend/apps/matching/views.py`, `backend/apps/matching/interactions.py`, `backend/apps/matching/models.py`, `backend/apps/catalog/payments/service.py`.
+- `InteractionKind.REJECT` (weight −1.0) logged from `reject_care_request()`.
+- `COMPLETE` (weight 8.0) logged from `end_relationship()` when the prior status was `active`.
+- `RATE` (weight 1.0 × stars) logged when a patient submits a review.
+- `backfill_interactions` derives missing COMPLETE / RATE / REJECT rows from existing records using an `outcome_key` fingerprint; running twice is a no-op. `seed_demo` calls it after the showcase graph.
+- Implicit ALS skips non-positive weights so REJECT does not break training (Step 92 consumes the negatives).
 
-**✅ Acceptance:** all five interaction kinds appear in `Interaction.objects.values("kind").annotate(Count("id"))` on seeded data; running the backfill twice produces no duplicates; the nightly ALS matrix contains at least one COMPLETE row.
-**Depends on:** none.
+**✅ Acceptance:** all six interaction kinds appear after a hire funnel + backfill; running the backfill twice produces no duplicates; `train_cf_als` still trains when COMPLETE rows are present.
 
 ---
 
@@ -628,4 +627,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 76 — Outcome interaction logging** on `feat/step76-outcome-interactions`. It is the smallest step in this plan and the one every learning milestone depends on.
+**Step 77 — Per-stage voice turn telemetry** on `feat/step77-turn-telemetry`. Measure ASR / intent / match / chat / TTS so the documented latency figures stop covering only VEHMF.
