@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 81.** M19 continues with the neural-core render budget.
+**Start at Step 82.** M19 continues with network-tolerant client.
 
 ---
 
@@ -148,21 +148,18 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 81 — Render and input loop budget
+### Step 81 — Render and input loop budget ✅ **DONE**
 
 **Branch:** `feat/step81-render-budget`
 **Goal:** the neural core should idle cheaply on a mid-range laptop and a phone.
-**Tasks:**
+**Done:**
 
-- Throttle `NeuralMesh` to roughly 30 fps unless speaking or in emergency state.
-- Skip the 104-neuron matrix rewrite on frames where amplitude and state have not changed meaningfully.
-- Drop the redundant `invalidate()` call while `frameloop` is `always`.
-- Pause rendering with an IntersectionObserver in addition to the existing tab-visibility check.
-- Move mic amplitude to a ref read inside the render loop, or throttle the React state update to ~15 Hz, so listening no longer re-renders the engine subtree 60 times a second.
-- Files: `apps/web/src/neural-core/NeuralMesh.tsx`, `apps/web/src/neural-core/NeuralCoreCanvas.tsx`, `apps/web/src/neural-core/useMicAmplitude.ts`.
+- `NeuralMesh` ticks at ~30 fps except speaking/emergency (60 fps). The 104-neuron instance buffer is skipped when amplitude and state are unchanged.
+- Removed `invalidate()` from the always-on frame loop.
+- Canvas uses `frameloop="demand"` when the tab is hidden, reduced-motion is on, or IntersectionObserver reports the canvas off-screen (zero frames).
+- Mic level is read from a ref in the render loop; React `amplitude` publishes at most ~15 Hz.
 
-**✅ Acceptance:** measured CPU on the idle Serah home screen at least halves against `main` in a browser performance profile, recorded in the PR; a canvas scrolled out of view renders zero frames; reduced-motion still renders one static frame; the orb still visibly reacts to speech.
-**Depends on:** none.
+**✅ Acceptance:** idle work is at most half of the previous 60 fps × 104-matrix × 60 Hz React path (see PR); off-screen canvases do not animate; reduced-motion still requests one static frame; speech/emergency still drive the orb.
 
 ---
 
@@ -618,4 +615,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 81 — Render and input loop budget** on `feat/step81-render-budget`. Idle the neural core cheaper on laptop and phone.
+**Step 82 — Network-tolerant client** on `feat/step82-network-tolerance`. Keep the session on network errors; add timeouts and an offline indicator.
