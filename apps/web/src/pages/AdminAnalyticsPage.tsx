@@ -113,7 +113,7 @@ export function AdminAnalyticsPage() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title={`Match latency (last ${data.match_latency.window_days}d)`}>
+          <ChartCard title={`Match latency — VEHMF engine (last ${data.match_latency.window_days}d)`}>
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
               <Metric label="Samples" value={String(data.match_latency.sample_size)} />
               <Metric label="p50" value={fmtMs(data.match_latency.p50_ms)} />
@@ -122,6 +122,33 @@ export function AdminAnalyticsPage() {
               <Metric label="avg" value={fmtMs(data.match_latency.avg_ms)} />
             </dl>
           </ChartCard>
+
+          {data.turn_latency ? (
+            <ChartCard title={`Voice turn latency (last ${data.turn_latency.window_days}d)`}>
+              <p className="mb-3 text-xs text-muted">
+                Full <code>/voice/turn/</code> wall time (ASR + intent + route + match + chat + TTS).
+                Distinct from VEHMF engine time above.
+              </p>
+              <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                <Metric label="Samples" value={String(data.turn_latency.sample_size)} />
+                <Metric label="total p50" value={fmtMs(data.turn_latency.p50_ms)} />
+                <Metric label="total p95" value={fmtMs(data.turn_latency.p95_ms)} />
+                <Metric label="total p99" value={fmtMs(data.turn_latency.p99_ms)} />
+                <Metric label="avg" value={fmtMs(data.turn_latency.avg_ms)} />
+              </dl>
+              {data.turn_latency.stages && Object.keys(data.turn_latency.stages).length > 0 ? (
+                <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                  {['asr_ms', 'intent_ms', 'route_ms', 'match_ms', 'chat_ms', 'tts_ms'].map((key) => (
+                    <Metric
+                      key={key}
+                      label={`${key.replace('_ms', '')} p95`}
+                      value={fmtMs(data.turn_latency?.stages?.[key]?.p95_ms ?? null)}
+                    />
+                  ))}
+                </dl>
+              ) : null}
+            </ChartCard>
+          ) : null}
 
           <ChartCard title="Care relationships">
             <p className="mb-3 text-sm text-muted">

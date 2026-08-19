@@ -18,6 +18,7 @@ from apps.matching.models import (
     CaregiverProfile,
     create_match_run,
 )
+from apps.voice.models import VoiceTurnTiming
 
 User = get_user_model()
 
@@ -79,6 +80,32 @@ class AdminAnalyticsApiTests(APITestCase):
                 weights=[0.4, 0.2, 0.2, 0.2],
                 latency_ms=ms,
             )
+        VoiceTurnTiming.objects.create(
+            user=self.patient,
+            request_id="test-rid-1",
+            route="CHAT",
+            situation="greeting",
+            asr_ms=5,
+            intent_ms=2,
+            route_ms=1,
+            match_ms=0,
+            chat_ms=8,
+            tts_ms=4,
+            total_ms=20,
+        )
+        VoiceTurnTiming.objects.create(
+            user=self.patient,
+            request_id="test-rid-2",
+            route="MATCH",
+            situation="match",
+            asr_ms=10,
+            intent_ms=40,
+            route_ms=2,
+            match_ms=80,
+            chat_ms=0,
+            tts_ms=30,
+            total_ms=170,
+        )
         self.url = reverse("v1:admin_analytics")
 
     def test_patient_forbidden(self):
@@ -104,6 +131,13 @@ class AdminAnalyticsApiTests(APITestCase):
         self.assertEqual(latency["sample_size"], 3)
         self.assertEqual(latency["p50_ms"], 200)
         self.assertEqual(latency["p95_ms"], 380)
+
+        turn = res.data["turn_latency"]
+        self.assertEqual(turn["sample_size"], 2)
+        self.assertEqual(turn["p50_ms"], 95)
+        self.assertEqual(turn["p95_ms"], 162)
+        self.assertIn("asr_ms", turn["stages"])
+        self.assertEqual(turn["stages"]["match_ms"]["p95_ms"], 76)
 
     def test_auditor_can_read(self):
         self.client.force_authenticate(self.auditor)

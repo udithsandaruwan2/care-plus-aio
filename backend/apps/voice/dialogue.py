@@ -25,6 +25,7 @@ from .session import (
     open_questions_for_intent,
     persist_session_after_turn,
 )
+from .timings import StageClock, finalize_turn
 
 
 def _serah(
@@ -363,41 +364,47 @@ def process_turn(
     ui_language: str | None = None,
 ) -> dict:
     """Full conversational turn used by ``POST /voice/turn/``."""
+    clock = StageClock()
     ui = ui_language if ui_language in ("Sinhala", "Tamil", "English") else None
     session = get_or_create_active_session(user, lang=ui or "")
 
-    asr = resolve_transcript(
-        client_text=client_text,
-        audio=audio,
-        content_type=content_type,
-        ui_language=ui,
-    )
+    with clock.span("asr_ms"):
+        asr = resolve_transcript(
+            client_text=client_text,
+            audio=audio,
+            content_type=content_type,
+            ui_language=ui,
+        )
     text = asr.text.strip()
     reply_lang = _tts_lang(ui, [ui] if ui else None) if ui else "en-US"
     if not text:
         # Silence / ambient noise is not a turn — keep listening, do not invent a reply.
-        return _attach_tts(
-            {
-                "route": "CHAT",
-                "situation": "empty",
-                "silent": True,
-                "transcript": "",
-                "asr_source": asr.source,
-                "asr_language": asr.language_hint or ui or "",
-                "asr_language_code": asr.language_code or "",
-                "reply": "",
-                "reply_lang": reply_lang,
-                "intent": None,
-                "match": None,
-                "clear_match": False,
-                "session_id": session.pk,
-                "chat_source": "stub",
-                "chat_backend": resolve_chat_backend(),
-                "match_engine": "",
-            },
-            "",
-            reply_lang,
-            server_voice=False,
+        payload = {
+            "route": "CHAT",
+            "situation": "empty",
+            "silent": True,
+            "transcript": "",
+            "asr_source": asr.source,
+            "asr_language": asr.language_hint or ui or "",
+            "asr_language_code": asr.language_code or "",
+            "reply": "",
+            "reply_lang": reply_lang,
+            "intent": None,
+            "match": None,
+            "clear_match": False,
+            "session_id": session.pk,
+            "chat_source": "stub",
+            "chat_backend": resolve_chat_backend(),
+            "match_engine": "",
+        }
+        with clock.span("tts_ms"):
+            out = _attach_tts(payload, "", reply_lang, server_voice=False)
+        return finalize_turn(
+            user,
+            out,
+            clock.finish(),
+            route="CHAT",
+            situation="empty",
         )
 
     # Session chips → client prior → this turn's extraction (clarify / refine continuity).
@@ -408,12 +415,13 @@ def process_turn(
                 base[key] = val
     hint = ui or asr.language_hint
     # Chat stays cheap: local stub slots. Gemini intent only when VEHMF may run.
-    if needs_slot_extraction(
-        text, has_prior_match=has_prior_match or bool(session.last_match_run_id)
-    ):
-        extracted = extract_intent(text, hint)
-    else:
-        extracted = extract_stub(text, hint)
+    with clock.span("intent_ms"):
+        if needs_slot_extraction(
+            text, has_prior_match=has_prior_match or bool(session.last_match_run_id)
+        ):
+            extracted = extract_intent(text, hint)
+        else:
+            extracted = extract_stub(text, hint)
     for key in (
         "condition",
         "language",
@@ -466,12 +474,13 @@ def process_turn(
     has_history_match = _match_has_results(history_match)
     effective_prior = has_visible_match
 
-    decision = classify_turn(
-        text,
-        base,
-        has_prior_match=has_visible_match,
-        has_history_match=has_history_match,
-    )
+    with clock.span("route_ms"):
+        decision = classify_turn(
+            text,
+            base,
+            has_prior_match=has_visible_match,
+            has_history_match=has_history_match,
+        )
     route = decision.route
     situation = decision.situation
     # UI picker locks what Serah speaks; caregiver language chips stay on intent.
@@ -490,13 +499,27 @@ def process_turn(
         base["urgency"] = "urgent"
         if base.get("condition"):
             try:
-                match_payload = _run_vehmf(user, base)
+                with clock.span("match_ms"):
+                    match_payload = _run_vehmf(user, base)
                 reply = _match_reply(match_payload.get("results") or [], reply_lang)
                 route = "MATCH"
                 situation = "emergency_match"
                 chat_source = "vehmf"
             except Exception as exc:
                 logger.exception("Emergency VEHMF failed")
+                with clock.span("chat_ms"):
+                    reply, chat_source = _serah(
+                        user=user,
+                        text=text,
+                        lang=reply_lang,
+                        situation="emergency",
+                        has_prior_match=effective_prior,
+                        history=chat_history,
+                    )
+                reply = f"{reply} (Matching briefly unavailable: {exc})"
+                route = "CHAT"
+        else:
+            with clock.span("chat_ms"):
                 reply, chat_source = _serah(
                     user=user,
                     text=text,
@@ -505,17 +528,6 @@ def process_turn(
                     has_prior_match=effective_prior,
                     history=chat_history,
                 )
-                reply = f"{reply} (Matching briefly unavailable: {exc})"
-                route = "CHAT"
-        else:
-            reply, chat_source = _serah(
-                user=user,
-                text=text,
-                lang=reply_lang,
-                situation="emergency",
-                has_prior_match=effective_prior,
-                history=chat_history,
-            )
             route = "CHAT"
     elif route in ("MATCH", "REFINE"):
         is_refine = route == "REFINE"
@@ -534,12 +546,13 @@ def process_turn(
         )
         try:
             prior_rows = (context_match or {}).get("results") if is_refine else None
-            match_payload = _run_vehmf(
-                user,
-                base,
-                prior_results=prior_rows if isinstance(prior_rows, list) else None,
-                refine=is_refine,
-            )
+            with clock.span("match_ms"):
+                match_payload = _run_vehmf(
+                    user,
+                    base,
+                    prior_results=prior_rows if isinstance(prior_rows, list) else None,
+                    refine=is_refine,
+                )
             reply = _match_reply(
                 match_payload.get("results") or [],
                 reply_lang,
@@ -558,36 +571,40 @@ def process_turn(
             match_payload = None
             chat_source = "none"
     elif route == "CLARIFY":
-        reply = _clarify_reply(base, reply_lang)
+        with clock.span("chat_ms"):
+            reply = _clarify_reply(base, reply_lang)
         chat_source = "stub"
     elif route == "ACTION":
-        reply, chat_source = _serah(
-            user=user,
-            text=text,
-            lang=reply_lang,
-            situation="request",
-            has_prior_match=has_visible_match,
-            match=visible_match or history_match,
-            history=chat_history,
-        )
+        with clock.span("chat_ms"):
+            reply, chat_source = _serah(
+                user=user,
+                text=text,
+                lang=reply_lang,
+                situation="request",
+                has_prior_match=has_visible_match,
+                match=visible_match or history_match,
+                history=chat_history,
+            )
         match_payload = None
     else:
-        reply, chat_source = _serah(
-            user=user,
-            text=text,
-            lang=reply_lang,
-            situation=situation,
-            has_prior_match=effective_prior,
-            match=context_match,
-            history=chat_history,
-        )
+        with clock.span("chat_ms"):
+            reply, chat_source = _serah(
+                user=user,
+                text=text,
+                lang=reply_lang,
+                situation=situation,
+                has_prior_match=effective_prior,
+                match=context_match,
+                history=chat_history,
+            )
         # Gemini sometimes promises VEHMF without the MATCH route. Run it now.
         if situation not in _NO_MATCH_SALVAGE and (
             is_care_seek(text) or _reply_promises_match(reply)
         ):
             if _intent_ready_for_match(base):
                 try:
-                    match_payload = _run_vehmf(user, base)
+                    with clock.span("match_ms"):
+                        match_payload = _run_vehmf(user, base)
                     reply = _match_reply(match_payload.get("results") or [], reply_lang)
                     route = "MATCH"
                     situation = "match"
@@ -602,7 +619,8 @@ def process_turn(
             else:
                 route = "CLARIFY"
                 situation = "clarify"
-                reply = _clarify_reply(base, reply_lang)
+                with clock.span("chat_ms"):
+                    reply = _clarify_reply(base, reply_lang)
                 chat_source = "stub"
 
     intent_out = {
@@ -644,26 +662,29 @@ def process_turn(
         clear_match=decision.clear_match,
     )
 
-    return _attach_tts(
-        {
-            "route": route,
-            "situation": situation,
-            "transcript": text,
-            "asr_source": asr.source,
-            "asr_language": asr.language_hint or ui or "",
-            "asr_language_code": asr.language_code or "",
-            "reply": reply,
-            "reply_lang": reply_lang,
-            "intent": intent_out,
-            "match": match_payload,
-            "clear_match": decision.clear_match,
-            "session_id": session.pk,
-            "open_questions": open_questions_for_intent(intent_out),
-            "chat_source": chat_source,
-            "chat_backend": resolve_chat_backend(),
-            "match_engine": "vehmf" if match_payload else "",
-        },
-        reply,
-        reply_lang,
-        server_voice=_use_server_voice(reply_lang, has_match=bool(match_payload)),
-    )
+    payload = {
+        "route": route,
+        "situation": situation,
+        "transcript": text,
+        "asr_source": asr.source,
+        "asr_language": asr.language_hint or ui or "",
+        "asr_language_code": asr.language_code or "",
+        "reply": reply,
+        "reply_lang": reply_lang,
+        "intent": intent_out,
+        "match": match_payload,
+        "clear_match": decision.clear_match,
+        "session_id": session.pk,
+        "open_questions": open_questions_for_intent(intent_out),
+        "chat_source": chat_source,
+        "chat_backend": resolve_chat_backend(),
+        "match_engine": "vehmf" if match_payload else "",
+    }
+    with clock.span("tts_ms"):
+        out = _attach_tts(
+            payload,
+            reply,
+            reply_lang,
+            server_voice=_use_server_voice(reply_lang, has_match=bool(match_payload)),
+        )
+    return finalize_turn(user, out, clock.finish(), route=route, situation=situation)

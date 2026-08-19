@@ -57,3 +57,21 @@ class ObservabilityHelpersTests(TestCase):
         self.assertEqual(payload["msg"], "hello world")
         self.assertEqual(payload["level"], "INFO")
         self.assertEqual(payload["logger"], "careplus.test")
+
+    def test_json_log_formatter_includes_extra_and_request_id(self):
+        record = logging.LogRecord(
+            name="apps.voice.timings",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg="voice.turn.timings",
+            args=(),
+            exc_info=None,
+        )
+        record.asr_ms = 12
+        record.total_ms = 40
+        record.request_id = "abc123"
+        payload = json.loads(JsonLogFormatter().format(record))
+        self.assertEqual(payload["asr_ms"], 12)
+        self.assertEqual(payload["total_ms"], 40)
+        self.assertEqual(payload["request_id"], "abc123")

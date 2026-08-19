@@ -128,6 +128,33 @@ class DialogueSession(models.Model):
         self.turns_ciphertext = encrypt_json(value or [])
 
 
+class VoiceTurnTiming(models.Model):
+    """Per-stage latency for one ``POST /voice/turn/`` (Step 77). No transcript/PHI."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="voice_turn_timings",
+    )
+    request_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    route = models.CharField(max_length=16, blank=True, default="")
+    situation = models.CharField(max_length=32, blank=True, default="")
+    asr_ms = models.PositiveIntegerField(default=0)
+    intent_ms = models.PositiveIntegerField(default=0)
+    route_ms = models.PositiveIntegerField(default=0)
+    match_ms = models.PositiveIntegerField(default=0)
+    chat_ms = models.PositiveIntegerField(default=0)
+    tts_ms = models.PositiveIntegerField(default=0)
+    total_ms = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"VoiceTurnTiming#{self.pk} total={self.total_ms}ms route={self.route}"
+
+
 def create_voice_intent(*, user, **fields) -> VoiceIntent:
     """Persist a VoiceIntent with encrypted raw_text / condition."""
     intent = VoiceIntent(

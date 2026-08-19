@@ -137,6 +137,8 @@ class VoiceTurnView(APIView):
                 "chat_source": result.get("chat_source"),
                 "chat_backend": result.get("chat_backend"),
                 "match_engine": result.get("match_engine") or "",
+                "timings": result.get("timings") or {},
+                "request_id": getattr(request, "request_id", "") or "",
             },
         )
         return Response(result, status=status.HTTP_200_OK)

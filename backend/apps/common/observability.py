@@ -82,6 +82,17 @@ def _route_label(path: str) -> str:
 class JsonLogFormatter(logging.Formatter):
     """One JSON object per line for journald / Docker json-file / Loki."""
 
+    _RESERVED = frozenset(logging.makeLogRecord({}).__dict__) | {
+        "message",
+        "asctime",
+        "color_message",
+        "msg",
+        "args",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+    }
+
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
             "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
@@ -89,9 +100,15 @@ class JsonLogFormatter(logging.Formatter):
             "logger": record.name,
             "msg": record.getMessage(),
         }
-        rid = request_id_var.get()
+        rid = request_id_var.get() or getattr(record, "request_id", "")
         if rid:
             payload["request_id"] = rid
+        for key, value in record.__dict__.items():
+            if key in self._RESERVED or key in payload:
+                continue
+            if key.startswith("_"):
+                continue
+            payload[key] = value
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)
         return json.dumps(payload, default=str)
