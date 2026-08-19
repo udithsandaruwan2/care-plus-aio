@@ -68,7 +68,9 @@ export function HomePage() {
   const showMatchPanel = matching || Boolean(match);
 
   return (
-    <div className={`serah-immersive-container min-h-0 flex-1${showMatchPanel ? ' is-searching' : ''}`}>
+    <div
+      className={`serah-immersive-container min-h-0 flex-1${showMatchPanel ? ' is-searching' : ''}`}
+    >
       <div className={`serah-ambient-bg state-${visual}`} aria-hidden />
 
       <div className="serah-hud-top">
@@ -92,25 +94,25 @@ export function HomePage() {
       {!showMatchPanel &&
         ((user?.role === 'patient' && !canRequestCare) ||
           (user?.role === 'caregiver' && !isMatchEligible)) && (
-        <div className="serah-profile-banners">
-          {user?.role === 'patient' && !canRequestCare && (
-            <Link
-              to="/onboarding"
-              className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
-            >
-              Complete profile ({completionPercent}%)
-            </Link>
-          )}
-          {user?.role === 'caregiver' && !isMatchEligible && (
-            <Link
-              to="/caregiver-onboarding"
-              className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
-            >
-              Complete caregiver profile ({cgCompletion}%)
-            </Link>
-          )}
-        </div>
-      )}
+          <div className="serah-profile-banners">
+            {user?.role === 'patient' && !canRequestCare && (
+              <Link
+                to="/onboarding"
+                className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
+              >
+                Complete profile ({completionPercent}%)
+              </Link>
+            )}
+            {user?.role === 'caregiver' && !isMatchEligible && (
+              <Link
+                to="/caregiver-onboarding"
+                className="rounded-full border border-amber/40 px-3 py-1 text-amber transition hover:bg-amber/10"
+              >
+                Complete caregiver profile ({cgCompletion}%)
+              </Link>
+            )}
+          </div>
+        )}
 
       {emergencyActive && (
         <div className="serah-emergency-banner">
@@ -132,7 +134,8 @@ export function HomePage() {
                 variant={showMatchPanel ? 'dock' : 'stage'}
                 visual={visual}
                 state={state}
-                amplitude={Math.max(mic.amplitude, showMatchPanel ? 0.22 : 0.16)}
+                amplitude={showMatchPanel ? 0.22 : 0.16}
+                amplitudeRef={mic.amplitudeRef}
               />
             </div>
             <button
@@ -163,7 +166,9 @@ export function HomePage() {
                     <p>{hologramText}</p>
                   </div>
                 ) : (
-                  <p className="serah-field-hint">Tap the field or type below to talk with Serah.</p>
+                  <p className="serah-field-hint">
+                    Tap the field or type below to talk with Serah.
+                  </p>
                 )}
                 <ChatBubbles messages={chat} />
                 {clarifyPrompt && (

@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { shouldPublishAmplitude } from './frameBudget';
 
 export type MicAmplitudeControls = {
-  /** 0–1 smoothed microphone level */
+  /** 0–1 smoothed microphone level (throttled React snapshot, ~15 Hz). */
   amplitude: number;
+  /** Live level for the render loop — does not trigger React updates. */
+  amplitudeRef: MutableRefObject<number>;
   active: boolean;
   error: string | null;
   start: () => Promise<void>;
@@ -23,6 +26,8 @@ export function useMicAmplitude(): MicAmplitudeControls {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number>(0);
   const smoothRef = useRef(0);
+  const amplitudeRef = useRef(0);
+  const lastPublishMs = useRef(0);
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -33,6 +38,8 @@ export function useMicAmplitude(): MicAmplitudeControls {
     ctxRef.current = null;
     analyserRef.current = null;
     smoothRef.current = 0;
+    amplitudeRef.current = 0;
+    lastPublishMs.current = 0;
     setAmplitude(0);
     setActive(false);
   }, []);
@@ -66,7 +73,12 @@ export function useMicAmplitude(): MicAmplitudeControls {
         for (let i = 0; i < data.length; i++) sum += data[i];
         const raw = Math.min(1, sum / data.length / 90);
         smoothRef.current = smoothRef.current * 0.7 + raw * 0.3;
-        setAmplitude(smoothRef.current);
+        amplitudeRef.current = smoothRef.current;
+        const now = performance.now();
+        if (shouldPublishAmplitude(now, lastPublishMs.current)) {
+          lastPublishMs.current = now;
+          setAmplitude(smoothRef.current);
+        }
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -82,5 +94,5 @@ export function useMicAmplitude(): MicAmplitudeControls {
 
   useEffect(() => () => stop(), [stop]);
 
-  return { amplitude, active, error, start, stop };
+  return { amplitude, amplitudeRef, active, error, start, stop };
 }
