@@ -5,8 +5,10 @@
 recommendation engine (**VEHMF**), and **real-time health monitoring** that dynamically
 re-ranks matches during medical anomalies.
 
-Built for **speed** (voice → ranked list in **< 800 ms**) and **resource efficiency**
-(the lean stack fits in **≤ 4 GB RAM / 2 vCPU**, no GPU required at runtime).
+Built for **speed** (VEHMF ranked list **p95 < 800 ms** of engine time) and **resource efficiency**
+(the lean stack fits in **≤ 4 GB RAM / 2 vCPU**, no GPU required at runtime). Full voice turns
+(ASR + intent + chat + TTS) are timed per stage on `POST /voice/turn/` (`timings.*_ms`) and are
+typically longer than the match engine itself.
 
 ---
 

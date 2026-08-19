@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-19 — Step 76 outcome interactions: COMPLETE / RATE / REJECT now feed CF training._
+_Last updated: 2026-08-19 — Step 77 voice turn telemetry: per-stage timings on `/voice/turn/`._
 
 ---
 
@@ -148,7 +148,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 
 | Milestone                                | Steps   | Status | Outcome                                                              |
 | ---------------------------------------- | ------- | ------ | -------------------------------------------------------------------- |
-| **M18** Signal & telemetry foundations   | 76–79   | 76 ✅ · 77 🔜 | Outcomes logged, stages timed, AI decisions audited and reproducible |
+| **M18** Signal & telemetry foundations   | 76–79   | 76–77 ✅ · 78 🔜 | Outcomes logged, stages timed, AI decisions audited and reproducible |
 | **M19** Client efficiency                | 80–82   | ⬜      | Smaller first load, calmer render loop, network-tolerant boot        |
 | **M20** Conversation feel                | 83–87   | ⬜      | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | ⬜      | Registry, auto index rebuild, replay eval, gated promotion           |
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 77 — per-stage voice turn telemetry, branch `feat/step77-turn-telemetry`.
+**Next:** Step 78 — AI decision audit rows, branch `feat/step78-ai-audit`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 77** — Voice turn telemetry: `timings` on `/voice/turn/` (ASR/intent/route/match/chat/TTS), JSON logs with `request_id`, admin `turn_latency` p95. VEHMF &lt;800 ms is engine-only. Branch `feat/step77-turn-telemetry`.
 
 - **Step 76** — Outcome interactions: COMPLETE on relationship end, RATE on review submit, REJECT on declined hire (weight −1.0); idempotent `backfill_interactions`; ALS skips non-positive weights. Branch `feat/step76-outcome-interactions`.
 

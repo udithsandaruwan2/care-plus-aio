@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 77.** M18 continues with per-stage voice turn telemetry.
+**Start at Step 78.** M18 continues with AI decision audit rows.
 
 ---
 
@@ -85,20 +85,18 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 77 — Per-stage voice turn telemetry
+### Step 77 — Per-stage voice turn telemetry ✅ **DONE**
 
 **Branch:** `feat/step77-turn-telemetry`
 **Goal:** know where the seconds actually go. Today only `match.latency_ms` is measured, so the documented sub-800 ms figure excludes Whisper, Gemini, and TTS.
-**Tasks:**
+**Done:**
 
-- Time each stage inside `process_turn()`: `asr_ms`, `intent_ms`, `route_ms`, `match_ms`, `chat_ms`, `tts_ms`, plus `total_ms`.
-- Return them as a `timings` object on the turn response and emit them as structured JSON logs carrying `request_id`.
-- Add turn-stage p95 to the admin analytics endpoint next to the existing match p95.
-- Correct the latency claims in `README.md` and `docs/ARCHITECTURE.md` §11 to distinguish engine time from turn time.
-- Files: `backend/apps/voice/dialogue.py`, `backend/apps/common/observability.py`, `backend/apps/accounts/views.py`.
+- `process_turn()` returns `timings` (`asr_ms`, `intent_ms`, `route_ms`, `match_ms`, `chat_ms`, `tts_ms`, `total_ms`, `request_id`).
+- Structured JSON logs `voice.turn.timings` include the same fields plus `request_id` from the request-id middleware.
+- `VoiceTurnTiming` persists stage times (no transcript); admin analytics exposes `turn_latency` p50/p95/p99 next to match-engine latency.
+- README + ARCHITECTURE §11 distinguish VEHMF engine time (< 800 ms) from full voice-turn wall time.
 
-**✅ Acceptance:** every `/voice/turn/` response carries all stage timings; their sum is within 50 ms of measured wall time; a staging turn is traceable end to end by `request_id`.
-**Depends on:** none.
+**✅ Acceptance:** every `/voice/turn/` response carries all stage timings; their sum is within 50 ms of measured wall time; a turn is joinable by `request_id` on the log line, audit metadata, and `VoiceTurnTiming` row.
 
 ---
 
@@ -627,4 +625,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 77 — Per-stage voice turn telemetry** on `feat/step77-turn-telemetry`. Measure ASR / intent / match / chat / TTS so the documented latency figures stop covering only VEHMF.
+**Step 78 — AI decision audit rows** on `feat/step78-ai-audit`. Audit match runs, consent, and login, and put `request_id` on `AuditLog`.
