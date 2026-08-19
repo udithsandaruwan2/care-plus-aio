@@ -56,6 +56,25 @@ jobs:
           pnpm --filter @care-plus/api-client exec tsc --noEmit
           pnpm --filter @care-plus/web typecheck
 
+  web-bundle:
+    name: Web bundle budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Build web
+        run: pnpm --filter @care-plus/web build
+      - name: Entry chunk budget
+        run: pnpm --filter @care-plus/web check-bundle
+
   docker-build:
     name: Docker build (backend image)
     runs-on: ubuntu-latest
