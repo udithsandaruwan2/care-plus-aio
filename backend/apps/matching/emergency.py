@@ -9,7 +9,7 @@ from django.db import transaction
 from apps.accounts.notifications.push_dispatch import notify_health_critical_mobile
 from apps.health_monitoring.models import HealthEvent
 
-from .engine import run_match
+from .engine import match_run_provenance, run_match
 from .interactions import record_match_interactions
 from .models import CaregiverProfile, MatchResult, create_match_run
 from .push import push_match_results
@@ -70,6 +70,7 @@ def emergency_rematch_for_health_event(event: HealthEvent) -> dict:
         weights=list(out.weights),
         latency_ms=latency_ms,
         source="emergency_rematch",
+        **match_run_provenance(out),
     )
     chosen_profile = profiles.get(selected.caregiver_id)
     MatchResult.objects.create(

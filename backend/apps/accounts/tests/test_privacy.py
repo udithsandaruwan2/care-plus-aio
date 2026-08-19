@@ -69,6 +69,40 @@ class PrivacyExportEraseTests(APITestCase):
             AuditLog.objects.filter(actor=self.patient, action=AuditAction.EXPORT_DATA).exists()
         )
 
+    def test_export_json_includes_match_result_scores(self):
+        from apps.matching.models import MatchResult, create_match_run
+
+        run = create_match_run(
+            user=self.patient,
+            query="diabetes nearby",
+            condition="diabetes",
+            language="English",
+            care_level="basic",
+            weights=[0.4, 0.2, 0.2, 0.2],
+            source="test",
+        )
+        MatchResult.objects.create(
+            run=run,
+            caregiver=self.cg,
+            rank=1,
+            score=0.91,
+            cbf=0.8,
+            cf=0.1,
+            geo=0.7,
+            trust=0.9,
+            explanation="Matched because: strong medical/skill match",
+            distance_m=1200,
+        )
+        self.client.force_authenticate(self.patient)
+        res = self.client.get(self.export_url, {"export_format": "json"})
+        self.assertEqual(res.status_code, status.HTTP_200_OK, res.data)
+        self.assertEqual(len(res.data["match_runs"]), 1)
+        row = res.data["match_runs"][0]
+        self.assertEqual(row["weights"], [0.4, 0.2, 0.2, 0.2])
+        self.assertEqual(len(row["results"]), 1)
+        self.assertEqual(row["results"][0]["cbf"], 0.8)
+        self.assertEqual(row["results"][0]["caregiver_id"], self.cg.pk)
+
     def test_export_pdf(self):
         self.client.force_authenticate(self.patient)
         res = self.client.get(self.export_url, {"export_format": "pdf"})

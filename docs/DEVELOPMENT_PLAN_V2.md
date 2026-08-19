@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 79.** M18 continues with MatchRun provenance.
+**Start at Step 80.** M19 is the web first-load budget.
 
 ---
 
@@ -115,21 +115,18 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 79 — MatchRun provenance & replay
+### Step 79 — MatchRun provenance & replay ✅ **DONE**
 
 **Branch:** `feat/step79-matchrun-provenance`
 **Goal:** answer "why was this caregiver recommended to this patient on this date" from the database alone.
-**Tasks:**
+**Done:**
 
-- Add `cf_version`, `embedding_backend`, `index_version`, `weights_source`, `filters` (JSON), `voice_intent` (FK), and `request_id` to `MatchRun`.
-- Populate them in `engine.run_match()` and `voice.dialogue._run_vehmf()`, including the refine filters that are currently passed and discarded.
-- Stamp the FAISS artifact with a version string so `index_version` is meaningful.
-- Add `replay_match <run_id>` management command that re-runs the engine with the recorded inputs.
-- Extend the privacy export to include `MatchResult` rows and weights, not just run summaries.
-- Files: `backend/apps/matching/models.py`, `backend/apps/matching/engine.py`, `backend/apps/matching/faiss_index.py`, `backend/apps/accounts/privacy.py`.
+- `MatchRun` stores `cf_version`, `embedding_backend`, `index_version`, `weights_source`, `filters` (including refine flags), `voice_intent`, and `request_id`.
+- FAISS `caregivers.ids.json` is stamped with a membership hash so `index_version` changes when the pool changes.
+- `python manage.py replay_match <run_id>` re-runs VEHMF and reports identical ranking vs artifact/ranking drift.
+- Privacy JSON export includes per-caregiver CBF/CF/geo/trust scores and fusion weights.
 
 **✅ Acceptance:** `replay_match` reproduces an identical ranking when the referenced artifacts are unchanged, and reports a clear mismatch when they are not; the export contains per-caregiver factor scores.
-**Depends on:** Step 78 (shares the `request_id` plumbing).
 
 ---
 
@@ -623,4 +620,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 79 — MatchRun provenance & replay** on `feat/step79-matchrun-provenance`. Persist engine versions, filters, and `request_id` on `MatchRun`; add `replay_match`.
+**Step 80 — Web first-load budget** on `feat/step80-bundle-split`. Lazy-load routes, split admin/map chunks, drop unused 3D deps, self-host fonts.

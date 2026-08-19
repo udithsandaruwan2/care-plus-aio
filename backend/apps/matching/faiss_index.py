@@ -5,6 +5,7 @@ Vectors must be L2-normalized so inner product == cosine similarity.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,6 +38,7 @@ class CaregiverIndex:
     index: faiss.IndexFlatIP
     caregiver_ids: list[int]
     backend: str
+    version: str = ""
 
     @property
     def size(self) -> int:
@@ -55,6 +57,14 @@ class CaregiverIndex:
                 continue
             out.append((self.caregiver_ids[int(idx)], float(score)))
         return out
+
+
+def stamp_index_version(*, backend: str, caregiver_ids: list[int], dim: int) -> str:
+    """Stable id for a FAISS artifact: backend, dim, membership (not scores)."""
+    digest = hashlib.sha256()
+    digest.update(f"{backend}|{dim}|".encode())
+    digest.update(",".join(str(i) for i in caregiver_ids).encode())
+    return f"{backend}:{len(caregiver_ids)}:{digest.hexdigest()[:12]}"
 
 
 def build_index(*, persist: bool = True) -> CaregiverIndex:
@@ -79,7 +89,10 @@ def build_index(*, persist: bool = True) -> CaregiverIndex:
     texts = [profile_to_text(p) for p in profiles]
     if not texts:
         index = faiss.IndexFlatIP(EMBEDDING_DIM)
-        built = CaregiverIndex(index=index, caregiver_ids=[], backend=backend)
+        version = stamp_index_version(backend=backend, caregiver_ids=[], dim=EMBEDDING_DIM)
+        built = CaregiverIndex(
+            index=index, caregiver_ids=[], backend=backend, version=version
+        )
         if persist:
             _persist(built, np.zeros((0, EMBEDDING_DIM), dtype=np.float32))
         return built
@@ -96,7 +109,8 @@ def build_index(*, persist: bool = True) -> CaregiverIndex:
     index = faiss.IndexFlatIP(EMBEDDING_DIM)
     index.add(mat)
     ids = [p.id for p in profiles]
-    built = CaregiverIndex(index=index, caregiver_ids=ids, backend=backend)
+    version = stamp_index_version(backend=backend, caregiver_ids=ids, dim=EMBEDDING_DIM)
+    built = CaregiverIndex(index=index, caregiver_ids=ids, backend=backend, version=version)
     if persist:
         _persist(built, mat)
     # Refresh process-local cache.
@@ -112,6 +126,12 @@ def _persist(built: CaregiverIndex, mat: np.ndarray) -> None:
         "backend": built.backend,
         "dim": EMBEDDING_DIM,
         "count": built.size,
+        "version": built.version
+        or stamp_index_version(
+            backend=built.backend,
+            caregiver_ids=built.caregiver_ids,
+            dim=EMBEDDING_DIM,
+        ),
     }
     (d / "caregivers.ids.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     np.save(d / "caregivers.npy", mat)
@@ -128,10 +148,16 @@ def load_index() -> CaregiverIndex:
     if faiss_path.exists() and meta_path.exists():
         index = faiss.read_index(str(faiss_path))
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        ids = list(meta["caregiver_ids"])
+        backend = meta.get("backend", "hash")
+        version = meta.get("version") or stamp_index_version(
+            backend=backend, caregiver_ids=ids, dim=int(meta.get("dim") or EMBEDDING_DIM)
+        )
         built = CaregiverIndex(
             index=index,
-            caregiver_ids=list(meta["caregiver_ids"]),
-            backend=meta.get("backend", "hash"),
+            caregiver_ids=ids,
+            backend=backend,
+            version=version,
         )
         _cache_set(built)
         return built

@@ -26,7 +26,7 @@ from .ahp import build_config, get_ahp_weights
 from .analytics import build_admin_analytics
 from .cf_model import cf_model_info, get_cf_model
 from .embeddings import get_embedder, intent_to_text
-from .engine import run_match
+from .engine import match_run_provenance, run_match
 from .faiss_index import load_index
 from .interactions import log_interaction, log_rate_interaction, record_match_interactions
 from .care_relationships import (
@@ -473,6 +473,7 @@ class MatchView(APIView):
             weights=list(out.weights),
             latency_ms=latency_ms,
             source="match_api",
+            **match_run_provenance(out),
         )
         profiles = {
             p.id: p

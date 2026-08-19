@@ -8,7 +8,7 @@ from datetime import datetime
 
 from django.db import transaction
 
-from apps.matching.engine import run_match
+from apps.matching.engine import match_run_provenance, run_match
 from apps.matching.interactions import record_match_interactions
 from apps.matching.models import (
     CaregiverAvailabilitySlot,
@@ -102,6 +102,7 @@ def find_shift_conflict_fallback(
         weights=list(out.weights),
         latency_ms=latency_ms,
         source="conflict_fallback",
+        **match_run_provenance(out),
     )
 
     ranked_ids = [hit.caregiver_id for hit in out.results]
