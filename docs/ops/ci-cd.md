@@ -4,7 +4,7 @@
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | PR + push to `main` | Ruff/Black, Prettier, web typecheck, Docker build smoke, Compose backend tests + migrate |
+| [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | PR + push to `main` | Ruff/Black, Prettier, web typecheck, **web bundle budget**, Docker build smoke, Compose backend tests + migrate |
 | [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml) | Push to `main` (+ manual) | Build & push `ghcr.io/<owner>/care-plus-backend` (`:latest`, `:<sha>`, `:<short>`) |
 
 CD uses `GITHUB_TOKEN` with `packages: write`. No extra registry secrets required for GHCR under this repo.
@@ -55,7 +55,7 @@ VM + TLS + image pull: [deploy.md](deploy.md) (Step 73).
 
 ## Checklist
 
-- [x] CI runs lint, format, typecheck, image build, Django tests
+- [x] CI runs lint, format, typecheck, web bundle budget, image build, Django tests
 - [x] CD pushes backend image to GHCR on `main`
 - [x] Migrate documented + optional `MIGRATE_ON_START` for local/CI
 - [x] Staging sign-off path: pull `:latest`, migrate, health check (`infra/scripts/deploy.sh`)

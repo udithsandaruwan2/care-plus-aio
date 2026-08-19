@@ -1,4 +1,13 @@
 @import '@care-plus/ui-tokens/css';
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+@import '@fontsource/inter/latin-800.css';
+@import '@fontsource/noto-sans-sinhala/sinhala-400.css';
+@import '@fontsource/noto-sans-sinhala/sinhala-600.css';
+@import '@fontsource/noto-sans-tamil/tamil-400.css';
+@import '@fontsource/noto-sans-tamil/tamil-600.css';
 
 @tailwind base;
 @tailwind components;
@@ -14,7 +23,6 @@
     transform: translateY(0) scale(1);
   }
 }
-
 
 html,
 body,

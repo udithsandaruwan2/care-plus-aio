@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 80.** M19 is the web first-load budget.
+**Start at Step 81.** M19 continues with the neural-core render budget.
 
 ---
 
@@ -132,21 +132,19 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ## M19 · Client efficiency
 
-### Step 80 — Web first-load budget
+### Step 80 — Web first-load budget ✅ **DONE**
 
 **Branch:** `feat/step80-bundle-split`
 **Goal:** stop shipping the admin charts and the map to someone who only opens Serah.
-**Tasks:**
+**Done:**
 
-- Convert every route in `App.tsx` to `React.lazy` with a shared suspense fallback.
-- Verify recharts (admin analytics) and Leaflet (browse/map) land in their own chunks.
-- Remove the unused `@react-three/drei`, `@react-three/postprocessing`, and `postprocessing` dependencies.
-- Self-host the web fonts and drop the Google Fonts CDN link from `index.html`.
-- Add `manualChunks` for the vendor split and a bundle-size check to CI.
-- Files: `apps/web/src/App.tsx`, `apps/web/vite.config.ts`, `apps/web/index.html`, `apps/web/package.json`.
+- Every page in `App.tsx` is `React.lazy` behind a shared suspense fallback.
+- `manualChunks` isolate `recharts`, `leaflet`, and `three`; they are not modulepreloaded on first paint.
+- Removed unused `@react-three/drei`, `@react-three/postprocessing`, and `postprocessing`.
+- Fonts are self-hosted via `@fontsource` (Inter + Noto Sans Sinhala/Tamil); Google Fonts CDN is gone.
+- CI job `web-bundle` runs `vite build` + `check-entry-budget` (entry JS under 450 KB uncompressed).
 
 **✅ Acceptance:** entry chunk under 450 KB uncompressed (from ~1.1 MB); analytics and browse resolve as separate chunks on navigation; no third-party font request in the network panel; CI fails if the entry chunk regresses past the budget.
-**Depends on:** none.
 
 ---
 
@@ -620,4 +618,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 80 — Web first-load budget** on `feat/step80-bundle-split`. Lazy-load routes, split admin/map chunks, drop unused 3D deps, self-host fonts.
+**Step 81 — Render and input loop budget** on `feat/step81-render-budget`. Idle the neural core cheaper on laptop and phone.
