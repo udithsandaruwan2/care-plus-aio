@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 78.** M18 continues with AI decision audit rows.
+**Start at Step 79.** M18 continues with MatchRun provenance.
 
 ---
 
@@ -100,20 +100,18 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 78 — AI decision audit rows
+### Step 78 — AI decision audit rows ✅ **DONE**
 
 **Branch:** `feat/step78-ai-audit`
 **Goal:** close the audit blind spot on the AI path.
-**Tasks:**
+**Done:**
 
-- Add a `RUN_MATCH` action and call `record_audit()` from `POST /match/`, the dialogue match path, emergency rematch, and conflict fallback.
-- Write the `GRANT_CONSENT` / `REVOKE_CONSENT` rows that `AuditAction` already declares, from `ConsentView`.
-- Write `LOGIN` on JWT issue.
-- Add a `request_id` column to `AuditLog` (+ migration) and propagate the middleware's correlation ID through the Celery write task.
-- Files: `backend/apps/accounts/models.py`, `backend/apps/accounts/audit.py`, `backend/apps/accounts/views.py`, `backend/apps/matching/views.py`.
+- `AuditAction.RUN_MATCH` is written once per `create_match_run()` (HTTP `/match/`, voice dialogue, emergency rematch, shift conflict fallback, demo seed).
+- `GRANT_CONSENT` / `REVOKE_CONSENT` are written from `ConsentLogSerializer.create()`.
+- `LOGIN` is written when JWT credentials succeed (`CarePlusTokenObtainPairSerializer`).
+- `AuditLog.request_id` stores the HTTP correlation id at enqueue time so Celery workers still persist it. List/CSV/admin expose the column.
 
 **✅ Acceptance:** one voice match writes exactly one match audit row; a consent toggle writes a grant then a revoke; every audit row originating from an HTTP request carries a `request_id` that joins to the JSON logs; the append-only Postgres trigger still rejects updates and deletes.
-**Depends on:** none.
 
 ---
 
@@ -625,4 +623,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 78 — AI decision audit rows** on `feat/step78-ai-audit`. Audit match runs, consent, and login, and put `request_id` on `AuditLog`.
+**Step 79 — MatchRun provenance & replay** on `feat/step79-matchrun-provenance`. Persist engine versions, filters, and `request_id` on `MatchRun`; add `replay_match`.
