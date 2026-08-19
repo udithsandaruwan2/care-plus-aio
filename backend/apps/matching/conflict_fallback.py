@@ -101,6 +101,7 @@ def find_shift_conflict_fallback(
         emergency=False,
         weights=list(out.weights),
         latency_ms=latency_ms,
+        source="conflict_fallback",
     )
 
     ranked_ids = [hit.caregiver_id for hit in out.results]

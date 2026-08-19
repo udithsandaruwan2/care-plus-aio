@@ -11,6 +11,7 @@ def write_audit_log(
     target_type: str = "",
     target_id: str = "",
     metadata: dict | None = None,
+    request_id: str = "",
 ) -> int:
     """Persist one immutable AuditLog row; returns the new row's primary key."""
     # Local import avoids circular imports at worker boot.
@@ -23,6 +24,7 @@ def write_audit_log(
         target_type=target_type,
         target_id=target_id,
         metadata=metadata,
+        request_id=request_id or "",
     )
     return row.pk
 

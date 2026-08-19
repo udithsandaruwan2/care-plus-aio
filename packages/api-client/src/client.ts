@@ -392,6 +392,7 @@ export function createApiClient(options: ApiClientOptions) {
       if (params.action) qs.set('action', params.action);
       if (params.date_from) qs.set('date_from', params.date_from);
       if (params.date_to) qs.set('date_to', params.date_to);
+      if (params.request_id) qs.set('request_id', params.request_id);
       if (params.page != null) qs.set('page', String(params.page));
       if (params.page_size != null) qs.set('page_size', String(params.page_size));
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
@@ -403,6 +404,7 @@ export function createApiClient(options: ApiClientOptions) {
       if (params.action) qs.set('action', params.action);
       if (params.date_from) qs.set('date_from', params.date_from);
       if (params.date_to) qs.set('date_to', params.date_to);
+      if (params.request_id) qs.set('request_id', params.request_id);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
       return request(`/audit/export/${suffix}`, {}, (d) => String(d));
     },

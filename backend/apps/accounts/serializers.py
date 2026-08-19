@@ -63,8 +63,22 @@ class ConsentLogSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # The user is never client-supplied; it comes from the authenticated request.
-        validated_data["user"] = self.context["request"].user
-        return super().create(validated_data)
+        request = self.context["request"]
+        validated_data["user"] = request.user
+        row = super().create(validated_data)
+        from .audit import record_audit
+        from .models import AuditAction
+
+        record_audit(
+            actor=request.user,
+            action=AuditAction.GRANT_CONSENT if row.granted else AuditAction.REVOKE_CONSENT,
+            request=request,
+            target_type="consent",
+            target_id=row.pk,
+            metadata={"scope": row.scope, "granted": row.granted},
+            async_=False,
+        )
+        return row
 
 
 class NotificationPreferenceUpdateSerializer(serializers.Serializer):
@@ -104,6 +118,7 @@ class AuditLogSerializer(serializers.ModelSerializer):
             "action",
             "ts",
             "ip",
+            "request_id",
             "target_type",
             "target_id",
             "metadata",

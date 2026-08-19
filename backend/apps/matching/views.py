@@ -472,6 +472,7 @@ class MatchView(APIView):
             emergency=out.emergency,
             weights=list(out.weights),
             latency_ms=latency_ms,
+            source="match_api",
         )
         profiles = {
             p.id: p

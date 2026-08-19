@@ -25,6 +25,17 @@ def client_ip(request) -> str | None:
     return request.META.get("REMOTE_ADDR") or None
 
 
+def current_request_id(request=None) -> str:
+    """Snapshot the HTTP correlation id so Celery workers still persist it."""
+    if request is not None:
+        rid = getattr(request, "request_id", "") or ""
+        if rid:
+            return str(rid)
+    from apps.common.observability import request_id_var
+
+    return request_id_var.get() or ""
+
+
 def record_audit(
     *,
     actor,
@@ -34,6 +45,7 @@ def record_audit(
     target_id: str | int = "",
     metadata: dict[str, Any] | None = None,
     async_: bool | None = None,
+    request_id: str | None = None,
 ) -> None:
     """Record an immutable audit row (async via Celery unless sync/eager)."""
     if action not in AuditAction.values:
@@ -47,6 +59,7 @@ def record_audit(
         "target_type": target_type or "",
         "target_id": str(target_id) if target_id != "" else "",
         "metadata": metadata or {},
+        "request_id": (request_id if request_id is not None else current_request_id(request)),
     }
 
     eager = getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False)
@@ -64,6 +77,7 @@ def write_audit_row(
     target_type: str = "",
     target_id: str = "",
     metadata: dict | None = None,
+    request_id: str = "",
 ) -> AuditLog:
     """Synchronous insert used by the Celery task and sync callers."""
     return AuditLog.objects.create(
@@ -73,4 +87,5 @@ def write_audit_row(
         target_type=target_type,
         target_id=target_id,
         metadata=metadata or {},
+        request_id=request_id or "",
     )

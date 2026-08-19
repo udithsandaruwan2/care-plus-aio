@@ -504,6 +504,7 @@ def build_showcase() -> dict[str, int]:
         emergency=True,
         weights=[0.80, 0.05, 0.05, 0.10],
         latency_ms=42,
+        source="demo_seed",
     )
     for rank, cg in enumerate(
         CaregiverProfile.objects.filter(is_active=True, is_approved=True)[:3],
@@ -545,6 +546,7 @@ def build_showcase() -> dict[str, int]:
         emergency=False,
         weights=[0.48, 0.07, 0.2, 0.25],
         latency_ms=118,
+        source="demo_seed",
     )
     for rank, cg in enumerate(
         CaregiverProfile.objects.filter(is_active=True, is_approved=True).order_by("-trust_score")[:5],

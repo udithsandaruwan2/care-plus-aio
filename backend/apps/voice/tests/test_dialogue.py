@@ -8,8 +8,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import ConsentLog, ConsentScope
-from apps.voice.dialogue import _route, process_turn
+from apps.accounts.models import AuditAction, AuditLog, ConsentLog, ConsentScope
+from apps.voice.dialogue import _route, _run_vehmf, process_turn
 from apps.voice.replies import stub_for_situation
 
 User = get_user_model()
@@ -99,6 +99,33 @@ class VoiceTurnApiTests(APITestCase):
         row = VoiceTurnTiming.objects.get(request_id="rid-step77")
         self.assertEqual(row.route, "CHAT")
         self.assertGreaterEqual(row.total_ms, 0)
+
+    def test_voice_match_writes_exactly_one_run_match_audit(self):
+        from apps.matching.engine import MatchOutput
+
+        empty = MatchOutput(
+            results=[],
+            weights=(0.4, 0.2, 0.2, 0.2),
+            query="diabetes",
+            emergency=False,
+            cf_enabled=False,
+            cf_version=None,
+        )
+        before = AuditLog.objects.filter(action=AuditAction.RUN_MATCH).count()
+        with patch("apps.voice.dialogue.run_match", return_value=empty):
+            out = _run_vehmf(
+                self.user,
+                {"condition": "diabetes", "raw_text": "find me a caregiver"},
+            )
+        self.assertEqual(
+            AuditLog.objects.filter(action=AuditAction.RUN_MATCH).count(),
+            before + 1,
+        )
+        row = AuditLog.objects.filter(
+            action=AuditAction.RUN_MATCH, target_id=str(out["request_id"])
+        ).get()
+        self.assertEqual(row.actor_id, self.user.pk)
+        self.assertEqual(row.metadata.get("source"), "voice")
 
     def test_process_turn_empty(self):
         out = process_turn(user=self.user, client_text="")

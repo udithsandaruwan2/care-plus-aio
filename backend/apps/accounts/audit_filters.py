@@ -50,4 +50,8 @@ def filtered_audit_logs(params) -> QuerySet[AuditLog]:
     if date_to is not None:
         qs = qs.filter(ts__lte=date_to)
 
+    request_id = (params.get("request_id") or "").strip()
+    if request_id:
+        qs = qs.filter(request_id=request_id)
+
     return qs

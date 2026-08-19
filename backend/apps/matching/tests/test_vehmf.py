@@ -11,7 +11,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import ConsentLog, ConsentScope, Role
+from apps.accounts.models import AuditAction, AuditLog, ConsentLog, ConsentScope, Role
 from apps.matching.engine import _normalize, run_match
 from apps.matching.faiss_index import build_index, reset_cache
 from apps.matching.models import CaregiverProfile, MatchRun
@@ -163,3 +163,11 @@ class MatchApiTests(APITestCase):
                     MatchRun.objects.get(pk=resp.data["request_id"]).results.count(),
                     len(resp.data["results"]),
                 )
+                match_rows = AuditLog.objects.filter(
+                    actor=self.patient,
+                    action=AuditAction.RUN_MATCH,
+                    target_id=str(resp.data["request_id"]),
+                )
+                self.assertEqual(match_rows.count(), 1)
+                self.assertEqual(match_rows.get().metadata.get("source"), "match_api")
+                self.assertTrue(match_rows.get().request_id)

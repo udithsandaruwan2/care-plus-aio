@@ -10,7 +10,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.accounts.models import ConsentLog, ConsentScope
+from apps.accounts.models import AuditAction, AuditLog, ConsentLog, ConsentScope
 
 User = get_user_model()
 
@@ -44,6 +44,21 @@ class ConsentApiTests(APITestCase):
         self.assertEqual(rows.count(), 2)
         # Latest row wins → consent is currently revoked.
         self.assertFalse(ConsentLog.is_granted(self.user, ConsentScope.AI_PROCESSING))
+
+    def test_consent_toggle_writes_grant_then_revoke_audit(self):
+        self.client.force_authenticate(self.user)
+        grant = self._grant(granted=True)
+        revoke = self._grant(granted=False)
+        self.assertEqual(grant.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(revoke.status_code, status.HTTP_201_CREATED)
+
+        grant_rows = AuditLog.objects.filter(actor=self.user, action=AuditAction.GRANT_CONSENT)
+        revoke_rows = AuditLog.objects.filter(actor=self.user, action=AuditAction.REVOKE_CONSENT)
+        self.assertEqual(grant_rows.count(), 1)
+        self.assertEqual(revoke_rows.count(), 1)
+        self.assertTrue(grant_rows.get().request_id)
+        self.assertTrue(revoke_rows.get().request_id)
+        self.assertTrue(grant_rows.get().ts < revoke_rows.get().ts)
 
     def test_gate_requires_authentication(self):
         resp = self.client.get(self.gate_url)

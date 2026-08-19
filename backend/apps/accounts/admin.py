@@ -85,14 +85,15 @@ class MobilePushDeviceAdmin(admin.ModelAdmin):
 class AuditLogAdmin(admin.ModelAdmin):
     """Read-only view of the immutable audit trail."""
 
-    list_display = ("ts", "action", "actor", "ip", "target_type", "target_id")
+    list_display = ("ts", "action", "actor", "ip", "request_id", "target_type", "target_id")
     list_filter = ("action",)
-    search_fields = ("actor__email", "target_id", "ip")
+    search_fields = ("actor__email", "target_id", "ip", "request_id")
     readonly_fields = (
         "actor",
         "action",
         "ts",
         "ip",
+        "request_id",
         "target_type",
         "target_id",
         "metadata",

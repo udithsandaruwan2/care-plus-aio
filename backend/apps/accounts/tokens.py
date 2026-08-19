@@ -30,3 +30,18 @@ class CarePlusTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["otp_verified"] = not otp_enabled()
         token["role"] = getattr(user, "role", "")
         return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        from .audit import record_audit
+        from .models import AuditAction
+
+        record_audit(
+            actor=self.user,
+            action=AuditAction.LOGIN,
+            request=self.context.get("request"),
+            target_type="user",
+            target_id=self.user.pk,
+            async_=False,
+        )
+        return data
