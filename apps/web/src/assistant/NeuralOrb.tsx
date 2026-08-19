@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type MutableRefObject } from 'react';
 import { AssistantState } from '@care-plus/core';
 import { useReducedMotion } from './useReducedMotion';
 import './SerahHud.css';
@@ -26,12 +26,14 @@ export function NeuralOrb({
   visual,
   state = AssistantState.IDLE,
   amplitude = 0.18,
+  amplitudeRef,
   variant = 'stage',
   parallax,
 }: {
   visual: OrbVisualState;
   state?: AssistantState;
   amplitude?: number;
+  amplitudeRef?: MutableRefObject<number>;
   variant?: 'hud' | 'hero' | 'stage' | 'well' | 'dock';
   parallax?: { x: number; y: number };
 }) {
@@ -49,6 +51,7 @@ export function NeuralOrb({
       <Suspense fallback={<div className="neural-field-canvas" />}>
         <NeuralCoreCanvas
           amplitude={amplitude}
+          amplitudeRef={amplitudeRef}
           state={state}
           reducedMotion={reducedMotion}
           layout={layout}

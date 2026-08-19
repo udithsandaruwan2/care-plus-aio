@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { colors } from '@care-plus/ui-tokens';
 import type { AssistantState } from '@care-plus/core';
 import { AssistantState as S } from '@care-plus/core';
+import { AMP_EPS, frameIntervalSec, isHotNeuralState, neuronMatricesDirty } from './frameBudget';
 
 const STATE_COLOR: Record<AssistantState, string> = {
   [S.IDLE]: colors.accentCyan,
@@ -25,6 +26,7 @@ const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
 type NeuralMeshProps = {
   amplitude: number;
+  amplitudeRef?: MutableRefObject<number>;
   state: AssistantState;
   /** When false, skip continuous animation (idle static frame). */
   animate: boolean;
@@ -63,11 +65,7 @@ function buildConnectome(spread: number) {
     const jitter = 0.035 * (rand() - 0.5);
     const r = radius * (0.9 + rand() * 0.1);
     neurons.push({
-      pos: new THREE.Vector3(
-        Math.cos(theta) * rxy * r + jitter,
-        y * r,
-        Math.sin(theta) * rxy * r,
-      ),
+      pos: new THREE.Vector3(Math.cos(theta) * rxy * r + jitter, y * r, Math.sin(theta) * rxy * r),
       radius: i % 7 === 0 ? 0.04 : 0.024,
       hub: false,
     });
@@ -149,6 +147,7 @@ function buildConnectome(spread: number) {
  */
 export function NeuralMesh({
   amplitude,
+  amplitudeRef,
   state,
   animate,
   spread = 1,
@@ -160,13 +159,9 @@ export function NeuralMesh({
   const lineMat = useRef<THREE.LineBasicMaterial>(null);
   const hazeMat = useRef<THREE.MeshBasicMaterial>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const { invalidate } = useThree();
   const color = useMemo(() => new THREE.Color(STATE_COLOR[state]), [state]);
 
-  const { neurons, linePositions, pulseEdges } = useMemo(
-    () => buildConnectome(spread),
-    [spread],
-  );
+  const { neurons, linePositions, pulseEdges } = useMemo(() => buildConnectome(spread), [spread]);
 
   const additive = surface === 'dark';
   const nodeGeo = useMemo(() => new THREE.SphereGeometry(1, 10, 10), []);
@@ -229,18 +224,27 @@ export function NeuralMesh({
   }, [dummy, neurons, pulseEdges]);
 
   const spinVel = useRef(0.16);
+  const acc = useRef(0);
+  const lastAmp = useRef(Number.NaN);
+  const lastState = useRef<AssistantState | null>(null);
 
   useFrame(({ clock }, delta) => {
     if (!animate) return;
+    const hot = isHotNeuralState(state);
+    acc.current += Math.min(delta, 0.05);
+    const interval = frameIntervalSec(state);
+    if (acc.current < interval) return;
+    acc.current %= interval;
+
     const t = clock.getElapsedTime();
-    const dt = Math.min(delta, 0.05);
-    const amp = Math.min(amplitude, 0.7);
+    const dt = interval;
+    const liveAmp = amplitudeRef?.current ?? 0;
+    const amp = Math.min(Math.max(amplitude, liveAmp), 0.7);
     const live = 0.16 + amp;
     const breath = 1 + Math.sin(t * 1.05) * 0.035;
     const ampPulse = 1 + amp * 0.18;
     const fire = 0.5 + 0.5 * Math.sin(t * (2.2 + amp * 5));
-    const thinking =
-      state === S.THINKING || state === S.MATCHING || state === S.CLARIFYING;
+    const thinking = state === S.THINKING || state === S.MATCHING || state === S.CLARIFYING;
     const speaking = state === S.SPEAKING || state === S.CHAT_REPLY;
     const emergency = state === S.EMERGENCY;
     const targetSpin =
@@ -254,20 +258,28 @@ export function NeuralMesh({
       group.current.rotation.z = Math.cos(t * 0.26) * 0.05;
     }
 
+    const ampDelta = Number.isNaN(lastAmp.current) ? AMP_EPS : Math.abs(amp - lastAmp.current);
+    const stateChanged = lastState.current !== state;
+    const rewriteNeurons = neuronMatricesDirty({ hot, ampDelta, stateChanged });
+    lastAmp.current = amp;
+    lastState.current = state;
+
     const nodes = nodeMesh.current;
     if (nodes) {
       nodeMat.color.copy(color);
       nodeMat.opacity = 0.78 + live * 0.18 + fire * 0.06;
-      neurons.forEach((n, i) => {
-        const dist = n.pos.length();
-        const wave = speaking ? 1 + Math.sin(t * 3.1 - dist * 3.6) * 0.14 : 1;
-        const listen = 1 + amp * (n.hub ? 0.28 : 0.16);
-        dummy.position.copy(n.pos);
-        dummy.scale.setScalar(n.radius * listen * wave);
-        dummy.updateMatrix();
-        nodes.setMatrixAt(i, dummy.matrix);
-      });
-      nodes.instanceMatrix.needsUpdate = true;
+      if (rewriteNeurons) {
+        neurons.forEach((n, i) => {
+          const dist = n.pos.length();
+          const wave = speaking ? 1 + Math.sin(t * 3.1 - dist * 3.6) * 0.14 : 1;
+          const listen = 1 + amp * (n.hub ? 0.28 : 0.16);
+          dummy.position.copy(n.pos);
+          dummy.scale.setScalar(n.radius * listen * wave);
+          dummy.updateMatrix();
+          nodes.setMatrixAt(i, dummy.matrix);
+        });
+        nodes.instanceMatrix.needsUpdate = true;
+      }
     }
 
     if (lineMat.current) {
@@ -297,8 +309,6 @@ export function NeuralMesh({
       });
       pulses.instanceMatrix.needsUpdate = true;
     }
-
-    invalidate();
   });
 
   return (
