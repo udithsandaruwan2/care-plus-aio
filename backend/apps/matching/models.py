@@ -147,6 +147,19 @@ class MatchRun(models.Model):
     emergency = models.BooleanField(default=False)
     weights = ArrayField(models.FloatField(), size=4, default=list)
     latency_ms = models.PositiveIntegerField(default=0)
+    cf_version = models.CharField(max_length=64, blank=True, default="")
+    embedding_backend = models.CharField(max_length=32, blank=True, default="")
+    index_version = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    weights_source = models.CharField(max_length=32, blank=True, default="")
+    filters = models.JSONField(default=dict, blank=True)
+    voice_intent = models.ForeignKey(
+        "voice.VoiceIntent",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="match_runs",
+    )
+    request_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -191,7 +204,16 @@ def create_match_run(
     weights=None,
     latency_ms: int = 0,
     source: str = "",
+    cf_version: str = "",
+    embedding_backend: str = "",
+    index_version: str = "",
+    weights_source: str = "",
+    filters: dict | None = None,
+    voice_intent=None,
+    request_id: str = "",
 ) -> MatchRun:
+    from apps.accounts.audit import current_request_id
+
     run = MatchRun(
         user=user,
         language=language or "",
@@ -199,6 +221,13 @@ def create_match_run(
         emergency=bool(emergency),
         weights=list(weights or []),
         latency_ms=int(latency_ms or 0),
+        cf_version=cf_version or "",
+        embedding_backend=embedding_backend or "",
+        index_version=index_version or "",
+        weights_source=weights_source or "",
+        filters=filters or {},
+        voice_intent=voice_intent,
+        request_id=request_id or current_request_id(),
     )
     run.query = query or ""
     run.condition = condition or ""

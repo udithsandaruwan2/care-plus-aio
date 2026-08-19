@@ -163,6 +163,11 @@ class MatchApiTests(APITestCase):
                     MatchRun.objects.get(pk=resp.data["request_id"]).results.count(),
                     len(resp.data["results"]),
                 )
+                run = MatchRun.objects.get(pk=resp.data["request_id"])
+                self.assertTrue(run.index_version)
+                self.assertEqual(run.embedding_backend, "hash")
+                self.assertEqual(run.filters.get("condition"), "diabetes")
+                self.assertEqual(run.filters.get("hard_filter_language"), False)
                 match_rows = AuditLog.objects.filter(
                     actor=self.patient,
                     action=AuditAction.RUN_MATCH,

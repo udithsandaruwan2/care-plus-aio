@@ -178,7 +178,7 @@ def build_user_export(user) -> dict[str, Any]:
             }
         )
 
-    from apps.matching.models import CareRequest, MatchRun
+    from apps.matching.models import CareRequest, MatchResult, MatchRun
 
     for run in MatchRun.objects.filter(user=user).order_by("-created_at")[:100]:
         payload["match_runs"].append(
@@ -190,7 +190,28 @@ def build_user_export(user) -> dict[str, Any]:
                 "care_level": run.care_level,
                 "emergency": run.emergency,
                 "latency_ms": run.latency_ms,
+                "weights": list(run.weights or []),
+                "cf_version": run.cf_version,
+                "embedding_backend": run.embedding_backend,
+                "index_version": run.index_version,
+                "weights_source": run.weights_source,
+                "filters": run.filters or {},
+                "request_id": run.request_id,
                 "created_at": _iso(run.created_at),
+                "results": [
+                    {
+                        "caregiver_id": hit.caregiver_id,
+                        "rank": hit.rank,
+                        "score": hit.score,
+                        "cbf": hit.cbf,
+                        "cf": hit.cf,
+                        "geo": hit.geo,
+                        "trust": hit.trust,
+                        "explanation": hit.explanation,
+                        "distance_m": hit.distance_m,
+                    }
+                    for hit in MatchResult.objects.filter(run=run).order_by("rank")
+                ],
             }
         )
 

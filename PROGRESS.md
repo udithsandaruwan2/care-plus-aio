@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-19 — Step 78 AI decision audit: RUN_MATCH / consent / login + AuditLog.request_id._
+_Last updated: 2026-08-19 — Step 79 MatchRun provenance: replay_match + export scores._
 
 ---
 
@@ -148,7 +148,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 
 | Milestone                                | Steps   | Status | Outcome                                                              |
 | ---------------------------------------- | ------- | ------ | -------------------------------------------------------------------- |
-| **M18** Signal & telemetry foundations   | 76–79   | 76–78 ✅ · 79 🔜 | Outcomes logged, stages timed, AI decisions audited and reproducible |
+| **M18** Signal & telemetry foundations   | 76–79   | 76–79 ✅ | Outcomes logged, stages timed, AI decisions audited and reproducible |
 | **M19** Client efficiency                | 80–82   | ⬜      | Smaller first load, calmer render loop, network-tolerant boot        |
 | **M20** Conversation feel                | 83–87   | ⬜      | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | ⬜      | Registry, auto index rebuild, replay eval, gated promotion           |
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 79 — MatchRun provenance & replay, branch `feat/step79-matchrun-provenance`.
+**Next:** Step 80 — Web first-load budget, branch `feat/step80-bundle-split`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 79** — MatchRun provenance: CF/index versions, filters, voice intent, `request_id`; `replay_match`; export includes per-caregiver factor scores. Branch `feat/step79-matchrun-provenance`.
 
 - **Step 78** — AI decision audit: `RUN_MATCH` from every MatchRun, `GRANT_CONSENT`/`REVOKE_CONSENT` from consent POST, `LOGIN` on JWT issue; `AuditLog.request_id` joins HTTP logs. Branch `feat/step78-ai-audit`.
 

@@ -7,7 +7,7 @@ redistributes AHP weight across CBF/geo/trust.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 from django.contrib.gis.db.models.functions import Distance
@@ -51,6 +51,21 @@ class MatchOutput:
     emergency: bool
     cf_enabled: bool = False
     cf_version: str | None = None
+    embedding_backend: str = ""
+    index_version: str = ""
+    weights_source: str = "ahp"
+    filters: dict = field(default_factory=dict)
+
+
+def match_run_provenance(out: MatchOutput) -> dict:
+    """Fields persisted on ``MatchRun`` for replay (Step 79)."""
+    return {
+        "cf_version": out.cf_version or "",
+        "embedding_backend": out.embedding_backend or "",
+        "index_version": out.index_version or "",
+        "weights_source": out.weights_source or "",
+        "filters": dict(out.filters or {}),
+    }
 
 
 def _effective_weights(W: np.ndarray, *, cf_active: bool) -> np.ndarray:
@@ -95,6 +110,14 @@ class VEHMFEngine:
         self.cf_model = cf_model if cf_model is not None else get_cf_model()
         self._cf_info = cf_model_info(self.cf_model)
 
+    def _out(self, *, weights_source: str = "ahp", **kwargs) -> MatchOutput:
+        return MatchOutput(
+            embedding_backend=getattr(self.index, "backend", "") or "",
+            index_version=getattr(self.index, "version", "") or "",
+            weights_source=weights_source,
+            **kwargs,
+        )
+
     def predict(
         self,
         *,
@@ -112,14 +135,23 @@ class VEHMFEngine:
         prefer_closer: bool = False,
     ) -> MatchOutput:
         if self.index.size == 0:
-            return MatchOutput(
+            return self._out(
                 results=[],
                 weights=tuple(float(w) for w in self.W),
                 query=query_text,
                 emergency=emergency,
                 cf_enabled=self._cf_info["enabled"],
                 cf_version=self._cf_info["version"],
+                weights_source="ahp_emergency" if emergency else "ahp",
             )
+
+        weights_source = "ahp"
+        if weights is not None:
+            weights_source = "explicit"
+        elif emergency:
+            weights_source = "ahp_emergency"
+        elif prefer_closer:
+            weights_source = "prefer_closer"
 
         W = (
             np.asarray(normalize_weights(list(weights)), dtype=np.float32)
@@ -132,6 +164,7 @@ class VEHMFEngine:
         # Soft refine: tilt fusion toward geography when user asks for closer.
         if prefer_closer and weights is None and not emergency:
             W = np.asarray(normalize_weights([0.25, 0.05, 0.55, 0.15]), dtype=np.float32)
+            weights_source = "prefer_closer"
 
         cf_active = is_cf_active(self.cf_model)
         W = _effective_weights(W, cf_active=cf_active)
@@ -142,13 +175,14 @@ class VEHMFEngine:
         pool = min(candidate_pool, self.index.size)
         cbf_hits = self.index.search(qvec, k=pool)
         if not cbf_hits:
-            return MatchOutput(
+            return self._out(
                 results=[],
                 weights=effective_weights,
                 query=query_text,
                 emergency=emergency,
                 cf_enabled=cf_active,
                 cf_version=self._cf_info["version"],
+                weights_source=weights_source,
             )
 
         caregiver_ids = [cid for cid, _ in cbf_hits]
@@ -164,13 +198,14 @@ class VEHMFEngine:
         # Keep FAISS order but drop missing/inactive/unavailable.
         ordered_ids = [cid for cid in caregiver_ids if cid in profiles]
         if not ordered_ids:
-            return MatchOutput(
+            return self._out(
                 results=[],
                 weights=effective_weights,
                 query=query_text,
                 emergency=emergency,
                 cf_enabled=cf_active,
                 cf_version=self._cf_info["version"],
+                weights_source=weights_source,
             )
 
         id_to_cbf = {cid: s for cid, s in cbf_hits}
@@ -217,13 +252,14 @@ class VEHMFEngine:
             eligible.append(i)
 
         if not eligible:
-            return MatchOutput(
+            return self._out(
                 results=[],
                 weights=effective_weights,
                 query=query_text,
                 emergency=emergency,
                 cf_enabled=cf_active,
                 cf_version=self._cf_info["version"],
+                weights_source=weights_source,
             )
 
         eligible_arr = np.asarray(eligible, dtype=np.int64)
@@ -247,13 +283,14 @@ class VEHMFEngine:
                 )
             )
 
-        return MatchOutput(
+        return self._out(
             results=results,
             weights=effective_weights,
             query=query_text,
             emergency=emergency,
             cf_enabled=cf_active,
             cf_version=self._cf_info["version"],
+            weights_source=weights_source,
         )
 
     def _geo_scores(
@@ -322,7 +359,7 @@ def run_match(
         origin = Point(float(longitude), float(latitude), srid=4326)
     eng = engine or VEHMFEngine()
     max_m = None if max_distance_km is None else float(max_distance_km) * 1000.0
-    return eng.predict(
+    out = eng.predict(
         query_text=text or query or "care",
         patient_id=patient_id,
         origin=origin,
@@ -334,3 +371,19 @@ def run_match(
         require_care_level=care_level if hard_filter_care_level else "",
         prefer_closer=prefer_closer,
     )
+    filters = {
+        "condition": condition or "",
+        "language": language or "",
+        "care_level": care_level or "",
+        "query": query or "",
+        "top_k": int(top_k),
+        "max_distance_km": max_distance_km,
+        "specialty": specialty or "",
+        "prefer_closer": bool(prefer_closer),
+        "hard_filter_language": bool(hard_filter_language),
+        "hard_filter_care_level": bool(hard_filter_care_level),
+        "longitude": longitude,
+        "latitude": latitude,
+        "patient_id": patient_id,
+    }
+    return replace(out, filters=filters)

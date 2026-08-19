@@ -6,7 +6,7 @@ import logging
 import re
 import time
 
-from apps.matching.engine import run_match
+from apps.matching.engine import match_run_provenance, run_match
 from apps.matching.i18n import localize_explanation, match_spoken_reply
 from apps.matching.interactions import record_match_interactions
 from apps.matching.models import CaregiverProfile, MatchResult, MatchRun, create_match_run
@@ -182,6 +182,7 @@ def _run_vehmf(
     *,
     prior_results: list[dict] | None = None,
     refine: bool = False,
+    voice_intent=None,
 ) -> dict:
     emergency = intent.get("urgency") in ("urgent", "critical") or intent.get("_emergency")
     lon = lat = None
@@ -230,6 +231,8 @@ def _run_vehmf(
         weights=list(out.weights),
         latency_ms=latency_ms,
         source="voice",
+        voice_intent=voice_intent,
+        **match_run_provenance(out),
     )
     profiles = {
         p.id: p
@@ -535,7 +538,7 @@ def process_turn(
         deltas = parse_refine_deltas(text) if is_refine else None
         if deltas and deltas.applied():
             base = apply_deltas_to_intent(base, deltas)
-        create_voice_intent(
+        voice_row = create_voice_intent(
             user=user,
             raw_text=base.get("raw_text", text),
             condition=base.get("condition", ""),
@@ -553,6 +556,7 @@ def process_turn(
                     base,
                     prior_results=prior_rows if isinstance(prior_rows, list) else None,
                     refine=is_refine,
+                    voice_intent=voice_row,
                 )
             reply = _match_reply(
                 match_payload.get("results") or [],

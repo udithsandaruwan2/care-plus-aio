@@ -73,9 +73,17 @@ class MatchResultInline(admin.TabularInline):
 
 @admin.register(MatchRun)
 class MatchRunAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "query", "emergency", "latency_ms", "created_at")
-    list_filter = ("emergency",)
-    search_fields = ("user__email",)
+    list_display = (
+        "id",
+        "user",
+        "emergency",
+        "weights_source",
+        "index_version",
+        "latency_ms",
+        "created_at",
+    )
+    list_filter = ("emergency", "embedding_backend", "weights_source")
+    search_fields = ("user__email", "request_id", "index_version")
     readonly_fields = (
         "user",
         "query",
@@ -85,6 +93,13 @@ class MatchRunAdmin(admin.ModelAdmin):
         "emergency",
         "weights",
         "latency_ms",
+        "cf_version",
+        "embedding_backend",
+        "index_version",
+        "weights_source",
+        "filters",
+        "voice_intent",
+        "request_id",
         "created_at",
     )
     inlines = [MatchResultInline]
