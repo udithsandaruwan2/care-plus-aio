@@ -65,6 +65,40 @@ class VoiceTurnApiTests(APITestCase):
         self.assertTrue(resp.data["reply"])
         self.assertEqual(resp.data["asr_source"], "client")
         self.assertIn("tts_source", resp.data)
+        timings = resp.data["timings"]
+        self.assertIn("asr_ms", timings)
+        self.assertIn("intent_ms", timings)
+        self.assertIn("route_ms", timings)
+        self.assertIn("match_ms", timings)
+        self.assertIn("chat_ms", timings)
+        self.assertIn("tts_ms", timings)
+        self.assertIn("total_ms", timings)
+        stage_sum = (
+            timings["asr_ms"]
+            + timings["intent_ms"]
+            + timings["route_ms"]
+            + timings["match_ms"]
+            + timings["chat_ms"]
+            + timings["tts_ms"]
+        )
+        self.assertLessEqual(abs(stage_sum - timings["total_ms"]), 50)
+
+    def test_turn_timings_echo_request_id(self):
+        self.client.force_authenticate(self.user)
+        resp = self.client.post(
+            self.url,
+            {"text": "hello"},
+            format="multipart",
+            HTTP_X_REQUEST_ID="rid-step77",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp["X-Request-ID"], "rid-step77")
+        self.assertEqual(resp.data["timings"]["request_id"], "rid-step77")
+        from apps.voice.models import VoiceTurnTiming
+
+        row = VoiceTurnTiming.objects.get(request_id="rid-step77")
+        self.assertEqual(row.route, "CHAT")
+        self.assertGreaterEqual(row.total_ms, 0)
 
     def test_process_turn_empty(self):
         out = process_turn(user=self.user, client_text="")
@@ -72,6 +106,8 @@ class VoiceTurnApiTests(APITestCase):
         self.assertEqual(out["situation"], "empty")
         self.assertTrue(out.get("silent"))
         self.assertEqual(out["reply"], "")
+        self.assertIn("timings", out)
+        self.assertGreaterEqual(out["timings"]["total_ms"], 0)
 
     def test_process_turn_empty_with_audio_hint(self):
         out = process_turn(

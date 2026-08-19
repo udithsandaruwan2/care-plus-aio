@@ -51,7 +51,7 @@ Three capabilities define the research contribution:
 
 | Principle                                | Rationale                                                                     | Concrete target                                                                           |
 | ---------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Latency first**                        | It is a live voice/health product.                                            | Voice→ranked list **< 800 ms p95**; health alert fan-out **< 1 s**.                       |
+| **Latency first**                        | It is a live voice/health product.                                            | **VEHMF** ranked list **< 800 ms p95** (engine time on `MatchRun.latency_ms`). Full `/voice/turn/` wall time (Whisper + Gemini + TTS) is measured separately as `timings`. Health alert fan-out **< 1 s**. |
 | **Resource efficiency**                  | Runs on a single modest node during research; cost matters.                   | Whole lean stack fits in **≤ 4 GB RAM + 2 vCPU**; no GPU required at runtime.             |
 | **Modular, not prematurely distributed** | Microservices add ops + memory overhead that a research project rarely needs. | Start as a **modular monolith**; split _only_ the VEHMF engine when it becomes CPU-bound. |
 | **Explainability (XAI)**                 | Health decisions must be justifiable and auditable.                           | Every match ships a human-readable "why".                                                 |
@@ -430,7 +430,13 @@ REST (DRF) for CRUD + command; **WebSocket** (Channels) for realtime push.
 
 ## 11. Performance & Resource Budget
 
-**Latency budget for Flow 1 (target p95 < 800 ms):**
+**Latency budget for Flow 1 (VEHMF engine, target p95 < 800 ms):**
+
+This table is **match-engine time only** (`MatchRun.latency_ms` / `match.latency_ms`). It assumes
+client captions (Web Speech) so server ASR is ~0 ms, and it **excludes** Whisper transcription
+and TTS synthesis. Those dominate a real spoken turn; they are reported as `timings.asr_ms` and
+`timings.tts_ms` on `POST /voice/turn/` (Step 77). Do not compare a full voice round-trip against
+this 800 ms budget.
 
 | Stage                     | Budget                             |
 | ------------------------- | ---------------------------------- |

@@ -361,17 +361,19 @@ def erase_user_account(*, user, password: str, request=None) -> dict[str, Any]:
     from apps.health_monitoring.models import HealthEvent, HealthMetric
     from apps.matching.models import CareRequest, Interaction, MatchRun
     from apps.messaging.models import Message
-    from apps.voice.models import DialogueSession, VoiceIntent
+    from apps.voice.models import DialogueSession, VoiceIntent, VoiceTurnTiming
 
     stats = {
         "voice_intents": VoiceIntent.objects.filter(user=user).count(),
         "dialogue_sessions": DialogueSession.objects.filter(user=user).count(),
+        "voice_turn_timings": VoiceTurnTiming.objects.filter(user=user).count(),
         "health_metrics": HealthMetric.objects.filter(patient=user).count(),
         "health_events": HealthEvent.objects.filter(patient=user).count(),
     }
 
     VoiceIntent.objects.filter(user=user).delete()
     DialogueSession.objects.filter(user=user).delete()
+    VoiceTurnTiming.objects.filter(user=user).delete()
     HealthMetric.objects.filter(patient=user).delete()
     HealthEvent.objects.filter(patient=user).delete()
     Interaction.objects.filter(patient=user).delete()
@@ -460,7 +462,7 @@ def purge_erased_accounts(*, older_than_days: int = 30) -> dict[str, int]:
     from django.contrib.auth import get_user_model
 
     from apps.health_monitoring.models import HealthEvent, HealthMetric
-    from apps.voice.models import DialogueSession, VoiceIntent
+    from apps.voice.models import DialogueSession, VoiceIntent, VoiceTurnTiming
 
     User = get_user_model()
     cutoff = timezone.now() - timedelta(days=max(1, older_than_days))
@@ -470,16 +472,25 @@ def purge_erased_accounts(*, older_than_days: int = 30) -> dict[str, int]:
         )
     )
     if not erased_ids:
-        return {"users": 0, "voice_intents": 0, "dialogue_sessions": 0, "health_metrics": 0, "health_events": 0}
+        return {
+            "users": 0,
+            "voice_intents": 0,
+            "dialogue_sessions": 0,
+            "voice_turn_timings": 0,
+            "health_metrics": 0,
+            "health_events": 0,
+        }
 
     vi = VoiceIntent.objects.filter(user_id__in=erased_ids).delete()[0]
     ds = DialogueSession.objects.filter(user_id__in=erased_ids).delete()[0]
+    vt = VoiceTurnTiming.objects.filter(user_id__in=erased_ids).delete()[0]
     hm = HealthMetric.objects.filter(patient_id__in=erased_ids).delete()[0]
     he = HealthEvent.objects.filter(patient_id__in=erased_ids).delete()[0]
     return {
         "users": len(erased_ids),
         "voice_intents": vi,
         "dialogue_sessions": ds,
+        "voice_turn_timings": vt,
         "health_metrics": hm,
         "health_events": he,
     }

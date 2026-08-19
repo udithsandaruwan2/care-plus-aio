@@ -166,7 +166,7 @@ Empty / ambient audio is **silent** (keep listening). Do not claim “I heard au
 
 - **Transcript:** Web Speech interim results → transcript component (no server round-trip).
 - **Entities:** `/voice/intent` response → chips + Goal-Ring fill.
-- **Match:** WebSocket `ws/match/{patient}` → result cards + `latency_ms` badge (shows the "< 800 ms" promise).
+- **Match:** WebSocket `ws/match/{patient}` → result cards + `latency_ms` badge (VEHMF engine time; the "< 800 ms" promise is match-only, not full ASR+TTS).
 - **Alerts:** WebSocket `ws/alerts/{patient}` → EMERGENCY transition.
 
 ---

@@ -364,6 +364,18 @@ export const VoiceTurnIntent = z.object({
 });
 export type VoiceTurnIntent = z.infer<typeof VoiceTurnIntent>;
 
+export const VoiceTurnTimings = z.object({
+  asr_ms: z.number(),
+  intent_ms: z.number(),
+  route_ms: z.number(),
+  match_ms: z.number(),
+  chat_ms: z.number(),
+  tts_ms: z.number(),
+  total_ms: z.number(),
+  request_id: z.string().optional().default(''),
+});
+export type VoiceTurnTimings = z.infer<typeof VoiceTurnTimings>;
+
 export const VoiceTurnResponse = z.object({
   route: z.enum(['CHAT', 'MATCH', 'CLARIFY', 'REFINE', 'ACTION', 'EMERGENCY']),
   situation: z.string().optional().default(''),
@@ -385,6 +397,7 @@ export const VoiceTurnResponse = z.object({
   chat_source: z.string().optional().default(''),
   chat_backend: z.string().optional().default(''),
   match_engine: z.string().optional().default(''),
+  timings: VoiceTurnTimings.optional(),
 });
 export type VoiceTurnResponse = z.infer<typeof VoiceTurnResponse>;
 
@@ -823,19 +836,33 @@ export const AnalyticsSeriesItem = z.object({
 });
 export type AnalyticsSeriesItem = z.infer<typeof AnalyticsSeriesItem>;
 
+export const LatencyPercentiles = z.object({
+  sample_size: z.number(),
+  p50_ms: z.number().nullable(),
+  p95_ms: z.number().nullable(),
+  p99_ms: z.number().nullable(),
+  avg_ms: z.number().nullable(),
+  window_days: z.number(),
+});
+export type LatencyPercentiles = z.infer<typeof LatencyPercentiles>;
+
 export const AdminAnalytics = z.object({
   generated_at: z.string(),
   window_days: z.number(),
   requests_by_status: z.array(AnalyticsSeriesItem),
   roles: z.array(AnalyticsSeriesItem),
-  match_latency: z.object({
-    sample_size: z.number(),
-    p50_ms: z.number().nullable(),
-    p95_ms: z.number().nullable(),
-    p99_ms: z.number().nullable(),
-    avg_ms: z.number().nullable(),
-    window_days: z.number(),
-  }),
+  match_latency: LatencyPercentiles,
+  turn_latency: z
+    .object({
+      sample_size: z.number(),
+      window_days: z.number(),
+      p50_ms: z.number().nullable(),
+      p95_ms: z.number().nullable(),
+      p99_ms: z.number().nullable(),
+      avg_ms: z.number().nullable(),
+      stages: z.record(z.string(), LatencyPercentiles).optional().default({}),
+    })
+    .optional(),
   relationships: z.object({
     active: z.number(),
     pending_payment: z.number(),
