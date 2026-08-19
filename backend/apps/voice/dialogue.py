@@ -229,6 +229,7 @@ def _run_vehmf(
         emergency=out.emergency,
         weights=list(out.weights),
         latency_ms=latency_ms,
+        source="voice",
     )
     profiles = {
         p.id: p

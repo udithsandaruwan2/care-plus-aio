@@ -199,6 +199,7 @@ class AuditAction(models.TextChoices):
     GRANT_CONSENT = "grant_consent", "Grant processing consent"
     REVOKE_CONSENT = "revoke_consent", "Revoke processing consent"
     LOGIN = "login", "User login"
+    RUN_MATCH = "run_match", "VEHMF match ranking run"
     CREATE_CARE_REQUEST = "create_care_request", "Patient created care request"
     CANCEL_CARE_REQUEST = "cancel_care_request", "Patient cancelled care request"
     ACCEPT_CARE_REQUEST = "accept_care_request", "Caregiver accepted care request"
@@ -239,6 +240,13 @@ class AuditLog(models.Model):
     action = models.CharField(max_length=64, choices=AuditAction.choices)
     ts = models.DateTimeField(auto_now_add=True)
     ip = models.GenericIPAddressField(null=True, blank=True)
+    request_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="HTTP correlation id from RequestIdMetricsMiddleware (empty for non-HTTP writers).",
+    )
     # Optional target of the action (e.g. patient whose health was viewed).
     target_type = models.CharField(max_length=64, blank=True, default="")
     target_id = models.CharField(max_length=64, blank=True, default="")

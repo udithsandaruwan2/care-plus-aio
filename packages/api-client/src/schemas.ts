@@ -879,6 +879,7 @@ export const AuditLog = z.object({
   action: z.string(),
   ts: z.string(),
   ip: z.string().nullable().optional(),
+  request_id: z.string().optional().default(''),
   target_type: z.string().optional().default(''),
   target_id: z.string().optional().default(''),
   metadata: z.record(z.unknown()).optional().default({}),
@@ -898,6 +899,7 @@ export type AuditLogListParams = {
   action?: string;
   date_from?: string;
   date_to?: string;
+  request_id?: string;
   page?: number;
   page_size?: number;
 };
@@ -926,6 +928,9 @@ export const AUDIT_ACTIONS = [
   'cancel_shift',
   'shift_conflict_fallback',
   'disable_user',
+  'export_data',
+  'request_erasure',
+  'run_match',
 ] as const;
 
 export const ConditionListResponse = z.object({

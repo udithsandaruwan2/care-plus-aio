@@ -190,6 +190,7 @@ def create_match_run(
     emergency: bool = False,
     weights=None,
     latency_ms: int = 0,
+    source: str = "",
 ) -> MatchRun:
     run = MatchRun(
         user=user,
@@ -202,6 +203,21 @@ def create_match_run(
     run.query = query or ""
     run.condition = condition or ""
     run.save()
+    from apps.accounts.audit import record_audit
+    from apps.accounts.models import AuditAction
+
+    record_audit(
+        actor=user,
+        action=AuditAction.RUN_MATCH,
+        target_type="match_run",
+        target_id=run.pk,
+        metadata={
+            "emergency": bool(emergency),
+            "latency_ms": int(latency_ms or 0),
+            "source": source or "",
+        },
+        async_=False,
+    )
     return run
 
 

@@ -43,6 +43,39 @@ class AuditTrailApiTests(APITestCase):
         self.assertEqual(row.actor_id, self.caregiver.pk)
         self.assertEqual(row.target_type, "patient")
         self.assertEqual(row.target_id, str(self.patient.pk))
+        self.assertTrue(row.request_id)
+        self.assertEqual(resp["X-Request-ID"], row.request_id)
+
+    def test_http_request_id_header_is_stored(self):
+        self.client.force_authenticate(self.caregiver)
+        resp = self.client.get(
+            self.demo_url,
+            {"patient_id": self.patient.pk},
+            HTTP_X_REQUEST_ID="rid-step78",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        row = AuditLog.objects.latest("ts")
+        self.assertEqual(row.request_id, "rid-step78")
+
+        self.client.force_authenticate(self.auditor)
+        listed = self.client.get(self.list_url, {"request_id": "rid-step78"})
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(listed.data["count"], 1)
+        self.assertTrue(all(r["request_id"] == "rid-step78" for r in listed.data["results"]))
+
+    def test_login_writes_audit_row(self):
+        resp = self.client.post(
+            reverse("v1:token_obtain_pair"),
+            {"email": self.patient.email, "password": "pw-strong-123"},
+            format="json",
+            HTTP_X_REQUEST_ID="rid-login",
+        )
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        rows = AuditLog.objects.filter(actor=self.patient, action=AuditAction.LOGIN)
+        self.assertEqual(rows.count(), 1)
+        self.assertEqual(rows.get().request_id, "rid-login")
+        self.assertEqual(rows.get().target_type, "user")
+        self.assertEqual(rows.get().target_id, str(self.patient.pk))
 
     def test_second_view_appends_another_row(self):
         self.client.force_authenticate(self.caregiver)
@@ -99,6 +132,7 @@ class AuditTrailApiTests(APITestCase):
         self.assertIn("text/csv", resp["Content-Type"])
         body = resp.content.decode("utf-8")
         self.assertIn("actor_email", body)
+        self.assertIn("request_id", body)
         self.assertIn("view_health", body)
 
     def test_orm_rejects_update_and_delete(self):

@@ -69,6 +69,7 @@ def emergency_rematch_for_health_event(event: HealthEvent) -> dict:
         emergency=True,
         weights=list(out.weights),
         latency_ms=latency_ms,
+        source="emergency_rematch",
     )
     chosen_profile = profiles.get(selected.caregiver_id)
     MatchResult.objects.create(

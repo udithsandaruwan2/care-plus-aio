@@ -158,6 +158,7 @@ export function AdminAuditPage() {
             <p className="mt-1 text-xs text-muted">
               {row.actor_email || (row.actor != null ? `user #${row.actor}` : 'system')}
               {row.ip ? ` · ${row.ip}` : ''}
+              {row.request_id ? ` · ${row.request_id}` : ''}
               {row.target_type
                 ? ` · ${row.target_type}${row.target_id ? `#${row.target_id}` : ''}`
                 : ''}
