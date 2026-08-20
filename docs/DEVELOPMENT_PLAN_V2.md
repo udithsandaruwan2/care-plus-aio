@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 90.** M21 continues with the replay evaluation harness.
+**Start at Step 91.** M21 continues with gated model promotion.
 
 ---
 
@@ -287,15 +287,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 90 — Replay evaluation harness
+### Step 90 — Replay evaluation harness ✅ **DONE**
 
 **Branch:** `feat/step90-eval-harness`
 **Goal:** promote the single NDCG unit test into something that can judge a candidate model.
-**Tasks:**
+**Done:**
 
-- Add `eval_ranking` management command that replays historical `MatchRun` rows against a candidate model and reports NDCG@5, MAP, recall@10 against real accepts, plus catalogue coverage and exposure Gini.
-- Define a held-out recent time window rather than a random split, so evaluation respects causality.
-- Add `precision_at_k` alongside the existing `ndcg_at_k` and `average_precision`.
+- `eval_ranking` replays MatchRuns in a recent holdout window against the active (or injected) CF model and prints NDCG@5, MAP, recall@10, precision@5, catalogue coverage, and exposure Gini.
+- Holdout is a causal recent time window (`--days`), not a random split; labels are post-run ACCEPT/COMPLETE/RATE weights.
+- `precision_at_k` / `recall_at_k` / `exposure_gini` / `catalogue_coverage` live beside `ndcg_at_k` and `average_precision` in `cf_eval.py`.
 - Files: `backend/apps/matching/cf_eval.py`, `backend/apps/matching/management/commands/eval_ranking.py`.
 
 **✅ Acceptance:** the command prints a metric table for the active model on seeded history and completes in under two minutes on the demo dataset; metrics are reproducible across runs.
@@ -606,4 +606,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 90 — Replay evaluation harness** on `feat/step90-eval-harness`. Judge candidate models against held-out MatchRun history.
+**Step 91 — Gated model promotion** on `feat/step91-gated-promotion`. Only activate a CF candidate that beats the incumbent on the holdout.
