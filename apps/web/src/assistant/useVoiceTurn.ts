@@ -1,5 +1,11 @@
-import { useCallback, useState } from 'react';
-import { ApiError, AI_CONSENT_SCOPE, type VoiceLanguage } from '@care-plus/api-client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ApiError,
+  AI_CONSENT_SCOPE,
+  isNetworkError,
+  isTimeoutError,
+  type VoiceLanguage,
+} from '@care-plus/api-client';
 import {
   AssistantState,
   looksLikeCareSeek,
@@ -9,6 +15,7 @@ import {
   type IntentDraft,
 } from '@care-plus/core';
 import { api } from '../auth/api';
+import { useConnectionStore } from '../auth/connectionStore';
 import { useAssistant } from './store';
 import { announceMatchFinding, announceMatchReady, runClientMatch } from './useMatch';
 import { speakSerah, stopSpeaking } from './useTts';
@@ -17,8 +24,7 @@ import {
   resetTurnStream,
   turnReplyAlreadySpoken,
 } from './turnStream';
-
-const CONSENT_STATUS = 451;
+import { classifyTurnFailure, type PendingTurn, type TurnFailure } from './turnFailure';
 
 function applyTurnState(
   result: Awaited<ReturnType<typeof api.voiceTurn>>,
@@ -120,18 +126,49 @@ function isSilentTurn(result: Awaited<ReturnType<typeof api.voiceTurn>>): boolea
   return Boolean(result.silent) || (result.situation === 'empty' && !result.reply?.trim());
 }
 
+function preserveFailedUserLine(text: string) {
+  const store = useAssistant.getState();
+  const line = text.trim();
+  if (!line) return;
+  store.setTranscript(line);
+  store.setInterim('');
+  const lastUser = [...store.chat].reverse().find((m) => m.role === 'user');
+  if (lastUser?.text !== line) {
+    store.appendChat({ role: 'user', text: line });
+  }
+}
+
 /**
  * Conversational turn: captions + audio → server ASR/router → Serah TTS + optional match.
  * Prefer progressive ``turn.*`` WebSocket stages when connected; HTTP remains the fallback.
+ * Step 86: failed turns keep the transcript and can retry / auto-replay once online.
  */
 export function useVoiceTurn() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<TurnFailure | null>(null);
   const [consentNeeded, setConsentNeeded] = useState(false);
   const [serahReply, setSerahReply] = useState<string | null>(null);
   const [asrSource, setAsrSource] = useState<string | null>(null);
   const [asrHeardLang, setAsrHeardLang] = useState<string | null>(null);
   const [ttsSource, setTtsSource] = useState<string | null>(null);
+
+  const pendingRef = useRef<PendingTurn | null>(null);
+  /** When true, the next transition to online replays ``pendingRef`` once. */
+  const autoReplayRef = useRef(false);
+  const continueListeningRef = useRef<(() => void) | undefined>(undefined);
+  const busyRef = useRef(false);
+  busyRef.current = busy;
+  const runTurnRef = useRef<
+    (opts: { text: string; audio: Blob | null; continueListening?: () => void }) => Promise<void>
+  >(async () => undefined);
+
+  const clearFailure = useCallback(() => {
+    setFailure(null);
+    setError(null);
+    pendingRef.current = null;
+    autoReplayRef.current = false;
+  }, []);
 
   const runTurn = useCallback(
     async (opts: { text: string; audio: Blob | null; continueListening?: () => void }) => {
@@ -142,6 +179,10 @@ export function useVoiceTurn() {
       resetTurnStream();
       setBusy(true);
       setError(null);
+      setFailure(null);
+      continueListeningRef.current = opts.continueListening;
+      // Keep pending payload until success so retry/auto-replay can resubmit.
+      pendingRef.current = { text: opts.text, audio: opts.audio };
       store.setSessionLive(true);
       if (seeking) {
         store.setMatching(true);
@@ -164,6 +205,7 @@ export function useVoiceTurn() {
         });
         const rid = result.timings?.request_id || '';
         setConsentNeeded(false);
+        clearFailure();
         setAsrSource(result.asr_source);
         setAsrHeardLang(
           result.asr_language || (result.intent?.language ? String(result.intent.language) : null),
@@ -282,21 +324,62 @@ export function useVoiceTurn() {
         setSerahReply(null);
         setAsrSource(null);
         setTtsSource(null);
-        if (err instanceof ApiError && err.status === CONSENT_STATUS) {
+        preserveFailedUserLine(userLine || store.transcript);
+        const classified = classifyTurnFailure(err);
+        setFailure(classified);
+        setError(classified.message);
+        if (classified.kind === 'consent') {
           setConsentNeeded(true);
-          setError('AI processing needs your consent before we can understand your request.');
-        } else if (err instanceof ApiError && err.status === 401) {
-          setError('Session expired — sign in again, then tap the mic.');
-        } else {
-          setError(err instanceof Error ? err.message : 'Could not understand that. Try again.');
+        }
+        autoReplayRef.current = classified.autoReplay;
+        if (isNetworkError(err) || isTimeoutError(err)) {
+          useConnectionStore.getState().noteRequestOutcome(
+            isTimeoutError(err) ? 'timeout' : 'network',
+          );
+        } else if (err instanceof ApiError) {
+          useConnectionStore.getState().noteRequestOutcome('http');
         }
         store.setState(AssistantState.IDLE, { force: true });
       } finally {
         setBusy(false);
       }
     },
-    [],
+    [clearFailure],
   );
+
+  runTurnRef.current = runTurn;
+
+  const retryFailedTurn = useCallback(async () => {
+    const pending = pendingRef.current;
+    if (!pending || busyRef.current) return;
+    // Manual retry claims the queue — online handler must not also fire.
+    autoReplayRef.current = false;
+    setFailure(null);
+    setError(null);
+    await runTurnRef.current({
+      text: pending.text,
+      audio: pending.audio,
+      continueListening: continueListeningRef.current,
+    });
+  }, []);
+
+  // Auto-replay once when the browser reports online again (Step 86).
+  useEffect(() => {
+    return useConnectionStore.subscribe((state, prev) => {
+      if (state.browserOnline === prev.browserOnline) return;
+      if (!state.browserOnline) return;
+      if (!autoReplayRef.current) return;
+      if (busyRef.current) return;
+      const pending = pendingRef.current;
+      if (!pending?.text.trim()) return;
+      autoReplayRef.current = false;
+      void runTurnRef.current({
+        text: pending.text,
+        audio: pending.audio,
+        continueListening: continueListeningRef.current,
+      });
+    });
+  }, []);
 
   const grantConsent = useCallback(async () => {
     setError(null);
@@ -312,8 +395,11 @@ export function useVoiceTurn() {
 
   return {
     runTurn,
+    retryFailedTurn,
+    clearFailure,
     busy,
     error,
+    failure,
     consentNeeded,
     grantConsent,
     serahReply,
