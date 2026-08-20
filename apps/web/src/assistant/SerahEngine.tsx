@@ -20,6 +20,8 @@ import { useAudioRecorder } from './useAudioRecorder';
 import { useVoiceTurn } from './useVoiceTurn';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
+import { startBargeInWatch } from './bargeIn';
+import { subscribeSerahSpeaking } from './useTts';
 
 type SerahEngineValue = {
   listening: boolean;
@@ -83,13 +85,16 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     error: turnError,
     consentNeeded,
     grantConsent,
-    stopSpeaking,
+    stopSpeaking: stopTurnSpeaking,
   } = useVoiceTurn();
   useMatchSocket({
     onEmergencyMatch: (payload) => setEmergencyMatchId(payload.request_id),
   });
 
   const endingRef = useRef(false);
+  const ignoreSpeechEndRef = useRef(false);
+  const bargeStopRef = useRef<(() => void) | null>(null);
+  const bargedRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
   const consentBtnRef = useRef<HTMLButtonElement>(null);
   const busyRef = useRef(busy);
@@ -142,6 +147,10 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       appendTranscript(text);
     },
     onEnd: () => {
+      if (ignoreSpeechEndRef.current) {
+        ignoreSpeechEndRef.current = false;
+        return;
+      }
       if (endingRef.current) return;
       endingRef.current = true;
       void (async () => {
@@ -161,6 +170,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   });
 
   resumeListeningRef.current = async () => {
+    bargeStopRef.current?.();
+    bargeStopRef.current = null;
     endingRef.current = false;
     setInterim('');
     useAssistant.getState().setTranscript('');
@@ -169,6 +180,59 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     speech.start();
     setState(AssistantState.LISTENING, { force: true });
   };
+
+  // Step 85 — during Serah playback keep the analyser up, suppress ASR echo,
+  // and barge-in when the user speaks over her.
+  useEffect(() => {
+    return subscribeSerahSpeaking((active) => {
+      if (active) {
+        bargedRef.current = false;
+        bargeStopRef.current?.();
+        bargeStopRef.current = null;
+        void (async () => {
+          if (speech.listening) {
+            ignoreSpeechEndRef.current = true;
+            speech.stop();
+          }
+          void recorder.stop();
+          if (!mic.active) await mic.start();
+          const s = useAssistant.getState().state;
+          if (
+            s !== AssistantState.RESULTS &&
+            s !== AssistantState.EMERGENCY &&
+            s !== AssistantState.MATCHING &&
+            s !== AssistantState.LISTENING
+          ) {
+            setState(AssistantState.CHAT_REPLY, { force: true });
+          }
+          bargeStopRef.current = startBargeInWatch({
+            getAmplitude: () => mic.amplitudeRef.current,
+            onBargeIn: () => {
+              if (bargedRef.current) return;
+              bargedRef.current = true;
+              bargeStopRef.current?.();
+              bargeStopRef.current = null;
+              stopTurnSpeaking();
+              if (conversationOnRef.current) {
+                void resumeListeningRef.current();
+              }
+            },
+          });
+        })();
+        return;
+      }
+
+      bargeStopRef.current?.();
+      bargeStopRef.current = null;
+      if (bargedRef.current) {
+        bargedRef.current = false;
+        return;
+      }
+      if (conversationOnRef.current && !busyRef.current) {
+        continueListening();
+      }
+    });
+  }, [continueListening, mic, recorder, setState, speech, stopTurnSpeaking]);
 
   const listening = mic.active || speech.listening;
   const state = useAssistant((s) => s.state);
@@ -186,7 +250,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       if (!(mic.active || speech.listening || busy)) return;
       e.preventDefault();
       if (busy) {
-        stopSpeaking();
+        stopTurnSpeaking();
       }
       if (mic.active || speech.listening) {
         setConversationOn(false);
@@ -195,7 +259,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mic.active, speech, busy, stopSpeaking]);
+  }, [mic.active, speech, busy, stopTurnSpeaking]);
 
   const toggleMic = useCallback(async () => {
     if (listening) {
@@ -204,7 +268,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (busy) {
-      stopSpeaking();
+      stopTurnSpeaking();
       return;
     }
 
@@ -230,7 +294,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     setSessionLive(true);
     setConversationOn(true);
     endingRef.current = false;
-    stopSpeaking();
+    stopTurnSpeaking();
     await mic.start();
     await recorder.start();
     speech.start();
@@ -239,7 +303,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     listening,
     busy,
     speech,
-    stopSpeaking,
+    stopTurnSpeaking,
     reset,
     setInterim,
     setAsleep,
@@ -263,7 +327,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const onNewRequest = useCallback(async () => {
     if (clearing || busy || listening) return;
     setClearing(true);
-    stopSpeaking();
+    stopTurnSpeaking();
     setConversationOn(false);
     setSessionLive(false);
     setAsleep(false);
@@ -277,7 +341,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       setSessionLive(false);
       setClearing(false);
     }
-  }, [clearing, busy, listening, stopSpeaking, setSessionLive, setAsleep, reset]);
+  }, [clearing, busy, listening, stopTurnSpeaking, setSessionLive, setAsleep, reset]);
 
   const submitText = useCallback(
     async (line: string) => {

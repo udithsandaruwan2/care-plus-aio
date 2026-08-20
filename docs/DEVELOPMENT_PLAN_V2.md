@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 85.** M20 continues with barge-in during Serah playback.
+**Start at Step 86.** M20 continues with recoverable turns after a dropped connection.
 
 ---
 
@@ -209,16 +209,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 85 — Barge-in
+### Step 85 — Barge-in ✅ **DONE**
 
 **Branch:** `feat/step85-barge-in`
 **Goal:** let the user interrupt Serah instead of waiting for her to finish.
-**Tasks:**
+**Done:**
 
-- Keep the mic analyser active during playback and cancel audio when speech energy crosses a threshold for a sustained window.
-- Remove the serialization where `await speakSerah()` blocks the next listen cycle.
-- Guard against the assistant hearing its own output (echo threshold or output-device gating).
-- Files: `apps/web/src/assistant/useTts.ts`, `apps/web/src/assistant/useVoiceTurn.ts`, `apps/web/src/assistant/SerahEngine.tsx`.
+- Mic analyser stays active during playback; barge-in fires after sustained energy above an echo-guarded threshold (~grace 450 ms + sustain 100 ms).
+- `await speakSerah()` no longer blocks the listen cycle — playback is fire-and-forget; listen resumes on speak-end or barge-in.
+- ASR is paused while Serah speaks (echoCancellation + high threshold) so a long reply into an empty room does not self-trigger.
 
 **✅ Acceptance:** speaking over Serah stops playback within ~300 ms and starts a new turn; playing a long reply into an empty room does not self-trigger.
 **Depends on:** Step 84.
@@ -611,4 +610,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 85 — Barge-in** on `feat/step85-barge-in`. Let the user interrupt Serah mid-reply.
+**Step 86 — Recoverable turns** on `feat/step86-turn-recovery`. Preserve transcript on failure and offer retry / replay.

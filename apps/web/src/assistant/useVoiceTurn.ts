@@ -234,16 +234,18 @@ export function useVoiceTurn() {
           }
         }
 
-        // Unlock chat/mic while Serah speaks so matching cards stay usable.
+        // Unlock chat/mic; do not await TTS — listen cycle resumes via SerahEngine
+        // when playback ends or barge-in fires (Step 85).
         setBusy(false);
 
         const needAudio = httpNeedsTurnStage('reply_audio', rid);
-        if (
+        const shouldSpeak =
           needAudio &&
-          result.reply?.trim() &&
+          Boolean(result.reply?.trim()) &&
           !skipSearchNarration &&
-          !turnReplyAlreadySpoken(result.reply)
-        ) {
+          !turnReplyAlreadySpoken(result.reply);
+
+        if (shouldSpeak) {
           let audioBase64 = result.reply_audio_base64;
           let audioMime = result.reply_audio_mime;
           if (result.audio_pending && !audioBase64) {
@@ -258,15 +260,18 @@ export function useVoiceTurn() {
               /* browser TTS fallback inside speakSerah */
             }
           }
-          await speakSerah(result.reply, result.reply_lang, {
+          // Fire-and-forget: barge-in / speak-end handler starts the next listen.
+          void speakSerah(result.reply, result.reply_lang, {
             audioBase64,
             audioMime,
           });
+        } else if (opts.continueListening) {
+          opts.continueListening();
         }
 
         const after = useAssistant.getState();
-        if (opts.continueListening) {
-          opts.continueListening();
+        if (!shouldSpeak) {
+          /* continueListening already called above when needed */
         } else if (after.match && (result.route === 'CHAT' || result.route === 'ACTION')) {
           after.setState(AssistantState.RESULTS, { force: true });
         } else if (after.state === AssistantState.CHAT_REPLY && after.match) {
