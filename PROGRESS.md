@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-21 — Step 90 replay evaluation harness._
+_Last updated: 2026-08-21 — Step 91 gated CF model promotion._
 
 ---
 
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 91 — Gated model promotion, branch `feat/step91-gated-promotion`.
+**Next:** Step 92 — Negative feedback in training, branch `feat/step92-negative-signals`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 91** — Gated CF promotion: holdout NDCG gate before `current.json` / ModelVersion activate; `promote_model --force` escape hatch; shuffled candidates rejected. Branch `feat/step91-gated-promotion`.
 
 - **Step 90** — Replay eval harness: `eval_ranking` on causal holdout MatchRuns; NDCG@5, MAP, recall@10, precision@5, coverage, exposure Gini; reproducible. Branch `feat/step90-eval-harness`.
 
