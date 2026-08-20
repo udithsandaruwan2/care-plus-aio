@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 89 — Automatic index rebuild, branch `feat/step89-index-refresh`.
+**Next:** Step 90 — Replay evaluation harness, branch `feat/step90-eval-harness`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 89** — Automatic FAISS refresh: Celery re-embed on caregiver me PATCH, hourly stale no-op rebuild, dirty flag after eviction. Branch `feat/step89-index-refresh`.
 
 - **Step 88** — Model registry: `ModelVersion` for cf/faiss/slot_classifier, one active per kind, CF/FAISS writers + MatchRun FKs, read-only Django admin. Branch `feat/step88-model-registry`.
 
