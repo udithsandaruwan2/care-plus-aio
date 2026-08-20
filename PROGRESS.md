@@ -176,6 +176,8 @@ M21 and M23 stay after the rest of M18.
 
 ## Changelog (newest first)
 
+- **Step 88** — Model registry: `ModelVersion` for cf/faiss/slot_classifier, one active per kind, CF/FAISS writers + MatchRun FKs, read-only Django admin. Branch `feat/step88-model-registry`.
+
 - **Step 87** — Reply render + card density: progressive Serah bubbles, collapsed VEHMF disclosure, #1-vs-#2 comparative line, orb alt text + state live region. Branch `feat/step87-reply-render`. **M20 complete.**
 
 - **Step 86** — Recoverable turns: keep transcript on failure, typed error copy (network/timeout/429/451), inline retry, single auto-replay when back online. Branch `feat/step86-turn-recovery`.
