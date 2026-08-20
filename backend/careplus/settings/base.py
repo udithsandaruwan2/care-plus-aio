@@ -179,6 +179,9 @@ WHISPER_PRELOAD = env.bool("WHISPER_PRELOAD", default=False)
 TTS_BACKEND = env("TTS_BACKEND", default="auto")
 TTS_GEMINI_MODEL = env("TTS_GEMINI_MODEL", default="gemini-2.5-flash-preview-tts")
 TTS_GEMINI_VOICE = env("TTS_GEMINI_VOICE", default="Kore")
+# Step 84 — Redis phrase cache + defer uncached synthesis off the turn response.
+TTS_PHRASE_CACHE = env.bool("TTS_PHRASE_CACHE", default=True)
+TTS_DEFER_UNCACHED = env.bool("TTS_DEFER_UNCACHED", default=True)
 # Neural Sinhala/Tamil via edge-tts when Gemini TTS quota is exhausted.
 EDGE_TTS_ENABLED = env.bool("EDGE_TTS_ENABLED", default=True)
 PIPER_BIN = env("PIPER_BIN", default="")

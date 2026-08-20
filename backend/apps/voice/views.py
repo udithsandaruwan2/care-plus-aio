@@ -10,11 +10,13 @@ from apps.accounts.permissions import HasAIConsent
 from apps.common.envutil import refresh_env
 
 from .backends import extract_intent
+from .deferred_tts import schedule_deferred_reply_audio
 from .dialogue import process_turn
 from .models import DialogueSession, VoiceIntent, create_voice_intent
 from .policy import policy_snapshot
 from .serializers import VoiceIntentInputSerializer, VoiceIntentSerializer
 from .session import clear_active_sessions
+from .tts import pack_for_api, synthesize
 
 
 class VoiceIntentView(APIView):
@@ -139,9 +141,40 @@ class VoiceTurnView(APIView):
                 "match_engine": result.get("match_engine") or "",
                 "timings": result.get("timings") or {},
                 "request_id": getattr(request, "request_id", "") or "",
+                "audio_pending": bool(result.get("audio_pending")),
+                "tts_cache_hit": bool(result.get("tts_cache_hit")),
             },
         )
+        if result.get("audio_pending") and (result.get("reply") or "").strip():
+            timings = result.get("timings") or {}
+            schedule_deferred_reply_audio(
+                user_id=int(request.user.pk),
+                reply=result["reply"],
+                reply_lang=result.get("reply_lang") or "en-US",
+                request_id=str(timings.get("request_id") or getattr(request, "request_id", "") or ""),
+                session_id=result.get("session_id"),
+            )
         return Response(result, status=status.HTTP_200_OK)
+
+
+class VoiceTtsView(APIView):
+    """POST /api/v1/voice/tts/ — synthesize reply audio (HTTP fallback when deferred)."""
+
+    permission_classes = [permissions.IsAuthenticated, HasAIConsent]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "voice"
+
+    def post(self, request):
+        refresh_env()
+        text = (request.data.get("text") or "").strip()
+        reply_lang = (request.data.get("reply_lang") or request.data.get("lang") or "en-US").strip()
+        if not text:
+            return Response(
+                {"reply_audio_base64": "", "reply_audio_mime": "", "tts_source": "none"},
+                status=status.HTTP_200_OK,
+            )
+        packed = pack_for_api(synthesize(text, reply_lang))
+        return Response(packed, status=status.HTTP_200_OK)
 
 
 class VoiceSessionClearView(APIView):

@@ -14,6 +14,8 @@ from __future__ import annotations
 import asyncio
 import base64
 import concurrent.futures
+import hashlib
+import json
 import logging
 import shutil
 import subprocess
@@ -23,8 +25,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from django.conf import settings
+from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
+
+# Redis keys for phrase-cache hit-rate (Step 84).
+_CACHE_HITS_KEY = "tts:phrase:hits"
+_CACHE_MISSES_KEY = "tts:phrase:misses"
+_CACHE_TTL_SEC = 60 * 60 * 24 * 7  # one week for canned Serah lines
 
 _BCP47 = {
     "Sinhala": "si-LK",
@@ -324,8 +332,128 @@ def synthesize_espeak(text: str, lang: str) -> TtsResult:
         out_wav.unlink(missing_ok=True)
 
 
+def _cache_voice() -> str:
+    return (getattr(settings, "TTS_GEMINI_VOICE", "") or "Kore").strip() or "Kore"
+
+
+def phrase_cache_key(text: str, lang: str, *, voice: str | None = None) -> str:
+    voice_name = voice or _cache_voice()
+    digest = hashlib.sha256(
+        f"{text.strip()}\0{lang}\0{voice_name}".encode("utf-8")
+    ).hexdigest()
+    return f"tts:phrase:{digest}"
+
+
+def phrase_cache_stats() -> dict:
+    """Return hit/miss counters and rate (best-effort; zeros if Redis unavailable)."""
+    try:
+        hits = int(cache.get(_CACHE_HITS_KEY) or 0)
+        misses = int(cache.get(_CACHE_MISSES_KEY) or 0)
+    except Exception:
+        return {"hits": 0, "misses": 0, "hit_rate": 0.0}
+    total = hits + misses
+    rate = (hits / total) if total else 0.0
+    return {"hits": hits, "misses": misses, "hit_rate": round(rate, 4)}
+
+
+def _bump_cache_counter(key: str) -> None:
+    try:
+        # django RedisCache supports incr; locmem may not — fall back to get/set.
+        try:
+            cache.incr(key)
+        except ValueError:
+            cache.set(key, 1, None)
+        except Exception:
+            n = int(cache.get(key) or 0) + 1
+            cache.set(key, n, None)
+    except Exception:
+        logger.debug("tts phrase cache counter bump failed", exc_info=True)
+
+
+def _log_cache_event(*, hit: bool) -> None:
+    stats = phrase_cache_stats()
+    logger.info(
+        "tts.phrase_cache",
+        extra={
+            "hit": hit,
+            "hits": stats["hits"],
+            "misses": stats["misses"],
+            "hit_rate": stats["hit_rate"],
+        },
+    )
+
+
+def lookup_phrase_cache(text: str, reply_lang: str) -> TtsResult | None:
+    if not text.strip():
+        return None
+    if not getattr(settings, "TTS_PHRASE_CACHE", True):
+        return None
+    lang = _BCP47.get(reply_lang, reply_lang) or "en-US"
+    key = phrase_cache_key(text, lang)
+    try:
+        raw = cache.get(key)
+    except Exception:
+        logger.debug("tts phrase cache get failed", exc_info=True)
+        return None
+    if not raw:
+        return None
+    try:
+        if isinstance(raw, (bytes, str)):
+            payload = json.loads(raw)
+        else:
+            payload = raw
+        audio = base64.b64decode(payload.get("audio_b64") or "")
+        if not audio:
+            return None
+        _bump_cache_counter(_CACHE_HITS_KEY)
+        _log_cache_event(hit=True)
+        source = str(payload.get("source") or "cache")
+        if not source.endswith("+cache"):
+            source = f"{source}+cache"
+        return TtsResult(audio=audio, mime=str(payload.get("mime") or "audio/wav"), source=source)
+    except Exception:
+        logger.debug("tts phrase cache decode failed", exc_info=True)
+        return None
+
+
+def store_phrase_cache(text: str, reply_lang: str, result: TtsResult) -> None:
+    if not result.audio or not text.strip():
+        return
+    if not getattr(settings, "TTS_PHRASE_CACHE", True):
+        return
+    lang = _BCP47.get(reply_lang, reply_lang) or "en-US"
+    key = phrase_cache_key(text, lang)
+    body = {
+        "audio_b64": result.audio_base64,
+        "mime": result.mime,
+        "source": result.source,
+    }
+    try:
+        cache.set(key, body, _CACHE_TTL_SEC)
+    except Exception:
+        logger.debug("tts phrase cache set failed", exc_info=True)
+
+
 def synthesize(text: str, reply_lang: str) -> TtsResult:
-    """Route TTS per ``TTS_BACKEND``."""
+    """Route TTS per ``TTS_BACKEND``, with Redis phrase cache (Step 84)."""
+    backend = (getattr(settings, "TTS_BACKEND", "auto") or "auto").strip().lower()
+    if backend in ("browser", "none", ""):
+        return _empty("none")
+
+    cached = lookup_phrase_cache(text, reply_lang)
+    if cached is not None:
+        return cached
+
+    _bump_cache_counter(_CACHE_MISSES_KEY)
+    _log_cache_event(hit=False)
+    result = _synthesize_uncached(text, reply_lang)
+    if result.audio:
+        store_phrase_cache(text, reply_lang, result)
+    return result
+
+
+def _synthesize_uncached(text: str, reply_lang: str) -> TtsResult:
+    """Route TTS per ``TTS_BACKEND`` (no cache)."""
     backend = (getattr(settings, "TTS_BACKEND", "auto") or "auto").strip().lower()
     lang = _BCP47.get(reply_lang, reply_lang) or "en-US"
 

@@ -244,9 +244,23 @@ export function useVoiceTurn() {
           !skipSearchNarration &&
           !turnReplyAlreadySpoken(result.reply)
         ) {
+          let audioBase64 = result.reply_audio_base64;
+          let audioMime = result.reply_audio_mime;
+          if (result.audio_pending && !audioBase64) {
+            try {
+              const tts = await api.voiceTts({
+                text: result.reply,
+                replyLang: result.reply_lang,
+              });
+              audioBase64 = tts.reply_audio_base64;
+              audioMime = tts.reply_audio_mime;
+            } catch {
+              /* browser TTS fallback inside speakSerah */
+            }
+          }
           await speakSerah(result.reply, result.reply_lang, {
-            audioBase64: result.reply_audio_base64,
-            audioMime: result.reply_audio_mime,
+            audioBase64,
+            audioMime,
           });
         }
 

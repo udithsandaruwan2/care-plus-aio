@@ -48,6 +48,7 @@ import {
   VoiceSessionClearResponse,
   VoiceSessionResponse,
   VoiceTurnResponse,
+  VoiceTtsResponse,
   DialoguePolicy,
   type CaregiverListParams,
   type CaregiverAvailabilitySlotInput,
@@ -343,6 +344,18 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => VoiceTurnResponse.parse(d),
       );
     },
+    voiceTts: (input: { text: string; replyLang?: string }) =>
+      request(
+        '/voice/tts/',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            text: input.text,
+            reply_lang: input.replyLang || 'en-US',
+          }),
+        },
+        (d) => VoiceTtsResponse.parse(d),
+      ),
     voiceSession: () => request('/voice/session/', {}, (d) => VoiceSessionResponse.parse(d)),
     clearVoiceSession: () =>
       request('/voice/session/clear/', { method: 'POST', body: JSON.stringify({}) }, (d) =>

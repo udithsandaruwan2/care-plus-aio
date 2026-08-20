@@ -22,6 +22,7 @@ def empty_timings(*, request_id: str = "") -> dict:
         "match_ms": 0,
         "chat_ms": 0,
         "tts_ms": 0,
+        "first_text_ms": 0,
         "total_ms": 0,
         "request_id": request_id,
     }
@@ -48,6 +49,10 @@ class StageClock:
         self.stages["total_ms"] = int((time.perf_counter() - self._wall0) * 1000)
         self.stages["request_id"] = self.stages.get("request_id") or request_id_var.get() or ""
         return dict(self.stages)
+
+    def mark_first_text(self) -> None:
+        """Wall time until reply text is ready (excludes TTS — Step 84)."""
+        self.stages["first_text_ms"] = int((time.perf_counter() - self._wall0) * 1000)
 
 
 def stage_sum(timings: dict) -> int:

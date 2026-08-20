@@ -169,7 +169,9 @@ def _clarify_reply(intent: dict, lang: str) -> str:
 
 
 def _attach_tts(payload: dict, reply: str, reply_lang: str, *, server_voice: bool = True) -> dict:
-    from .tts import pack_for_api, synthesize
+    from django.conf import settings
+
+    from .tts import lookup_phrase_cache, pack_for_api, synthesize
 
     if not server_voice:
         payload.update(
@@ -177,11 +179,36 @@ def _attach_tts(payload: dict, reply: str, reply_lang: str, *, server_voice: boo
                 "reply_audio_base64": "",
                 "reply_audio_mime": "",
                 "tts_source": "browser",
+                "audio_pending": False,
+                "tts_cache_hit": False,
             }
         )
         return payload
+
+    cached = lookup_phrase_cache(reply, reply_lang)
+    if cached is not None:
+        payload.update(pack_for_api(cached))
+        payload["audio_pending"] = False
+        payload["tts_cache_hit"] = True
+        return payload
+
+    # Cache miss: return text immediately; synthesize in background (stream or /voice/tts/).
+    if getattr(settings, "TTS_DEFER_UNCACHED", True) and (reply or "").strip():
+        payload.update(
+            {
+                "reply_audio_base64": "",
+                "reply_audio_mime": "",
+                "tts_source": "pending",
+                "audio_pending": True,
+                "tts_cache_hit": False,
+            }
+        )
+        return payload
+
     tts = synthesize(reply, reply_lang)
     payload.update(pack_for_api(tts))
+    payload["audio_pending"] = False
+    payload["tts_cache_hit"] = False
     return payload
 
 
@@ -789,6 +816,8 @@ def process_turn(
             situation=situation,
             session_id=session.pk,
         )
+    # Reply text is on the wire before TTS starts — time-to-first-text excludes tts_ms.
+    clock.mark_first_text()
     with clock.span("tts_ms"):
         out = _attach_tts(
             payload,
@@ -796,15 +825,17 @@ def process_turn(
             reply_lang,
             server_voice=_use_server_voice(reply_lang, has_match=bool(match_payload)),
         )
-    _emit_turn(
-        user,
-        "reply_audio",
-        reply_audio_base64=out.get("reply_audio_base64") or "",
-        reply_audio_mime=out.get("reply_audio_mime") or "",
-        tts_source=out.get("tts_source"),
-        reply_lang=reply_lang,
-        session_id=session.pk,
-    )
+    if not out.get("audio_pending"):
+        _emit_turn(
+            user,
+            "reply_audio",
+            reply_audio_base64=out.get("reply_audio_base64") or "",
+            reply_audio_mime=out.get("reply_audio_mime") or "",
+            tts_source=out.get("tts_source"),
+            reply_lang=reply_lang,
+            session_id=session.pk,
+            tts_cache_hit=out.get("tts_cache_hit"),
+        )
     _emit_turn(
         user,
         "done",
@@ -812,5 +843,6 @@ def process_turn(
         situation=situation,
         session_id=session.pk,
         has_match=bool(match_payload),
+        audio_pending=bool(out.get("audio_pending")),
     )
     return finalize_turn(user, out, clock.finish(), route=route, situation=situation)
