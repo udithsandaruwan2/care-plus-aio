@@ -608,4 +608,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 87 — Reply rendering and card density** on `feat/step87-reply-render`. Progressive replies, collapsed VEHMF breakdown, a11y live region.
+**Step 88 — Model registry** on `feat/step88-model-registry`. Persist trained CF / FAISS / slot-classifier artifacts and link them from MatchRun.
