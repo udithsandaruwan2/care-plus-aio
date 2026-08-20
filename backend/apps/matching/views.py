@@ -212,11 +212,15 @@ class CaregiverMeView(APIView):
 
     def patch(self, request):
         profile = self._profile(request.user)
+        from .index_refresh import embed_fingerprint, maybe_enqueue_embedding_refresh
+
+        before = embed_fingerprint(profile)
         ser = CaregiverProfileUpdateSerializer(profile, data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
         ser.save()
         profile = activate_caregiver_if_ready(profile)
         profile.refresh_from_db()
+        maybe_enqueue_embedding_refresh(before, profile)
         return Response(CaregiverMeSerializer(profile).data)
 
 

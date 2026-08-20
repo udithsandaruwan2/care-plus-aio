@@ -43,3 +43,19 @@ def recompute_all_caregiver_trust() -> dict:
     from .trust import recompute_all_caregiver_trust as recompute_all
 
     return recompute_all()
+
+
+@shared_task(name="matching.refresh_caregiver_embedding")
+def refresh_caregiver_embedding(caregiver_id: int) -> dict:
+    """Re-embed one caregiver and rebuild FAISS (Step 89)."""
+    from .faiss_index import refresh_caregiver_embedding as refresh_one
+
+    return refresh_one(int(caregiver_id))
+
+
+@shared_task(name="matching.rebuild_caregiver_index_if_stale")
+def rebuild_caregiver_index_if_stale(force: bool = False) -> dict:
+    """Periodic consistency rebuild — no-op when membership unchanged (Step 89)."""
+    from .faiss_index import rebuild_index_if_stale
+
+    return rebuild_index_if_stale(force=bool(force))

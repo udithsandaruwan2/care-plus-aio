@@ -67,6 +67,179 @@ def stamp_index_version(*, backend: str, caregiver_ids: list[int], dim: int) -> 
     return f"{backend}:{len(caregiver_ids)}:{digest.hexdigest()[:12]}"
 
 
+_DIRTY_CACHE_KEY = "matching:faiss_index_dirty"
+
+
+def mark_index_dirty() -> None:
+    """Flag bulk/structural drift for the periodic consistency rebuild (Step 89)."""
+    try:
+        from django.core.cache import cache
+
+        cache.set(_DIRTY_CACHE_KEY, True, timeout=None)
+    except Exception:
+        pass
+
+
+def clear_index_dirty() -> None:
+    try:
+        from django.core.cache import cache
+
+        cache.delete(_DIRTY_CACHE_KEY)
+    except Exception:
+        pass
+
+
+def is_index_dirty() -> bool:
+    try:
+        from django.core.cache import cache
+
+        return bool(cache.get(_DIRTY_CACHE_KEY))
+    except Exception:
+        return False
+
+
+def expected_index_version() -> str:
+    backend = getattr(settings, "EMBEDDING_BACKEND", "hash")
+    ids = list(
+        CaregiverProfile.objects.filter(is_active=True)
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
+    return stamp_index_version(backend=backend, caregiver_ids=ids, dim=EMBEDDING_DIM)
+
+
+def artifact_index_version() -> str:
+    """Version stamped on disk (empty if artifacts missing)."""
+    cached = _cache_get()
+    if cached is not None and cached.version:
+        return cached.version
+    meta_path = artifact_dir() / "caregivers.ids.json"
+    if not meta_path.exists():
+        return ""
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        return str(meta.get("version") or "")
+    except Exception:
+        return ""
+
+
+def rebuild_index_if_stale(*, force: bool = False) -> dict:
+    """Full rebuild only when membership drifted, dirty, or ``force`` (Step 89)."""
+    expected = expected_index_version()
+    current = artifact_index_version()
+    dirty = is_index_dirty()
+    if not force and not dirty and current == expected and current:
+        return {
+            "rebuilt": False,
+            "version": expected,
+            "reason": "unchanged",
+            "dirty": False,
+        }
+    built = build_index(persist=True)
+    clear_index_dirty()
+    return {
+        "rebuilt": True,
+        "version": built.version,
+        "reason": "forced" if force else ("dirty" if dirty else "drift"),
+        "count": built.size,
+        "dirty": False,
+    }
+
+
+def refresh_caregiver_embedding(caregiver_id: int) -> dict:
+    """Re-embed one caregiver and rebuild FAISS so rank reflects the edit (Step 89).
+
+    IndexFlatIP has no cheap in-place replace, so after updating the DB vector we
+    rebuild the index (preferring stored embeddings for other caregivers).
+    """
+    try:
+        profile = CaregiverProfile.objects.get(pk=caregiver_id)
+    except CaregiverProfile.DoesNotExist:
+        return {"ok": False, "reason": "missing", "caregiver_id": caregiver_id}
+
+    if not profile.is_active:
+        reset_cache()
+        built = build_index(persist=True)
+        clear_index_dirty()
+        return {
+            "ok": True,
+            "action": "inactive_rebuild",
+            "caregiver_id": caregiver_id,
+            "version": built.version,
+            "count": built.size,
+        }
+
+    embedder = get_embedder()
+    vec = embedder.embed([profile_to_text(profile)])[0]
+    profile.embedding = vec.tolist()
+    profile.save(update_fields=["embedding", "updated_at"])
+
+    built = rebuild_from_stored_embeddings(persist=True)
+    clear_index_dirty()
+    return {
+        "ok": True,
+        "action": "upsert",
+        "caregiver_id": caregiver_id,
+        "version": built.version,
+        "count": built.size,
+    }
+
+
+def rebuild_from_stored_embeddings(*, persist: bool = True) -> CaregiverIndex:
+    """Rebuild FAISS from ``CaregiverProfile.embedding``; embed any missing rows."""
+    backend = getattr(settings, "EMBEDDING_BACKEND", "hash")
+    profiles = list(
+        CaregiverProfile.objects.filter(is_active=True)
+        .order_by("id")
+        .only(
+            "id",
+            "display_name",
+            "specialties",
+            "certifications",
+            "languages",
+            "care_levels",
+            "bio",
+            "embedding",
+        )
+    )
+    if not profiles:
+        index = faiss.IndexFlatIP(EMBEDDING_DIM)
+        version = stamp_index_version(backend=backend, caregiver_ids=[], dim=EMBEDDING_DIM)
+        built = CaregiverIndex(
+            index=index, caregiver_ids=[], backend=backend, version=version
+        )
+        if persist:
+            _persist(built, np.zeros((0, EMBEDDING_DIM), dtype=np.float32))
+        _cache_set(built)
+        return built
+
+    missing = [
+        p
+        for p in profiles
+        if not isinstance(p.embedding, list) or len(p.embedding) != EMBEDDING_DIM
+    ]
+    if missing:
+        mat_miss = get_embedder().embed([profile_to_text(p) for p in missing])
+        for profile, row in zip(missing, mat_miss, strict=True):
+            profile.embedding = row.tolist()
+        CaregiverProfile.objects.bulk_update(missing, ["embedding"], batch_size=100)
+
+    mat = np.asarray([p.embedding for p in profiles], dtype=np.float32)
+    if mat.shape != (len(profiles), EMBEDDING_DIM):
+        # Fall back to full re-embed if stored vectors are corrupt.
+        return build_index(persist=persist)
+
+    index = faiss.IndexFlatIP(EMBEDDING_DIM)
+    index.add(mat)
+    ids = [p.id for p in profiles]
+    version = stamp_index_version(backend=backend, caregiver_ids=ids, dim=EMBEDDING_DIM)
+    built = CaregiverIndex(index=index, caregiver_ids=ids, backend=backend, version=version)
+    if persist:
+        _persist(built, mat)
+    _cache_set(built)
+    return built
+
+
 def build_index(*, persist: bool = True) -> CaregiverIndex:
     """Embed all active caregivers, write DB columns + optional FAISS artifacts."""
     embedder = get_embedder()
@@ -115,6 +288,7 @@ def build_index(*, persist: bool = True) -> CaregiverIndex:
         _persist(built, mat)
     # Refresh process-local cache.
     _cache_set(built)
+    clear_index_dirty()
     return built
 
 
@@ -213,5 +387,6 @@ def evict_caregiver_from_index(caregiver_id: int) -> CaregiverIndex:
         is_available=False,
         embedding=[],
     )
+    mark_index_dirty()
     reset_cache()
     return build_index(persist=True)

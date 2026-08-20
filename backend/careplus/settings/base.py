@@ -155,6 +155,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "accounts.purge_erased_accounts",
         "schedule": crontab(hour=4, minute=15, day_of_week=0),
     },
+    "rebuild-faiss-index-if-stale": {
+        "task": "matching.rebuild_caregiver_index_if_stale",
+        "schedule": crontab(minute=20),
+    },
 }
 
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────
