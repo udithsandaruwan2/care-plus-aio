@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-20 — Step 81 neural-core render budget: 30 fps idle, skip stale neuron matrices._
+_Last updated: 2026-08-20 — Step 82 network-tolerant client: keep session offline, timeouts, banner._
 
 ---
 
@@ -149,7 +149,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | Milestone                                | Steps   | Status | Outcome                                                              |
 | ---------------------------------------- | ------- | ------ | -------------------------------------------------------------------- |
 | **M18** Signal & telemetry foundations   | 76–79   | 76–79 ✅ | Outcomes logged, stages timed, AI decisions audited and reproducible |
-| **M19** Client efficiency                | 80–82   | 80–81 ✅ · 82 🔜 | Smaller first load, calmer render loop, network-tolerant boot        |
+| **M19** Client efficiency                | 80–82   | 80–82 ✅ | Smaller first load, calmer render loop, network-tolerant boot        |
 | **M20** Conversation feel                | 83–87   | ⬜      | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | ⬜      | Registry, auto index rebuild, replay eval, gated promotion           |
 | **M22** Offline & local intelligence     | 93–98   | ⬜      | Installable PWA, cached reads, queued writes, local slot model       |
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 82 — Network-tolerant client, branch `feat/step82-network-tolerance`.
+**Next:** Step 83 — Streaming voice turn, branch `feat/step83-streaming-turn`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 82** — Network-tolerant client: keep last known user on transport errors (`sessionStale`), 30s timeouts + GET retries, offline/degraded banner in AppShell. Branch `feat/step82-network-tolerance`.
 
 - **Step 81** — Neural-core render budget: ~30 fps idle, skip unchanged 104-neuron matrices, IntersectionObserver pause, mic amplitude via ref + 15 Hz React cap. Branch `feat/step81-render-budget`.
 
