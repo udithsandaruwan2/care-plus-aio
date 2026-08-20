@@ -214,6 +214,11 @@ CF_PROMOTE_METRIC = env("CF_PROMOTE_METRIC", default="ndcg_at_5")
 CF_EVAL_HOLDOUT_DAYS = env.int("CF_EVAL_HOLDOUT_DAYS", default=14)
 # When false, train_cf_als promotes unconditionally (legacy / emergency).
 CF_GATED_PROMOTION = env.bool("CF_GATED_PROMOTION", default=True)
+# Step 92 — confidence-weighted ALS with REJECT (hard) and VIEW-only (weak) negatives.
+CF_USE_NEGATIVES = env.bool("CF_USE_NEGATIVES", default=True)
+CF_POSITIVE_ALPHA = env.float("CF_POSITIVE_ALPHA", default=40.0)
+CF_REJECT_ALPHA = env.float("CF_REJECT_ALPHA", default=80.0)
+CF_WEAK_NEG_ALPHA = env.float("CF_WEAK_NEG_ALPHA", default=5.0)
 # Minimum patient profile completion % before requesting care (Step 22b).
 PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
 # Caregiver onboarding + auto-approval (Step 22c).

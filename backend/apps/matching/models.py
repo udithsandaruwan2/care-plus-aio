@@ -338,8 +338,9 @@ class InteractionKind(models.TextChoices):
     REJECT = "reject", "Reject"
 
 
-# Implicit-feedback confidence weights for ALS (Step 21 / Step 76).
-# REJECT is stored negative so Step 92 can train on it; current ALS skips <= 0.
+# Implicit-feedback confidence weights for ALS (Step 21 / Step 76 / Step 92).
+# REJECT is stored negative; Step 92 trains it as a hard negative (pref=0, high confidence).
+# VIEW-only (shown, no stronger action) becomes a weak negative under CF_USE_NEGATIVES.
 INTERACTION_WEIGHTS: dict[str, float] = {
     InteractionKind.VIEW: 1.0,
     InteractionKind.REQUEST: 3.0,

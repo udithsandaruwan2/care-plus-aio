@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 92.** M21 continues with negative signals in CF training.
+**Start at Step 93.** M22 begins with the installable PWA shell.
 
 ---
 
@@ -320,17 +320,16 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 92 — Negative feedback in training
+### Step 92 — Negative feedback in training ✅ **DONE**
 
 **Branch:** `feat/step92-negative-signals`
 **Goal:** teach the model what a bad match looks like. Implicit ALS on positives only cannot distinguish a caregiver who is constantly rejected from one who is never shown.
-**Tasks:**
+**Done:**
 
-- Feed the `REJECT` rows from Step 76 into training as explicit negatives.
-- Move to a ranking objective that uses them — BPR, or ALS with per-observation confidence weighting.
-- Treat shown-and-not-acted-on as a weak negative, distinct from an explicit reject.
-- Compare against the incumbent using the Step 90 harness before adopting.
-- Files: `backend/apps/matching/cf_train.py`, `backend/apps/matching/cf_model.py`.
+- Pair classifier: REJECT → hard negative; VIEW-only → weak negative; REQUEST/ACCEPT/COMPLETE/RATE → positive.
+- Confidence-weighted ALS (Hu-style) trains preference 0 with elevated confidence for hard/weak negatives; legacy positives-only ALS kept behind `CF_USE_NEGATIVES=false`.
+- Promotion still goes through the Step 90/91 holdout gate before `current.json` flips.
+- On the synthetic reject suite, negatives objective ≥ legacy on NDCG@5 and recall@10; `CF_ENABLED=false` still zeroes β.
 
 **✅ Acceptance:** the new objective beats the current ALS on NDCG@5 and recall@10 on the held-out window, with numbers recorded in the PR; `CF_ENABLED=false` still cleanly redistributes β.
 **Depends on:** Steps 76, 90, 91.
@@ -606,4 +605,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 92 — Negative feedback in training** on `feat/step92-negative-signals`. Train on REJECT and compare with the Step 90 harness.
+**Step 93 — Installable PWA shell** on `feat/step93-pwa-shell`. Offline-capable app shell with Workbox.
