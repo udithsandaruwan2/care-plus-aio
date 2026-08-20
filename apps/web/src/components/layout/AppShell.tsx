@@ -29,7 +29,12 @@ function ConnectionBanner() {
           : 'border-b border-rose/30 bg-rose/5 px-4 py-2 text-center text-xs text-mist'
       }
     >
-      {message}
+      {message}{' '}
+      {offline ? (
+        <a href="/offline" className="underline underline-offset-2">
+          Offline help
+        </a>
+      ) : null}
     </div>
   );
 }

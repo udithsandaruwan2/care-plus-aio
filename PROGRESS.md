@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-21 — Step 92 negative signals in CF training._
+_Last updated: 2026-08-21 — Step 93 installable PWA shell._
 
 ---
 
@@ -152,7 +152,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | **M19** Client efficiency                | 80–82   | 80–82 ✅ | Smaller first load, calmer render loop, network-tolerant boot        |
 | **M20** Conversation feel                | 83–87   | 83–87 ✅ | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | 88–92 ✅ | Registry, auto index rebuild, replay eval, gated promotion           |
-| **M22** Offline & local intelligence     | 93–98   | ⬜      | Installable PWA, cached reads, queued writes, local slot model       |
+| **M22** Offline & local intelligence     | 93–98   | 93 ✅   | Installable PWA, cached reads, queued writes, local slot model       |
 | **M23** Adaptive ranking                 | 99–103  | ⬜      | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24** History surface & retention      | 104–106 | ⬜      | User-visible trail, complete export, retention policy                |
 
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 93 — Installable PWA shell, branch `feat/step93-pwa-shell`.
+**Next:** Step 94 — Cached reads, branch `feat/step94-offline-reads`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 93** — Installable PWA: vite-plugin-pwa Workbox shell + fonts, push handlers preserved, manifest/icons, `/offline` + `offline.html`. Branch `feat/step93-pwa-shell`.
 
 - **Step 92** — Negative CF signals: confidence-weighted ALS with REJECT (hard) and VIEW-only (weak) negatives; beats positives-only ALS on NDCG@5 / recall@10 in suite. **M21 complete.** Branch `feat/step92-negative-signals`.
 

@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 93.** M22 begins with the installable PWA shell.
+**Start at Step 94.** M22 continues with cached offline reads.
 
 ---
 
@@ -338,17 +338,16 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ## M22 · Offline & local intelligence
 
-### Step 93 — Installable PWA shell
+### Step 93 — Installable PWA shell ✅ **DONE**
 
 **Branch:** `feat/step93-pwa-shell`
 **Goal:** the app should open with no network. The service worker currently handles push only.
-**Tasks:**
+**Done:**
 
-- Add `vite-plugin-pwa` with Workbox, preserving the existing push handler rather than replacing it.
-- Add a web app manifest, icons, and the manifest link in `index.html`.
-- Precache the app shell and self-hosted fonts; set an explicit runtime cache strategy per route class.
-- Add an explicit offline screen instead of a silent failure.
-- Files: `apps/web/vite.config.ts`, `apps/web/public/sw.js`, `apps/web/index.html`.
+- `vite-plugin-pwa` injectManifest Workbox SW precaches the app shell + self-hosted fonts; runtime caches for static (SWR) and `/api/` (network-first).
+- Push / notificationclick handlers preserved in `src/sw.ts` (replaces push-only `public/sw.js`).
+- Web app manifest + 192/512 icons; `offline.html` + `/offline` React page; public offline banner.
+- Production SW registration via `virtual:pwa-register`; web push reuses the same registration.
 
 **✅ Acceptance:** the app installs and opens offline to a usable shell; web push still works after the service worker upgrade; a hard reload offline does not white-screen.
 **Depends on:** Steps 80, 82.
@@ -605,4 +604,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 93 — Installable PWA shell** on `feat/step93-pwa-shell`. Offline-capable app shell with Workbox.
+**Step 94 — Cached reads** on `feat/step94-offline-reads`. IndexedDB query cache for profile/match/browse/messages.
