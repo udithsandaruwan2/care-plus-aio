@@ -136,6 +136,27 @@ class VoiceTurnApiTests(APITestCase):
         self.assertIn("timings", out)
         self.assertGreaterEqual(out["timings"]["total_ms"], 0)
 
+    def test_process_turn_emits_stream_stages(self):
+        stages: list[str] = []
+
+        def _capture(user_id, stage, payload):
+            stages.append(stage)
+
+        with patch("apps.voice.dialogue.push_turn_stage", side_effect=_capture):
+            out = process_turn(
+                user=self.user, client_text="hello there", ui_language="English"
+            )
+        self.assertEqual(out["route"], "CHAT")
+        self.assertIn("transcript", stages)
+        self.assertIn("intent", stages)
+        self.assertIn("route", stages)
+        self.assertIn("reply_text", stages)
+        self.assertIn("reply_audio", stages)
+        self.assertIn("done", stages)
+        # Reply text must precede audio (acceptance).
+        self.assertLess(stages.index("reply_text"), stages.index("reply_audio"))
+        self.assertLess(stages.index("transcript"), stages.index("intent"))
+
     def test_process_turn_empty_with_audio_hint(self):
         out = process_turn(
             user=self.user,

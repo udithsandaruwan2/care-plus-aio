@@ -12,6 +12,11 @@ import { api } from '../auth/api';
 import { useAssistant } from './store';
 import { announceMatchFinding, announceMatchReady, runClientMatch } from './useMatch';
 import { speakSerah, stopSpeaking } from './useTts';
+import {
+  httpNeedsTurnStage,
+  resetTurnStream,
+  turnReplyAlreadySpoken,
+} from './turnStream';
 
 const CONSENT_STATUS = 451;
 
@@ -117,6 +122,7 @@ function isSilentTurn(result: Awaited<ReturnType<typeof api.voiceTurn>>): boolea
 
 /**
  * Conversational turn: captions + audio → server ASR/router → Serah TTS + optional match.
+ * Prefer progressive ``turn.*`` WebSocket stages when connected; HTTP remains the fallback.
  */
 export function useVoiceTurn() {
   const [busy, setBusy] = useState(false);
@@ -133,6 +139,7 @@ export function useVoiceTurn() {
       const hasVisibleMatch = Boolean(store.match?.results?.length);
       const userLine = opts.text.trim();
       const seeking = looksLikeCareSeek(opts.text);
+      resetTurnStream();
       setBusy(true);
       setError(null);
       store.setSessionLive(true);
@@ -155,6 +162,7 @@ export function useVoiceTurn() {
             : undefined,
           uiLanguage: store.uiLanguage,
         });
+        const rid = result.timings?.request_id || '';
         setConsentNeeded(false);
         setAsrSource(result.asr_source);
         setAsrHeardLang(
@@ -169,7 +177,7 @@ export function useVoiceTurn() {
           return;
         }
 
-        if (result.transcript) {
+        if (httpNeedsTurnStage('transcript', rid) && result.transcript) {
           store.setTranscript(result.transcript);
           store.setInterim('');
         }
@@ -179,8 +187,12 @@ export function useVoiceTurn() {
         }
 
         const lineText = userLine || result.transcript?.trim() || '';
-        if (lineText) {
-          store.appendChat({ role: 'user', text: lineText, route: result.route });
+        if (lineText && httpNeedsTurnStage('transcript', rid)) {
+          const chat = useAssistant.getState().chat;
+          const lastUser = [...chat].reverse().find((m) => m.role === 'user');
+          if (lastUser?.text !== lineText) {
+            store.appendChat({ role: 'user', text: lineText, route: result.route });
+          }
         }
 
         const stillSeeking =
@@ -188,18 +200,26 @@ export function useVoiceTurn() {
           looksLikeCareSeek(lineText) ||
           looksLikeCareSeek(result.transcript || '') ||
           looksLikeSearchPromise(result.reply || '');
+
+        const needReplyText = httpNeedsTurnStage('reply_text', rid);
+        const needMatch = httpNeedsTurnStage('match', rid);
         const outcome = applyTurnState(result, store, stillSeeking);
         const skipSearchNarration = outcome === 'hold' || outcome === 'matched';
 
-        if (result.reply?.trim() && !skipSearchNarration) {
-          store.appendChat({ role: 'serah', text: result.reply, route: result.route });
+        if (needReplyText && result.reply?.trim() && !skipSearchNarration) {
+          const lastSerah = [...useAssistant.getState().chat]
+            .reverse()
+            .find((m) => m.role === 'serah');
+          if (lastSerah?.text !== result.reply) {
+            store.appendChat({ role: 'serah', text: result.reply, route: result.route });
+          }
         }
 
         if (outcome === 'hold') {
           announceMatchFinding();
           void runClientMatch();
         }
-        if (outcome === 'matched' && result.match) {
+        if (outcome === 'matched' && result.match && needMatch) {
           announceMatchReady(result.match.request_id);
         }
 
@@ -217,7 +237,13 @@ export function useVoiceTurn() {
         // Unlock chat/mic while Serah speaks so matching cards stay usable.
         setBusy(false);
 
-        if (result.reply?.trim() && !skipSearchNarration) {
+        const needAudio = httpNeedsTurnStage('reply_audio', rid);
+        if (
+          needAudio &&
+          result.reply?.trim() &&
+          !skipSearchNarration &&
+          !turnReplyAlreadySpoken(result.reply)
+        ) {
           await speakSerah(result.reply, result.reply_lang, {
             audioBase64: result.reply_audio_base64,
             audioMime: result.reply_audio_mime,

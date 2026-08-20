@@ -56,3 +56,29 @@ class MatchConsumer(AsyncWebsocketConsumer):
                 {"type": "care_relationship.updated", "payload": event["payload"]}
             )
         )
+
+    async def turn_transcript(self, event):
+        await self._send_turn("turn.transcript", event)
+
+    async def turn_intent(self, event):
+        await self._send_turn("turn.intent", event)
+
+    async def turn_route(self, event):
+        await self._send_turn("turn.route", event)
+
+    async def turn_reply_text(self, event):
+        await self._send_turn("turn.reply_text", event)
+
+    async def turn_match(self, event):
+        await self._send_turn("turn.match", event)
+
+    async def turn_reply_audio(self, event):
+        await self._send_turn("turn.reply_audio", event)
+
+    async def turn_done(self, event):
+        await self._send_turn("turn.done", event)
+
+    async def _send_turn(self, wire_type: str, event: dict) -> None:
+        await self.send(
+            text_data=json.dumps({"type": wire_type, "payload": event["payload"]})
+        )

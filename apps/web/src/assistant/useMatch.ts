@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { MatchResponse } from '@care-plus/api-client';
-import { AssistantState } from '@care-plus/core';
+import type { MatchResponse, VoiceTurnIntent } from '@care-plus/api-client';
+import { AssistantState, type IntentDraft } from '@care-plus/core';
 import { api } from '../auth/api';
 import { getAccessToken } from '../auth/session';
 import { useAuth } from '../auth/AuthContext';
 import { useAssistant } from './store';
 import { matchVoiceCopy } from './locale';
 import { speakSerah, stopSpeaking } from './useTts';
+import {
+  claimTurnStage,
+  lastStreamedReplyText,
+  markTurnReplySpoken,
+  rememberStreamedReply,
+  type TurnStage,
+} from './turnStream';
 
 let lastReadyRequestId: number | null = null;
 let findingAnnounced = false;
@@ -15,6 +22,14 @@ function lastSerahLine(): string {
   const chat = useAssistant.getState().chat;
   for (let i = chat.length - 1; i >= 0; i--) {
     if (chat[i]?.role === 'serah') return chat[i]?.text ?? '';
+  }
+  return '';
+}
+
+function lastUserLine(): string {
+  const chat = useAssistant.getState().chat;
+  for (let i = chat.length - 1; i >= 0; i--) {
+    if (chat[i]?.role === 'user') return chat[i]?.text ?? '';
   }
   return '';
 }
@@ -44,6 +59,121 @@ export function announceMatchReady(requestId?: number) {
 export function resetMatchNarration() {
   lastReadyRequestId = null;
   findingAnnounced = false;
+}
+
+function applyStreamIntent(intent: VoiceTurnIntent | Record<string, unknown>) {
+  const store = useAssistant.getState();
+  const draft: Partial<IntentDraft> = {};
+  const raw = intent as VoiceTurnIntent;
+  if (raw.raw_text) draft.raw_text = raw.raw_text;
+  if (raw.condition) draft.condition = raw.condition;
+  if (raw.language) draft.language = raw.language as IntentDraft['language'];
+  if (raw.languages?.length) draft.languages = raw.languages as IntentDraft['languages'];
+  if (raw.care_level) draft.care_level = raw.care_level as IntentDraft['care_level'];
+  if (raw.urgency) draft.urgency = raw.urgency as IntentDraft['urgency'];
+  if (Object.keys(draft).length) store.setIntent(draft);
+}
+
+type TurnPayload = {
+  request_id?: string;
+  stage?: string;
+  transcript?: string;
+  silent?: boolean;
+  session_id?: number;
+  intent?: VoiceTurnIntent | null;
+  route?: string;
+  situation?: string;
+  clear_match?: boolean;
+  reply?: string;
+  reply_lang?: string;
+  match?: MatchResponse | null;
+  reply_audio_base64?: string;
+  reply_audio_mime?: string;
+};
+
+function handleTurnMessage(type: string, payload: TurnPayload) {
+  const stage = type.replace(/^turn\./, '') as TurnStage;
+  const first = claimTurnStage(stage, payload.request_id);
+  // Intent/route may be refined after salvage — always take the latest payload.
+  if (!first && stage !== 'intent' && stage !== 'route') return;
+
+  const store = useAssistant.getState();
+
+  if (stage === 'transcript') {
+    if (payload.silent) return;
+    const text = (payload.transcript || '').trim();
+    if (text) {
+      store.setTranscript(text);
+      store.setInterim('');
+      if (lastUserLine() !== text) {
+        store.appendChat({ role: 'user', text, route: payload.route });
+      }
+    }
+    if (payload.session_id != null) store.setSessionId(payload.session_id);
+    return;
+  }
+
+  if (stage === 'intent' && payload.intent) {
+    applyStreamIntent(payload.intent);
+    return;
+  }
+
+  if (stage === 'route') {
+    if (payload.clear_match) store.setMatch(null);
+    if (payload.session_id != null) store.setSessionId(payload.session_id);
+    const route = payload.route || '';
+    if (route === 'MATCH' || route === 'REFINE' || route === 'EMERGENCY') {
+      store.setMatching(true);
+      store.setState(AssistantState.MATCHING, { force: true });
+    } else if (route === 'CLARIFY') {
+      store.setMatching(false);
+      store.setState(AssistantState.CLARIFYING, { force: true });
+    }
+    return;
+  }
+
+  if (stage === 'reply_text') {
+    const reply = (payload.reply || '').trim();
+    if (!reply) return;
+    rememberStreamedReply(reply);
+    if (lastSerahLine() !== reply) {
+      store.appendChat({ role: 'serah', text: reply, route: payload.route });
+    }
+    if (
+      store.state !== AssistantState.RESULTS &&
+      store.state !== AssistantState.EMERGENCY &&
+      store.state !== AssistantState.MATCHING
+    ) {
+      store.setState(AssistantState.CHAT_REPLY, { force: true });
+    }
+    return;
+  }
+
+  if (stage === 'match' && payload.match) {
+    store.setMatch(payload.match);
+    store.setMatching(false);
+    if (
+      payload.situation === 'emergency_match' ||
+      (payload.match as { emergency?: boolean }).emergency
+    ) {
+      store.setState(AssistantState.EMERGENCY, { force: true });
+    } else {
+      store.setState(AssistantState.RESULTS, { force: true });
+    }
+    announceMatchReady(payload.match.request_id);
+    return;
+  }
+
+  if (stage === 'reply_audio') {
+    const reply = lastStreamedReplyText() || lastSerahLine();
+    const audio = payload.reply_audio_base64 || '';
+    if (!reply.trim()) return;
+    markTurnReplySpoken(reply);
+    void speakSerah(reply, payload.reply_lang || store.uiLanguage, {
+      audioBase64: audio,
+      audioMime: payload.reply_audio_mime || '',
+    });
+  }
 }
 
 function wsBase(): string {
@@ -81,8 +211,12 @@ export function useMatchSocket(opts?: {
       try {
         const msg = JSON.parse(ev.data as string) as {
           type?: string;
-          payload?: MatchResponse;
+          payload?: MatchResponse & TurnPayload;
         };
+        if (msg.type?.startsWith('turn.') && msg.payload) {
+          handleTurnMessage(msg.type, msg.payload);
+          return;
+        }
         if (msg.type === 'match.results' && msg.payload) {
           const store = useAssistant.getState();
           store.setMatch(msg.payload);

@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 83.** M20 begins with streaming voice turns.
+**Start at Step 84.** M20 continues with TTS decoupled from time-to-first-text.
 
 ---
 
@@ -179,16 +179,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ## M20 · Conversation feel
 
-### Step 83 — Streaming voice turn
+### Step 83 — Streaming voice turn ✅ **DONE**
 
 **Branch:** `feat/step83-streaming-turn`
 **Goal:** the biggest perceived-latency win. Show the user each stage as it completes instead of after all six.
-**Tasks:**
+**Done:**
 
-- Emit staged events over the existing `ws/match/<patient_id>/` channel from `process_turn()`: `transcript`, then `intent`, then `route`, then `reply_text`, then `match`, then `reply_audio`.
-- Keep the current HTTP response shape intact as the fallback when the socket is not connected.
-- Consume the events in the assistant store so transcript, chips, and reply fill in progressively.
-- Files: `backend/apps/voice/dialogue.py`, `backend/apps/matching/consumers.py`, `apps/web/src/assistant/useVoiceTurn.ts`, `apps/web/src/assistant/store.ts`.
+- `process_turn()` emits staged events over `ws/match/<user_id>/`: `transcript` → `intent` → `route` → `reply_text` → `match` → `reply_audio` → `done`.
+- HTTP `/voice/turn/` response shape unchanged as the non-streaming fallback.
+- Client applies `turn.*` frames progressively and skips duplicate UI/TTS work when the HTTP response lands for the same `request_id`.
 
 **✅ Acceptance:** the transcript appears in the UI before matching starts; reply text appears before audio is synthesized; disconnecting the socket falls back to the existing single-response behaviour with no user-visible error.
 **Depends on:** Step 77 (timings prove the improvement).
@@ -613,4 +612,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 83 — Streaming voice turn** on `feat/step83-streaming-turn`. Emit staged turn events over `ws/match/` so Serah fills in progressively.
+**Step 84 — Unblock the reply from speech synthesis** on `feat/step84-tts-decouple`. Return reply text before TTS; cache canned Serah phrases.
