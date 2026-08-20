@@ -7,6 +7,7 @@ import { localizeExplanation, matchUi } from './locale';
 import type { UiVoiceLanguage } from './uiVoiceLanguage';
 import { useAssistant } from './store';
 import { speakSerah } from './useTts';
+import { comparativeMatchLine } from './compareMatch';
 
 function FactorBar({
   label,
@@ -58,22 +59,27 @@ function RankChange({ hit }: { hit: MatchHit }) {
 
 function MatchCard({
   hit,
+  runnerUp,
   canRequestCare,
   matchRunId,
   uiLanguage,
 }: {
   hit: MatchHit;
+  runnerUp?: MatchHit;
   canRequestCare: boolean;
   matchRunId: number;
   uiLanguage: UiVoiceLanguage;
 }) {
   const ui = matchUi(uiLanguage);
   const explanation = localizeExplanation(hit.explanation, uiLanguage);
+  const compare =
+    hit.rank === 1 ? comparativeMatchLine(hit, runnerUp) : null;
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [openFactors, setOpenFactors] = useState(false);
   const km =
     hit.distance_m != null && Number.isFinite(hit.distance_m)
       ? `${(hit.distance_m / 1000).toFixed(1)} km`
@@ -139,25 +145,24 @@ function MatchCard({
 
   return (
     <article
-      className={`match-rail-card rounded-2xl border bg-panel p-3 text-left ${
+      className={`match-rail-card relative rounded-2xl border bg-panel p-3 text-left ${
         changed ? 'border-mint/50 ring-1 ring-mint/20' : 'border-hair'
       }`}
       style={{ animationDelay: `${Math.max(0, hit.rank - 1) * 80}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="font-display text-sm font-semibold text-mist">
             <span className="mr-2 font-mono text-sm text-cyan">#{hit.rank}</span>
             {hit.display_name}
             <RankChange hit={hit} />
           </p>
-          <p className="mt-0.5 text-xs text-muted">
-            {(hit.specialties || []).slice(0, 3).join(' · ') || 'General care'}
-            {hit.languages?.length ? ` · ${hit.languages.join('/')}` : ''}
+          <p className="mt-0.5 truncate text-xs text-muted">
+            {(hit.specialties || []).slice(0, 2).join(' · ') || 'General care'}
             {km ? ` · ${km}` : ''}
           </p>
         </div>
-        <div className="flex h-11 w-11 flex-col items-center justify-center rounded-full border-2 border-cyan/40 bg-cyan/10">
+        <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-full border-2 border-cyan/40 bg-cyan/10">
           <p className="font-display text-base font-bold leading-none text-cyan">
             {(hit.score * 100).toFixed(0)}
           </p>
@@ -165,17 +170,31 @@ function MatchCard({
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-          VEHMF analysis
-        </p>
-        <FactorBar label="Skills (CBF)" value={hit.breakdown.cbf} className="bg-cyan" />
-        <FactorBar label="History (CF)" value={hit.breakdown.cf} className="bg-violet" />
-        <FactorBar label="Distance (Geo)" value={hit.breakdown.geo} className="bg-mint" />
-        <FactorBar label="Trust" value={hit.breakdown.trust} className="bg-amber" />
-      </div>
+      <p className="mt-2 text-xs leading-snug text-mist">{explanation}</p>
+      {compare ? <p className="mt-1 text-[11px] text-cyan/90">{compare}</p> : null}
 
-      <p className="mt-3 rounded-xl bg-soft px-3 py-2 text-xs text-muted">{explanation}</p>
+      <div className="relative mt-2">
+        <button
+          type="button"
+          className="text-[11px] font-semibold text-muted underline-offset-2 hover:text-cyan hover:underline"
+          aria-expanded={openFactors}
+          onClick={() => setOpenFactors((v) => !v)}
+        >
+          {openFactors ? 'Hide VEHMF factors' : 'Show VEHMF factors'}
+        </button>
+        {openFactors ? (
+          <div
+            className="absolute left-0 right-0 top-full z-20 mt-1 space-y-1.5 rounded-xl border border-hair bg-panel p-3 shadow-lg"
+            role="region"
+            aria-label="VEHMF factor breakdown"
+          >
+            <FactorBar label="Skills (CBF)" value={hit.breakdown.cbf} className="bg-cyan" />
+            <FactorBar label="History (CF)" value={hit.breakdown.cf} className="bg-violet" />
+            <FactorBar label="Distance (Geo)" value={hit.breakdown.geo} className="bg-mint" />
+            <FactorBar label="Trust" value={hit.breakdown.trust} className="bg-amber" />
+          </div>
+        ) : null}
+      </div>
 
       <div className="mt-3 flex flex-col gap-2">
         <Link
@@ -251,7 +270,7 @@ function MatchCard({
   );
 }
 
-/** Ranked VEHMF cards with score breakdown, XAI, and latency badge. */
+/** Ranked VEHMF cards — dense lead row; factors behind disclosure (Step 87). */
 export function MatchResultCards({
   match,
   canRequestCare = true,
@@ -274,6 +293,7 @@ export function MatchResultCards({
         ? 'புதுப்பிக்கப்பட்ட பொருத்தங்கள்'
         : 'Updated matches'
     : ui.title;
+  const runnerUp = match.results.find((h) => h.rank === 2) ?? match.results[1];
 
   return (
     <section
@@ -293,6 +313,7 @@ export function MatchResultCards({
         <MatchCard
           key={`${match.request_id}-${hit.caregiver_id}`}
           hit={hit}
+          runnerUp={hit.rank === 1 ? runnerUp : undefined}
           canRequestCare={canRequestCare}
           matchRunId={match.request_id}
           uiLanguage={uiLanguage}

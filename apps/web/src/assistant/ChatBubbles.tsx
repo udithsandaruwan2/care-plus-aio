@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { ChatMessage } from './store';
 import type { TurnFailure } from './turnFailure';
 
@@ -10,7 +11,7 @@ type Props = {
   retrying?: boolean;
 };
 
-/** Scrollable Serah ↔ patient thread (Step 15h). */
+/** Scrollable Serah ↔ patient thread (Step 15h / 87 progressive replies). */
 export function ChatBubbles({
   messages,
   compact = false,
@@ -27,6 +28,7 @@ export function ChatBubbles({
         compact ? 'mt-0 max-h-full max-w-lg' : 'mt-4 max-h-52 max-w-md'
       }`}
       aria-live="polite"
+      aria-relevant="additions text"
       aria-label="Conversation with Serah"
     >
       {visible.map((msg) => (
@@ -76,8 +78,45 @@ function Bubble({ msg, compact = false }: { msg: ChatMessage; compact?: boolean 
             Serah
           </p>
         )}
-        <p>{msg.text}</p>
+        {isUser ? <p>{msg.text}</p> : <ProgressiveText text={msg.text} />}
       </div>
     </div>
+  );
+}
+
+/** Reveal Serah's reply word-by-word so stream-arriving text feels progressive (Step 87). */
+function ProgressiveText({ text }: { text: string }) {
+  const [shown, setShown] = useState(() => (text.length < 48 ? text : ''));
+
+  useEffect(() => {
+    if (!text) {
+      setShown('');
+      return;
+    }
+    if (text.length < 48) {
+      setShown(text);
+      return;
+    }
+    const words = text.split(/(\s+)/);
+    let i = 0;
+    setShown('');
+    const id = window.setInterval(() => {
+      i += 1;
+      setShown(words.slice(0, i).join(''));
+      if (i >= words.length) window.clearInterval(id);
+    }, 28);
+    return () => window.clearInterval(id);
+  }, [text]);
+
+  return (
+    <p>
+      <span aria-hidden>
+        {shown}
+        {shown.length < text.length ? (
+          <span className="ml-0.5 inline-block h-3 w-1 animate-pulse bg-cyan/70 align-middle" />
+        ) : null}
+      </span>
+      <span className="sr-only">{text}</span>
+    </p>
   );
 }

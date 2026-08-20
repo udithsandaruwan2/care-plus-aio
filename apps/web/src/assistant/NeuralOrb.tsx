@@ -9,6 +9,14 @@ const NeuralCoreCanvas = lazy(() =>
 
 export type OrbVisualState = 'idle' | 'listening' | 'processing' | 'speaking' | 'matching';
 
+const ORB_ALT: Record<OrbVisualState, string> = {
+  idle: 'Serah neural field, idle',
+  listening: 'Serah neural field, listening to you',
+  processing: 'Serah neural field, thinking',
+  speaking: 'Serah neural field, speaking',
+  matching: 'Serah neural field, searching for caregivers',
+};
+
 export function orbVisualState(
   state: AssistantState,
   listening: boolean,
@@ -47,17 +55,19 @@ export function NeuralOrb({
         : `neural-well state-${visual}`;
 
   return (
-    <div className={shell}>
-      <Suspense fallback={<div className="neural-field-canvas" />}>
-        <NeuralCoreCanvas
-          amplitude={amplitude}
-          amplitudeRef={amplitudeRef}
-          state={state}
-          reducedMotion={reducedMotion}
-          layout={layout}
-          parallax={parallax}
-          className="neural-field-canvas"
-        />
+    <div className={shell} role="img" aria-label={ORB_ALT[visual]}>
+      <Suspense fallback={<div className="neural-field-canvas" aria-hidden />}>
+        <div aria-hidden className="contents">
+          <NeuralCoreCanvas
+            amplitude={amplitude}
+            amplitudeRef={amplitudeRef}
+            state={state}
+            reducedMotion={reducedMotion}
+            layout={layout}
+            parallax={parallax}
+            className="neural-field-canvas"
+          />
+        </div>
       </Suspense>
     </div>
   );
