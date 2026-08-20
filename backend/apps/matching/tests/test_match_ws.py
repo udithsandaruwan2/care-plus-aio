@@ -63,3 +63,55 @@ class MatchWebSocketTests(TransactionTestCase):
             await communicator.disconnect()
 
         async_to_sync(_run)()
+
+    def test_forwards_turn_stages(self):
+        user = User.objects.create_user(
+            email="ws.turn@example.com", password="pw-strong-123", role=Role.PATIENT
+        )
+        token = str(RefreshToken.for_user(user).access_token)
+
+        async def _run():
+            communicator = WebsocketCommunicator(
+                application, f"/ws/match/{user.pk}/?token={token}"
+            )
+            connected, _ = await communicator.connect()
+            self.assertTrue(connected)
+            ready = await communicator.receive_json_from()
+            self.assertEqual(ready["type"], "match.ready")
+
+            from channels.layers import get_channel_layer
+
+            layer = get_channel_layer()
+            await layer.group_send(
+                f"match_{user.pk}",
+                {
+                    "type": "turn.transcript",
+                    "payload": {
+                        "stage": "transcript",
+                        "transcript": "need a nurse",
+                        "request_id": "abc123",
+                    },
+                },
+            )
+            msg = await communicator.receive_json_from()
+            self.assertEqual(msg["type"], "turn.transcript")
+            self.assertEqual(msg["payload"]["transcript"], "need a nurse")
+            self.assertEqual(msg["payload"]["stage"], "transcript")
+
+            await layer.group_send(
+                f"match_{user.pk}",
+                {
+                    "type": "turn.reply_text",
+                    "payload": {
+                        "stage": "reply_text",
+                        "reply": "On it.",
+                        "request_id": "abc123",
+                    },
+                },
+            )
+            msg = await communicator.receive_json_from()
+            self.assertEqual(msg["type"], "turn.reply_text")
+            self.assertEqual(msg["payload"]["reply"], "On it.")
+            await communicator.disconnect()
+
+        async_to_sync(_run)()

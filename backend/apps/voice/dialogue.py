@@ -10,7 +10,7 @@ from apps.matching.engine import match_run_provenance, run_match
 from apps.matching.i18n import localize_explanation, match_spoken_reply
 from apps.matching.interactions import record_match_interactions
 from apps.matching.models import CaregiverProfile, MatchResult, MatchRun, create_match_run
-from apps.matching.push import push_match_results
+from apps.matching.push import push_match_results, push_turn_stage
 
 from .asr import resolve_transcript
 from .backends import extract_intent
@@ -26,6 +26,24 @@ from .session import (
     persist_session_after_turn,
 )
 from .timings import StageClock, finalize_turn
+
+logger = logging.getLogger(__name__)
+
+
+def _emit_turn(user, stage: str, **fields) -> None:
+    """Best-effort staged push on ``ws/match/<user>/`` (Step 83)."""
+    if user is None or not getattr(user, "pk", None):
+        return
+    from apps.common.observability import request_id_var
+
+    payload = {k: v for k, v in fields.items() if v is not None}
+    rid = request_id_var.get()
+    if rid:
+        payload["request_id"] = rid
+    try:
+        push_turn_stage(int(user.pk), stage, payload)
+    except Exception:
+        logger.exception("turn stage push failed stage=%s", stage)
 
 
 def _serah(
@@ -48,9 +66,6 @@ def _serah(
         user_id=getattr(user, "pk", None),
     )
     return line.text, line.source
-
-
-logger = logging.getLogger(__name__)
 
 
 def _tts_lang(primary: str | None, languages: list[str] | None) -> str:
@@ -380,6 +395,16 @@ def process_turn(
             ui_language=ui,
         )
     text = asr.text.strip()
+    _emit_turn(
+        user,
+        "transcript",
+        transcript=text,
+        asr_source=asr.source,
+        asr_language=asr.language_hint or ui or "",
+        asr_language_code=asr.language_code or "",
+        session_id=session.pk,
+        silent=not bool(text),
+    )
     reply_lang = _tts_lang(ui, [ui] if ui else None) if ui else "en-US"
     if not text:
         # Silence / ambient noise is not a turn — keep listening, do not invent a reply.
@@ -401,8 +426,35 @@ def process_turn(
             "chat_backend": resolve_chat_backend(),
             "match_engine": "",
         }
+        _emit_turn(user, "intent", intent=None, session_id=session.pk)
+        _emit_turn(
+            user,
+            "route",
+            route="CHAT",
+            situation="empty",
+            session_id=session.pk,
+        )
+        _emit_turn(
+            user,
+            "reply_text",
+            reply="",
+            reply_lang=reply_lang,
+            route="CHAT",
+            situation="empty",
+            silent=True,
+            session_id=session.pk,
+        )
         with clock.span("tts_ms"):
             out = _attach_tts(payload, "", reply_lang, server_voice=False)
+        _emit_turn(
+            user,
+            "reply_audio",
+            reply_audio_base64=out.get("reply_audio_base64") or "",
+            reply_audio_mime=out.get("reply_audio_mime") or "",
+            tts_source=out.get("tts_source"),
+            session_id=session.pk,
+        )
+        _emit_turn(user, "done", situation="empty", silent=True, session_id=session.pk)
         return finalize_turn(
             user,
             out,
@@ -492,6 +544,26 @@ def process_turn(
         reply_lang = _tts_lang(ui, [ui])
     else:
         reply_lang = _tts_lang(base.get("language"), base.get("languages"))
+
+    # Early intent/route for progressive UI (chips + matching state) before VEHMF/TTS.
+    intent_preview = {
+        "condition": base.get("condition") or "",
+        "language": base.get("language") or "",
+        "languages": base.get("languages") or [],
+        "care_level": base.get("care_level") or "",
+        "urgency": base.get("urgency") or "routine",
+        "raw_text": base.get("raw_text") or text,
+        "source": base.get("source") or asr.source,
+    }
+    _emit_turn(user, "intent", intent=intent_preview, session_id=session.pk)
+    _emit_turn(
+        user,
+        "route",
+        route=route,
+        situation=situation,
+        clear_match=decision.clear_match,
+        session_id=session.pk,
+    )
 
     context_match = visible_match or history_match
     chat_history = list(session.turns or [])[-8:]
@@ -667,6 +739,7 @@ def process_turn(
         clear_match=decision.clear_match,
     )
 
+    open_qs = open_questions_for_intent(intent_out)
     payload = {
         "route": route,
         "situation": situation,
@@ -680,11 +753,42 @@ def process_turn(
         "match": match_payload,
         "clear_match": decision.clear_match,
         "session_id": session.pk,
-        "open_questions": open_questions_for_intent(intent_out),
+        "open_questions": open_qs,
         "chat_source": chat_source,
         "chat_backend": resolve_chat_backend(),
         "match_engine": "vehmf" if match_payload else "",
     }
+    # Re-emit final route/intent if salvage changed them after the early push.
+    _emit_turn(user, "intent", intent=intent_out, session_id=session.pk)
+    _emit_turn(
+        user,
+        "route",
+        route=route,
+        situation=situation,
+        clear_match=decision.clear_match,
+        session_id=session.pk,
+    )
+    _emit_turn(
+        user,
+        "reply_text",
+        reply=reply,
+        reply_lang=reply_lang,
+        route=route,
+        situation=situation,
+        clear_match=decision.clear_match,
+        open_questions=open_qs,
+        chat_source=chat_source,
+        session_id=session.pk,
+    )
+    if match_payload is not None:
+        _emit_turn(
+            user,
+            "match",
+            match=match_payload,
+            route=route,
+            situation=situation,
+            session_id=session.pk,
+        )
     with clock.span("tts_ms"):
         out = _attach_tts(
             payload,
@@ -692,4 +796,21 @@ def process_turn(
             reply_lang,
             server_voice=_use_server_voice(reply_lang, has_match=bool(match_payload)),
         )
+    _emit_turn(
+        user,
+        "reply_audio",
+        reply_audio_base64=out.get("reply_audio_base64") or "",
+        reply_audio_mime=out.get("reply_audio_mime") or "",
+        tts_source=out.get("tts_source"),
+        reply_lang=reply_lang,
+        session_id=session.pk,
+    )
+    _emit_turn(
+        user,
+        "done",
+        route=route,
+        situation=situation,
+        session_id=session.pk,
+        has_match=bool(match_payload),
+    )
     return finalize_turn(user, out, clock.finish(), route=route, situation=situation)
