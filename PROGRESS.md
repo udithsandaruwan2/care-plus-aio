@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-21 — Step 89 automatic FAISS index refresh._
+_Last updated: 2026-08-21 — Step 90 replay evaluation harness._
 
 ---
 
@@ -151,7 +151,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | **M18** Signal & telemetry foundations   | 76–79   | 76–79 ✅ | Outcomes logged, stages timed, AI decisions audited and reproducible |
 | **M19** Client efficiency                | 80–82   | 80–82 ✅ | Smaller first load, calmer render loop, network-tolerant boot        |
 | **M20** Conversation feel                | 83–87   | 83–87 ✅ | Streaming turns, interruptible speech, recoverable failures          |
-| **M21** Model lifecycle                  | 88–92   | 88–89 ✅ | Registry, auto index rebuild, replay eval, gated promotion           |
+| **M21** Model lifecycle                  | 88–92   | 88–90 ✅ | Registry, auto index rebuild, replay eval, gated promotion           |
 | **M22** Offline & local intelligence     | 93–98   | ⬜      | Installable PWA, cached reads, queued writes, local slot model       |
 | **M23** Adaptive ranking                 | 99–103  | ⬜      | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24** History surface & retention      | 104–106 | ⬜      | User-visible trail, complete export, retention policy                |
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 90 — Replay evaluation harness, branch `feat/step90-eval-harness`.
+**Next:** Step 91 — Gated model promotion, branch `feat/step91-gated-promotion`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 90** — Replay eval harness: `eval_ranking` on causal holdout MatchRuns; NDCG@5, MAP, recall@10, precision@5, coverage, exposure Gini; reproducible. Branch `feat/step90-eval-harness`.
 
 - **Step 89** — Automatic FAISS refresh: Celery re-embed on caregiver me PATCH, hourly stale no-op rebuild, dirty flag after eviction. Branch `feat/step89-index-refresh`.
 
