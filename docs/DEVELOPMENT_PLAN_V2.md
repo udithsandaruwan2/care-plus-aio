@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 89.** M21 continues with automatic FAISS refresh on caregiver edits.
+**Start at Step 90.** M21 continues with the replay evaluation harness.
 
 ---
 
@@ -272,16 +272,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 89 — Automatic index rebuild
+### Step 89 — Automatic index rebuild ✅ **DONE**
 
 **Branch:** `feat/step89-index-refresh`
 **Goal:** a caregiver who edits their specialties should rank differently without a human running a command.
-**Tasks:**
+**Done:**
 
-- Enqueue a Celery re-embed task on caregiver profile save that updates just that caregiver's vector.
-- Add a periodic consistency rebuild for drift, and a dirty-flag path for bulk changes.
-- Handle deactivation and erasure eviction in the same path.
-- Files: `backend/apps/matching/views.py`, `backend/apps/matching/faiss_index.py`, `backend/apps/matching/tasks.py`.
+- `refresh_caregiver_embedding` Celery task re-embeds one caregiver and rebuilds FAISS from stored vectors; enqueued from `PATCH /caregivers/me/` when embed-relevant fields change.
+- Hourly `rebuild_caregiver_index_if_stale` beat task no-ops when membership version is unchanged; Redis dirty flag forces a rebuild after bulk/eviction drift.
+- Erasure/deactivation still goes through `evict_caregiver_from_index` (marks dirty + rebuild).
 
 **✅ Acceptance:** editing a caregiver's specialties changes their rank for a relevant query within one task cycle, with no manual command; the scheduled rebuild is a no-op when nothing changed.
 **Depends on:** Step 88.
@@ -607,4 +606,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 89 — Automatic index rebuild** on `feat/step89-index-refresh`. Re-embed caregivers on profile save without a manual command.
+**Step 90 — Replay evaluation harness** on `feat/step90-eval-harness`. Judge candidate models against held-out MatchRun history.
