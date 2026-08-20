@@ -8,10 +8,48 @@ from .models import (
     Interaction,
     MatchResult,
     MatchRun,
+    ModelVersion,
     PatientProfile,
     Review,
     Shift,
 )
+
+
+@admin.register(ModelVersion)
+class ModelVersionAdmin(admin.ModelAdmin):
+    """Read-only registry of trained CF / FAISS / slot-classifier artifacts (Step 88)."""
+
+    list_display = (
+        "kind",
+        "version",
+        "is_active",
+        "trained_at",
+        "rows_trained_on",
+        "artifact_path",
+        "created_at",
+    )
+    list_filter = ("kind", "is_active")
+    search_fields = ("version", "artifact_path")
+    readonly_fields = (
+        "kind",
+        "version",
+        "trained_at",
+        "rows_trained_on",
+        "metrics",
+        "is_active",
+        "artifact_path",
+        "created_at",
+    )
+    ordering = ("kind", "-trained_at")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(CaregiverProfile)
@@ -94,8 +132,10 @@ class MatchRunAdmin(admin.ModelAdmin):
         "weights",
         "latency_ms",
         "cf_version",
+        "cf_model",
         "embedding_backend",
         "index_version",
+        "faiss_model",
         "weights_source",
         "filters",
         "voice_intent",

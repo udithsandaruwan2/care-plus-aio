@@ -39,6 +39,43 @@ class Language(models.TextChoices):
     ENGLISH = "English", "English"
 
 
+class ModelKind(models.TextChoices):
+    CF = "cf", "Collaborative filtering (ALS)"
+    FAISS = "faiss", "FAISS caregiver index"
+    SLOT_CLASSIFIER = "slot_classifier", "Offline slot classifier"
+
+
+class ModelVersion(models.Model):
+    """Registry row for a trained ranking / index / classifier artifact (Step 88)."""
+
+    kind = models.CharField(max_length=32, choices=ModelKind.choices, db_index=True)
+    version = models.CharField(max_length=64)
+    trained_at = models.DateTimeField()
+    rows_trained_on = models.PositiveIntegerField(default=0)
+    metrics = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=False, db_index=True)
+    artifact_path = models.CharField(max_length=512, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-trained_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("kind", "version"),
+                name="matching_modelversion_kind_version_uniq",
+            ),
+            models.UniqueConstraint(
+                fields=("kind",),
+                condition=models.Q(is_active=True),
+                name="matching_modelversion_one_active_per_kind",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        flag = "active" if self.is_active else "inactive"
+        return f"{self.kind}:{self.version} ({flag})"
+
+
 class CaregiverProfile(models.Model):
     """A caregiver's matchable profile (skills + geo + trust + embedding slot)."""
 
@@ -152,6 +189,20 @@ class MatchRun(models.Model):
     index_version = models.CharField(max_length=64, blank=True, default="", db_index=True)
     weights_source = models.CharField(max_length=32, blank=True, default="")
     filters = models.JSONField(default=dict, blank=True)
+    cf_model = models.ForeignKey(
+        "matching.ModelVersion",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cf_match_runs",
+    )
+    faiss_model = models.ForeignKey(
+        "matching.ModelVersion",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="faiss_match_runs",
+    )
     voice_intent = models.ForeignKey(
         "voice.VoiceIntent",
         on_delete=models.SET_NULL,
@@ -231,6 +282,10 @@ def create_match_run(
     )
     run.query = query or ""
     run.condition = condition or ""
+    from .model_registry import resolve_model_version
+
+    run.cf_model = resolve_model_version(ModelKind.CF, cf_version or "")
+    run.faiss_model = resolve_model_version(ModelKind.FAISS, index_version or "")
     run.save()
     from apps.accounts.audit import record_audit
     from apps.accounts.models import AuditAction

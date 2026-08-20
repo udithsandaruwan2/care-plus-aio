@@ -135,6 +135,26 @@ def _persist(built: CaregiverIndex, mat: np.ndarray) -> None:
     }
     (d / "caregivers.ids.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     np.save(d / "caregivers.npy", mat)
+    try:
+        from .model_registry import register_model_version
+        from .models import ModelKind
+
+        register_model_version(
+            kind=ModelKind.FAISS,
+            version=str(meta["version"]),
+            rows_trained_on=int(meta.get("count") or built.size),
+            metrics={
+                "backend": built.backend,
+                "dim": EMBEDDING_DIM,
+                "count": built.size,
+            },
+            artifact_path=str(d),
+            activate=True,
+        )
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).exception("FAISS ModelVersion register failed")
 
 
 def load_index() -> CaregiverIndex:
