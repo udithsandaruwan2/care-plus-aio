@@ -37,6 +37,8 @@ export function HomePage() {
     mic,
     speech,
     turnError,
+    turnFailure,
+    retryFailedTurn,
     consentNeeded,
     emergencyActive,
     visual,
@@ -150,7 +152,13 @@ export function HomePage() {
           </div>
           {showMatchPanel ? (
             <div className="serah-field-chat">
-              <ChatBubbles messages={chat} compact />
+              <ChatBubbles
+                messages={chat}
+                compact
+                failure={turnFailure}
+                onRetry={() => void retryFailedTurn()}
+                retrying={busy}
+              />
             </div>
           ) : null}
           {!showMatchPanel ? (
@@ -170,7 +178,12 @@ export function HomePage() {
                     Tap the field or type below to talk with Serah.
                   </p>
                 )}
-                <ChatBubbles messages={chat} />
+                <ChatBubbles
+                  messages={chat}
+                  failure={turnFailure}
+                  onRetry={() => void retryFailedTurn()}
+                  retrying={busy}
+                />
                 {clarifyPrompt && (
                   <p className="mt-2 max-w-md text-center text-sm text-amber" aria-live="polite">
                     {clarifyPrompt} Keep talking — your other details stay.
@@ -204,7 +217,7 @@ export function HomePage() {
             {mic.error ?? speech.error}
           </p>
         )}
-        {turnError && !consentNeeded && (
+        {turnError && !consentNeeded && !turnFailure && (
           <p className="text-sm text-rose" role="alert">
             {turnError}
           </p>

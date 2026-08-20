@@ -1,13 +1,24 @@
 import type { ChatMessage } from './store';
+import type { TurnFailure } from './turnFailure';
 
 type Props = {
   messages: ChatMessage[];
   compact?: boolean;
+  /** Step 86 — failed turn recovery affordance. */
+  failure?: TurnFailure | null;
+  onRetry?: () => void;
+  retrying?: boolean;
 };
 
 /** Scrollable Serah ↔ patient thread (Step 15h). */
-export function ChatBubbles({ messages, compact = false }: Props) {
-  if (!messages.length) return null;
+export function ChatBubbles({
+  messages,
+  compact = false,
+  failure = null,
+  onRetry,
+  retrying = false,
+}: Props) {
+  if (!messages.length && !failure) return null;
   const visible = compact ? messages.slice(-3) : messages;
 
   return (
@@ -21,6 +32,28 @@ export function ChatBubbles({ messages, compact = false }: Props) {
       {visible.map((msg) => (
         <Bubble key={msg.id} msg={msg} compact={compact} />
       ))}
+      {failure ? (
+        <div
+          className={`rounded-xl border px-3 py-2 text-sm ${
+            failure.kind === 'throttle'
+              ? 'border-amber/40 bg-amber/5 text-amber'
+              : 'border-rose/40 bg-rose/5 text-rose'
+          }`}
+          role="alert"
+        >
+          <p>{failure.message}</p>
+          {failure.canRetry && onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              disabled={retrying}
+              className="mt-2 rounded-lg bg-rose/20 px-3 py-1 text-xs font-semibold text-mist ring-1 ring-rose/30 disabled:opacity-50"
+            >
+              {retrying ? 'Retrying…' : 'Retry message'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

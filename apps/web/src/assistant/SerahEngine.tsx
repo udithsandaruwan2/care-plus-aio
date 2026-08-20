@@ -22,6 +22,7 @@ import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
 import { subscribeSerahSpeaking } from './useTts';
+import type { TurnFailure } from './turnFailure';
 
 type SerahEngineValue = {
   listening: boolean;
@@ -34,6 +35,8 @@ type SerahEngineValue = {
   mic: ReturnType<typeof useMicAmplitude>;
   speech: ReturnType<typeof useSpeechRecognition>;
   turnError: string | null;
+  turnFailure: TurnFailure | null;
+  retryFailedTurn: () => Promise<void>;
   consentNeeded: boolean;
   emergencyMatchId: number | null;
   emergencyActive: boolean;
@@ -81,8 +84,10 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const asrLang = uiLanguageToRecognition(uiLanguage);
   const {
     runTurn,
+    retryFailedTurn,
     busy,
     error: turnError,
+    failure: turnFailure,
     consentNeeded,
     grantConsent,
     stopSpeaking: stopTurnSpeaking,
@@ -385,6 +390,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       mic,
       speech,
       turnError,
+      turnFailure,
+      retryFailedTurn,
       consentNeeded,
       emergencyMatchId,
       emergencyActive,
@@ -406,6 +413,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       mic,
       speech,
       turnError,
+      turnFailure,
+      retryFailedTurn,
       consentNeeded,
       emergencyMatchId,
       emergencyActive,

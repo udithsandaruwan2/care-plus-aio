@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 86.** M20 continues with recoverable turns after a dropped connection.
+**Start at Step 87.** M20 finishes with reply rendering and denser match cards.
 
 ---
 
@@ -224,16 +224,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 86 — Recoverable turns
+### Step 86 — Recoverable turns ✅ **DONE**
 
 **Branch:** `feat/step86-turn-recovery`
 **Goal:** a dropped connection mid-turn should not throw away what the user just said.
-**Tasks:**
+**Done:**
 
-- Preserve the transcript on failure and offer an inline retry that resubmits the same turn.
-- Distinguish network failure, timeout, throttle (429), and consent (451) in the UI copy.
-- Queue the turn for replay when the connection returns.
-- Files: `apps/web/src/assistant/useVoiceTurn.ts`, `apps/web/src/assistant/ChatBubbles.tsx`.
+- Failed turns keep the user transcript/chat bubble and expose an inline **Retry message** control.
+- Error copy distinguishes network, timeout, throttle (429), consent (451), and auth.
+- Network/timeout failures queue for a single auto-replay when `navigator` reports online again (manual retry clears the queue so it cannot double-fire).
 
 **✅ Acceptance:** killing the network mid-turn leaves the transcript on screen with a working retry; restoring the network replays the turn once, not twice.
 **Depends on:** Step 82.
@@ -610,4 +609,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 86 — Recoverable turns** on `feat/step86-turn-recovery`. Preserve transcript on failure and offer retry / replay.
+**Step 87 — Reply rendering and card density** on `feat/step87-reply-render`. Progressive replies, collapsed VEHMF breakdown, a11y live region.
