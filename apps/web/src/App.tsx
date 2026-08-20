@@ -70,6 +70,7 @@ const AdminAnalyticsPage = lazyNamed(
 );
 const AdminAuditPage = lazyNamed(() => import('./pages/AdminAuditPage'), 'AdminAuditPage');
 const LeadsPage = lazyNamed(() => import('./pages/LeadsPage'), 'LeadsPage');
+const OfflinePage = lazyNamed(() => import('./pages/OfflinePage'), 'OfflinePage');
 
 function RouteFallback() {
   return (
@@ -93,6 +94,7 @@ export function App() {
             <Route path="/catalog" element={<CatalogPage />} />
             <Route path="/caregivers" element={<BrowseCaregiversPage />} />
             <Route path="/caregivers/:id" element={<CaregiverDetailPage />} />
+            <Route path="/offline" element={<OfflinePage />} />
           </Route>
 
           <Route element={<RequireAuth />}>

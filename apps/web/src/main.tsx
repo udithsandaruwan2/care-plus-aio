@@ -5,6 +5,9 @@ import { App } from './App';
 import './index.css';
 import { LocaleProvider } from './i18n/LocaleProvider';
 import { ThemeProvider } from './theme/ThemeProvider';
+import { registerCarePlusSW } from './pwa/registerSW';
+
+void registerCarePlusSW();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

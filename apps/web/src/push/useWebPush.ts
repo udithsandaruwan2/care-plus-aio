@@ -71,7 +71,9 @@ export function useWebPush(): WebPushState {
       if (perm !== 'granted') {
         throw new Error('Notification permission was not granted.');
       }
-      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      const reg =
+        (await navigator.serviceWorker.getRegistration('/')) ??
+        (await navigator.serviceWorker.register('/sw.js', { scope: '/' }));
       await navigator.serviceWorker.ready;
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
