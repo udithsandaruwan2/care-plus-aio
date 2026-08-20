@@ -106,6 +106,29 @@ def _write_artifact(
         json.dumps({"version": version, "dir": version_dir.name}, indent=2),
         encoding="utf-8",
     )
+    try:
+        from .model_registry import register_model_version
+        from .models import ModelKind
+
+        register_model_version(
+            kind=ModelKind.CF,
+            version=version,
+            rows_trained_on=n_interactions,
+            metrics={
+                "n_patients": len(patient_ids),
+                "n_caregivers": len(caregiver_ids),
+                "factors": factors,
+                "n_interactions": n_interactions,
+            },
+            artifact_path=str(version_dir),
+            trained_at=meta["trained_at"],
+            activate=True,
+        )
+    except Exception:
+        # Training must still succeed if the registry write fails (e.g. mid-migration).
+        import logging
+
+        logging.getLogger(__name__).exception("CF ModelVersion register failed")
     return meta
 
 

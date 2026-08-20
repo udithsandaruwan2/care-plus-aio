@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 88.** M21 begins with the model registry.
+**Start at Step 89.** M21 continues with automatic FAISS refresh on caregiver edits.
 
 ---
 
@@ -257,16 +257,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ## M21 · Model lifecycle
 
-### Step 88 — Model registry
+### Step 88 — Model registry ✅ **DONE**
 
 **Branch:** `feat/step88-model-registry`
 **Goal:** know from the database which model produced which result.
-**Tasks:**
+**Done:**
 
-- Add a `ModelVersion` model: `kind` (cf / faiss / slot-classifier), `version`, `trained_at`, `rows_trained_on`, `metrics` (JSON), `is_active`, `artifact_path`.
-- Write a row on every training run; make `MatchRun.cf_version` and `index_version` foreign keys or resolvable strings.
-- Expose read-only rows in the admin console.
-- Files: `backend/apps/matching/models.py`, `backend/apps/matching/cf_train.py`, `backend/apps/matching/faiss_index.py`.
+- `ModelVersion` registry (`kind`: cf / faiss / slot_classifier) with metrics, artifact path, and exactly one active row per kind.
+- CF train and FAISS persist register versions; `MatchRun` keeps string provenance and resolves `cf_model` / `faiss_model` FKs.
+- Read-only Django admin for `ModelVersion`; MatchRun admin shows the linked rows.
 
 **✅ Acceptance:** the admin console lists every trained artifact with its metrics; exactly one row per kind is active; a `MatchRun` resolves to the model rows that produced it.
 **Depends on:** Step 79.
@@ -608,4 +607,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 88 — Model registry** on `feat/step88-model-registry`. Persist trained CF / FAISS / slot-classifier artifacts and link them from MatchRun.
+**Step 89 — Automatic index rebuild** on `feat/step89-index-refresh`. Re-embed caregivers on profile save without a manual command.
