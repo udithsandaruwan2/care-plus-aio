@@ -28,6 +28,7 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     user: null,
     loading: false,
+    sessionStale: false,
     login: async () => undefined,
     register: async () => undefined,
     logout: () => undefined,

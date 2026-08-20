@@ -70,6 +70,7 @@ import {
   type AuditLogListParams,
   type VoiceIntentInput,
 } from './schemas';
+import { TimeoutError, fetchWithTimeout, isNetworkError, withRetry } from './http';
 
 export type ApiClientOptions = {
   baseUrl: string;
@@ -77,8 +78,14 @@ export type ApiClientOptions = {
   getRefreshToken?: () => string | null;
   /** Called after a successful token refresh (access, and refresh if rotated). */
   onTokensRefreshed?: (tokens: { access: string; refresh?: string }) => void;
-  /** Called when refresh fails — clear session / redirect to login. */
+  /** Called when refresh fails with an auth response — clear session / redirect to login. */
   onAuthFailure?: () => void;
+  /** Default request timeout in ms (Step 82). Default 30s. */
+  timeoutMs?: number;
+  /** Extra retries after the first attempt for idempotent GETs on transport failure. Default 2. */
+  maxRetries?: number;
+  /** Fired after each completed attempt (success or typed transport failure). */
+  onRequestOutcome?: (outcome: 'ok' | 'network' | 'timeout' | 'http') => void;
 };
 
 export class ApiError extends Error {
@@ -92,9 +99,29 @@ export class ApiError extends Error {
   }
 }
 
+export { NetworkError, TimeoutError, isNetworkError } from './http';
+export { isTimeoutError } from './http';
+
 export function createApiClient(options: ApiClientOptions) {
-  const { baseUrl, getAccessToken, getRefreshToken, onTokensRefreshed, onAuthFailure } = options;
+  const {
+    baseUrl,
+    getAccessToken,
+    getRefreshToken,
+    onTokensRefreshed,
+    onAuthFailure,
+    timeoutMs = 30_000,
+    maxRetries = 2,
+    onRequestOutcome,
+  } = options;
   let refreshInFlight: Promise<string | null> | null = null;
+
+  function noteOutcome(outcome: 'ok' | 'network' | 'timeout' | 'http') {
+    onRequestOutcome?.(outcome);
+  }
+
+  async function doFetch(path: string, init: RequestInit): Promise<Response> {
+    return fetchWithTimeout(`${baseUrl.replace(/\/$/, '')}${path}`, init, { timeoutMs });
+  }
 
   async function refreshAccessToken(): Promise<string | null> {
     if (refreshInFlight) return refreshInFlight;
@@ -102,7 +129,7 @@ export function createApiClient(options: ApiClientOptions) {
       const refresh = getRefreshToken?.();
       if (!refresh) return null;
       try {
-        const res = await fetch(`${baseUrl.replace(/\/$/, '')}/auth/token/refresh/`, {
+        const res = await doFetch('/auth/token/refresh/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh }),
@@ -117,7 +144,9 @@ export function createApiClient(options: ApiClientOptions) {
           }
         }
         if (!res.ok) {
-          onAuthFailure?.();
+          // Only clear session when the server rejects the refresh token.
+          if (res.status === 401 || res.status === 403) onAuthFailure?.();
+          noteOutcome('http');
           return null;
         }
         // Refresh may return only { access } unless rotation is enabled.
@@ -127,6 +156,7 @@ export function createApiClient(options: ApiClientOptions) {
             : '';
         if (!access) {
           onAuthFailure?.();
+          noteOutcome('http');
           return null;
         }
         const nextRefresh =
@@ -134,9 +164,11 @@ export function createApiClient(options: ApiClientOptions) {
             ? String((data as { refresh: unknown }).refresh)
             : undefined;
         onTokensRefreshed?.({ access, refresh: nextRefresh });
+        noteOutcome('ok');
         return access;
-      } catch {
-        onAuthFailure?.();
+      } catch (err) {
+        // Transport failure — keep tokens; caller decides whether session is stale.
+        noteOutcome(err instanceof TimeoutError ? 'timeout' : 'network');
         return null;
       } finally {
         refreshInFlight = null;
@@ -145,11 +177,11 @@ export function createApiClient(options: ApiClientOptions) {
     return refreshInFlight;
   }
 
-  async function request<T>(
+  async function requestOnce<T>(
     path: string,
-    init: RequestInit = {},
+    init: RequestInit,
     parse: (data: unknown) => T,
-    retried = false,
+    retried: boolean,
   ): Promise<T> {
     const headers = new Headers(init.headers);
     if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
@@ -158,10 +190,7 @@ export function createApiClient(options: ApiClientOptions) {
     const token = getAccessToken?.();
     if (token) headers.set('Authorization', `Bearer ${token}`);
 
-    const res = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
-      ...init,
-      headers,
-    });
+    const res = await doFetch(path, { ...init, headers });
     const text = await res.text();
     let data: unknown = null;
     if (text) {
@@ -174,23 +203,44 @@ export function createApiClient(options: ApiClientOptions) {
     if (res.status === 401 && !retried && getRefreshToken && !path.includes('/auth/token')) {
       const next = await refreshAccessToken();
       if (next) {
-        return request(path, init, parse, true);
+        return requestOnce(path, init, parse, true);
       }
     }
     if (!res.ok) {
+      noteOutcome('http');
       throw new ApiError(`HTTP ${res.status}`, res.status, data);
     }
+    noteOutcome('ok');
     return parse(data);
   }
 
-  async function requestBlob(path: string, init: RequestInit = {}, retried = false): Promise<Blob> {
+  async function request<T>(
+    path: string,
+    init: RequestInit = {},
+    parse: (data: unknown) => T,
+    retried = false,
+  ): Promise<T> {
+    try {
+      return await withRetry(
+        typeof init.method === 'string' ? init.method : 'GET',
+        () => requestOnce(path, init, parse, retried),
+        { maxRetries },
+      );
+    } catch (err) {
+      if (err instanceof TimeoutError) noteOutcome('timeout');
+      else if (isNetworkError(err)) noteOutcome('network');
+      throw err;
+    }
+  }
+
+  async function requestBlobOnce(path: string, init: RequestInit, retried: boolean): Promise<Blob> {
     const headers = new Headers(init.headers);
     const token = getAccessToken?.();
     if (token) headers.set('Authorization', `Bearer ${token}`);
-    const res = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, { ...init, headers });
+    const res = await doFetch(path, { ...init, headers });
     if (res.status === 401 && !retried && getRefreshToken && !path.includes('/auth/token')) {
       const next = await refreshAccessToken();
-      if (next) return requestBlob(path, init, true);
+      if (next) return requestBlobOnce(path, init, true);
     }
     if (!res.ok) {
       const text = await res.text();
@@ -200,9 +250,25 @@ export function createApiClient(options: ApiClientOptions) {
       } catch {
         /* keep text */
       }
+      noteOutcome('http');
       throw new ApiError(`HTTP ${res.status}`, res.status, data);
     }
+    noteOutcome('ok');
     return res.blob();
+  }
+
+  async function requestBlob(path: string, init: RequestInit = {}, retried = false): Promise<Blob> {
+    try {
+      return await withRetry(
+        typeof init.method === 'string' ? init.method : 'GET',
+        () => requestBlobOnce(path, init, retried),
+        { maxRetries },
+      );
+    } catch (err) {
+      if (err instanceof TimeoutError) noteOutcome('timeout');
+      else if (isNetworkError(err)) noteOutcome('network');
+      throw err;
+    }
   }
 
   return {

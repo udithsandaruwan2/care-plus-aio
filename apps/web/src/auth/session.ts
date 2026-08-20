@@ -1,5 +1,8 @@
+import type { User } from '@care-plus/api-client';
+
 const ACCESS_KEY = 'cp_access';
 const REFRESH_KEY = 'cp_refresh';
+const USER_KEY = 'cp_user';
 
 export type StoredTokens = {
   access: string;
@@ -21,8 +24,28 @@ export function saveTokens(tokens: StoredTokens): void {
 export function clearTokens(): void {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  clearCachedUser();
 }
 
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_KEY);
+}
+
+/** Last known profile so offline reload can keep the user signed in (Step 82). */
+export function saveCachedUser(user: User): void {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function loadCachedUser(): User | null {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+export function clearCachedUser(): void {
+  localStorage.removeItem(USER_KEY);
 }

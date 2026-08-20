@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 82.** M19 continues with network-tolerant client.
+**Start at Step 83.** M20 begins with streaming voice turns.
 
 ---
 
@@ -163,19 +163,17 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 82 — Network-tolerant client
+### Step 82 — Network-tolerant client ✅ **DONE**
 
 **Branch:** `feat/step82-network-tolerance`
 **Goal:** a flaky connection should degrade the app, not log the user out.
-**Tasks:**
+**Done:**
 
-- In `refreshMe()`, only clear session state on 401/403; on a network error keep the last known user and flag the session stale.
-- Add request timeouts and bounded retry with backoff to the API client (it currently has neither, so a hung Gemini call ties up the UI until the browser gives up).
-- Surface a persistent connection-state indicator driven by `navigator.onLine` plus request outcomes.
-- Files: `apps/web/src/auth/AuthContext.tsx`, `packages/api-client/src/client.ts`, `apps/web/src/components/layout/AppShell.tsx`.
+- `refreshMe()` clears the session only on 401/403; transport failures keep the cached user and set `sessionStale`.
+- API client: 30s timeout (`TimeoutError`), bounded GET retries with backoff, `NetworkError` on failed fetch; token refresh no longer clears tokens on network failure.
+- AppShell banner reflects `navigator.onLine` plus request outcomes (`online` / `offline` / `degraded`).
 
 **✅ Acceptance:** with the network disabled, a reload keeps the user signed in and shows an offline indicator instead of the login screen; a stalled request aborts at the configured timeout with a typed error.
-**Depends on:** none. Prerequisite for M22.
 
 ---
 
@@ -615,4 +613,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 82 — Network-tolerant client** on `feat/step82-network-tolerance`. Keep the session on network errors; add timeouts and an offline indicator.
+**Step 83 — Streaming voice turn** on `feat/step83-streaming-turn`. Emit staged turn events over `ws/match/` so Serah fills in progressively.

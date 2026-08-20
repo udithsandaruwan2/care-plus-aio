@@ -8,13 +8,16 @@ import {
   type ReactNode,
 } from 'react';
 import type { User } from '@care-plus/api-client';
-import { ApiError } from '@care-plus/api-client';
+import { ApiError, isNetworkError } from '@care-plus/api-client';
 import { api } from './api';
-import { clearTokens, loadTokens, saveTokens } from './session';
+import { bindConnectionListeners, useConnectionStore } from './connectionStore';
+import { clearTokens, loadCachedUser, loadTokens, saveCachedUser, saveTokens } from './session';
 
 type AuthState = {
   user: User | null;
   loading: boolean;
+  /** True when tokens exist but the last /me refresh failed due to transport. */
+  sessionStale: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (email: string, password: string, role: 'patient' | 'caregiver') => Promise<User>;
   logout: () => void;
@@ -30,23 +33,43 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => loadCachedUser());
   const [loading, setLoading] = useState(true);
+  const [sessionStale, setSessionStale] = useState(false);
+
+  useEffect(() => bindConnectionListeners(), []);
 
   const refreshMe = useCallback(async () => {
     const tokens = loadTokens();
     if (!tokens) {
       setUser(null);
+      setSessionStale(false);
       return;
     }
     try {
       const me = await api.me();
       setUser(me);
+      saveCachedUser(me);
+      setSessionStale(false);
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         clearTokens();
+        setUser(null);
+        setSessionStale(false);
+        return;
+      }
+      // Network / timeout / unexpected — keep last known user when possible.
+      const cached = loadCachedUser();
+      if (cached) {
+        setUser(cached);
+        setSessionStale(true);
+        if (isNetworkError(err)) {
+          useConnectionStore.getState().noteRequestOutcome('network');
+        }
+        return;
       }
       setUser(null);
+      setSessionStale(Boolean(tokens));
     }
   }, []);
 
@@ -59,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveTokens(tokens);
     const me = await api.me();
     setUser(me);
+    saveCachedUser(me);
+    setSessionStale(false);
     return me;
   }, []);
 
@@ -77,17 +102,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveTokens(tokens);
     const me = await api.me();
     setUser(me);
+    saveCachedUser(me);
+    setSessionStale(false);
     return me;
   }, []);
 
   const logout = useCallback(() => {
     clearTokens();
     setUser(null);
+    setSessionStale(false);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, requestOtp, verifyOtp }),
-    [user, loading, login, register, logout, requestOtp, verifyOtp],
+    () => ({
+      user,
+      loading,
+      sessionStale,
+      login,
+      register,
+      logout,
+      requestOtp,
+      verifyOtp,
+    }),
+    [user, loading, sessionStale, login, register, logout, requestOtp, verifyOtp],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
