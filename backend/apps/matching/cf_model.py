@@ -104,22 +104,39 @@ def load_cf_model(*, force: bool = False) -> AlsCFModel | None:
 
     doc = json.loads(pointer.read_text(encoding="utf-8"))
     version_dir = cf_artifact_dir() / doc["dir"]
-    meta_path = version_dir / "meta.json"
-    factors_path = version_dir / "factors.npz"
+    model = load_cf_model_from_dir(version_dir)
+    if model is None:
+        return None
+    _CACHE = model
+    return model
+
+
+def load_cf_model_from_dir(version_dir: Path | str) -> AlsCFModel | None:
+    """Load an ALS artifact from a version directory (does not touch the cache)."""
+    path = Path(version_dir)
+    meta_path = path / "meta.json"
+    factors_path = path / "factors.npz"
     if not meta_path.exists() or not factors_path.exists():
         return None
-
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     factors = np.load(factors_path)
-    model = AlsCFModel(
+    return AlsCFModel(
         version=meta["version"],
         patient_ids=list(meta["patient_ids"]),
         caregiver_ids=list(meta["caregiver_ids"]),
         user_factors=np.asarray(factors["user_factors"], dtype=np.float32),
         item_factors=np.asarray(factors["item_factors"], dtype=np.float32),
     )
-    _CACHE = model
-    return model
+
+
+def set_current_cf_pointer(*, version: str, dir_name: str) -> None:
+    """Point ``current.json`` at a trained version directory."""
+    root = cf_artifact_dir()
+    (root / "current.json").write_text(
+        json.dumps({"version": version, "dir": dir_name}, indent=2),
+        encoding="utf-8",
+    )
+    reset_cf_cache()
 
 
 def get_cf_model() -> CFModel:

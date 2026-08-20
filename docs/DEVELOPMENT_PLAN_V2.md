@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 91.** M21 continues with gated model promotion.
+**Start at Step 92.** M21 continues with negative signals in CF training.
 
 ---
 
@@ -303,17 +303,17 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 91 — Gated model promotion
+### Step 91 — Gated model promotion ✅ **DONE**
 
 **Branch:** `feat/step91-gated-promotion`
 **Goal:** a worse model must not silently become production. `train_cf_als()` currently flips the pointer unconditionally.
-**Tasks:**
+**Done:**
 
-- After training, evaluate the candidate against the incumbent on the held-out window.
-- Only update `current.json` and mark the `ModelVersion` active if the candidate wins on the primary metric by a configured margin.
-- Record both models' metrics on the `ModelVersion` rows and log the decision.
-- Add a `promote_model --force` escape hatch for operators.
-- Files: `backend/apps/matching/cf_train.py`, `backend/apps/matching/tasks.py`.
+- After training, evaluate the candidate against the incumbent on the held-out window (Step 90 harness).
+- Only update `current.json` and mark the `ModelVersion` active if the candidate wins on `CF_PROMOTE_METRIC` (default NDCG@5) by `CF_PROMOTE_MARGIN`.
+- Record both models' holdout metrics on the `ModelVersion` rows and log accept/reject.
+- `promote_model --force` / `train_cf --force` escape hatches for operators; cold start still promotes.
+- Files: `backend/apps/matching/cf_train.py`, `backend/apps/matching/tasks.py`, `promote_model` command.
 
 **✅ Acceptance:** deliberately training on shuffled interactions produces a candidate that is rejected and leaves the incumbent active; a genuine improvement is promoted and logged.
 **Depends on:** Steps 88, 90.
@@ -606,4 +606,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 91 — Gated model promotion** on `feat/step91-gated-promotion`. Only activate a CF candidate that beats the incumbent on the holdout.
+**Step 92 — Negative feedback in training** on `feat/step92-negative-signals`. Train on REJECT and compare with the Step 90 harness.

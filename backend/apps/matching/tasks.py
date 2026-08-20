@@ -4,11 +4,11 @@ from celery import shared_task
 
 
 @shared_task(name="matching.train_cf_model")
-def train_cf_model() -> dict:
-    """Nightly ALS retrain on the interaction log."""
+def train_cf_model(force: bool = False) -> dict:
+    """Nightly ALS retrain on the interaction log (gated promotion — Step 91)."""
     from .cf_train import train_cf_als
 
-    return train_cf_als()
+    return train_cf_als(force=bool(force))
 
 
 @shared_task(name="matching.expire_care_requests")
