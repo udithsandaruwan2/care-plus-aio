@@ -1,4 +1,4 @@
-"""Offline ALS training for patient ↔ caregiver CF (Steps 21 / 91)."""
+"""Offline ALS training for patient ↔ caregiver CF (Steps 21 / 91 / 92)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import random
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import scipy.sparse as sp
@@ -23,9 +23,194 @@ from .cf_model import (
     reset_cf_cache,
     set_current_cf_pointer,
 )
-from .models import Interaction, ModelKind, ModelVersion
+from .models import Interaction, InteractionKind, ModelKind, ModelVersion
 
 logger = logging.getLogger(__name__)
+
+# Stronger-than-view positives used when classifying pair outcomes (Step 92).
+_STRONG_POSITIVE_KINDS = frozenset(
+    {
+        InteractionKind.REQUEST,
+        InteractionKind.ACCEPT,
+        InteractionKind.COMPLETE,
+        InteractionKind.RATE,
+    }
+)
+
+PairKind = Literal["positive", "hard_negative", "weak_negative"]
+
+
+def _training_rows(
+    *,
+    shuffle_interactions: bool = False,
+) -> list[tuple[int, int, str, float]]:
+    """Load interaction rows as (patient_id, caregiver_id, kind, weight)."""
+    rows = list(
+        Interaction.objects.values_list("patient_id", "caregiver_id", "kind", "weight")
+    )
+    if shuffle_interactions and rows:
+        caregivers = [r[1] for r in rows]
+        rng = random.Random(0)
+        rng.shuffle(caregivers)
+        rows = [(r[0], caregivers[i], r[2], r[3]) for i, r in enumerate(rows)]
+    return rows
+
+
+def classify_pair_signals(
+    rows: list[tuple[int, int, str, float]],
+) -> dict[tuple[int, int], tuple[PairKind, float]]:
+    """Collapse raw interactions into one labelled signal per patient↔caregiver pair.
+
+    Priority: hard REJECT > strong positive > VIEW-only weak negative.
+    """
+    by_pair: dict[tuple[int, int], list[tuple[str, float]]] = defaultdict(list)
+    for patient_id, caregiver_id, kind, weight in rows:
+        by_pair[(int(patient_id), int(caregiver_id))].append((str(kind), float(weight)))
+
+    out: dict[tuple[int, int], tuple[PairKind, float]] = {}
+    for key, events in by_pair.items():
+        kinds = {k for k, _ in events}
+        if InteractionKind.REJECT in kinds:
+            mag = sum(abs(w) for k, w in events if k == InteractionKind.REJECT) or 1.0
+            out[key] = ("hard_negative", mag)
+            continue
+        strong = [(k, w) for k, w in events if k in _STRONG_POSITIVE_KINDS and w > 0]
+        if strong:
+            out[key] = ("positive", sum(w for _, w in strong))
+            continue
+        if InteractionKind.VIEW in kinds:
+            view_w = sum(w for k, w in events if k == InteractionKind.VIEW and w > 0) or 1.0
+            out[key] = ("weak_negative", view_w)
+    return out
+
+
+def build_confidence_observations(
+    signals: dict[tuple[int, int], tuple[PairKind, float]],
+    *,
+    patient_to_idx: dict[int, int],
+    caregiver_to_idx: dict[int, int],
+    use_negatives: bool = True,
+    positive_alpha: float = 40.0,
+    reject_alpha: float = 80.0,
+    weak_neg_alpha: float = 5.0,
+) -> tuple[list[tuple[int, int, float, float]], dict[str, int]]:
+    """Hu-style (user_idx, item_idx, confidence, preference) observations.
+
+    When ``use_negatives`` is false, only positives are emitted (legacy ALS).
+    """
+    obs: list[tuple[int, int, float, float]] = []
+    counts = {"positive": 0, "hard_negative": 0, "weak_negative": 0, "skipped": 0}
+    for (pid, cid), (kind, magnitude) in signals.items():
+        if pid not in patient_to_idx or cid not in caregiver_to_idx:
+            counts["skipped"] += 1
+            continue
+        u = patient_to_idx[pid]
+        i = caregiver_to_idx[cid]
+        if kind == "positive":
+            conf = 1.0 + float(positive_alpha) * float(magnitude)
+            obs.append((u, i, conf, 1.0))
+            counts["positive"] += 1
+        elif kind == "hard_negative":
+            if not use_negatives:
+                counts["skipped"] += 1
+                continue
+            conf = 1.0 + float(reject_alpha) * float(magnitude)
+            obs.append((u, i, conf, 0.0))
+            counts["hard_negative"] += 1
+        elif kind == "weak_negative":
+            if not use_negatives:
+                # Legacy: treat VIEW as a weak positive.
+                conf = 1.0 + float(positive_alpha) * float(magnitude)
+                obs.append((u, i, conf, 1.0))
+                counts["positive"] += 1
+            else:
+                conf = 1.0 + float(weak_neg_alpha) * float(magnitude)
+                obs.append((u, i, conf, 0.0))
+                counts["weak_negative"] += 1
+    return obs, counts
+
+
+def fit_confidence_weighted_als(
+    *,
+    n_users: int,
+    n_items: int,
+    observations: list[tuple[int, int, float, float]],
+    factors: int = 32,
+    iterations: int = 15,
+    regularization: float = 0.01,
+    random_state: int = 42,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Alternating least squares with per-observation confidence and preference (0/1).
+
+    Hard/weak negatives use preference 0 with elevated confidence so factors are
+    pushed away from rejected / shown-but-ignored caregivers (Step 92).
+    """
+    if not observations:
+        raise ValueError("No CF observations to fit")
+
+    rng = np.random.default_rng(random_state)
+    X = rng.normal(0.0, 0.01, size=(n_users, factors)).astype(np.float64)
+    Y = rng.normal(0.0, 0.01, size=(n_items, factors)).astype(np.float64)
+
+    by_user: dict[int, list[tuple[int, float, float]]] = defaultdict(list)
+    by_item: dict[int, list[tuple[int, float, float]]] = defaultdict(list)
+    for u, i, conf, pref in observations:
+        by_user[u].append((i, conf, pref))
+        by_item[i].append((u, conf, pref))
+
+    eye = np.eye(factors, dtype=np.float64) * float(regularization)
+
+    def _solve_entity(factors_other: np.ndarray, obs: list[tuple[int, float, float]]) -> np.ndarray:
+        # A = YtY + λI + Σ (c-1) y y^T ; b = Σ c p y
+        yt_y = factors_other.T @ factors_other
+        a = yt_y + eye
+        b = np.zeros(factors, dtype=np.float64)
+        for idx, conf, pref in obs:
+            vec = factors_other[idx]
+            a = a + (conf - 1.0) * np.outer(vec, vec)
+            b = b + (conf * pref) * vec
+        return np.linalg.solve(a, b)
+
+    for _ in range(max(1, int(iterations))):
+        for u, obs in by_user.items():
+            X[u] = _solve_entity(Y, obs)
+        for i, obs in by_item.items():
+            Y[i] = _solve_entity(X, obs)
+
+    return X.astype(np.float32), Y.astype(np.float32)
+
+
+def fit_legacy_positive_als(
+    *,
+    n_users: int,
+    n_items: int,
+    observations: list[tuple[int, int, float, float]],
+    factors: int = 32,
+    iterations: int = 15,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Positives-only implicit ALS (pre-Step-92 baseline)."""
+    acc: dict[tuple[int, int], float] = defaultdict(float)
+    for u, i, conf, pref in observations:
+        if pref <= 0:
+            continue
+        acc[(u, i)] += float(conf)
+    if not acc:
+        raise ValueError("Need at least one positive observation for legacy ALS")
+    row_idx, col_idx, data = zip(*((u, i, c) for (u, i), c in acc.items()), strict=True)
+    user_item = sp.coo_matrix(
+        (list(data), (list(row_idx), list(col_idx))),
+        shape=(n_users, n_items),
+    ).tocsr()
+    model = AlternatingLeastSquares(
+        factors=factors,
+        iterations=iterations,
+        random_state=42,
+    )
+    model.fit(user_item)
+    return (
+        np.asarray(model.user_factors, dtype=np.float32),
+        np.asarray(model.item_factors, dtype=np.float32),
+    )
 
 
 def train_cf_als(
@@ -35,71 +220,96 @@ def train_cf_als(
     force: bool = False,
     shuffle_interactions: bool = False,
     holdout_days: int | None = None,
+    use_negatives: bool | None = None,
 ) -> dict:
-    """Train implicit ALS and promote only when holdout metrics beat the incumbent.
+    """Train confidence-weighted ALS and promote only when holdout metrics improve.
 
-    Step 91: writes a versioned artifact always; updates ``current.json`` / active
-    ``ModelVersion`` only when the candidate wins (or ``force=True`` / cold start).
+    Step 91: gated promotion. Step 92: REJECT / VIEW-only enter as hard / weak
+    negatives (preference 0 with elevated confidence) when ``CF_USE_NEGATIVES``.
     """
-    rows = list(
-        Interaction.objects.values_list("patient_id", "caregiver_id", "weight")
-    )
+    rows = _training_rows(shuffle_interactions=shuffle_interactions)
     if len(rows) < 5:
         raise ValueError(
             f"Need at least 5 interactions to train CF (have {len(rows)}). "
             "Run seed_interactions or use the app to generate views."
         )
 
-    if shuffle_interactions:
-        # Deliberately break patient↔caregiver pairing (acceptance / regression).
-        caregivers = [r[1] for r in rows]
-        rng = random.Random(0)
-        rng.shuffle(caregivers)
-        rows = [(r[0], caregivers[i], r[2]) for i, r in enumerate(rows)]
+    signals = classify_pair_signals(rows)
+    patient_ids = sorted({pid for pid, _ in signals})
+    caregiver_ids = sorted({cid for _, cid in signals})
+    if not patient_ids or not caregiver_ids:
+        raise ValueError("No patient/caregiver pairs available for CF training.")
 
-    patient_ids = sorted({r[0] for r in rows})
-    caregiver_ids = sorted({r[1] for r in rows})
     patient_to_idx = {pid: i for i, pid in enumerate(patient_ids)}
     caregiver_to_idx = {cid: i for i, cid in enumerate(caregiver_ids)}
 
-    acc: dict[tuple[int, int], float] = defaultdict(float)
-    for patient_id, caregiver_id, weight in rows:
-        value = float(weight)
-        if value <= 0:
-            # REJECT is stored negative for Step 92; implicit ALS needs non-negative confidence.
-            continue
-        key = (patient_to_idx[patient_id], caregiver_to_idx[caregiver_id])
-        acc[key] += value
-    acc = {k: v for k, v in acc.items() if v > 0}
-    if not acc:
+    negatives_on = (
+        bool(getattr(settings, "CF_USE_NEGATIVES", True))
+        if use_negatives is None
+        else bool(use_negatives)
+    )
+    positive_alpha = float(getattr(settings, "CF_POSITIVE_ALPHA", 40.0))
+    reject_alpha = float(getattr(settings, "CF_REJECT_ALPHA", 80.0))
+    weak_neg_alpha = float(getattr(settings, "CF_WEAK_NEG_ALPHA", 5.0))
+
+    observations, counts = build_confidence_observations(
+        signals,
+        patient_to_idx=patient_to_idx,
+        caregiver_to_idx=caregiver_to_idx,
+        use_negatives=negatives_on,
+        positive_alpha=positive_alpha,
+        reject_alpha=reject_alpha,
+        weak_neg_alpha=weak_neg_alpha,
+    )
+    if not observations:
         raise ValueError(
-            "Need at least one non-negative interaction to train CF "
-            f"(have {len(rows)} row(s), all skipped)."
+            "Need at least one CF observation after classifying interactions "
+            f"(raw_rows={len(rows)})."
+        )
+    if counts["positive"] == 0 and negatives_on:
+        raise ValueError(
+            "Need at least one positive pair to train CF with negatives "
+            f"(counts={counts})."
         )
 
-    row_idx, col_idx, data = zip(*((k[0], k[1], v) for k, v in acc.items()), strict=True)
-    user_item = sp.coo_matrix(
-        (list(data), (list(row_idx), list(col_idx))),
-        shape=(len(patient_ids), len(caregiver_ids)),
-    ).tocsr()
-
-    model = AlternatingLeastSquares(
-        factors=factors,
-        iterations=iterations,
-        random_state=42,
-    )
-    model.fit(user_item)
+    objective = "confidence_wals_negatives" if negatives_on else "legacy_positive_als"
+    if negatives_on:
+        user_factors, item_factors = fit_confidence_weighted_als(
+            n_users=len(patient_ids),
+            n_items=len(caregiver_ids),
+            observations=observations,
+            factors=factors,
+            iterations=iterations,
+        )
+    else:
+        user_factors, item_factors = fit_legacy_positive_als(
+            n_users=len(patient_ids),
+            n_items=len(caregiver_ids),
+            observations=observations,
+            factors=factors,
+            iterations=iterations,
+        )
 
     version = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     meta = _write_artifact(
         version=version,
         patient_ids=patient_ids,
         caregiver_ids=caregiver_ids,
-        user_factors=model.user_factors,
-        item_factors=model.item_factors,
+        user_factors=user_factors,
+        item_factors=item_factors,
         n_interactions=len(rows),
         factors=factors,
         activate=False,
+        extra_metrics={
+            "objective": objective,
+            "use_negatives": negatives_on,
+            "n_positive_pairs": counts["positive"],
+            "n_hard_negatives": counts["hard_negative"],
+            "n_weak_negatives": counts["weak_negative"],
+            "positive_alpha": positive_alpha,
+            "reject_alpha": reject_alpha,
+            "weak_neg_alpha": weak_neg_alpha,
+        },
     )
     decision = decide_and_maybe_promote(
         version=version,
@@ -108,6 +318,8 @@ def train_cf_als(
         holdout_days=holdout_days,
     )
     meta.update(decision)
+    meta["objective"] = objective
+    meta["signal_counts"] = counts
     return meta
 
 
@@ -368,6 +580,7 @@ def _write_artifact(
     n_interactions: int,
     factors: int,
     activate: bool = False,
+    extra_metrics: dict | None = None,
 ) -> dict:
     root = cf_artifact_dir()
     version_dir = root / f"v{version}"
@@ -378,6 +591,13 @@ def _write_artifact(
         user_factors=user_factors,
         item_factors=item_factors,
     )
+    metrics = {
+        "n_patients": len(patient_ids),
+        "n_caregivers": len(caregiver_ids),
+        "factors": factors,
+        "n_interactions": n_interactions,
+        **(extra_metrics or {}),
+    }
     meta = {
         "version": version,
         "trained_at": datetime.now(UTC).isoformat(),
@@ -388,6 +608,7 @@ def _write_artifact(
         "n_caregivers": len(caregiver_ids),
         "factors": factors,
         "artifact_path": str(version_dir),
+        "objective": (extra_metrics or {}).get("objective", "legacy_positive_als"),
     }
     (version_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
@@ -401,12 +622,7 @@ def _write_artifact(
             kind=ModelKind.CF,
             version=version,
             rows_trained_on=n_interactions,
-            metrics={
-                "n_patients": len(patient_ids),
-                "n_caregivers": len(caregiver_ids),
-                "factors": factors,
-                "n_interactions": n_interactions,
-            },
+            metrics=metrics,
             artifact_path=str(version_dir),
             trained_at=meta["trained_at"],
             activate=activate,

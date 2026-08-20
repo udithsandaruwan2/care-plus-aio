@@ -47,9 +47,17 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"CF v{meta['version']} trained on {meta['n_interactions']} interactions "
-                f"({meta['n_patients']} patients × {meta['n_caregivers']} caregivers)."
+                f"({meta['n_patients']} patients × {meta['n_caregivers']} caregivers) "
+                f"objective={meta.get('objective', '-')}."
             )
         )
+        counts = meta.get("signal_counts") or {}
+        if counts:
+            self.stdout.write(
+                f"  pairs: positive={counts.get('positive', 0)} "
+                f"hard_neg={counts.get('hard_negative', 0)} "
+                f"weak_neg={counts.get('weak_negative', 0)}"
+            )
         if meta.get("promoted"):
             self.stdout.write(
                 self.style.SUCCESS(f"Promoted (reason={meta.get('reason')}).")
