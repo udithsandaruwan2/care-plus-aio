@@ -57,6 +57,9 @@ vi.mock('../assistant/store', () => ({
 
 vi.mock('../assistant/useTts', () => ({
   speakSerah: vi.fn(async () => undefined),
+  stopSpeaking: vi.fn(),
+  subscribeSerahSpeaking: vi.fn(() => () => undefined),
+  isSerahSpeaking: vi.fn(() => false),
 }));
 
 function wrap(ui: ReactElement) {

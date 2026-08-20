@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-20 — Step 84 TTS decouple + phrase cache._
+_Last updated: 2026-08-20 — Step 85 barge-in during Serah playback._
 
 ---
 
@@ -150,7 +150,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | ---------------------------------------- | ------- | ------ | -------------------------------------------------------------------- |
 | **M18** Signal & telemetry foundations   | 76–79   | 76–79 ✅ | Outcomes logged, stages timed, AI decisions audited and reproducible |
 | **M19** Client efficiency                | 80–82   | 80–82 ✅ | Smaller first load, calmer render loop, network-tolerant boot        |
-| **M20** Conversation feel                | 83–87   | 83–84 ✅ | Streaming turns, interruptible speech, recoverable failures          |
+| **M20** Conversation feel                | 83–87   | 83–85 ✅ | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | ⬜      | Registry, auto index rebuild, replay eval, gated promotion           |
 | **M22** Offline & local intelligence     | 93–98   | ⬜      | Installable PWA, cached reads, queued writes, local slot model       |
 | **M23** Adaptive ranking                 | 99–103  | ⬜      | Cold-start clustering, exploration, learned weights, A/B, fairness   |
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 85 — Barge-in, branch `feat/step85-barge-in`.
+**Next:** Step 86 — Recoverable turns, branch `feat/step86-turn-recovery`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 85** — Barge-in: mic analyser watches energy during TTS; sustained speech stops Serah and starts a new listen; ASR paused during playback to avoid echo self-triggers. Branch `feat/step85-barge-in`.
 
 - **Step 84** — TTS decouple: `first_text_ms` before synthesis; uncached audio deferred to WS/`POST /voice/tts/`; Redis phrase cache with logged hit rate. Branch `feat/step84-tts-decouple`.
 
