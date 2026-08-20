@@ -371,6 +371,7 @@ export const VoiceTurnTimings = z.object({
   match_ms: z.number(),
   chat_ms: z.number(),
   tts_ms: z.number(),
+  first_text_ms: z.number().optional().default(0),
   total_ms: z.number(),
   request_id: z.string().optional().default(''),
 });
@@ -389,6 +390,8 @@ export const VoiceTurnResponse = z.object({
   reply_audio_base64: z.string().optional().default(''),
   reply_audio_mime: z.string().optional().default(''),
   tts_source: z.string().optional().default(''),
+  audio_pending: z.boolean().optional().default(false),
+  tts_cache_hit: z.boolean().optional().default(false),
   intent: VoiceTurnIntent.nullable(),
   match: MatchResponse.nullable().optional(),
   clear_match: z.boolean().optional().default(false),
@@ -400,6 +403,13 @@ export const VoiceTurnResponse = z.object({
   timings: VoiceTurnTimings.optional(),
 });
 export type VoiceTurnResponse = z.infer<typeof VoiceTurnResponse>;
+
+export const VoiceTtsResponse = z.object({
+  reply_audio_base64: z.string().optional().default(''),
+  reply_audio_mime: z.string().optional().default(''),
+  tts_source: z.string().optional().default(''),
+});
+export type VoiceTtsResponse = z.infer<typeof VoiceTtsResponse>;
 
 export const DialogueSessionSnapshot = z.object({
   id: z.number(),

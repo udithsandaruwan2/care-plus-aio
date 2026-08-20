@@ -16,13 +16,18 @@ from apps.voice.tts import (
 
 
 class TtsRouterTests(SimpleTestCase):
-    @override_settings(TTS_BACKEND="browser")
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    @override_settings(TTS_BACKEND="browser", TTS_PHRASE_CACHE=False)
     def test_browser_backend_returns_none(self):
         out = synthesize("Hello Serah", "en-US")
         self.assertEqual(out.source, "none")
         self.assertEqual(out.audio, b"")
 
-    @override_settings(TTS_BACKEND="piper", PIPER_BIN="", PIPER_MODEL_DIR="/tmp/missing")
+    @override_settings(TTS_BACKEND="piper", PIPER_BIN="", PIPER_MODEL_DIR="/tmp/missing", TTS_PHRASE_CACHE=False)
     def test_piper_missing_returns_empty(self):
         out = synthesize_piper("Hello", "en-US")
         self.assertFalse(out.audio)
@@ -37,7 +42,7 @@ class TtsRouterTests(SimpleTestCase):
         self.assertEqual(packed["tts_source"], "piper")
         self.assertTrue(packed["reply_audio_base64"])
 
-    @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True)
+    @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True, TTS_PHRASE_CACHE=False)
     @patch("apps.voice.tts.synthesize_edge_tts")
     def test_auto_sinhala_prefers_edge_first(self, mock_edge):
         mock_edge.return_value = TtsResult(audio=b"x", mime="audio/mpeg", source="edge")
@@ -45,7 +50,7 @@ class TtsRouterTests(SimpleTestCase):
         self.assertEqual(out.source, "edge")
         mock_edge.assert_called_once()
 
-    @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True)
+    @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True, TTS_PHRASE_CACHE=False)
     @patch("apps.voice.tts.synthesize_gemini_tts")
     @patch("apps.voice.tts.synthesize_edge_tts")
     def test_auto_falls_back_to_gemini_when_edge_empty(self, mock_edge, mock_gemini):
@@ -54,7 +59,7 @@ class TtsRouterTests(SimpleTestCase):
         out = synthesize("හොඳ දවසක්", "si-LK")
         self.assertEqual(out.source, "gemini_tts")
 
-    @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True)
+    @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True, TTS_PHRASE_CACHE=False)
     @patch("apps.voice.tts.synthesize_espeak")
     @patch("apps.voice.tts.synthesize_edge_tts")
     @patch("apps.voice.tts.synthesize_gemini_tts")

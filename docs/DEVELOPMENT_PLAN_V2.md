@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 84.** M20 continues with TTS decoupled from time-to-first-text.
+**Start at Step 85.** M20 continues with barge-in during Serah playback.
 
 ---
 
@@ -194,16 +194,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 84 — Unblock the reply from speech synthesis
+### Step 84 — Unblock the reply from speech synthesis ✅ **DONE**
 
 **Branch:** `feat/step84-tts-decouple`
 **Goal:** stop making the user wait for audio they have not started listening to.
-**Tasks:**
+**Done:**
 
-- Return reply text immediately; deliver synthesized audio on the stream or a follow-up fetch.
-- Add a Redis phrase cache keyed on hash(text + language + voice) for Serah's fixed lines — the finding-a-match narration, clarify prompts, results-ready.
-- Track and log the cache hit rate.
-- Files: `backend/apps/voice/tts.py`, `backend/apps/voice/dialogue.py`.
+- `first_text_ms` recorded before TTS; `turn.reply_text` already streams ahead of audio (Step 83).
+- Uncached server TTS is deferred off the HTTP response (`audio_pending`); audio arrives via `turn.reply_audio` or `POST /voice/tts/`.
+- Redis phrase cache keyed on hash(text + language + voice); hit/miss rate logged as `tts.phrase_cache`.
 
 **✅ Acceptance:** `tts_ms` no longer contributes to time-to-first-text; repeated canned phrases serve from cache with a hit rate above 60% in a scripted five-turn session; audio still plays for Sinhala and Tamil.
 **Depends on:** Step 83.
@@ -612,4 +611,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 84 — Unblock the reply from speech synthesis** on `feat/step84-tts-decouple`. Return reply text before TTS; cache canned Serah phrases.
+**Step 85 — Barge-in** on `feat/step85-barge-in`. Let the user interrupt Serah mid-reply.
