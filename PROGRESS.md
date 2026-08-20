@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-20 — Step 86 recoverable voice turns._
+_Last updated: 2026-08-20 — Step 87 reply render + dense match cards; M20 complete._
 
 ---
 
@@ -150,7 +150,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | ---------------------------------------- | ------- | ------ | -------------------------------------------------------------------- |
 | **M18** Signal & telemetry foundations   | 76–79   | 76–79 ✅ | Outcomes logged, stages timed, AI decisions audited and reproducible |
 | **M19** Client efficiency                | 80–82   | 80–82 ✅ | Smaller first load, calmer render loop, network-tolerant boot        |
-| **M20** Conversation feel                | 83–87   | 83–86 ✅ | Streaming turns, interruptible speech, recoverable failures          |
+| **M20** Conversation feel                | 83–87   | 83–87 ✅ | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | ⬜      | Registry, auto index rebuild, replay eval, gated promotion           |
 | **M22** Offline & local intelligence     | 93–98   | ⬜      | Installable PWA, cached reads, queued writes, local slot model       |
 | **M23** Adaptive ranking                 | 99–103  | ⬜      | Cold-start clustering, exploration, learned weights, A/B, fairness   |
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 87 — Reply rendering and card density, branch `feat/step87-reply-render`.
+**Next:** Step 88 — Model registry, branch `feat/step88-model-registry`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 87** — Reply render + card density: progressive Serah bubbles, collapsed VEHMF disclosure, #1-vs-#2 comparative line, orb alt text + state live region. Branch `feat/step87-reply-render`. **M20 complete.**
 
 - **Step 86** — Recoverable turns: keep transcript on failure, typed error copy (network/timeout/429/451), inline retry, single auto-replay when back online. Branch `feat/step86-turn-recovery`.
 

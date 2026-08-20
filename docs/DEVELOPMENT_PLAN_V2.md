@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 87.** M20 finishes with reply rendering and denser match cards.
+**Start at Step 88.** M21 begins with the model registry.
 
 ---
 
@@ -239,17 +239,16 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 87 — Reply rendering and card density
+### Step 87 — Reply rendering and card density ✅ **DONE**
 
 **Branch:** `feat/step87-reply-render`
 **Goal:** reduce the reading cost of both the reply and the results.
-**Tasks:**
+**Done:**
 
-- Render reply text progressively as stream events arrive.
-- Collapse the four-factor VEHMF breakdown behind a disclosure on match cards; lead with name, score, and the one-line reason.
-- Generate a comparative line from the factor breakdown already stored on `MatchResult`, so the user can see why #1 beat #2.
-- Add an accessible label and a polite live region announcing assistant state, and give the decorative canvas a text alternative.
-- Files: `apps/web/src/assistant/ChatBubbles.tsx`, `apps/web/src/assistant/MatchResultCards.tsx`, `apps/web/src/assistant/NeuralOrb.tsx`.
+- Serah chat bubbles reveal reply text progressively (word cadence) when a reply lands from the stream.
+- Match cards lead with name, score, and one-line reason; VEHMF factor bars sit behind an overlay disclosure so expanding one card does not push siblings.
+- Comparative line from factor deltas explains why #1 beat #2.
+- Neural orb has an accessible label; assistant state is announced via a polite live region.
 
 **✅ Acceptance:** results fit the viewport with the breakdown collapsed; expanding one card does not shift the others; axe reports no new violations and state changes are announced.
 **Depends on:** Step 83.

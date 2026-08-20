@@ -130,8 +130,7 @@ export function HomePage() {
 
       <div className={`serah-stage${showMatchPanel ? ' is-searching' : ''}`}>
         <div className="serah-core-wrapper">
-          <div className="serah-neural-field">
-            <div aria-hidden>
+            <div className="serah-neural-field">
               <NeuralOrb
                 variant={showMatchPanel ? 'dock' : 'stage'}
                 visual={visual}
@@ -139,17 +138,19 @@ export function HomePage() {
                 amplitude={showMatchPanel ? 0.22 : 0.16}
                 amplitudeRef={mic.amplitudeRef}
               />
+              <button
+                type="button"
+                onClick={() => void toggleMic()}
+                aria-pressed={listening}
+                aria-label={listening ? 'Stop listening' : 'Tap to speak'}
+                className={`serah-orb-hit ${listening ? 'active' : ''}`}
+              >
+                <span className="serah-orb-hit-ring" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => void toggleMic()}
-              aria-pressed={listening}
-              aria-label={listening ? 'Stop listening' : 'Tap to speak'}
-              className={`serah-orb-hit ${listening ? 'active' : ''}`}
-            >
-              <span className="serah-orb-hit-ring" />
-            </button>
-          </div>
+            <p className="sr-only" aria-live="polite" aria-atomic="true">
+              {asleep ? 'Sleeping — say Hey Serah to wake me' : stateCopy(state, uiLanguage)}
+            </p>
           {showMatchPanel ? (
             <div className="serah-field-chat">
               <ChatBubbles
