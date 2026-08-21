@@ -21,7 +21,7 @@ from .embeddings import get_embedder, intent_to_text
 from .exploration import apply_exploration_slot, exploration_epsilon
 from .faiss_index import CaregiverIndex, load_index
 from .i18n import format_match_explanation
-from .models import CaregiverProfile
+from .models import CaregiverProfile, PatientProfile
 
 _XAI = {
     0: "strong medical/skill match",
@@ -153,23 +153,23 @@ class VEHMFEngine:
         weights_source = "ahp"
         if weights is not None:
             weights_source = "explicit"
-        elif emergency:
-            weights_source = "ahp_emergency"
-        elif prefer_closer:
-            weights_source = "prefer_closer"
-
-        W = (
-            np.asarray(normalize_weights(list(weights)), dtype=np.float32)
-            if weights is not None
-            else np.asarray(
-                get_ahp_weights(emergency=True) if emergency else self.W,
-                dtype=np.float32,
-            )
-        )
-        # Soft refine: tilt fusion toward geography when user asks for closer.
-        if prefer_closer and weights is None and not emergency:
+            W = np.asarray(normalize_weights(list(weights)), dtype=np.float32)
+        elif prefer_closer and not emergency:
             W = np.asarray(normalize_weights([0.25, 0.05, 0.55, 0.15]), dtype=np.float32)
             weights_source = "prefer_closer"
+        else:
+            from .weights_train import get_fusion_weights
+
+            city = ""
+            if patient_id is not None:
+                profile = PatientProfile.objects.filter(user_id=patient_id).only("city").first()
+                if profile is not None:
+                    city = profile.city or ""
+            fusion, weights_source = get_fusion_weights(
+                emergency=emergency,
+                city=city or None,
+            )
+            W = np.asarray(fusion, dtype=np.float32)
 
         cf_active = is_cf_active(self.cf_model)
         W = _effective_weights(W, cf_active=cf_active)

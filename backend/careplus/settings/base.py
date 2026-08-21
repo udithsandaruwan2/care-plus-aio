@@ -234,6 +234,12 @@ CLUSTER_CAREGIVER_K = env.int("CLUSTER_CAREGIVER_K", default=0)  # 0 = auto
 CLUSTER_INTENT_K = env.int("CLUSTER_INTENT_K", default=0)
 # Step 100 — epsilon-greedy exploration slot (0 = off; never applied in emergencies).
 MATCH_EXPLORATION_EPSILON = env.float("MATCH_EXPLORATION_EPSILON", default=0.0)
+# Step 101 — learned fusion weights by emergency × urban/rural segment.
+WEIGHTS_ARTIFACT_DIR = env("WEIGHTS_ARTIFACT_DIR", default="")
+WEIGHTS_GATED_PROMOTION = env.bool("WEIGHTS_GATED_PROMOTION", default=True)
+WEIGHTS_PROMOTE_MARGIN = env.float("WEIGHTS_PROMOTE_MARGIN", default=0.01)
+WEIGHTS_MIN_SEGMENT_LABELS = env.int("WEIGHTS_MIN_SEGMENT_LABELS", default=8)
+WEIGHTS_HOLDOUT_DAYS = env.int("WEIGHTS_HOLDOUT_DAYS", default=14)
 # Minimum patient profile completion % before requesting care (Step 22b).
 PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
 # Caregiver onboarding + auto-approval (Step 22c).

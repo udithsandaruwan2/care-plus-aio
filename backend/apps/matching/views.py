@@ -408,7 +408,7 @@ class CbfPreviewView(APIView):
 
 
 class AhpWeightsView(APIView):
-    """GET /api/v1/match/weights/ — current AHP fusion weights (Step 18)."""
+    """GET /api/v1/match/weights/ — AHP + learned fusion weights (Steps 18 / 101)."""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -416,6 +416,7 @@ class AhpWeightsView(APIView):
         import json
 
         from .ahp import default_config_path
+        from .weights_train import fusion_weights_report, get_fusion_weights
 
         path = default_config_path()
         if path.exists():
@@ -431,6 +432,20 @@ class AhpWeightsView(APIView):
             name: round(w, 6) for name, w in zip(factors, doc["emergency_vector"], strict=True)
         }
         doc["cf"] = cf_model_info(get_cf_model())
+        # Step 101 — which source produces active weights for common segments.
+        report = fusion_weights_report()
+        doc["learned"] = report.get("learned")
+        doc["active"] = report.get("active")
+        city = (request.query_params.get("city") or "").strip() or None
+        emergency = (request.query_params.get("emergency") or "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        active_vec, active_src = get_fusion_weights(emergency=emergency, city=city)
+        doc["active_source"] = active_src
+        doc["active_vector"] = list(active_vec)
+        doc["consistency_ratio_source"] = "ahp"
         return Response(doc)
 
 
