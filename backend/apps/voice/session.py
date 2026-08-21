@@ -41,7 +41,11 @@ def get_or_create_active_session(user, *, lang: str = "") -> DialogueSession:
 
 
 def clear_active_sessions(user) -> int:
-    """Deactivate all active sessions for the user (New request). Returns count."""
+    """Deactivate all active sessions and wipe recoverable dialogue PHI (Step 106).
+
+    Marks sessions inactive and clears turns, route history, chips, and open
+    questions so encrypted turn text is not recoverable after "New request".
+    """
     qs = list(DialogueSession.objects.filter(user=user, active=True))
     count = len(qs)
     stamp = now()
@@ -50,6 +54,8 @@ def clear_active_sessions(user) -> int:
         session.last_match_run = None
         session.intent_chips = {}
         session.open_questions = []
+        session.turns = []
+        session.route_history = []
         session.updated_at = stamp
         session.save(
             update_fields=[
@@ -57,6 +63,8 @@ def clear_active_sessions(user) -> int:
                 "last_match_run",
                 "intent_chips_ciphertext",
                 "open_questions",
+                "turns_ciphertext",
+                "route_history",
                 "updated_at",
             ]
         )

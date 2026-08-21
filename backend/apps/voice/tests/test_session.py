@@ -108,11 +108,17 @@ class DialogueSessionMemoryTests(TestCase):
         self.assertEqual(session.last_match_run_id, run.pk)
 
     def test_clear_session_drops_memory(self):
-        process_turn(user=self.user, client_text="hello", ui_language="English")
+        process_turn(user=self.user, client_text="hello secret phrase", ui_language="English")
         self.assertEqual(DialogueSession.objects.filter(user=self.user, active=True).count(), 1)
+        session = DialogueSession.objects.filter(user=self.user, active=True).first()
+        self.assertTrue(any("secret" in (t.get("text") or "") for t in session.turns))
         cleared = clear_active_sessions(self.user)
         self.assertEqual(cleared, 1)
         self.assertEqual(DialogueSession.objects.filter(user=self.user, active=True).count(), 0)
+        session.refresh_from_db()
+        self.assertEqual(session.turns, [])
+        self.assertEqual(session.route_history, [])
+        self.assertNotIn("secret", session.turns_ciphertext)
 
 
 @override_settings(

@@ -553,7 +553,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 106 — Retention policy
+### Step 106 — Retention policy ✅ **DONE**
 
 **Branch:** `feat/step106-retention`
 **Goal:** active accounts accumulate voice intents, dialogue turns, and health metrics forever. Only erasure and the 30-day residual purge exist.

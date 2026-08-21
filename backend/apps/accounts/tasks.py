@@ -35,3 +35,11 @@ def purge_erased_accounts_task(older_than_days: int = 30) -> dict:
     from .privacy import purge_erased_accounts
 
     return purge_erased_accounts(older_than_days=older_than_days)
+
+
+@shared_task(name="accounts.apply_retention_policy")
+def apply_retention_policy_task() -> dict:
+    """Scheduled TTL anonymization / health downsample for active accounts (Step 106)."""
+    from .retention import apply_retention_policy
+
+    return apply_retention_policy()

@@ -57,6 +57,33 @@ export function PrivacyNoticePage() {
         </section>
 
         <section>
+          <h2 className="font-display text-lg text-mist">How long we keep data</h2>
+          <p className="mt-2">
+            Active accounts are subject to automatic retention (not only erasure). Defaults:
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>
+              <strong className="text-mist">Voice transcripts / intent text:</strong> scrubbed after
+              90 days (language, care level, and timestamps may remain for quality and safety).
+            </li>
+            <li>
+              <strong className="text-mist">Inactive dialogue memory</strong> (turns and route
+              history): wiped after 30 days. Clearing a session (“New request”) wipes turn text
+              immediately.
+            </li>
+            <li>
+              <strong className="text-mist">Health metrics:</strong> full-resolution samples kept
+              for 90 days, then downsampled to one daily average per metric so trends remain
+              without raw point-level detail.
+            </li>
+            <li>
+              <strong className="text-mist">Erased accounts:</strong> residual rows are purged about
+              30 days after erasure. Append-only audit logs are retained for accountability.
+            </li>
+          </ul>
+        </section>
+
+        <section>
           <h2 className="font-display text-lg text-mist">Your rights</h2>
           <p className="mt-2">
             Signed-in users can download a copy of their data (JSON or PDF) and request erasure from{' '}
