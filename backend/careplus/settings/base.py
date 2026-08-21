@@ -232,6 +232,8 @@ CF_WEAK_NEG_ALPHA = env.float("CF_WEAK_NEG_ALPHA", default=5.0)
 CLUSTER_ARTIFACT_DIR = env("CLUSTER_ARTIFACT_DIR", default="")
 CLUSTER_CAREGIVER_K = env.int("CLUSTER_CAREGIVER_K", default=0)  # 0 = auto
 CLUSTER_INTENT_K = env.int("CLUSTER_INTENT_K", default=0)
+# Step 100 — epsilon-greedy exploration slot (0 = off; never applied in emergencies).
+MATCH_EXPLORATION_EPSILON = env.float("MATCH_EXPLORATION_EPSILON", default=0.0)
 # Minimum patient profile completion % before requesting care (Step 22b).
 PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
 # Caregiver onboarding + auto-approval (Step 22c).

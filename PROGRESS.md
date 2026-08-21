@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-21 — Step 99 cold-start clustering._
+_Last updated: 2026-08-21 — Step 100 exploration slot._
 
 ---
 
@@ -153,14 +153,14 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | **M20** Conversation feel                | 83–87   | 83–87 ✅ | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | 88–92 ✅ | Registry, auto index rebuild, replay eval, gated promotion           |
 | **M22** Offline & local intelligence     | 93–98   | 93–98 ✅ | Installable PWA, cached reads, queued writes, local slots + edge rank |
-| **M23** Adaptive ranking                 | 99–103  | 99 ✅   | Cold-start clustering, exploration, learned weights, A/B, fairness   |
+| **M23** Adaptive ranking                 | 99–103  | 99–100 ✅ | Cold-start clustering, exploration, learned weights, A/B, fairness |
 | **M24** History surface & retention      | 104–106 | ⬜      | User-visible trail, complete export, retention policy                |
 
 **Why this order:** M18 captures the outcome signals that CF actually trains on. Step 76 now
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 100 — Exploration slot, branch `feat/step100-exploration`.
+**Next:** Step 101 — Learned fusion weights, branch `feat/step101-learned-fusion`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 100** — Exploration slot: epsilon-greedy last top-K seat (`MATCH_EXPLORATION_EPSILON`); `MatchResult.was_exploratory`; never in emergencies; simulated exposure Gini falls. Branch `feat/step100-exploration`.
 
 - **Step 99** — Cold-start clustering: caregiver CBF clusters seed CF item factors for new joiners; intent clusters propose inactive vocab drafts; `GET /admin/clusters/` + `build_clusters`. Branch `feat/step99-cold-start-clusters`.
 

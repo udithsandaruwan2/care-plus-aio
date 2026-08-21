@@ -127,6 +127,7 @@ def find_shift_conflict_fallback(
             trust=hit.trust,
             explanation=hit.explanation,
             distance_m=hit.distance_m,
+            was_exploratory=bool(getattr(hit, "was_exploratory", False)),
         )
 
         if hit.caregiver_id == exclude_caregiver_id:

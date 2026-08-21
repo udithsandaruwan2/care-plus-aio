@@ -339,6 +339,8 @@ export const MatchHit = z.object({
   previous_rank: z.number().nullable().optional(),
   /** previous_rank - rank; positive means moved up. */
   rank_delta: z.number().nullable().optional(),
+  /** Step 100 — True when this hit filled the epsilon-greedy exploration slot. */
+  was_exploratory: z.boolean().optional().default(false),
 });
 export type MatchHit = z.infer<typeof MatchHit>;
 

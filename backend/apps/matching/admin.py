@@ -102,6 +102,7 @@ class MatchResultInline(admin.TabularInline):
         "trust",
         "explanation",
         "distance_m",
+        "was_exploratory",
     )
     can_delete = False
 

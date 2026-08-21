@@ -300,6 +300,7 @@ def _run_vehmf(
             trust=hit.trust,
             explanation=hit.explanation,
             distance_m=hit.distance_m,
+            was_exploratory=bool(getattr(hit, "was_exploratory", False)),
         )
         p = profiles.get(hit.caregiver_id)
         prev = prev_ranks.get(hit.caregiver_id)
@@ -320,6 +321,7 @@ def _run_vehmf(
             "languages": p.languages if p else [],
             "care_levels": p.care_levels if p else [],
             "trust_score": p.trust_score if p else None,
+            "was_exploratory": bool(getattr(hit, "was_exploratory", False)),
         }
         if prev is not None:
             row["previous_rank"] = prev

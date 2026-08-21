@@ -84,6 +84,7 @@ def emergency_rematch_for_health_event(event: HealthEvent) -> dict:
         trust=selected.trust,
         explanation=selected.explanation,
         distance_m=selected.distance_m,
+        was_exploratory=bool(getattr(selected, "was_exploratory", False)),
     )
     record_match_interactions(patient, [selected.caregiver_id], source="health_emergency_rematch")
 
