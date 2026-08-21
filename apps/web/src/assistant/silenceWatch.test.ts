@@ -31,4 +31,8 @@ describe('endOfUtteranceShouldFire', () => {
       }),
     ).toBe(true);
   });
+
+  it('uses a higher speech threshold than ambient rumble', () => {
+    expect(END_OF_UTTERANCE_DEFAULTS.speechThreshold).toBeGreaterThan(0.2);
+  });
 });

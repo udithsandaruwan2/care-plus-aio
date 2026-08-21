@@ -8,15 +8,20 @@ export type EndOfUtteranceConfig = {
   getAmplitude: () => number;
   /** Called once when post-speech silence is detected. */
   onEnd: () => void;
-  /** Ignore levels briefly after start (button click / mic open). Default 300ms. */
+  /**
+   * When provided, energy end only fires if this returns true (e.g. Web Speech
+   * has produced an interim/final caption). Prevents ambient-noise restart loops.
+   */
+  canEnd?: () => boolean;
+  /** Ignore levels briefly after start (button click / mic open). Default 400ms. */
   graceMs?: number;
-  /** Amplitude that counts as “started speaking”. Default 0.18. */
+  /** Amplitude that counts as “started speaking”. Default 0.28. */
   speechThreshold?: number;
-  /** How long speech must stay above threshold. Default 80ms. */
+  /** How long speech must stay above threshold. Default 150ms. */
   speechSustainMs?: number;
-  /** Amplitude below this counts as quiet. Default 0.1. */
+  /** Amplitude below this counts as quiet. Default 0.08. */
   silenceThreshold?: number;
-  /** How long to stay quiet after speech before ending. Default 900ms. */
+  /** How long to stay quiet after speech before ending. Default 1100ms. */
   silenceMs?: number;
   now?: () => number;
   schedule?: (cb: () => void) => number;
@@ -24,16 +29,16 @@ export type EndOfUtteranceConfig = {
 };
 
 export const END_OF_UTTERANCE_DEFAULTS = {
-  graceMs: 300,
-  speechThreshold: 0.18,
-  speechSustainMs: 80,
-  silenceThreshold: 0.1,
-  silenceMs: 900,
+  graceMs: 400,
+  speechThreshold: 0.28,
+  speechSustainMs: 150,
+  silenceThreshold: 0.08,
+  silenceMs: 1100,
 } as const;
 
 /**
  * Start watching. Returns a stop function.
- * Fires ``onEnd`` at most once after speech-then-silence.
+ * Fires ``onEnd`` at most once after speech-then-silence (and optional canEnd).
  */
 export function startEndOfUtteranceWatch(config: EndOfUtteranceConfig): () => void {
   const graceMs = config.graceMs ?? END_OF_UTTERANCE_DEFAULTS.graceMs;
@@ -82,6 +87,12 @@ export function startEndOfUtteranceWatch(config: EndOfUtteranceConfig): () => vo
     if (amp < silenceThreshold) {
       if (belowSince == null) belowSince = t;
       else if (t - belowSince >= silenceMs) {
+        if (config.canEnd && !config.canEnd()) {
+          // Noise looked like speech but no caption yet — keep waiting.
+          belowSince = null;
+          rafId = schedule(tick);
+          return;
+        }
         fired = true;
         config.onEnd();
         return;

@@ -101,11 +101,22 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const ignoreSpeechEndRef = useRef(false);
   const bargeStopRef = useRef<(() => void) | null>(null);
   const silenceStopRef = useRef<(() => void) | null>(null);
+  const captionHeardRef = useRef(false);
+  const emptyRearmCountRef = useRef(0);
+  const rearmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bargedRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
+  const armSilenceWatchRef = useRef<() => void>(() => {});
   const consentBtnRef = useRef<HTMLButtonElement>(null);
   const busyRef = useRef(busy);
   busyRef.current = busy;
+
+  const clearRearmTimer = () => {
+    if (rearmTimerRef.current) {
+      clearTimeout(rearmTimerRef.current);
+      rearmTimerRef.current = null;
+    }
+  };
 
   const continueListening = useCallback(() => {
     if (!conversationOnRef.current) return;
@@ -148,9 +159,17 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const speech = useSpeechRecognition({
     lang: asrLang,
     onInterim: (text) => {
+      if (text.trim()) {
+        captionHeardRef.current = true;
+        emptyRearmCountRef.current = 0;
+      }
       setInterim(text);
     },
     onFinal: (text) => {
+      if (text.trim()) {
+        captionHeardRef.current = true;
+        emptyRearmCountRef.current = 0;
+      }
       appendTranscript(text);
     },
     onEnd: () => {
@@ -163,44 +182,86 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       void (async () => {
         silenceStopRef.current?.();
         silenceStopRef.current = null;
-        mic.stop();
+        clearRearmTimer();
         const audio = await recorder.stop();
+        // Keep the analyser up for a soft re-arm; only stop it when leaving voice mode.
         const text = useAssistant.getState().transcript.trim();
         if (!text) {
-          // Ambient silence — keep waiting, never send a fake "couldn't understand".
           endingRef.current = false;
-          continueListening();
+          captionHeardRef.current = false;
+          if (!conversationOnRef.current) {
+            mic.stop();
+            return;
+          }
+          emptyRearmCountRef.current += 1;
+          // Ambient / no-speech churn — stop after a few empty cycles instead of looping forever.
+          if (emptyRearmCountRef.current >= 3) {
+            emptyRearmCountRef.current = 0;
+            setConversationOn(false);
+            mic.stop();
+            const s = useAssistant.getState();
+            if (s.match) setState(AssistantState.RESULTS, { force: true });
+            else if (s.state === AssistantState.LISTENING) {
+              setState(AssistantState.IDLE, { force: true });
+            }
+            return;
+          }
+          rearmTimerRef.current = setTimeout(() => {
+            rearmTimerRef.current = null;
+            if (!conversationOnRef.current || endingRef.current || busyRef.current) return;
+            void (async () => {
+              try {
+                if (!mic.active) await mic.start();
+                await recorder.start();
+                speech.start();
+                setState(AssistantState.LISTENING, { force: true });
+                armSilenceWatchRef.current();
+              } catch {
+                /* mic permission / busy */
+              }
+            })();
+          }, 700);
           return;
         }
+        emptyRearmCountRef.current = 0;
+        mic.stop();
         await beginTurn({ text, audio, source: 'voice' });
         endingRef.current = false;
       })();
     },
   });
 
+  armSilenceWatchRef.current = () => {
+    silenceStopRef.current?.();
+    silenceStopRef.current = startEndOfUtteranceWatch({
+      getAmplitude: () => mic.amplitudeRef.current,
+      canEnd: () => captionHeardRef.current,
+      onEnd: () => {
+        silenceStopRef.current?.();
+        silenceStopRef.current = null;
+        if (!endingRef.current && conversationOnRef.current && captionHeardRef.current) {
+          speech.stop();
+        }
+      },
+    });
+  };
+
   resumeListeningRef.current = async () => {
     bargeStopRef.current?.();
     bargeStopRef.current = null;
     silenceStopRef.current?.();
     silenceStopRef.current = null;
+    clearRearmTimer();
     endingRef.current = false;
+    captionHeardRef.current = false;
+    emptyRearmCountRef.current = 0;
     setInterim('');
     useAssistant.getState().setTranscript('');
     await mic.start();
     await recorder.start();
     speech.start();
     setState(AssistantState.LISTENING, { force: true });
-    // Stop capturing shortly after voice drops — reduces ambient noise tails.
-    silenceStopRef.current = startEndOfUtteranceWatch({
-      getAmplitude: () => mic.amplitudeRef.current,
-      onEnd: () => {
-        silenceStopRef.current?.();
-        silenceStopRef.current = null;
-        if (!endingRef.current && conversationOnRef.current) {
-          speech.stop();
-        }
-      },
-    });
+    armSilenceWatchRef.current();
   };
 
   // Step 85 — during Serah playback keep the analyser up, suppress ASR echo,
@@ -278,9 +339,12 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       }
       if (mic.active || speech.listening) {
         setConversationOn(false);
+        clearRearmTimer();
         silenceStopRef.current?.();
         silenceStopRef.current = null;
         speech.stop();
+        mic.stop();
+        void recorder.stop();
       }
     }
     window.addEventListener('keydown', onKeyDown);
@@ -290,9 +354,12 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const toggleMic = useCallback(async () => {
     if (listening) {
       setConversationOn(false);
+      clearRearmTimer();
       silenceStopRef.current?.();
       silenceStopRef.current = null;
       speech.stop();
+      mic.stop();
+      void recorder.stop();
       return;
     }
     if (busy) {
@@ -322,23 +389,17 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     setSessionLive(true);
     setConversationOn(true);
     endingRef.current = false;
+    captionHeardRef.current = false;
+    emptyRearmCountRef.current = 0;
     stopTurnSpeaking();
+    clearRearmTimer();
     silenceStopRef.current?.();
     silenceStopRef.current = null;
     await mic.start();
     await recorder.start();
     speech.start();
     setState(AssistantState.LISTENING, { force: true });
-    silenceStopRef.current = startEndOfUtteranceWatch({
-      getAmplitude: () => mic.amplitudeRef.current,
-      onEnd: () => {
-        silenceStopRef.current?.();
-        silenceStopRef.current = null;
-        if (!endingRef.current && conversationOnRef.current) {
-          speech.stop();
-        }
-      },
-    });
+    armSilenceWatchRef.current();
   }, [
     listening,
     busy,
