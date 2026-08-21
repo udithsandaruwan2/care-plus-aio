@@ -3,7 +3,7 @@
 > **Purpose:** running record of _what's done_ and _what's next_, so work can resume
 > from any device. Committed to git (syncs across machines). Updated **feature by feature**.  
 > Full plan: [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) **v0.3 (~80 steps, complete)** ·  
-> Engine plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md) **v0.4 (Steps 76–106, active)** ·  
+> Engine plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md) **v0.4 (Steps 76–106, complete)** ·  
 > Vision (Old→New): [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) ·  
 > Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·  
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
