@@ -6,14 +6,13 @@ import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { clearBookingIntent, readBookingIntent, saveBookingIntent } from '../booking/intent';
 import { PublicPage } from '../components/layout/PublicPage';
+import { Avatar } from '../components/ui/Avatar';
 import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { PageHeader } from '../components/ui/PageHeader';
 import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
 import { queryKeys, STALE_MS } from '../lib/query/keys';
 import { useCachedQuery } from '../lib/query/useCachedQuery';
-import { mediaUrl } from '../lib/mediaUrl';
 
 function formatReviewDate(value?: string) {
   if (!value) return '';
@@ -115,18 +114,10 @@ export function CaregiverDetailPage() {
   return (
     <PublicPage>
       <BackLink to="/caregivers">Caregivers</BackLink>
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          eyebrow="Caregiver profile"
-          title={loading ? 'Caregiver' : profile?.display_name || 'Caregiver'}
-          subtitle={
-            profile
-              ? `${profile.approximate_area || profile.city || 'Sri Lanka'} · ${
-                  profile.is_available === false ? 'currently unavailable' : 'available'
-                }`
-              : undefined
-          }
-        />
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="font-display text-sm uppercase tracking-[0.2em] text-cyan">
+          Caregiver profile
+        </p>
         <CacheSourceBadge fromCache={query.fromCache} stale={query.stale} />
       </div>
 
@@ -145,22 +136,62 @@ export function CaregiverDetailPage() {
             </p>
           )}
 
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex max-w-2xl items-start gap-4">
-              {mediaUrl(profile.photo_url) ? (
-                <img
-                  src={mediaUrl(profile.photo_url)}
-                  alt=""
-                  className="h-20 w-20 shrink-0 rounded-2xl border border-hair object-cover"
+          <div className="rounded-[1.5rem] border border-hair bg-panel p-6 shadow-[var(--cp-shadow-soft)]">
+            <div className="flex flex-wrap items-start justify-between gap-6">
+              <div className="flex min-w-0 flex-1 items-start gap-5">
+                <Avatar
+                  name={profile.display_name}
+                  photoUrl={profile.photo_url}
+                  size="xl"
+                  className="rounded-[1.25rem]"
                 />
-              ) : null}
-              <p className="text-sm leading-relaxed text-mist/90">
-                {profile.bio || 'Community caregiver on Care Plus.'}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl text-mint">{Math.round((profile.trust_score || 0) * 100)}</p>
-              <p className="text-[11px] uppercase tracking-wide text-muted">trust</p>
+                <div className="min-w-0">
+                  <h1 className="font-display text-2xl text-mist">{profile.display_name}</h1>
+                  <p className="mt-1 text-sm text-muted">
+                    {[
+                      profile.age ? `${profile.age} years old` : null,
+                      profile.approximate_area || profile.city || 'Sri Lanka',
+                      profile.years_experience
+                        ? `${profile.years_experience} yrs experience`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {profile.is_verified && (
+                      <span className="rounded-full border border-mint/40 px-2.5 py-0.5 text-[11px] uppercase tracking-wide text-mint">
+                        Verified
+                      </span>
+                    )}
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide ${
+                        profile.is_available === false
+                          ? 'border-hair text-muted'
+                          : 'border-cyan/40 text-cyan'
+                      }`}
+                    >
+                      {profile.is_available === false ? 'Unavailable' : 'Available now'}
+                    </span>
+                    <span className="text-[11px] text-amber">
+                      {profile.review_count
+                        ? `${'★'.repeat(
+                            Math.max(1, Math.min(5, Math.round(profile.review_average ?? 0))),
+                          )} ${(profile.review_average ?? 0).toFixed(1)} (${profile.review_count})`
+                        : 'No reviews yet'}
+                    </span>
+                  </div>
+                  <p className="mt-4 max-w-2xl text-sm leading-relaxed text-mist/90">
+                    {profile.bio || 'Community caregiver on Care Plus.'}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl text-mint">
+                  {Math.round((profile.trust_score || 0) * 100)}
+                </p>
+                <p className="text-[11px] uppercase tracking-wide text-muted">trust</p>
+              </div>
             </div>
           </div>
 
@@ -192,18 +223,41 @@ export function CaregiverDetailPage() {
           </dl>
 
           {!showForm && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                onClick={startBooking}
-                disabled={profile.is_available === false || requesting || requestSent}
-              >
-                {requestSent
-                  ? 'Request sent'
-                  : user
-                    ? 'Request this caregiver'
-                    : 'Sign in to start booking'}
-              </Button>
+            <div className="rounded-[1.5rem] border border-cyan/30 bg-cyan/5 p-6">
+              <h2 className="font-display text-lg text-mist">Book {profile.display_name}</h2>
+              <ol className="mt-3 grid gap-2 text-sm text-muted sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  'Send a care request',
+                  'Caregiver accepts',
+                  'Choose a care package',
+                  'Pay and care begins',
+                ].map((step, i) => (
+                  <li key={step} className="flex items-start gap-2">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-cyan/40 text-[11px] text-cyan">
+                      {i + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  onClick={startBooking}
+                  disabled={profile.is_available === false || requesting || requestSent}
+                >
+                  {requestSent
+                    ? 'Request sent'
+                    : user
+                      ? 'Request this caregiver'
+                      : 'Sign in to start booking'}
+                </Button>
+                {profile.is_available === false && (
+                  <p className="self-center text-xs text-muted">
+                    This caregiver is not accepting new families right now.
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
