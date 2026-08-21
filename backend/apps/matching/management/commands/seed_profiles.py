@@ -9,14 +9,17 @@ Usage::
 from __future__ import annotations
 
 import random
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from apps.accounts.models import Role
 from apps.matching.models import CaregiverProfile, PatientProfile
+from apps.matching.seed_avatars import ensure_caregiver_avatar
 from apps.matching.seed_data import (
     CARE_LEVELS,
     CAREGIVER_NAMES,
@@ -28,6 +31,12 @@ from apps.matching.seed_data import (
 )
 
 User = get_user_model()
+
+
+def _random_dob(rng: random.Random) -> date:
+    """Plausible working-age caregiver birthday (24–58)."""
+    age = rng.randint(24, 58)
+    return timezone.localdate() - timedelta(days=age * 365 + rng.randint(0, 364))
 
 
 class Command(BaseCommand):
@@ -74,13 +83,14 @@ class Command(BaseCommand):
         created_cg = self._seed_caregivers(rng, n_cg)
         created_pt = self._seed_patients(rng, n_pt)
         backfilled = self._backfill_cities()
+        dobs, photos = self._backfill_presentation(rng)
 
         total_cg = CaregiverProfile.objects.filter(is_active=True).count()
         with_geom = CaregiverProfile.objects.exclude(location__isnull=True).count()
         self.stdout.write(
             self.style.SUCCESS(
                 f"Seeded +{created_cg} caregivers, +{created_pt} patients "
-                f"(city backfill {backfilled}). "
+                f"(city backfill {backfilled}, +{dobs} birthdays, +{photos} avatars). "
                 f"Active caregivers with geometry: {with_geom}/{total_cg}."
             )
         )
@@ -121,6 +131,7 @@ class Command(BaseCommand):
                 embedding=[],
                 bio=f"Community caregiver based near {city_name}.",
                 nic_id=f"19{900000000 + i:09d}"[:12],
+                date_of_birth=_random_dob(rng),
                 years_experience=rng.randint(2, 15),
                 service_radius_km=round(rng.uniform(15.0, 50.0), 1),
                 certification_docs=[
@@ -133,6 +144,19 @@ class Command(BaseCommand):
             )
             created += 1
         return created
+
+    def _backfill_presentation(self, rng: random.Random) -> tuple[int, int]:
+        """Give older seed rows a birthday + avatar so browse cards look real."""
+        dobs = 0
+        photos = 0
+        for cg in CaregiverProfile.objects.filter(is_active=True):
+            if cg.date_of_birth is None:
+                cg.date_of_birth = _random_dob(rng)
+                cg.save(update_fields=["date_of_birth", "updated_at"])
+                dobs += 1
+            if ensure_caregiver_avatar(cg):
+                photos += 1
+        return dobs, photos
 
     def _backfill_cities(self) -> int:
         """Fill city on older seed rows that predate the city field."""

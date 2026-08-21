@@ -12,6 +12,7 @@ from apps.health_monitoring.models import HealthEvent
 from .engine import match_run_provenance, run_match
 from .interactions import record_match_interactions
 from .models import CaregiverProfile, MatchResult, create_match_run
+from .profile_media import photo_download_path
 from .push import push_match_results
 
 
@@ -120,6 +121,12 @@ def emergency_rematch_for_health_event(event: HealthEvent) -> dict:
                 "care_levels": chosen_profile.care_levels if chosen_profile else [],
                 "trust_score": chosen_profile.trust_score if chosen_profile else None,
                 "is_available": bool(chosen_profile.is_available) if chosen_profile else False,
+                "photo_url": photo_download_path(
+                    kind="caregiver", profile_id=chosen_profile.pk
+                )
+                if chosen_profile and chosen_profile.photo
+                else None,
+                "age": chosen_profile.age if chosen_profile else None,
             }
         ],
         "emergency_context": {

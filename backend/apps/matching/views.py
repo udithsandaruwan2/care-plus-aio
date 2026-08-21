@@ -3,7 +3,7 @@ import time
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
-from django.db.models import Q
+from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -78,6 +78,7 @@ from .serializers import (
     ShiftSerializer,
 )
 from .conflict_fallback import find_shift_conflict_fallback
+from .profile_media import photo_download_path
 from .shifts import ShiftOverlapError, book_shift, cancel_shift, shifts_queryset_for_user
 
 
@@ -100,7 +101,20 @@ class CaregiverListView(generics.ListAPIView):
     pagination_class = CaregiverPagination
 
     def get_queryset(self):
-        qs = CaregiverProfile.objects.filter(is_active=True).select_related("user")
+        qs = (
+            CaregiverProfile.objects.filter(is_active=True)
+            .select_related("user")
+            .annotate(
+                approved_review_count=Count(
+                    "reviews_received",
+                    filter=Q(reviews_received__status=ReviewStatus.APPROVED),
+                ),
+                approved_review_average=Avg(
+                    "reviews_received__rating",
+                    filter=Q(reviews_received__status=ReviewStatus.APPROVED),
+                ),
+            )
+        )
         params = self.request.query_params
 
         q = (params.get("q") or "").strip()
@@ -541,6 +555,10 @@ class MatchView(APIView):
                     "care_levels": p.care_levels if p else [],
                     "trust_score": p.trust_score if p else None,
                     "is_available": bool(p.is_available) if p else False,
+                    "photo_url": photo_download_path(kind="caregiver", profile_id=p.pk)
+                    if p and p.photo
+                    else None,
+                    "age": p.age if p else None,
                     "was_exploratory": bool(getattr(hit, "was_exploratory", False)),
                 }
             )

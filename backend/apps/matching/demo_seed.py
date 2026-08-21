@@ -56,6 +56,7 @@ from apps.matching.models import (
     create_match_run,
 )
 from apps.matching.patient_profile import patient_profile_completion
+from apps.matching.seed_avatars import ensure_caregiver_avatar
 from apps.matching.seed_data import SRI_LANKA_CITIES
 from apps.medical_records.services import create_medical_record
 from apps.messaging.services import get_or_create_thread_for_relationship, send_message
@@ -160,6 +161,9 @@ def ensure_caregiver(
         "trust_score": extra.pop("trust_score", 0.91),
         "bio": extra.pop("bio", f"Community caregiver based near {city}."),
         "nic_id": extra.pop("nic_id", "198765432V"),
+        "date_of_birth": extra.pop(
+            "date_of_birth", timezone.localdate() - timedelta(days=34 * 365)
+        ),
         "years_experience": extra.pop("years_experience", 8),
         "service_radius_km": extra.pop("service_radius_km", 25.0),
         "certification_docs": extra.pop(
@@ -172,6 +176,7 @@ def ensure_caregiver(
         "embedding": [],
     }
     profile, _ = CaregiverProfile.objects.update_or_create(user=user, defaults=defaults)
+    ensure_caregiver_avatar(profile)
     return profile
 
 

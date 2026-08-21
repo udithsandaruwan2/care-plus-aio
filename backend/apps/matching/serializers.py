@@ -1,5 +1,6 @@
 from django.contrib.gis.geos import Point
 from django.db.models import Avg
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.vocab.models import ConditionTerm
@@ -47,6 +48,10 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
     longitude = serializers.SerializerMethodField()
     latitude = serializers.SerializerMethodField()
     photo_url = serializers.SerializerMethodField()
+    age = serializers.SerializerMethodField()
+    is_verified = serializers.BooleanField(source="is_approved", read_only=True)
+    review_count = serializers.SerializerMethodField()
+    review_average = serializers.SerializerMethodField()
 
     class Meta:
         model = CaregiverProfile
@@ -63,6 +68,11 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
             "care_levels",
             "trust_score",
             "bio",
+            "age",
+            "years_experience",
+            "is_verified",
+            "review_count",
+            "review_average",
             "is_active",
             "is_available",
             "photo_url",
@@ -79,12 +89,32 @@ class CaregiverProfileSerializer(serializers.ModelSerializer):
     def get_photo_url(self, obj):
         return _photo_url(obj)
 
+    def get_age(self, obj):
+        return obj.age
+
+    def get_review_count(self, obj):
+        # ``CaregiverListView`` annotates these so browse stays one query.
+        annotated = getattr(obj, "approved_review_count", None)
+        if annotated is not None:
+            return int(annotated)
+        return Review.objects.filter(caregiver=obj, status=ReviewStatus.APPROVED).count()
+
+    def get_review_average(self, obj):
+        if hasattr(obj, "approved_review_average"):
+            value = obj.approved_review_average
+        else:
+            value = Review.objects.filter(
+                caregiver=obj, status=ReviewStatus.APPROVED
+            ).aggregate(avg=Avg("rating"))["avg"]
+        if value is None:
+            return None
+        return round(float(value), 2)
+
 
 class CaregiverMeSerializer(CaregiverProfileSerializer):
     """Own-profile payload with onboarding completion (Step 22c)."""
 
     nic_id = serializers.CharField()
-    years_experience = serializers.IntegerField(allow_null=True)
     service_radius_km = serializers.FloatField()
     certification_docs = serializers.SerializerMethodField()
     is_approved = serializers.BooleanField()
@@ -96,7 +126,7 @@ class CaregiverMeSerializer(CaregiverProfileSerializer):
     class Meta(CaregiverProfileSerializer.Meta):
         fields = CaregiverProfileSerializer.Meta.fields + (
             "nic_id",
-            "years_experience",
+            "date_of_birth",
             "service_radius_km",
             "certification_docs",
             "is_approved",
@@ -139,6 +169,7 @@ class CaregiverProfileUpdateSerializer(serializers.ModelSerializer):
         fields = (
             "display_name",
             "nic_id",
+            "date_of_birth",
             "city",
             "longitude",
             "latitude",
@@ -152,6 +183,15 @@ class CaregiverProfileUpdateSerializer(serializers.ModelSerializer):
             "certification_docs",
             "is_available",
         )
+
+    def validate_date_of_birth(self, value):
+        if value is None:
+            return value
+        today = timezone.localdate()
+        age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
+        if not 18 <= age <= 99:
+            raise serializers.ValidationError("Caregivers must be between 18 and 99 years old.")
+        return value
 
     def validate_languages(self, value):
         allowed = {c.value for c in Language}
@@ -198,15 +238,11 @@ class CaregiverDetailSerializer(CaregiverProfileSerializer):
 
     approximate_area = serializers.SerializerMethodField()
     reviews_teaser = serializers.SerializerMethodField()
-    review_count = serializers.SerializerMethodField()
-    review_average = serializers.SerializerMethodField()
 
     class Meta(CaregiverProfileSerializer.Meta):
         fields = CaregiverProfileSerializer.Meta.fields + (
             "approximate_area",
             "reviews_teaser",
-            "review_count",
-            "review_average",
         )
 
     def get_approximate_area(self, obj):
@@ -226,19 +262,6 @@ class CaregiverDetailSerializer(CaregiverProfileSerializer):
             }
             for r in rows
         ]
-
-    def get_review_count(self, obj):
-        return Review.objects.filter(caregiver=obj, status=ReviewStatus.APPROVED).count()
-
-    def get_review_average(self, obj):
-        value = (
-            Review.objects.filter(caregiver=obj, status=ReviewStatus.APPROVED).aggregate(
-                avg=Avg("rating")
-            )["avg"]
-        )
-        if value is None:
-            return None
-        return round(float(value), 2)
 
     def get_longitude(self, obj):
         # Fuzz to ~1 km for public detail (browse map still uses list coords).

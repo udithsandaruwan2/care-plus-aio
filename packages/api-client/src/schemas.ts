@@ -335,6 +335,8 @@ export const MatchHit = z.object({
   care_levels: z.array(z.string()),
   trust_score: z.number().nullable().optional(),
   is_available: z.boolean().optional().default(true),
+  photo_url: z.string().nullable().optional(),
+  age: z.number().int().nullable().optional(),
   /** Previous rank before a refine rematch (Step 15i). */
   previous_rank: z.number().nullable().optional(),
   /** previous_rank - rank; positive means moved up. */
@@ -532,6 +534,11 @@ export const CaregiverProfile = z.object({
   care_levels: z.array(z.string()),
   trust_score: z.number(),
   bio: z.string().optional().default(''),
+  age: z.number().int().nullable().optional(),
+  years_experience: z.number().int().nullable().optional(),
+  is_verified: z.boolean().optional().default(false),
+  review_count: z.number().int().optional().default(0),
+  review_average: z.number().nullable().optional(),
   is_active: z.boolean().optional(),
   is_available: z.boolean().optional().default(true),
   photo_url: z.string().nullable().optional(),
@@ -541,7 +548,7 @@ export type CaregiverProfile = z.infer<typeof CaregiverProfile>;
 
 export const CaregiverMeProfile = CaregiverProfile.extend({
   nic_id: z.string().optional().default(''),
-  years_experience: z.number().int().nullable().optional(),
+  date_of_birth: z.string().nullable().optional(),
   service_radius_km: z.number().optional().default(25),
   certification_docs: z.array(z.record(z.string(), z.unknown())).optional().default([]),
   is_approved: z.boolean().optional().default(false),
@@ -556,6 +563,7 @@ export type CaregiverMeProfile = z.infer<typeof CaregiverMeProfile>;
 export const CaregiverProfileUpdate = z.object({
   display_name: z.string().optional(),
   nic_id: z.string().optional(),
+  date_of_birth: z.string().nullable().optional(),
   city: z.string().optional(),
   longitude: z.number().optional(),
   latitude: z.number().optional(),
@@ -584,8 +592,6 @@ export const CaregiverDetail = CaregiverProfile.extend({
     )
     .optional()
     .default([]),
-  review_count: z.number().int().optional().default(0),
-  review_average: z.number().nullable().optional(),
 });
 export type CaregiverDetail = z.infer<typeof CaregiverDetail>;
 

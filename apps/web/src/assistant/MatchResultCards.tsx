@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
 import { ApiError } from '@care-plus/api-client';
+import { Avatar } from '../components/ui/Avatar';
 import { localizeExplanation, matchUi } from './locale';
 import type { UiVoiceLanguage } from './uiVoiceLanguage';
 import { useAssistant } from './store';
@@ -156,16 +157,20 @@ function MatchCard({
       style={{ animationDelay: `${Math.max(0, hit.rank - 1) * 80}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-display text-sm font-semibold text-mist">
-            <span className="mr-2 font-mono text-sm text-cyan">#{hit.rank}</span>
-            {hit.display_name}
-            <RankChange hit={hit} />
-          </p>
-          <p className="mt-0.5 truncate text-xs text-muted">
-            {(hit.specialties || []).slice(0, 2).join(' · ') || 'General care'}
-            {km ? ` · ${km}` : ''}
-          </p>
+        <div className="flex min-w-0 items-start gap-2.5">
+          <Avatar name={hit.display_name} photoUrl={hit.photo_url} size="sm" />
+          <div className="min-w-0">
+            <p className="font-display text-sm font-semibold text-mist">
+              <span className="mr-2 font-mono text-sm text-cyan">#{hit.rank}</span>
+              {hit.display_name}
+              <RankChange hit={hit} />
+            </p>
+            <p className="mt-0.5 truncate text-xs text-muted">
+              {(hit.specialties || []).slice(0, 2).join(' · ') || 'General care'}
+              {hit.age ? ` · ${hit.age} yrs` : ''}
+              {km ? ` · ${km}` : ''}
+            </p>
+          </div>
         </div>
         <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-full border-2 border-cyan/40 bg-cyan/10">
           <p className="font-display text-base font-bold leading-none text-cyan">

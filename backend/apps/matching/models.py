@@ -10,6 +10,7 @@ from django.contrib.gis.db import models as gis_models
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 # multilingual-e5-base output dim — filled in Step 17; kept empty until then.
 EMBEDDING_DIM = 768
@@ -102,6 +103,7 @@ class CaregiverProfile(models.Model):
     city = models.CharField(max_length=64, blank=True, default="", db_index=True)
     # Step 22c — onboarding + approval before appearing in match/browse.
     nic_id = models.CharField(max_length=20, blank=True, default="")
+    date_of_birth = models.DateField(null=True, blank=True)
     years_experience = models.PositiveSmallIntegerField(null=True, blank=True)
     service_radius_km = models.FloatField(
         default=25.0,
@@ -125,6 +127,16 @@ class CaregiverProfile(models.Model):
 
     def __str__(self):
         return f"{self.display_name} (trust={self.trust_score:.2f})"
+
+    @property
+    def age(self) -> int | None:
+        """Whole years since ``date_of_birth`` (None when not shared)."""
+        if not self.date_of_birth:
+            return None
+        today = timezone.localdate()
+        born = self.date_of_birth
+        years = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+        return years if 0 < years < 130 else None
 
 
 class PatientProfile(models.Model):
