@@ -52,14 +52,53 @@ Android and iOS. Full design in [docs/FRONTEND.md](docs/FRONTEND.md).
 - **[docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md)** — v0.3 product build plan (M0–M17,
   Steps 1–75), complete on `main`.
 - **[docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md)** — v0.4 engine plan (M18–M24,
-  Steps 76–106): telemetry and audit, streaming conversation, offline support with a local model,
+  Steps 76–106), **complete**: telemetry and audit, streaming conversation, offline support,
   AI decision history, and a ranking loop that learns from its outcomes.
 
 ## Status
 
-The numbered plan (M0–M17) is implemented on `main`. Testers use **web** and **Expo Go** (SDK 54). Play/App Store submissions are deferred until store accounts exist. See [PROGRESS.md](PROGRESS.md) and [docs/ops/launch-checklist.md](docs/ops/launch-checklist.md).
+**v0.3** (M0–M17 / Steps 1–75) and **v0.4** (M18–M24 / Steps 76–106) are **complete** on `main`.
+Testers use **web** and **Expo Go** (SDK 54). Play/App Store submissions are deferred until store
+accounts exist. See [PROGRESS.md](PROGRESS.md) and [docs/ops/launch-checklist.md](docs/ops/launch-checklist.md).
 
-Active work follows **[docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md)**, starting at Step 76.
+## Quick start (local)
+
+One-shot (API + Celery + migrate + seed + web):
+
+```bash
+cp -n .env.example .env   # once; add GEMINI_API_KEY if you want live NLP/TTS
+./scripts/run-local.sh
+```
+
+Or step by step:
+
+```bash
+# Backend (TimescaleDB + Redis + Django + Celery)
+docker compose -f infra/docker-compose.yml up -d --build
+docker compose -f infra/docker-compose.yml exec -T backend python manage.py migrate --noinput
+docker compose -f infra/docker-compose.yml exec -T backend python manage.py seed_demo
+curl -fsS http://localhost:8000/api/v1/health/
+
+# Web
+pnpm install
+pnpm --filter @care-plus/web dev --host 127.0.0.1 --port 5173
+```
+
+| Surface | URL |
+| ------- | --- |
+| Web app | http://127.0.0.1:5173 |
+| API     | http://127.0.0.1:8000/api/v1/ |
+| Health  | http://127.0.0.1:8000/api/v1/health/ |
+
+**Demo logins** (password `CarePlus!demo`):
+
+| Email | Role |
+| ----- | ---- |
+| `demo.patient@careplus.local` | Patient (active care + Serah) |
+| `demo.caregiver@careplus.local` | Caregiver inbox / schedule |
+| `demo.admin@careplus.local` | Admin hub |
+
+Production / TLS / backups: [docs/ops/deploy.md](docs/ops/deploy.md).
 
 ## Tech stack (lean profile)
 

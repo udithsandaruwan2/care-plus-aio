@@ -117,6 +117,7 @@ export function rankFromEdgeCache(
     care_levels: c.care_levels,
     trust_score: c.trust_score,
     is_available: c.is_available,
+    was_exploratory: false,
   }));
 
   return {
