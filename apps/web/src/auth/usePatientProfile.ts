@@ -1,39 +1,38 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import type { PatientProfile } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { queryKeys, STALE_MS } from '../lib/query/keys';
+import { useCachedQuery } from '../lib/query/useCachedQuery';
 
 export function usePatientProfile() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<PatientProfile | null>(null);
-  const [loading, setLoading] = useState(user?.role === 'patient');
+  const enabled = user?.role === 'patient' && Boolean(user?.id);
+  const key = enabled ? queryKeys.patientProfile(user!.id) : null;
 
-  const refresh = useCallback(async () => {
-    if (user?.role !== 'patient') {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      setProfile(await api.myPatientProfile());
-    } catch {
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.role, user?.id]);
+  const { data, loading, refresh, setData, fromCache, stale } = useCachedQuery<PatientProfile>({
+    key,
+    staleTimeMs: STALE_MS.profile,
+    enabled,
+    fetcher: () => api.myPatientProfile(),
+  });
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const setProfile = useCallback(
+    (value: PatientProfile | null | ((prev: PatientProfile | null) => PatientProfile | null)) => {
+      const next = typeof value === 'function' ? value(data) : value;
+      void setData(next);
+    },
+    [data, setData],
+  );
 
   return {
-    profile,
+    profile: data,
     setProfile,
     loading,
-    refresh,
-    canRequestCare: user?.role !== 'patient' || profile?.can_request_care === true,
-    completionPercent: profile?.completion_percent ?? 0,
+    refresh: () => refresh({ force: true }),
+    fromCache,
+    stale,
+    canRequestCare: user?.role !== 'patient' || data?.can_request_care === true,
+    completionPercent: data?.completion_percent ?? 0,
   };
 }

@@ -10,6 +10,9 @@ import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
+import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
+import { queryKeys, STALE_MS } from '../lib/query/keys';
+import { useCachedQuery } from '../lib/query/useCachedQuery';
 import { mediaUrl } from '../lib/mediaUrl';
 
 function formatReviewDate(value?: string) {
@@ -22,44 +25,28 @@ export function CaregiverDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [profile, setProfile] = useState<CaregiverDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const pk = Number(id);
+  const validId = Number.isFinite(pk) && pk > 0;
+
+  const query = useCachedQuery<CaregiverDetail>({
+    key: validId ? queryKeys.caregiverDetail(pk) : null,
+    staleTimeMs: STALE_MS.caregiverDetail,
+    enabled: validId,
+    fetcher: () => api.caregiver(pk),
+  });
+
+  const profile = query.data;
+  const loading = query.loading && !query.data;
+  const error = !validId
+    ? 'Invalid caregiver link.'
+    : query.error;
+
   const [requesting, setRequesting] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [resumeHint, setResumeHint] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [message, setMessage] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const pk = Number(id);
-    if (!Number.isFinite(pk) || pk <= 0) {
-      setError('Invalid caregiver link.');
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    api
-      .caregiver(pk)
-      .then((data) => {
-        if (!cancelled) setProfile(data);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setProfile(null);
-          setError(err instanceof Error ? err.message : 'Could not load caregiver.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
 
   useEffect(() => {
     const intent = readBookingIntent();
@@ -122,7 +109,7 @@ export function CaregiverDetailPage() {
   return (
     <PublicPage>
       <BackLink to="/caregivers">Caregivers</BackLink>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           eyebrow="Caregiver profile"
           title={loading ? 'Caregiver' : profile?.display_name || 'Caregiver'}
@@ -134,6 +121,7 @@ export function CaregiverDetailPage() {
               : undefined
           }
         />
+        <CacheSourceBadge fromCache={query.fromCache} stale={query.stale} />
       </div>
 
       {loading && <p className="mt-10 text-sm text-muted">Loading profile…</p>}

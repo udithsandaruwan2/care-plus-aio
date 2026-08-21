@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
 import type { MatchResponse } from '@care-plus/api-client';
 import type { UiVoiceLanguage } from './uiVoiceLanguage';
 import { MatchResultCards } from './MatchResultCards';
@@ -43,12 +44,16 @@ export function MatchSearchPanel({
   match,
   canRequestCare = true,
   uiLanguage = 'English',
+  fromCache = false,
+  stale = false,
   id,
 }: {
   matching: boolean;
   match: MatchResponse | null;
   canRequestCare?: boolean;
   uiLanguage?: UiVoiceLanguage;
+  fromCache?: boolean;
+  stale?: boolean;
   id?: string;
 }) {
   const copy = matchSearchCopy(uiLanguage);
@@ -109,6 +114,11 @@ export function MatchSearchPanel({
 
         {hasResults && match ? (
           <div className={matching ? 'opacity-70' : undefined}>
+            {(fromCache || stale) && (
+              <div className="mb-2 flex justify-end px-1">
+                <CacheSourceBadge fromCache={fromCache} stale={stale} />
+              </div>
+            )}
             <MatchResultCards
               match={match}
               canRequestCare={canRequestCare}

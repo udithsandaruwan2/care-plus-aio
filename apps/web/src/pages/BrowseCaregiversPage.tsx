@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CaregiverProfile } from '@care-plus/api-client';
 import { CaregiverMap } from '../components/CaregiverMap';
@@ -9,6 +9,9 @@ import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
+import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
+import { queryKeys, STALE_MS } from '../lib/query/keys';
+import { useCachedQuery } from '../lib/query/useCachedQuery';
 
 const LANG_CHIPS = ['Sinhala', 'Tamil', 'English'] as const;
 const SPECIALTY_CHIPS = ['diabetes', 'hypertension', 'elderly care', 'dementia', 'asthma'] as const;
@@ -19,6 +22,8 @@ type Filters = {
   specialty: string;
   availableOnly: boolean;
 };
+
+type BrowsePayload = { results: CaregiverProfile[]; count: number };
 
 const emptyFilters: Filters = {
   q: '',
@@ -31,47 +36,40 @@ export function BrowseCaregiversPage() {
   const { user } = useAuth();
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draftQ, setDraftQ] = useState('');
-  const [rows, setRows] = useState<CaregiverProfile[]>([]);
-  const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    api
-      .caregivers({
+  const cacheKey = queryKeys.browse({
+    q: filters.q || '',
+    language: filters.language || '',
+    specialty: filters.specialty || '',
+    availableOnly: filters.availableOnly,
+  });
+
+  const query = useCachedQuery<BrowsePayload>({
+    key: cacheKey,
+    staleTimeMs: STALE_MS.browse,
+    fetcher: async () => {
+      const res = await api.caregivers({
         q: filters.q || undefined,
         language: filters.language || undefined,
         specialty: filters.specialty || undefined,
         available: filters.availableOnly ? 'true' : undefined,
         page_size: 50,
-      })
-      .then((res) => {
-        if (cancelled) return;
-        setRows(res.results);
-        setCount(res.count);
-        setSelectedId((prev) =>
-          res.results.some((r) => r.id === prev) ? prev : (res.results[0]?.id ?? null),
-        );
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setRows([]);
-        setCount(0);
-        setError(err instanceof Error ? err.message : 'Could not load caregivers.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [filters]);
+      return { results: res.results, count: res.count };
+    },
+  });
 
-  const selected = useMemo(() => rows.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
+  const rows = query.data?.results ?? [];
+  const count = query.data?.count ?? 0;
+  const loading = query.loading && !query.data;
+  const error = query.error;
+
+  const selected = useMemo(() => {
+    const fromRows = rows.find((r) => r.id === selectedId);
+    if (fromRows) return fromRows;
+    return rows[0] ?? null;
+  }, [rows, selectedId]);
 
   function toggleChip<K extends 'language' | 'specialty'>(key: K, value: string) {
     setFilters((f) => ({ ...f, [key]: f[key] === value ? '' : value }));
@@ -80,12 +78,13 @@ export function BrowseCaregiversPage() {
   return (
     <PublicPage>
       <BackLink to="/">Home</BackLink>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           eyebrow="Caregiver directory"
           title="Find your caregiver match"
           subtitle="Explore by language, specialty, and current availability across Sri Lanka."
         />
+        <CacheSourceBadge fromCache={query.fromCache} stale={query.stale} />
       </div>
 
       <form
@@ -169,7 +168,11 @@ export function BrowseCaregiversPage() {
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <CaregiverMap caregivers={rows} selectedId={selectedId} onSelect={setSelectedId} />
+        <CaregiverMap
+          caregivers={rows}
+          selectedId={selected?.id ?? selectedId}
+          onSelect={setSelectedId}
+        />
 
         <div className="max-h-[35rem] space-y-2 overflow-y-auto rounded-2xl border border-hair bg-panel p-3 shadow-[var(--cp-shadow-soft)]">
           {!loading && !error && rows.length === 0 && (
@@ -179,7 +182,7 @@ export function BrowseCaregiversPage() {
             </p>
           )}
           {rows.map((cg) => {
-            const active = cg.id === selectedId;
+            const active = cg.id === (selected?.id ?? selectedId);
             return (
               <button
                 key={cg.id}

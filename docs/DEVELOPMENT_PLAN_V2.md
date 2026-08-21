@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 94.** M22 continues with cached offline reads.
+**Start at Step 95.** M22 continues with the offline write outbox.
 
 ---
 
@@ -354,17 +354,15 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 94 — Cached reads
+### Step 94 — Cached reads ✅ **DONE**
 
 **Branch:** `feat/step94-offline-reads`
 **Goal:** stop refetching everything on every mount, and make recent data readable offline. There is no query cache today — each page uses its own `useState` + `useEffect`.
-**Tasks:**
+**Done:**
 
-- Introduce a query layer with an IndexedDB persister.
-- Migrate the profile, match, browse, and message hooks onto it.
-- Cache last match results, viewed caregiver profiles, and message threads with per-entity staleness rules.
-- Mark stale-while-offline data visibly rather than presenting it as live.
-- Files: `apps/web/src/auth/*`, `apps/web/src/pages/*`, `apps/web/src/lib/`.
+- Lightweight query layer (`lib/query/*`) with in-memory + IndexedDB persistence and per-entity stale times.
+- Migrated patient/caregiver me profiles, browse list, caregiver detail, message thread/list, and last VEHMF match onto the cache.
+- `CacheSourceBadge` marks cached / stale-offline data; navigating while fresh skips network refetch.
 
 **✅ Acceptance:** with the network off, the last match results and an opened caregiver profile still render, clearly badged as cached; navigating between pages online no longer refetches unchanged data.
 **Depends on:** Steps 82, 93.
@@ -604,4 +602,4 @@ Author identity and the terminal commit recipe: `.cursor/rules/git-workflow.mdc`
 
 ## Next up
 
-**Step 94 — Cached reads** on `feat/step94-offline-reads`. IndexedDB query cache for profile/match/browse/messages.
+**Step 95 — Queued writes** on `feat/step95-offline-outbox`. IndexedDB outbox + idempotent writes.
