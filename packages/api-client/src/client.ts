@@ -38,7 +38,6 @@ import {
   ConsentState,
   HealthResponse,
   MatchResponse,
-  MatchHistoryEntry,
   MatchHistoryListResponse,
   PatientProfile,
   RegisterResponse,
