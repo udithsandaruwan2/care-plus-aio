@@ -164,6 +164,50 @@ export function AdminAnalyticsPage() {
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
+
+          {data.weight_ab ? (
+            <ChartCard title={`Weight A/B — ${data.weight_ab.experiment_id}`}>
+              <p className="mb-3 text-sm text-muted">
+                {data.weight_ab.stopping_rule.ready ? (
+                  <span className="text-mint">{data.weight_ab.stopping_rule.guidance}</span>
+                ) : (
+                  <span className="text-amber-200">{data.weight_ab.stopping_rule.guidance}</span>
+                )}
+              </p>
+              {data.weight_ab.variants.length === 0 ? (
+                <p className="text-sm text-muted">No variant-tagged MatchRuns in this window.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-mist">
+                    <thead className="text-[11px] uppercase tracking-wide text-muted">
+                      <tr>
+                        <th className="py-2 pr-3">Variant</th>
+                        <th className="py-2 pr-3">n</th>
+                        <th className="py-2 pr-3">Accept</th>
+                        <th className="py-2 pr-3">Complete</th>
+                        <th className="py-2">TTA p50</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.weight_ab.variants.map((row) => (
+                        <tr key={row.variant} className="border-t border-hair/60">
+                          <td className="py-2 pr-3 font-medium">{row.variant}</td>
+                          <td className="py-2 pr-3">{row.n_runs}</td>
+                          <td className="py-2 pr-3">
+                            {(row.accept_rate * 100).toFixed(1)}% ({row.n_accepts})
+                          </td>
+                          <td className="py-2 pr-3">
+                            {(row.completion_rate * 100).toFixed(1)}% ({row.n_completes})
+                          </td>
+                          <td className="py-2">{fmtMs(row.time_to_accept_ms_p50)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </ChartCard>
+          ) : null}
         </div>
       )}
     </div>
