@@ -498,6 +498,9 @@ class CareRequestCreateSerializer(serializers.Serializer):
     message = serializers.CharField(required=False, allow_blank=True, max_length=2000)
     match_run_id = serializers.IntegerField(required=False, allow_null=True)
     match_snapshot = serializers.JSONField(required=False)
+    idempotency_key = serializers.CharField(
+        required=False, allow_blank=True, max_length=128, trim_whitespace=True
+    )
 
     def validate_caregiver_id(self, value):
         try:

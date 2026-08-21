@@ -369,7 +369,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 95 — Queued writes
+### Step 95 — Queued writes ✅ **DONE**
 
 **Branch:** `feat/step95-offline-outbox`
 **Goal:** a care request or message composed offline must not be lost.

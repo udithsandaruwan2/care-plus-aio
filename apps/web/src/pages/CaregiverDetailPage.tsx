@@ -86,13 +86,19 @@ export function CaregiverDetailPage() {
     setRequesting(true);
     setFormError(null);
     try {
-      await api.createCareRequest({
+      const { enqueueCareRequest } = await import('../lib/outbox/flush');
+      const outcome = await enqueueCareRequest({
         caregiver_id: profile.id,
         message: message.trim() || undefined,
-      });
+      }, `Request to ${profile.display_name}`);
       setRequestSent(true);
       clearBookingIntent();
-      navigate('/requests');
+      if (outcome.queued) {
+        setFormError(null);
+        navigate('/requests');
+      } else {
+        navigate('/requests');
+      }
     } catch (err) {
       const msg =
         err instanceof ApiError && typeof err.body === 'object' && err.body

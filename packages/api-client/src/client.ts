@@ -581,10 +581,17 @@ export function createApiClient(options: ApiClientOptions) {
       const qs = page != null ? `?page=${page}` : '';
       return request(`/care-requests/${qs}`, {}, (d) => CareRequestListResponse.parse(d));
     },
-    createCareRequest: (input: CareRequestCreate) =>
-      request('/care-requests/', { method: 'POST', body: JSON.stringify(input) }, (d) =>
-        CareRequest.parse(d),
-      ),
+    createCareRequest: (input: CareRequestCreate) => {
+      const headers: Record<string, string> = {};
+      if (input.idempotency_key) {
+        headers['Idempotency-Key'] = input.idempotency_key;
+      }
+      return request(
+        '/care-requests/',
+        { method: 'POST', body: JSON.stringify(input), headers },
+        (d) => CareRequest.parse(d),
+      );
+    },
     cancelCareRequest: (id: number) =>
       request(
         `/care-requests/${id}/action/`,
@@ -730,12 +737,19 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     getPaymentIntent: (orderId: number) =>
       request(`/orders/${orderId}/payment-intent/`, {}, (d) => PaymentIntent.parse(d)),
-    confirmMockPayment: (providerIntentId: string) =>
-      request(
+    confirmMockPayment: (providerIntentId: string, idempotencyKey?: string) => {
+      const headers: Record<string, string> = {};
+      if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+      return request(
         `/payments/mock/${encodeURIComponent(providerIntentId)}/confirm/`,
-        { method: 'POST', body: JSON.stringify({}) },
+        {
+          method: 'POST',
+          body: JSON.stringify(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+          headers,
+        },
         (d) => PaymentIntent.parse(d),
-      ),
+      );
+    },
     listMedicalRecords: (params?: { patient_id?: number }) => {
       const qs = params?.patient_id != null ? `?patient_id=${params.patient_id}` : '';
       return request(`/medical-records/${qs}`, {}, (d) => z.array(MedicalRecordList).parse(d));
@@ -786,12 +800,17 @@ export function createApiClient(options: ApiClientOptions) {
         z.array(Message).parse(d),
       );
     },
-    sendMessage: (threadId: number, body: string) =>
-      request(
+    sendMessage: (threadId: number, body: string, idempotencyKey?: string) => {
+      const headers: Record<string, string> = {};
+      if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+      const payload: { body: string; idempotency_key?: string } = { body };
+      if (idempotencyKey) payload.idempotency_key = idempotencyKey;
+      return request(
         `/message-threads/${threadId}/messages/`,
-        { method: 'POST', body: JSON.stringify({ body }) },
+        { method: 'POST', body: JSON.stringify(payload), headers },
         (d) => Message.parse(d),
-      ),
+      );
+    },
     markMessagesRead: (threadId: number, lastReadMessageId: number) =>
       request(
         `/message-threads/${threadId}/read/`,

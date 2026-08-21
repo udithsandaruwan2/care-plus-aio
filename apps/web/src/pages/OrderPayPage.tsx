@@ -70,8 +70,13 @@ export function OrderPayPage() {
     setPaying(true);
     setError(null);
     try {
-      const confirmed = await api.confirmMockPayment(intent.provider_intent_id);
-      if (confirmed.status === 'succeeded') {
+      const { enqueuePaymentConfirm } = await import('../lib/outbox/flush');
+      const outcome = await enqueuePaymentConfirm(intent.provider_intent_id);
+      if (outcome.queued) {
+        setError('Payment confirmation queued — it will complete when you reconnect.');
+        return;
+      }
+      if (outcome.result.status === 'succeeded') {
         navigate(`/orders/${id}/success`);
       } else {
         navigate(`/orders/${id}/failed`);

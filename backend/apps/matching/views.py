@@ -34,6 +34,12 @@ from .care_relationships import (
     end_relationship,
     relationship_payload,
 )
+from apps.common.idempotency import (
+    IdempotencyScope,
+    resolve_idempotency_key,
+    run_idempotent,
+)
+
 from .care_requests import accept_care_request, cancel_care_request, create_care_request, reject_care_request
 from .caregiver_profile import activate_caregiver_if_ready
 from .models import (
@@ -592,13 +598,38 @@ class CareRequestListCreateView(generics.ListCreateAPIView):
         ser.is_valid(raise_exception=True)
         caregiver = ser.context["caregiver"]
         match_run = ser.context.get("match_run")
-        try:
+        key = resolve_idempotency_key(request) or ser.validated_data.get("idempotency_key") or ""
+
+        def execute():
             care_request = create_care_request(
                 patient=request.user,
                 caregiver=caregiver,
                 message=ser.validated_data.get("message", ""),
                 match_run=match_run,
                 match_snapshot=ser.validated_data.get("match_snapshot") or {},
+            )
+            record_audit(
+                actor=request.user,
+                action=AuditAction.CREATE_CARE_REQUEST,
+                request=request,
+                target_type="care_request",
+                target_id=care_request.pk,
+                metadata={
+                    "caregiver_id": caregiver.pk,
+                    "caregiver_name": caregiver.display_name,
+                    "match_run_id": match_run.pk if match_run else None,
+                    "idempotency_key": key or None,
+                },
+                async_=False,
+            )
+            return CareRequestSerializer(care_request).data, status.HTTP_201_CREATED
+
+        try:
+            body, code, _replayed = run_idempotent(
+                user=request.user,
+                scope=IdempotencyScope.CARE_REQUEST_CREATE,
+                key=key,
+                execute=execute,
             )
         except Exception as exc:
             from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -609,21 +640,7 @@ class CareRequestListCreateView(generics.ListCreateAPIView):
                 raise
             raise DRFValidationError(str(exc)) from exc
 
-        record_audit(
-            actor=request.user,
-            action=AuditAction.CREATE_CARE_REQUEST,
-            request=request,
-            target_type="care_request",
-            target_id=care_request.pk,
-            metadata={
-                "caregiver_id": caregiver.pk,
-                "caregiver_name": caregiver.display_name,
-                "match_run_id": match_run.pk if match_run else None,
-            },
-            async_=False,
-        )
-        out = CareRequestSerializer(care_request)
-        return Response(out.data, status=status.HTTP_201_CREATED)
+        return Response(body, status=code)
 
 
 class CareRequestDetailView(generics.RetrieveAPIView):

@@ -7,6 +7,11 @@ from django.http import HttpResponse
 from apps.accounts.audit import record_audit
 from apps.accounts.models import AuditAction
 from apps.accounts.permissions import HasOtpIfEnabled, IsAdmin, IsPatient, RolePermission
+from apps.common.idempotency import (
+    IdempotencyScope,
+    resolve_idempotency_key,
+    run_idempotent,
+)
 
 from .checkout import create_checkout_order
 from .models import AddOn, CarePackage, Order, OrderStatus, PaymentIntent
@@ -298,30 +303,44 @@ class MockPaymentConfirmView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsPatient, HasOtpIfEnabled]
 
     def post(self, request, provider_intent_id: str):
-        try:
+        key = resolve_idempotency_key(request)
+        if not key:
+            key = f"mock-confirm:{provider_intent_id}"
+
+        def execute():
             intent = confirm_mock_payment(
                 patient=request.user,
                 provider_intent_id=provider_intent_id,
+            )
+            record_audit(
+                actor=request.user,
+                action=AuditAction.CONFIRM_PAYMENT,
+                request=request,
+                target_type="payment_intent",
+                target_id=intent.pk,
+                metadata={
+                    "order_id": intent.order_id,
+                    "source": "mock_confirm",
+                    "provider_intent_id": intent.provider_intent_id,
+                    "idempotency_key": key,
+                },
+                async_=False,
+            )
+            return PaymentIntentSerializer(intent).data, status.HTTP_200_OK
+
+        try:
+            body, code, _replayed = run_idempotent(
+                user=request.user,
+                scope=IdempotencyScope.PAYMENT_CONFIRM,
+                key=key,
+                execute=execute,
             )
         except (DRFValidationError, NotFound, PermissionDenied):
             raise
         except Exception as exc:
             raise DRFValidationError(str(exc)) from exc
 
-        record_audit(
-            actor=request.user,
-            action=AuditAction.CONFIRM_PAYMENT,
-            request=request,
-            target_type="payment_intent",
-            target_id=intent.pk,
-            metadata={
-                "order_id": intent.order_id,
-                "source": "mock_confirm",
-                "provider_intent_id": intent.provider_intent_id,
-            },
-            async_=False,
-        )
-        return Response(PaymentIntentSerializer(intent).data)
+        return Response(body, status=code)
 
 
 class PayHereWebhookView(APIView):

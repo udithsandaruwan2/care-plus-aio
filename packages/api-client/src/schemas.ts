@@ -636,6 +636,7 @@ export const CareRequestCreate = z.object({
   message: z.string().optional(),
   match_run_id: z.number().optional(),
   match_snapshot: z.record(z.string(), z.unknown()).optional(),
+  idempotency_key: z.string().min(1).max(128).optional(),
 });
 export type CareRequestCreate = z.infer<typeof CareRequestCreate>;
 
