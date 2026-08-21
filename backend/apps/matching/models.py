@@ -320,6 +320,8 @@ class MatchResult(models.Model):
     trust = models.FloatField()
     explanation = models.CharField(max_length=255)
     distance_m = models.FloatField(null=True, blank=True)
+    # Step 100 — True when this hit filled the epsilon-greedy exploration slot.
+    was_exploratory = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("run", "rank")

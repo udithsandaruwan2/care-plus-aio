@@ -2,6 +2,8 @@
 
 Step 22 loads trained ALS CF when available; ``CF_ENABLED=false`` zeroes β and
 redistributes AHP weight across CBF/geo/trust.
+
+Step 100 reserves one top-K slot for epsilon-greedy exploration (off in emergencies).
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from django.contrib.gis.geos import Point
 from .ahp import get_ahp_weights, normalize_weights
 from .cf_model import cf_model_info, get_cf_model, is_cf_active
 from .embeddings import get_embedder, intent_to_text
+from .exploration import apply_exploration_slot, exploration_epsilon
 from .faiss_index import CaregiverIndex, load_index
 from .i18n import format_match_explanation
 from .models import CaregiverProfile
@@ -41,6 +44,8 @@ class RankedMatch:
     trust: float
     explanation: str
     distance_m: float | None = None
+    # Step 100 — True when this row filled the epsilon-greedy exploration slot.
+    was_exploratory: bool = False
 
 
 @dataclass(frozen=True)
@@ -264,24 +269,43 @@ class VEHMFEngine:
 
         eligible_arr = np.asarray(eligible, dtype=np.int64)
         order_local = np.argsort(-final[eligible_arr])[:top_k]
-        results: list[RankedMatch] = []
-        for loc in order_local:
-            i = int(eligible_arr[int(loc)])
+
+        def _row_match(i: int) -> RankedMatch:
             cid = ordered_ids[i]
             row = score_matrix[i]
             contributor = int(np.argmax(row * W))
-            results.append(
-                RankedMatch(
-                    caregiver_id=cid,
-                    score=float(final[i]),
-                    cbf=float(row[0]),
-                    cf=float(row[1]),
-                    geo=float(row[2]),
-                    trust=float(row[3]),
-                    explanation=format_match_explanation(contributor, "en"),
-                    distance_m=distances.get(cid),
-                )
+            return RankedMatch(
+                caregiver_id=cid,
+                score=float(final[i]),
+                cbf=float(row[0]),
+                cf=float(row[1]),
+                geo=float(row[2]),
+                trust=float(row[3]),
+                explanation=format_match_explanation(contributor, "en"),
+                distance_m=distances.get(cid),
             )
+
+        greedy: list[RankedMatch] = []
+        for loc in order_local:
+            i = int(eligible_arr[int(loc)])
+            greedy.append(_row_match(i))
+
+        greedy_ids = {r.caregiver_id for r in greedy}
+        remainder = [
+            _row_match(int(eligible_arr[j]))
+            for j in range(len(eligible_arr))
+            if ordered_ids[int(eligible_arr[j])] not in greedy_ids
+        ]
+        # Prefer lower-scored remainder first so exploration surfaces the long tail.
+        remainder.sort(key=lambda r: r.score)
+
+        eps = exploration_epsilon()
+        results, explored = apply_exploration_slot(
+            greedy,
+            remainder,
+            emergency=emergency,
+            epsilon=eps,
+        )
 
         return self._out(
             results=results,
@@ -291,6 +315,10 @@ class VEHMFEngine:
             cf_enabled=cf_active,
             cf_version=self._cf_info["version"],
             weights_source=weights_source,
+            filters={
+                "exploration_epsilon": eps,
+                "explored": explored,
+            },
         )
 
     def _geo_scores(
@@ -385,5 +413,6 @@ def run_match(
         "longitude": longitude,
         "latitude": latitude,
         "patient_id": patient_id,
+        **dict(out.filters or {}),
     }
     return replace(out, filters=filters)

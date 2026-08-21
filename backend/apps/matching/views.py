@@ -504,6 +504,7 @@ class MatchView(APIView):
                 trust=hit.trust,
                 explanation=hit.explanation,
                 distance_m=hit.distance_m,
+                was_exploratory=bool(getattr(hit, "was_exploratory", False)),
             )
             p = profiles.get(hit.caregiver_id)
             result_rows.append(
@@ -525,6 +526,7 @@ class MatchView(APIView):
                     "care_levels": p.care_levels if p else [],
                     "trust_score": p.trust_score if p else None,
                     "is_available": bool(p.is_available) if p else False,
+                    "was_exploratory": bool(getattr(hit, "was_exploratory", False)),
                 }
             )
 
