@@ -358,6 +358,63 @@ export const MatchResponse = z.object({
 });
 export type MatchResponse = z.infer<typeof MatchResponse>;
 
+/** Step 104 — one past match search on the history timeline. */
+export const MatchHistoryUnderstood = z.object({
+  voice_intent_id: z.number(),
+  raw_text: z.string(),
+  condition: z.string(),
+  language: z.string(),
+  languages: z.array(z.string()).optional().default([]),
+  care_level: z.string(),
+  urgency: z.string(),
+  source: z.string(),
+});
+export type MatchHistoryUnderstood = z.infer<typeof MatchHistoryUnderstood>;
+
+export const MatchHistorySession = z.object({
+  id: z.number(),
+  active: z.boolean(),
+  lang: z.string().optional().default(''),
+  turns: z.array(z.record(z.string(), z.unknown())).optional().default([]),
+  intent_chips: z.record(z.string(), z.unknown()).optional().default({}),
+  updated_at: z.string().nullable().optional(),
+});
+export type MatchHistorySession = z.infer<typeof MatchHistorySession>;
+
+export const MatchHistoryOutcome = z.object({
+  care_request_id: z.number(),
+  status: z.string(),
+  caregiver_id: z.number(),
+  caregiver_name: z.string(),
+  created_at: z.string().nullable().optional(),
+});
+export type MatchHistoryOutcome = z.infer<typeof MatchHistoryOutcome>;
+
+export const MatchHistoryEntry = z.object({
+  id: z.number(),
+  created_at: z.string().nullable().optional(),
+  query: z.string(),
+  condition: z.string(),
+  language: z.string(),
+  care_level: z.string(),
+  emergency: z.boolean(),
+  latency_ms: z.number().optional().default(0),
+  weights: z.array(z.number()).optional().default([]),
+  understood: MatchHistoryUnderstood.nullable().optional(),
+  session: MatchHistorySession.nullable().optional(),
+  results: z.array(MatchHit),
+  outcomes: z.array(MatchHistoryOutcome).optional().default([]),
+});
+export type MatchHistoryEntry = z.infer<typeof MatchHistoryEntry>;
+
+export const MatchHistoryListResponse = z.object({
+  count: z.number(),
+  next: z.string().nullable().optional(),
+  previous: z.string().nullable().optional(),
+  results: z.array(MatchHistoryEntry),
+});
+export type MatchHistoryListResponse = z.infer<typeof MatchHistoryListResponse>;
+
 export const VoiceTurnIntent = z.object({
   condition: z.string(),
   language: z.string(),

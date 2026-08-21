@@ -58,6 +58,31 @@ class VoiceIntentHistoryView(generics.ListAPIView):
         return VoiceIntent.objects.filter(user=self.request.user)
 
 
+class VoiceMatchHistoryView(APIView):
+    """GET /api/v1/voice/history/ — same MatchRun trail as /match/history/ (Step 104).
+
+    Thin voice-side alias so dialogue clients can load search history without
+    depending on the matching URL prefix.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from apps.matching.history import history_queryset, serialize_history_entry
+        from apps.matching.views import MatchHistoryPagination
+
+        if getattr(request.user, "role", None) != "patient":
+            return Response(
+                {"detail": "Patient role required."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        qs = history_queryset(user=request.user)
+        paginator = MatchHistoryPagination()
+        page = paginator.paginate_queryset(qs, request, view=self)
+        rows = [serialize_history_entry(run) for run in page]
+        return paginator.get_paginated_response(rows)
+
+
 class VoiceTurnView(APIView):
     """POST /api/v1/voice/turn/ — conversational turn (audio and/or text).
 

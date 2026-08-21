@@ -214,6 +214,8 @@ class MatchRun(models.Model):
     )
     request_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Step 104 — soft-delete for user-facing history (kept for audit linkage).
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ("-created_at",)

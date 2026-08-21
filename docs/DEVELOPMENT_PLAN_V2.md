@@ -521,7 +521,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ## M24 · History surface & retention
 
-### Step 104 — User-facing history trail
+### Step 104 — User-facing history trail ✅ **DONE**
 
 **Branch:** `feat/step104-history-timeline`
 **Goal:** all the provenance data from M18 exists and none of it is visible to the person it describes.

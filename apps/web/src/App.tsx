@@ -38,6 +38,7 @@ const CaregiverOnboardingPage = lazyNamed(
   'CaregiverOnboardingPage',
 );
 const CareRequestsPage = lazyNamed(() => import('./pages/CareRequestsPage'), 'CareRequestsPage');
+const HistoryPage = lazyNamed(() => import('./pages/HistoryPage'), 'HistoryPage');
 const MessagesPage = lazyNamed(() => import('./pages/MessagesPage'), 'MessagesPage');
 const AccountPage = lazyNamed(() => import('./pages/AccountPage'), 'AccountPage');
 const OtpPage = lazyNamed(() => import('./pages/OtpPage'), 'OtpPage');
@@ -105,6 +106,7 @@ export function App() {
               <Route path="/onboarding" element={<PatientOnboardingPage />} />
               <Route path="/caregiver-onboarding" element={<CaregiverOnboardingPage />} />
               <Route path="/requests" element={<CareRequestsPage />} />
+              <Route path="/history" element={<HistoryPage />} />
               <Route path="/messages" element={<MessagesPage />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/otp" element={<OtpPage />} />

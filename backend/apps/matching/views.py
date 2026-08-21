@@ -572,6 +572,45 @@ class MatchView(APIView):
         return Response(payload, status=status.HTTP_201_CREATED)
 
 
+class MatchHistoryPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 50
+
+
+class MatchHistoryListView(APIView):
+    """GET /api/v1/match/history/ — patient's past searches with results + XAI (Step 104)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    pagination_class = MatchHistoryPagination
+
+    def get(self, request):
+        from .history import history_queryset, serialize_history_entry
+
+        qs = history_queryset(user=request.user)
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(qs, request, view=self)
+        rows = [serialize_history_entry(run) for run in page]
+        return paginator.get_paginated_response(rows)
+
+
+class MatchHistoryDeleteView(APIView):
+    """DELETE /api/v1/match/history/<id>/ — soft-delete one history entry (Step 104)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+
+    def delete(self, request, pk: int):
+        from .history import soft_delete_match_run
+        from .models import MatchRun
+
+        try:
+            run = MatchRun.objects.get(pk=pk, user=request.user, deleted_at__isnull=True)
+        except MatchRun.DoesNotExist as exc:
+            raise NotFound("History entry not found.") from exc
+        soft_delete_match_run(run=run, user=request.user, request=request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class CareRequestPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"

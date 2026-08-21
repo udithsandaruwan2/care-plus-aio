@@ -38,6 +38,8 @@ import {
   ConsentState,
   HealthResponse,
   MatchResponse,
+  MatchHistoryEntry,
+  MatchHistoryListResponse,
   PatientProfile,
   RegisterResponse,
   TokenPair,
@@ -518,6 +520,12 @@ export function createApiClient(options: ApiClientOptions) {
         },
         (d) => MatchResponse.parse(d),
       ),
+    listMatchHistory: (page?: number) => {
+      const qs = page != null ? `?page=${page}` : '';
+      return request(`/match/history/${qs}`, {}, (d) => MatchHistoryListResponse.parse(d));
+    },
+    deleteMatchHistory: (id: number) =>
+      request(`/match/history/${id}/`, { method: 'DELETE' }, () => undefined),
     caregivers: (params: CaregiverListParams = {}) => {
       const qs = new URLSearchParams();
       if (params.q) qs.set('q', params.q);

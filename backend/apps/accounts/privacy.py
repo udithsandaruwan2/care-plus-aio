@@ -180,7 +180,9 @@ def build_user_export(user) -> dict[str, Any]:
 
     from apps.matching.models import CareRequest, MatchResult, MatchRun
 
-    for run in MatchRun.objects.filter(user=user).order_by("-created_at")[:100]:
+    for run in MatchRun.objects.filter(user=user, deleted_at__isnull=True).order_by(
+        "-created_at"
+    )[:100]:
         payload["match_runs"].append(
             {
                 "id": run.pk,
