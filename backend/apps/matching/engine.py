@@ -59,16 +59,19 @@ class MatchOutput:
     embedding_backend: str = ""
     index_version: str = ""
     weights_source: str = "ahp"
+    # Step 102 — A/B weight variant id (empty when experiment disabled).
+    variant: str = ""
     filters: dict = field(default_factory=dict)
 
 
 def match_run_provenance(out: MatchOutput) -> dict:
-    """Fields persisted on ``MatchRun`` for replay (Step 79)."""
+    """Fields persisted on ``MatchRun`` for replay (Step 79 / 102)."""
     return {
         "cf_version": out.cf_version or "",
         "embedding_backend": out.embedding_backend or "",
         "index_version": out.index_version or "",
         "weights_source": out.weights_source or "",
+        "variant": out.variant or "",
         "filters": dict(out.filters or {}),
     }
 
@@ -151,6 +154,7 @@ class VEHMFEngine:
             )
 
         weights_source = "ahp"
+        variant = ""
         if weights is not None:
             weights_source = "explicit"
             W = np.asarray(normalize_weights(list(weights)), dtype=np.float32)
@@ -158,18 +162,21 @@ class VEHMFEngine:
             W = np.asarray(normalize_weights([0.25, 0.05, 0.55, 0.15]), dtype=np.float32)
             weights_source = "prefer_closer"
         else:
-            from .weights_train import get_fusion_weights
+            from .experiments import resolve_ab_weights
 
             city = ""
             if patient_id is not None:
                 profile = PatientProfile.objects.filter(user_id=patient_id).only("city").first()
                 if profile is not None:
                     city = profile.city or ""
-            fusion, weights_source = get_fusion_weights(
+            resolved = resolve_ab_weights(
+                patient_id,
                 emergency=emergency,
                 city=city or None,
             )
-            W = np.asarray(fusion, dtype=np.float32)
+            W = np.asarray(resolved.weights, dtype=np.float32)
+            weights_source = resolved.weights_source
+            variant = resolved.variant
 
         cf_active = is_cf_active(self.cf_model)
         W = _effective_weights(W, cf_active=cf_active)
@@ -188,6 +195,7 @@ class VEHMFEngine:
                 cf_enabled=cf_active,
                 cf_version=self._cf_info["version"],
                 weights_source=weights_source,
+                variant=variant,
             )
 
         caregiver_ids = [cid for cid, _ in cbf_hits]
@@ -211,6 +219,7 @@ class VEHMFEngine:
                 cf_enabled=cf_active,
                 cf_version=self._cf_info["version"],
                 weights_source=weights_source,
+                variant=variant,
             )
 
         id_to_cbf = {cid: s for cid, s in cbf_hits}
@@ -265,6 +274,7 @@ class VEHMFEngine:
                 cf_enabled=cf_active,
                 cf_version=self._cf_info["version"],
                 weights_source=weights_source,
+                variant=variant,
             )
 
         eligible_arr = np.asarray(eligible, dtype=np.int64)
@@ -315,6 +325,7 @@ class VEHMFEngine:
             cf_enabled=cf_active,
             cf_version=self._cf_info["version"],
             weights_source=weights_source,
+            variant=variant,
             filters={
                 "exploration_epsilon": eps,
                 "explored": explored,

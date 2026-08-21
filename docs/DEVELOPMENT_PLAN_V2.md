@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 102.** M23 continues with online A/B on weight variants after learned fusion.
+**Start at Step 103.** M23 finishes with ranking guardrails after weight A/B.
 
 ---
 
@@ -486,7 +486,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 102 — Online A/B on weight variants
+### Step 102 — Online A/B on weight variants ✅ **DONE**
 
 **Branch:** `feat/step102-weight-ab`
 **Goal:** validate ranking changes on live outcomes instead of holdout metrics alone.

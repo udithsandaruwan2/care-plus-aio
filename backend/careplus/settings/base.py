@@ -240,6 +240,10 @@ WEIGHTS_GATED_PROMOTION = env.bool("WEIGHTS_GATED_PROMOTION", default=True)
 WEIGHTS_PROMOTE_MARGIN = env.float("WEIGHTS_PROMOTE_MARGIN", default=0.01)
 WEIGHTS_MIN_SEGMENT_LABELS = env.int("WEIGHTS_MIN_SEGMENT_LABELS", default=8)
 WEIGHTS_HOLDOUT_DAYS = env.int("WEIGHTS_HOLDOUT_DAYS", default=14)
+# Step 102 — online A/B on weight variants (JSON config; retire without redeploy).
+WEIGHT_AB_ENABLED = env.bool("WEIGHT_AB_ENABLED", default=False)
+WEIGHT_AB_CONFIG_PATH = env("WEIGHT_AB_CONFIG_PATH", default="")
+WEIGHT_AB_SALT = env("WEIGHT_AB_SALT", default="careplus-step102")
 # Minimum patient profile completion % before requesting care (Step 22b).
 PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
 # Caregiver onboarding + auto-approval (Step 22c).

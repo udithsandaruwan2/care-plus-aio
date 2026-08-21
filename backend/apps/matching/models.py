@@ -187,7 +187,9 @@ class MatchRun(models.Model):
     cf_version = models.CharField(max_length=64, blank=True, default="")
     embedding_backend = models.CharField(max_length=32, blank=True, default="")
     index_version = models.CharField(max_length=64, blank=True, default="", db_index=True)
-    weights_source = models.CharField(max_length=32, blank=True, default="")
+    weights_source = models.CharField(max_length=64, blank=True, default="")
+    # Step 102 — online A/B weight variant id (empty when experiment off).
+    variant = models.CharField(max_length=64, blank=True, default="", db_index=True)
     filters = models.JSONField(default=dict, blank=True)
     cf_model = models.ForeignKey(
         "matching.ModelVersion",
@@ -259,6 +261,7 @@ def create_match_run(
     embedding_backend: str = "",
     index_version: str = "",
     weights_source: str = "",
+    variant: str = "",
     filters: dict | None = None,
     voice_intent=None,
     request_id: str = "",
@@ -276,6 +279,7 @@ def create_match_run(
         embedding_backend=embedding_backend or "",
         index_version=index_version or "",
         weights_source=weights_source or "",
+        variant=variant or "",
         filters=filters or {},
         voice_intent=voice_intent,
         request_id=request_id or current_request_id(),
