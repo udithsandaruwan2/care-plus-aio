@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-21 — Step 105 export completeness._
+_Last updated: 2026-08-21 — Step 106 retention policy. **v0.4 M24 complete.**_
 
 ---
 
@@ -154,13 +154,13 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | **M21** Model lifecycle                  | 88–92   | 88–92 ✅ | Registry, auto index rebuild, replay eval, gated promotion           |
 | **M22** Offline & local intelligence     | 93–98   | 93–98 ✅ | Installable PWA, cached reads, queued writes, local slots + edge rank |
 | **M23** Adaptive ranking                 | 99–103  | 99–103 ✅ | Cold-start clustering, exploration, learned weights, A/B, fairness |
-| **M24** History surface & retention      | 104–106 | 104–105 ✅ | User-visible trail, complete export, retention policy                |
+| **M24** History surface & retention      | 104–106 | 104–106 ✅ | User-visible trail, complete export, retention policy                |
 
 **Why this order:** M18 captures the outcome signals that CF actually trains on. Step 76 now
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 106 — Retention policy, branch `feat/step106-retention`.
+**Next:** v0.4 M18–M24 complete through Step 106. Continue from any remaining plan items or product polish outside this milestone set.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 106** — Retention policy: wipe turns on session clear; nightly `apply_retention_policy` (voice text 90d, inactive dialogue 30d, health downsample 90d); privacy notice lists periods. Branch `feat/step106-retention`. **M24 complete.**
 
 - **Step 105** — Complete DSAR export (schema v2): audit/consent/orders/shifts/etc.; MatchResult + weights + model versions; streaming JSON; registry completeness test fails if a new User-FK model is added without export coverage. Branch `feat/step105-export-completeness`.
 

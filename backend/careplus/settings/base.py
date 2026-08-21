@@ -155,6 +155,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "accounts.purge_erased_accounts",
         "schedule": crontab(hour=4, minute=15, day_of_week=0),
     },
+    "apply-retention-policy-nightly": {
+        "task": "accounts.apply_retention_policy",
+        "schedule": crontab(hour=4, minute=45),
+    },
     "rebuild-faiss-index-if-stale": {
         "task": "matching.rebuild_caregiver_index_if_stale",
         "schedule": crontab(minute=20),
@@ -290,6 +294,11 @@ RECEIPT_EMAIL_ENABLED = env.bool("RECEIPT_EMAIL_ENABLED", default=True)
 # Step 34/68 — app-level AES (Fernet) for PHI columns (medical notes, intent, health payloads).
 # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
+
+# Step 106 — retention TTLs for active accounts (days). Erased residual purge stays 30d.
+RETENTION_VOICE_INTENT_DAYS = env.int("RETENTION_VOICE_INTENT_DAYS", default=90)
+RETENTION_DIALOGUE_SESSION_DAYS = env.int("RETENTION_DIALOGUE_SESSION_DAYS", default=30)
+RETENTION_HEALTH_METRIC_RAW_DAYS = env.int("RETENTION_HEALTH_METRIC_RAW_DAYS", default=90)
 
 # ── AHP fusion weights (Step 18) ─────────────────────────────────
 # JSON written by ``build_ahp_weights``. Comma overrides: "0.45,0.1,0.2,0.25"
