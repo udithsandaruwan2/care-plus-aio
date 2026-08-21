@@ -21,6 +21,7 @@ import { useVoiceTurn } from './useVoiceTurn';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
+import { startEndOfUtteranceWatch } from './silenceWatch';
 import { subscribeSerahSpeaking } from './useTts';
 import type { TurnFailure } from './turnFailure';
 
@@ -99,6 +100,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const endingRef = useRef(false);
   const ignoreSpeechEndRef = useRef(false);
   const bargeStopRef = useRef<(() => void) | null>(null);
+  const silenceStopRef = useRef<(() => void) | null>(null);
   const bargedRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
   const consentBtnRef = useRef<HTMLButtonElement>(null);
@@ -159,6 +161,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       if (endingRef.current) return;
       endingRef.current = true;
       void (async () => {
+        silenceStopRef.current?.();
+        silenceStopRef.current = null;
         mic.stop();
         const audio = await recorder.stop();
         const text = useAssistant.getState().transcript.trim();
@@ -177,6 +181,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   resumeListeningRef.current = async () => {
     bargeStopRef.current?.();
     bargeStopRef.current = null;
+    silenceStopRef.current?.();
+    silenceStopRef.current = null;
     endingRef.current = false;
     setInterim('');
     useAssistant.getState().setTranscript('');
@@ -184,6 +190,17 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     await recorder.start();
     speech.start();
     setState(AssistantState.LISTENING, { force: true });
+    // Stop capturing shortly after voice drops — reduces ambient noise tails.
+    silenceStopRef.current = startEndOfUtteranceWatch({
+      getAmplitude: () => mic.amplitudeRef.current,
+      onEnd: () => {
+        silenceStopRef.current?.();
+        silenceStopRef.current = null;
+        if (!endingRef.current && conversationOnRef.current) {
+          speech.stop();
+        }
+      },
+    });
   };
 
   // Step 85 — during Serah playback keep the analyser up, suppress ASR echo,
@@ -194,6 +211,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
         bargedRef.current = false;
         bargeStopRef.current?.();
         bargeStopRef.current = null;
+        silenceStopRef.current?.();
+        silenceStopRef.current = null;
         void (async () => {
           if (speech.listening) {
             ignoreSpeechEndRef.current = true;
@@ -259,6 +278,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       }
       if (mic.active || speech.listening) {
         setConversationOn(false);
+        silenceStopRef.current?.();
+        silenceStopRef.current = null;
         speech.stop();
       }
     }
@@ -269,6 +290,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const toggleMic = useCallback(async () => {
     if (listening) {
       setConversationOn(false);
+      silenceStopRef.current?.();
+      silenceStopRef.current = null;
       speech.stop();
       return;
     }
@@ -300,10 +323,22 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     setConversationOn(true);
     endingRef.current = false;
     stopTurnSpeaking();
+    silenceStopRef.current?.();
+    silenceStopRef.current = null;
     await mic.start();
     await recorder.start();
     speech.start();
     setState(AssistantState.LISTENING, { force: true });
+    silenceStopRef.current = startEndOfUtteranceWatch({
+      getAmplitude: () => mic.amplitudeRef.current,
+      onEnd: () => {
+        silenceStopRef.current?.();
+        silenceStopRef.current = null;
+        if (!endingRef.current && conversationOnRef.current) {
+          speech.stop();
+        }
+      },
+    });
   }, [
     listening,
     busy,

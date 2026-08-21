@@ -88,7 +88,7 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
           } catch {
             /* already stopped */
           }
-        }, 1800);
+        }, 1200);
       }
     };
 

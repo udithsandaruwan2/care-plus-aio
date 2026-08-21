@@ -49,15 +49,25 @@ export function useMicAmplitude(): MicAmplitudeControls {
     stop();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
         video: false,
       });
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
+      // Light high-pass so low-frequency rumble does not inflate orb / VAD levels.
+      const highpass = ctx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = 85;
+      highpass.Q.value = 0.7;
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.75;
-      source.connect(analyser);
+      source.connect(highpass);
+      highpass.connect(analyser);
 
       streamRef.current = stream;
       ctxRef.current = ctx;
