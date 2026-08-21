@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-21 — Step 102 weight A/B._
+_Last updated: 2026-08-21 — Step 103 ranking guardrails._
 
 ---
 
@@ -153,14 +153,14 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | **M20** Conversation feel                | 83–87   | 83–87 ✅ | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | 88–92 ✅ | Registry, auto index rebuild, replay eval, gated promotion           |
 | **M22** Offline & local intelligence     | 93–98   | 93–98 ✅ | Installable PWA, cached reads, queued writes, local slots + edge rank |
-| **M23** Adaptive ranking                 | 99–103  | 99–102 ✅ | Cold-start clustering, exploration, learned weights, A/B, fairness |
+| **M23** Adaptive ranking                 | 99–103  | 99–103 ✅ | Cold-start clustering, exploration, learned weights, A/B, fairness |
 | **M24** History surface & retention      | 104–106 | ⬜      | User-visible trail, complete export, retention policy                |
 
 **Why this order:** M18 captures the outcome signals that CF actually trains on. Step 76 now
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 103 — Ranking guardrails, branch `feat/step103-ranking-guardrails`.
+**Next:** Step 104 — User-facing history trail, branch `feat/step104-history-timeline`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 103** — Ranking guardrails: `is_approved` pool filter; MMR diversity re-rank; rolling exposure caps; `fairness_report` mgmt command (by city/language). Branch `feat/step103-ranking-guardrails`. **M23 complete.**
 
 - **Step 102** — Online A/B weight variants: deterministic user hash → `MatchRun.variant`; JSON config retire-without-redeploy; admin analytics comparison + stopping rule (min runs/days). Branch `feat/step102-weight-ab`.
 

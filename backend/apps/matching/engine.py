@@ -205,10 +205,13 @@ class VEHMFEngine:
         profiles = {
             p.id: p
             for p in CaregiverProfile.objects.filter(
-                id__in=caregiver_ids, is_active=True, is_available=True
+                id__in=caregiver_ids,
+                is_active=True,
+                is_available=True,
+                is_approved=True,
             )
         }
-        # Keep FAISS order but drop missing/inactive/unavailable.
+        # Keep FAISS order but drop missing/inactive/unavailable/unapproved.
         ordered_ids = [cid for cid in caregiver_ids if cid in profiles]
         if not ordered_ids:
             return self._out(
@@ -278,7 +281,8 @@ class VEHMFEngine:
             )
 
         eligible_arr = np.asarray(eligible, dtype=np.int64)
-        order_local = np.argsort(-final[eligible_arr])[:top_k]
+        # Score-sorted full eligible list (before diversity / caps).
+        order_all = np.argsort(-final[eligible_arr])
 
         def _row_match(i: int) -> RankedMatch:
             cid = ordered_ids[i]
@@ -295,17 +299,26 @@ class VEHMFEngine:
                 distance_m=distances.get(cid),
             )
 
-        greedy: list[RankedMatch] = []
-        for loc in order_local:
-            i = int(eligible_arr[int(loc)])
-            greedy.append(_row_match(i))
+        from .fairness import (
+            exposure_cap,
+            exposure_window_hours,
+            filter_overexposed,
+            mmr_lambda,
+            mmr_rerank,
+        )
+
+        ranked_all = [_row_match(int(eligible_arr[int(loc)])) for loc in order_all]
+        capped, dropped_ids = filter_overexposed(ranked_all, emergency=emergency)
+        # Step 103 — MMR diversity (skipped in emergencies: keep pure relevance order).
+        if emergency:
+            greedy = capped[:top_k]
+            mmr_applied = False
+        else:
+            greedy = mmr_rerank(capped, profiles, k=top_k)
+            mmr_applied = True
 
         greedy_ids = {r.caregiver_id for r in greedy}
-        remainder = [
-            _row_match(int(eligible_arr[j]))
-            for j in range(len(eligible_arr))
-            if ordered_ids[int(eligible_arr[j])] not in greedy_ids
-        ]
+        remainder = [r for r in capped if r.caregiver_id not in greedy_ids]
         # Prefer lower-scored remainder first so exploration surfaces the long tail.
         remainder.sort(key=lambda r: r.score)
 
@@ -329,6 +342,11 @@ class VEHMFEngine:
             filters={
                 "exploration_epsilon": eps,
                 "explored": explored,
+                "mmr_applied": mmr_applied,
+                "mmr_lambda": mmr_lambda() if mmr_applied else None,
+                "exposure_cap": exposure_cap(),
+                "exposure_window_hours": exposure_window_hours(),
+                "exposure_dropped": dropped_ids[:20],
             },
         )
 

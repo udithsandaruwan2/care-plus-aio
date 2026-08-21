@@ -502,7 +502,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 103 — Ranking guardrails
+### Step 103 — Ranking guardrails ✅ **DONE**
 
 **Branch:** `feat/step103-ranking-guardrails`
 **Goal:** the engine currently has no fairness, diversity, or approval guardrails, and does not even filter on `is_approved`.

@@ -244,6 +244,10 @@ WEIGHTS_HOLDOUT_DAYS = env.int("WEIGHTS_HOLDOUT_DAYS", default=14)
 WEIGHT_AB_ENABLED = env.bool("WEIGHT_AB_ENABLED", default=False)
 WEIGHT_AB_CONFIG_PATH = env("WEIGHT_AB_CONFIG_PATH", default="")
 WEIGHT_AB_SALT = env("WEIGHT_AB_SALT", default="careplus-step102")
+# Step 103 — ranking guardrails (MMR diversity + rolling exposure caps).
+MATCH_MMR_LAMBDA = env.float("MATCH_MMR_LAMBDA", default=0.7)  # 1=relevance, 0=diversity
+MATCH_EXPOSURE_CAP = env.int("MATCH_EXPOSURE_CAP", default=50)
+MATCH_EXPOSURE_WINDOW_HOURS = env.int("MATCH_EXPOSURE_WINDOW_HOURS", default=24)
 # Minimum patient profile completion % before requesting care (Step 22b).
 PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
 # Caregiver onboarding + auto-approval (Step 22c).
