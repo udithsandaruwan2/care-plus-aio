@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -430,14 +430,16 @@ class DemoViewHealthView(APIView):
 
 
 class PrivacyExportView(APIView):
-    """GET /api/v1/privacy/export/?export_format=json|pdf — personal data portability (Step 69)."""
+    """GET /api/v1/privacy/export/?export_format=json|pdf — personal data portability (Step 69/105)."""
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        from apps.accounts.privacy import build_user_export, render_export_pdf
+        from apps.accounts.privacy import build_user_export, render_export_pdf, stream_user_export_json
 
-        fmt = (request.query_params.get("export_format") or request.query_params.get("as") or "json").strip().lower()
+        fmt = (
+            request.query_params.get("export_format") or request.query_params.get("as") or "json"
+        ).strip().lower()
         if fmt not in ("json", "pdf"):
             return Response(
                 {"detail": "export_format must be json or pdf."},
@@ -449,22 +451,28 @@ class PrivacyExportView(APIView):
                 status=status.HTTP_410_GONE,
             )
 
-        payload = build_user_export(request.user)
         record_audit(
             actor=request.user,
             action=AuditAction.EXPORT_DATA,
             request=request,
             target_type="user",
             target_id=request.user.pk,
-            metadata={"format": fmt},
+            metadata={"format": fmt, "schema_version": 2},
             async_=False,
         )
         if fmt == "pdf":
+            payload = build_user_export(request.user)
             pdf = render_export_pdf(payload)
             response = HttpResponse(pdf, content_type="application/pdf")
             response["Content-Disposition"] = 'attachment; filename="careplus-data-export.pdf"'
             return response
-        return Response(payload)
+
+        response = StreamingHttpResponse(
+            stream_user_export_json(request.user),
+            content_type="application/json",
+        )
+        response["Content-Disposition"] = 'attachment; filename="careplus-data-export.json"'
+        return response
 
 
 class PrivacyEraseView(APIView):

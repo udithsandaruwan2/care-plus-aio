@@ -537,7 +537,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 105 — Complete data export
+### Step 105 — Complete data export ✅ **DONE**
 
 **Branch:** `feat/step105-export-completeness`
 **Goal:** the export currently includes match run summaries without results or weights, which is incomplete for a data-subject request.
