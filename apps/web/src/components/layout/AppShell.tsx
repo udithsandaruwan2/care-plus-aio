@@ -1,11 +1,14 @@
+import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { SkipLink } from '../../a11y/SkipLink';
 import { SerahEngineProvider } from '../../assistant/SerahEngine';
 import { useAuth } from '../../auth/AuthContext';
 import { useConnectionStore } from '../../auth/connectionStore';
+import { bindOutboxLifecycle } from '../../lib/outbox/flush';
+import { OutboxBanner } from '../OutboxBanner';
+import { AIAssistantDock } from './AIAssistantDock';
 import { HubSidebar } from './HubSidebar';
 import { HubTopbar } from './HubTopbar';
-import { AIAssistantDock } from './AIAssistantDock';
 
 function ConnectionBanner() {
   const kind = useConnectionStore((s) => s.kind);
@@ -43,6 +46,8 @@ export function AppShell() {
   const { pathname } = useLocation();
   const serahCore = pathname === '/app';
 
+  useEffect(() => bindOutboxLifecycle(), []);
+
   return (
     <SerahEngineProvider>
       <div className="flex min-h-screen bg-void">
@@ -50,6 +55,7 @@ export function AppShell() {
         <HubSidebar />
         <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
           <ConnectionBanner />
+          <OutboxBanner />
           <HubTopbar />
           <main
             id="main-content"

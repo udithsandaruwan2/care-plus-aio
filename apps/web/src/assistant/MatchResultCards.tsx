@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
 import { ApiError } from '@care-plus/api-client';
-import { api } from '../auth/api';
 import { localizeExplanation, matchUi } from './locale';
 import type { UiVoiceLanguage } from './uiVoiceLanguage';
 import { useAssistant } from './store';
@@ -103,7 +102,8 @@ function MatchCard({
     setBusy(true);
     setFormError(null);
     try {
-      await api.createCareRequest({
+      const { enqueueCareRequest } = await import('../lib/outbox/flush');
+      const outcome = await enqueueCareRequest({
         caregiver_id: hit.caregiver_id,
         message: message.trim() || undefined,
         match_run_id: matchRunId,
@@ -114,11 +114,16 @@ function MatchCard({
           explanation: hit.explanation,
           distance_m: hit.distance_m ?? null,
         },
-      });
+      }, `Request to ${hit.display_name || 'caregiver'}`);
       setSent(true);
       setShowForm(false);
-      const confirmation =
-        uiLanguage === 'Sinhala'
+      const confirmation = outcome.queued
+        ? uiLanguage === 'Sinhala'
+          ? `${hit.display_name || 'මෙම caregiver'} වෙත ඉල්ලීම පෝලිමේ. ඔබ නැවත online වූ විට යැවේ.`
+          : uiLanguage === 'Tamil'
+            ? `${hit.display_name || 'இந்த பராமரிப்பாளர்'}-க்கு கோரிக்கை வரிசையில். மீண்டும் ஆன்லைனில் வரும்போது அனுப்பப்படும்.`
+            : `Request to ${hit.display_name || 'this caregiver'} is queued and will send when you reconnect.`
+        : uiLanguage === 'Sinhala'
           ? `${hit.display_name || 'මෙම caregiver'} වෙත ඉල්ලීම යැව්වා. ඔහු/ඇය පිළිතුරු දෙන තෙක් ඔබේ තත්ත්වය ගැන කෙටි update එකක් මට කියන්න.`
           : uiLanguage === 'Tamil'
             ? `${hit.display_name || 'இந்த பராமரிப்பாளர்'}-க்கு கோரிக்கை அனுப்பப்பட்டது. பதில் வரும் வரை உங்கள் நிலையைச் சுருக்கமாகச் சொல்லுங்கள்.`

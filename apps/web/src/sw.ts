@@ -112,3 +112,20 @@ self.addEventListener('notificationclick', (event) => {
     }),
   );
 });
+
+/* ── Background Sync for offline outbox (Step 95) ─────────────────── */
+
+self.addEventListener('sync', ((event: Event) => {
+  const syncEvent = event as Event & {
+    tag: string;
+    waitUntil: (p: Promise<unknown>) => void;
+  };
+  if (syncEvent.tag !== 'careplus-outbox') return;
+  syncEvent.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        client.postMessage({ type: 'careplus-outbox-flush' });
+      }
+    }),
+  );
+}) as EventListener);

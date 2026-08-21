@@ -10,6 +10,7 @@ import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
 import { queryKeys, STALE_MS } from '../lib/query/keys';
 import { readQuery, writeQuery } from '../lib/query/queryClient';
 import { useCachedQuery } from '../lib/query/useCachedQuery';
+import { useOutboxStore } from '../lib/outbox/outboxStore';
 
 const POLL_MS = 4000;
 
@@ -30,6 +31,13 @@ export function MessagesPage() {
   const isPatient = user?.role === 'patient';
   const isCaregiver = user?.role === 'caregiver';
   const enabled = Boolean(user?.id && (isPatient || isCaregiver));
+  const pendingMessages = useOutboxStore((s) =>
+    s.items.filter(
+      (i) =>
+        i.kind === 'message' &&
+        (i.status === 'pending' || i.status === 'sending' || i.status === 'failed'),
+    ),
+  );
 
   const threadQuery = useCachedQuery<MessageThread | null>({
     key: enabled ? queryKeys.messageThread(user!.id) : null,
@@ -134,10 +142,17 @@ export function MessagesPage() {
     if (!thread || !body.trim()) return;
     setSending(true);
     setSendError(null);
+    const text = body.trim();
     try {
-      const sent = await api.sendMessage(thread.id, body.trim());
-      await mergeMessages([sent]);
-      setBody('');
+      const { enqueueMessage } = await import('../lib/outbox/flush');
+      const outcome = await enqueueMessage(thread.id, text);
+      if (outcome.queued) {
+        setBody('');
+        setSendError(null);
+      } else {
+        await mergeMessages([outcome.result]);
+        setBody('');
+      }
     } catch (err) {
       setSendError(err instanceof Error ? err.message : 'Could not send message.');
     } finally {
@@ -223,6 +238,22 @@ export function MessagesPage() {
                   </div>
                 </li>
               ))}
+              {pendingMessages
+                .filter((i) => Number(i.payload.thread_id) === thread.id)
+                .map((item) => (
+                  <li key={item.id} className="flex justify-end">
+                    <div className="max-w-[85%] rounded-2xl border border-amber/40 bg-amber/10 px-4 py-2 text-sm text-mist">
+                      <p className="whitespace-pre-wrap">{String(item.payload.body ?? '')}</p>
+                      <p className="mt-1 text-[10px] text-amber-200/90">
+                        {item.status === 'failed'
+                          ? item.error || 'Failed'
+                          : item.status === 'sending'
+                            ? 'Sending…'
+                            : 'Pending · will send when online'}
+                      </p>
+                    </div>
+                  </li>
+                ))}
               <div ref={bottomRef} />
             </ul>
 

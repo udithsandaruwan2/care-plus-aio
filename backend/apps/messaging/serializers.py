@@ -35,6 +35,9 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class MessageCreateSerializer(serializers.Serializer):
     body = serializers.CharField(max_length=4000, trim_whitespace=True)
+    idempotency_key = serializers.CharField(
+        required=False, allow_blank=True, max_length=128, trim_whitespace=True
+    )
 
 
 class MessageReadSerializer(serializers.Serializer):

@@ -4,6 +4,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Role
+from apps.common.idempotency import (
+    IdempotencyScope,
+    resolve_idempotency_key,
+    run_idempotent,
+)
 
 from .models import Message
 from .push import push_message_created, push_messages_read
@@ -75,11 +80,24 @@ class MessageListCreateView(generics.ListCreateAPIView):
         ser = MessageCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         thread = self.get_thread()
-        try:
+        key = resolve_idempotency_key(request) or ser.validated_data.get("idempotency_key") or ""
+
+        def execute():
             message = send_message(
                 thread=thread,
                 sender=request.user,
                 body=ser.validated_data["body"],
+            )
+            out = MessageSerializer(message, context={"request": request}).data
+            push_message_created(thread.pk, out)
+            return out, status.HTTP_201_CREATED
+
+        try:
+            body, code, replayed = run_idempotent(
+                user=request.user,
+                scope=IdempotencyScope.MESSAGE_SEND,
+                key=key,
+                execute=execute,
             )
         except PermissionDenied:
             raise
@@ -88,9 +106,9 @@ class MessageListCreateView(generics.ListCreateAPIView):
         except Exception as exc:
             raise DRFValidationError(str(exc)) from exc
 
-        out = MessageSerializer(message, context={"request": request}).data
-        push_message_created(thread.pk, out)
-        return Response(out, status=status.HTTP_201_CREATED)
+        # Replay skips push (already delivered on first write).
+        _ = replayed
+        return Response(body, status=code)
 
 
 class MessageReadView(APIView):

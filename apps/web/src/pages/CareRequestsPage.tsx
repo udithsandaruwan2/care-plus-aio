@@ -5,6 +5,8 @@ import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
+import { dismissFailedOutbox, flushOutbox } from '../lib/outbox/flush';
+import { useOutboxStore } from '../lib/outbox/outboxStore';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pending',
@@ -25,6 +27,8 @@ export function CareRequestsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [endRelId, setEndRelId] = useState<number | null>(null);
   const [endReason, setEndReason] = useState('');
+  const outboxItems = useOutboxStore((s) => s.items);
+  const pendingRequests = outboxItems.filter((i) => i.kind === 'care_request');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -136,7 +140,51 @@ export function CareRequestsPage() {
         </p>
       )}
 
-      {!loading && (isPatient || isCaregiver) && rows.length === 0 && (
+      {isPatient && pendingRequests.length > 0 && (
+        <ul className="mt-6 space-y-3">
+          {pendingRequests.map((item) => (
+            <li
+              key={item.id}
+              className="rounded-2xl border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-mist"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-medium">{item.label || 'Queued care request'}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {item.status === 'failed'
+                      ? item.error || 'Failed — will not retry'
+                      : item.status === 'sending'
+                        ? 'Sending…'
+                        : 'Pending — submits once when online'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {item.status === 'pending' && (
+                    <Button
+                      tone="ghost"
+                      className="min-h-8 px-2 py-1 text-xs"
+                      onClick={() => void flushOutbox()}
+                    >
+                      Retry
+                    </Button>
+                  )}
+                  {item.status === 'failed' && (
+                    <Button
+                      tone="ghost"
+                      className="min-h-8 px-2 py-1 text-xs"
+                      onClick={() => void dismissFailedOutbox(item.id)}
+                    >
+                      Dismiss
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!loading && (isPatient || isCaregiver) && rows.length === 0 && pendingRequests.length === 0 && (
         <div className="mt-8 rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
           <p className="text-sm text-muted">
             {isCaregiver
