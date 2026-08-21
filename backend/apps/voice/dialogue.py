@@ -513,11 +513,17 @@ def process_turn(
         "urgency",
         "raw_text",
         "source",
+        "intent_backend",
+        "fallback_reason",
     ):
         val = extracted.get(key)
         if val not in (None, "", []):
             base[key] = val
     base.setdefault("raw_text", text)
+    if extracted.get("fallback_reason") is not None and "fallback_reason" not in base:
+        base["fallback_reason"] = extracted.get("fallback_reason") or ""
+    if extracted.get("intent_backend"):
+        base["intent_backend"] = extracted["intent_backend"]
 
     if ui:
         base["language"] = ui
@@ -581,6 +587,8 @@ def process_turn(
         "urgency": base.get("urgency") or "routine",
         "raw_text": base.get("raw_text") or text,
         "source": base.get("source") or asr.source,
+        "intent_backend": base.get("intent_backend") or "",
+        "fallback_reason": base.get("fallback_reason") or "",
     }
     _emit_turn(user, "intent", intent=intent_preview, session_id=session.pk)
     _emit_turn(
@@ -735,6 +743,8 @@ def process_turn(
         "urgency": base.get("urgency") or "routine",
         "raw_text": base.get("raw_text") or text,
         "source": base.get("source") or asr.source,
+        "intent_backend": base.get("intent_backend") or "",
+        "fallback_reason": base.get("fallback_reason") or "",
     }
     # Keep refine filters across turns on the session.
     for key in (
@@ -783,6 +793,9 @@ def process_turn(
         "open_questions": open_qs,
         "chat_source": chat_source,
         "chat_backend": resolve_chat_backend(),
+        "intent_backend": intent_out.get("intent_backend") or "",
+        "intent_source": intent_out.get("source") or "",
+        "intent_fallback_reason": intent_out.get("fallback_reason") or "",
         "match_engine": "vehmf" if match_payload else "",
     }
     # Re-emit final route/intent if salvage changed them after the early push.

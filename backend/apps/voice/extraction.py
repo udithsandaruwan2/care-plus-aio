@@ -1,14 +1,18 @@
 """Intent extraction — text → structured Care Plus intent.
 
-Two backends behind one ``extract_intent`` function:
+Backends (resolved in ``backends.extract_intent``, Step 97):
 
-* **gemini** — Google Gemini with ``response_mime_type=application/json``
-  and a strict schema (used when ``GEMINI_API_KEY`` is set).
-* **stub** — deterministic keyword/script heuristics (dev / tests / offline),
-  so the pipeline works and is reproducible without any external call.
+* **slot_classifier / local** — Step 96 hashed n-gram classifier (offline).
+* **gemini** — Google Gemini JSON schema when ``GEMINI_API_KEY`` is set.
+* **stub** — deterministic keyword/script heuristics (dev / tests / offline fallback).
+
+Fallback chain for ``VOICE_INTENT_BACKEND=auto`` (blank)::
+
+    local classifier → Gemini → stub
 
 Both return a dict validated against the model choices:
-``{condition, language, languages, care_level, urgency, raw_text, source}``.
+``{condition, language, languages, care_level, urgency, raw_text, source,
+intent_backend, fallback_reason}``.
 
 ``language`` = preferred care language (primary).
 ``languages`` = all detected in the utterance (supports Sinhala–English /

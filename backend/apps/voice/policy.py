@@ -21,17 +21,25 @@ _RATE_KEY = "careplus:dialogue:gemini:{user_id}"
 
 
 def resolve_chat_backend() -> str:
-    """Return ``stub`` or ``gemini`` for Serah chat (never used for ranking).
+    """Return ``stub``, ``gemini``, or ``local`` for Serah chat (never for ranking).
 
     Does not reload ``.env`` — callers (``VoiceTurnView``) already call
     ``refresh_env()`` so Django ``override_settings`` in tests keeps working.
     """
     raw = (getattr(settings, "DIALOGUE_CHAT_BACKEND", "") or "").strip().lower()
+    local_url = bool((getattr(settings, "LOCAL_LLM_URL", "") or "").strip())
+    if raw == "local":
+        return "local" if local_url else "stub"
     if raw in ("stub", "gemini"):
         if raw == "gemini" and not settings.GEMINI_API_KEY:
             return "stub"
         return raw
-    return "gemini" if settings.GEMINI_API_KEY else "stub"
+    # Blank: prefer Gemini when keyed; else local LLM URL; else stub.
+    if settings.GEMINI_API_KEY:
+        return "gemini"
+    if local_url:
+        return "local"
+    return "stub"
 
 
 def gemini_chat_allowed(user_id: int | None) -> tuple[bool, str]:
@@ -71,10 +79,24 @@ def gemini_chat_allowed(user_id: int | None) -> tuple[bool, str]:
 
 def policy_snapshot() -> dict:
     """Public/debug summary of the dialogue AI split."""
+    intent_backend = (getattr(settings, "VOICE_INTENT_BACKEND", "") or "").strip().lower() or "auto"
+    local_url = bool((getattr(settings, "LOCAL_LLM_URL", "") or "").strip())
     return {
         "chat_backend": resolve_chat_backend(),
+        "intent_backend": intent_backend,
+        "intent_fallback_chain": ["slot_classifier", "gemini", "stub"],
+        "local_llm_configured": local_url,
         "match_engine": "vehmf",
         "gemini_ranks_caregivers": False,
+        "offline_profile": {
+            "voice_intent_backend": "local",
+            "dialogue_chat_backend": "stub",
+            "requires_gemini": False,
+            "notes": (
+                "Train/promote a slot classifier, set VOICE_INTENT_BACKEND=local, "
+                "DIALOGUE_CHAT_BACKEND=stub, GEMINI_API_KEY unset. Matching stays VEHMF."
+            ),
+        },
         "gemini_rate_limit": int(getattr(settings, "DIALOGUE_GEMINI_RATE_LIMIT", 120) or 120),
         "gemini_rate_window_sec": int(
             getattr(settings, "DIALOGUE_GEMINI_RATE_WINDOW_SEC", 3600) or 3600

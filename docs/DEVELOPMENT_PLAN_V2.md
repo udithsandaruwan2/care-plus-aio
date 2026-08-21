@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 97.** M22 finishes with local backend wiring for the slot classifier.
+**Start at Step 98.** M22 finishes with on-device ranking fallback.
 
 ---
 
@@ -402,7 +402,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 97 — Local backend wiring
+### Step 97 — Local backend wiring ✅ **DONE**
 
 **Branch:** `feat/step97-local-backend`
 **Goal:** implement the `LOCAL_LLM_URL` slot that has been an empty setting since v0.3.
