@@ -1,6 +1,6 @@
 # Care Plus — Engine & Experience Development Plan (v0.4)
 
-> **Status:** Active build plan **v0.4** (AI engine, offline, history trail, self-improving ranking)
+> **Status:** ✅ **Complete** through Step 106 / M24 (2026-08-21)
 > Continues [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) **v0.3** — that plan is complete through **M17 / Step 75**.
 > Companions: [ARCHITECTURE.md](ARCHITECTURE.md) · [FRONTEND.md](FRONTEND.md) · [DIALOGUE_POLICY.md](DIALOGUE_POLICY.md) · [THESIS_METHODOLOGY.md](THESIS_METHODOLOGY.md) · [PROGRESS.md](../PROGRESS.md)
 > **Scope:** v0.3 built the product. v0.4 makes the **engine** faster to feel, cheaper to run, usable offline, fully auditable, and able to learn from its own outcomes.
@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 103.** M23 finishes with ranking guardrails after weight A/B.
+**All milestones M18–M24 (Steps 76–106) are done.**
 
 ---
 
