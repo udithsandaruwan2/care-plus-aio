@@ -350,6 +350,9 @@ export const MatchResponse = z.object({
   weights: MatchBreakdown,
   results: z.array(MatchHit),
   refined: z.boolean().optional().default(false),
+  /** Step 98 — client HashEmbedder ranking; not authoritative VEHMF. */
+  provisional: z.boolean().optional().default(false),
+  edge_source: z.string().optional().default(''),
 });
 export type MatchResponse = z.infer<typeof MatchResponse>;
 

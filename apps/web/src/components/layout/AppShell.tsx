@@ -4,6 +4,7 @@ import { SkipLink } from '../../a11y/SkipLink';
 import { SerahEngineProvider } from '../../assistant/SerahEngine';
 import { useAuth } from '../../auth/AuthContext';
 import { useConnectionStore } from '../../auth/connectionStore';
+import { bindEdgeRankingLifecycle } from '../../assistant/useMatch';
 import { bindOutboxLifecycle } from '../../lib/outbox/flush';
 import { OutboxBanner } from '../OutboxBanner';
 import { AIAssistantDock } from './AIAssistantDock';
@@ -46,7 +47,14 @@ export function AppShell() {
   const { pathname } = useLocation();
   const serahCore = pathname === '/app';
 
-  useEffect(() => bindOutboxLifecycle(), []);
+  useEffect(() => {
+    const unbindOutbox = bindOutboxLifecycle();
+    const unbindEdge = bindEdgeRankingLifecycle();
+    return () => {
+      unbindOutbox();
+      unbindEdge();
+    };
+  }, []);
 
   return (
     <SerahEngineProvider>

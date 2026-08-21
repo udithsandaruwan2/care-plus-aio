@@ -6,6 +6,8 @@ Backends
     Signed feature-hashing into ``EMBEDDING_DIM`` dims. Shared tokens boost
     inner product, so specialty/language queries rank the right caregivers
     without downloading a neural model. Deterministic and CI-friendly.
+    TypeScript port (byte-parity) lives in ``packages/core/src/embedding.ts``
+    for on-device provisional ranking (Step 98).
 
 ``e5``
     ``intfloat/multilingual-e5-base`` via sentence-transformers (optional).

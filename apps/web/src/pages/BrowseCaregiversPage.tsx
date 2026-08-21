@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
+import { warmEdgeCacheFromProfiles } from '../assistant/offlineMatch';
 import { queryKeys, STALE_MS } from '../lib/query/keys';
 import { useCachedQuery } from '../lib/query/useCachedQuery';
 
@@ -56,6 +57,7 @@ export function BrowseCaregiversPage() {
         available: filters.availableOnly ? 'true' : undefined,
         page_size: 50,
       });
+      void warmEdgeCacheFromProfiles(res.results);
       return { results: res.results, count: res.count };
     },
   });
