@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 98.** M22 finishes with on-device ranking fallback.
+**Start at Step 99.** M22 (offline & local intelligence) is complete through Step 98.
 
 ---
 
@@ -419,7 +419,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 98 — On-device ranking fallback
+### Step 98 — On-device ranking fallback ✅ **DONE**
 
 **Branch:** `feat/step98-edge-ranking`
 **Goal:** a rough ranked list with no server, feasible because the lean default embedder is deterministic feature hashing with no weights.

@@ -114,9 +114,13 @@ export function MatchSearchPanel({
 
         {hasResults && match ? (
           <div className={matching ? 'opacity-70' : undefined}>
-            {(fromCache || stale) && (
+            {(fromCache || stale || match.provisional) && (
               <div className="mb-2 flex justify-end px-1">
-                <CacheSourceBadge fromCache={fromCache} stale={stale} />
+                <CacheSourceBadge
+                  fromCache={fromCache}
+                  stale={stale}
+                  provisional={Boolean(match.provisional)}
+                />
               </div>
             )}
             <MatchResultCards

@@ -1,16 +1,23 @@
-/** Visible badge when rendered data is cached / stale-offline (Step 94). */
+/** Visible badge when rendered data is cached / stale-offline (Step 94 / 98). */
 
 export function CacheSourceBadge({
   fromCache,
   stale,
+  provisional = false,
   className = '',
 }: {
   fromCache: boolean;
   stale: boolean;
+  /** Step 98 — on-device HashEmbedder ranking, not VEHMF. */
+  provisional?: boolean;
   className?: string;
 }) {
-  if (!fromCache && !stale) return null;
-  const label = stale ? 'Cached · may be out of date' : 'Cached';
+  if (!fromCache && !stale && !provisional) return null;
+  const label = provisional
+    ? 'Provisional · on-device'
+    : stale
+      ? 'Cached · may be out of date'
+      : 'Cached';
   return (
     <span
       role="status"

@@ -15,6 +15,14 @@ import {
   rememberStreamedReply,
   type TurnStage,
 } from './turnStream';
+import {
+  compareEdgeRankings,
+  hitsToEdgeProfiles,
+  runOfflineMatch,
+  shouldUseOfflineMatch,
+  warmEdgeCacheFromProfiles,
+} from './offlineMatch';
+
 
 function rememberMatch(match: MatchResponse | null) {
   const user = loadCachedUser();
@@ -265,6 +273,65 @@ export async function runClientMatch(): Promise<boolean> {
   store.setState(AssistantState.MATCHING, { force: true });
   store.setMatchError(null);
   announceMatchFinding();
+  const emergency = intent.urgency === 'urgent' || intent.urgency === 'critical';
+
+  const applyResult = (result: MatchResponse, opts?: { provisional?: boolean }) => {
+    store.setMatch(result, opts?.provisional ? { fromCache: true, stale: true } : undefined);
+    rememberMatch(result);
+    store.setMatching(false);
+    store.setState(AssistantState.RESULTS, { force: true });
+    announceMatchReady(result.request_id);
+  };
+
+  try {
+    if (shouldUseOfflineMatch()) {
+      const offline = await runOfflineMatch(intent, { k: 5, emergency });
+      if (offline) {
+        applyResult(offline, { provisional: true });
+        return true;
+      }
+    }
+    const result = await api.match({
+      condition: intent.condition || intent.raw_text || 'general care',
+      language: intent.language || 'English',
+      care_level: intent.care_level || 'intermediate',
+      query: intent.raw_text ?? '',
+      k: 5,
+      emergency,
+    });
+    void warmEdgeCacheFromProfiles(hitsToEdgeProfiles(result.results));
+    applyResult(result);
+    return true;
+  } catch (err) {
+    if (shouldUseOfflineMatch(err)) {
+      const offline = await runOfflineMatch(intent, { k: 5, emergency });
+      if (offline) {
+        applyResult(offline, { provisional: true });
+        return true;
+      }
+    }
+    store.setMatching(false);
+    store.setMatchError(err instanceof Error ? err.message : 'Match failed.');
+    store.setState(AssistantState.IDLE, { force: true });
+    return false;
+  }
+}
+
+/**
+ * When connectivity returns, replace a provisional on-device list with VEHMF
+ * and record rank-id divergence (Step 98).
+ */
+export async function reconcileProvisionalMatch(): Promise<boolean> {
+  const store = useAssistant.getState();
+  const provisional = store.match;
+  if (!provisional?.provisional) return false;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+
+  const { intent } = store;
+  if (!intent.condition && !intent.language && !intent.care_level && !intent.raw_text) {
+    return false;
+  }
+
   try {
     const emergency = intent.urgency === 'urgent' || intent.urgency === 'critical';
     const result = await api.match({
@@ -275,18 +342,26 @@ export async function runClientMatch(): Promise<boolean> {
       k: 5,
       emergency,
     });
+    compareEdgeRankings(provisional, result);
+    void warmEdgeCacheFromProfiles(hitsToEdgeProfiles(result.results));
     store.setMatch(result);
     rememberMatch(result);
     store.setMatching(false);
     store.setState(AssistantState.RESULTS, { force: true });
     announceMatchReady(result.request_id);
     return true;
-  } catch (err) {
-    store.setMatching(false);
-    store.setMatchError(err instanceof Error ? err.message : 'Match failed.');
-    store.setState(AssistantState.IDLE, { force: true });
+  } catch {
     return false;
   }
+}
+
+export function bindEdgeRankingLifecycle(): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  const onOnline = () => {
+    void reconcileProvisionalMatch();
+  };
+  window.addEventListener('online', onOnline);
+  return () => window.removeEventListener('online', onOnline);
 }
 
 /**

@@ -7,6 +7,7 @@ export const STALE_MS = {
   messageThread: 30_000,
   messages: 30_000,
   match: 30 * 60_000,
+  edgeVectors: 24 * 60 * 60_000,
 } as const;
 
 export const queryKeys = {
@@ -18,4 +19,5 @@ export const queryKeys = {
   messageThread: (userId: number | string) => `messages:thread:${userId}`,
   messages: (threadId: number | string) => `messages:list:${threadId}`,
   lastMatch: (userId: number | string) => `match:last:${userId}`,
+  edgeCaregiverVectors: () => `edge:caregivers:vectors`,
 } as const;

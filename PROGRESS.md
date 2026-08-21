@@ -9,7 +9,7 @@
 > Dialogue AI: [docs/DIALOGUE_POLICY.md](docs/DIALOGUE_POLICY.md) ·  
 > Frontend: [docs/FRONTEND.md](docs/FRONTEND.md)
 
-_Last updated: 2026-08-21 — Step 97 local backend wiring._
+_Last updated: 2026-08-21 — Step 98 on-device ranking fallback._
 
 ---
 
@@ -152,7 +152,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 | **M19** Client efficiency                | 80–82   | 80–82 ✅ | Smaller first load, calmer render loop, network-tolerant boot        |
 | **M20** Conversation feel                | 83–87   | 83–87 ✅ | Streaming turns, interruptible speech, recoverable failures          |
 | **M21** Model lifecycle                  | 88–92   | 88–92 ✅ | Registry, auto index rebuild, replay eval, gated promotion           |
-| **M22** Offline & local intelligence     | 93–98   | 93–97 ✅ | Installable PWA, cached reads, queued writes, local slot model       |
+| **M22** Offline & local intelligence     | 93–98   | 93–98 ✅ | Installable PWA, cached reads, queued writes, local slots + edge rank |
 | **M23** Adaptive ranking                 | 99–103  | ⬜      | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24** History surface & retention      | 104–106 | ⬜      | User-visible trail, complete export, retention policy                |
 
@@ -160,7 +160,7 @@ Plan: [docs/DEVELOPMENT_PLAN_V2.md](docs/DEVELOPMENT_PLAN_V2.md). One branch per
 writes COMPLETE / RATE / REJECT; remaining M18 steps make those decisions timed and auditable.
 M21 and M23 stay after the rest of M18.
 
-**Next:** Step 98 — On-device ranking fallback, branch `feat/step98-edge-ranking`.
+**Next:** Step 99 — Cold-start clustering, branch `feat/step99-cold-start-clusters`.
 
 ---
 
@@ -175,6 +175,8 @@ M21 and M23 stay after the rest of M18.
 ---
 
 ## Changelog (newest first)
+
+- **Step 98** — On-device ranking fallback: TS `HashEmbedder` byte-parity with Python; IndexedDB caregiver vectors; provisional offline cosine list; reconnect replaces with VEHMF + divergence log. Branch `feat/step98-edge-ranking`. **M22 complete.**
 
 - **Step 97** — Local backend wiring: `VOICE_INTENT_BACKEND=local` uses slot classifier; auto chain classifier→Gemini→stub; optional OpenAI-compatible `LOCAL_LLM_URL` for chat only; offline profile documented. Branch `feat/step97-local-backend`.
 
