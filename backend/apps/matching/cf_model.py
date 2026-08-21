@@ -1,10 +1,10 @@
-"""Collaborative filtering model loader (implicit ALS — Step 21)."""
+"""Collaborative filtering model loader (implicit ALS — Step 21 / 99)."""
 
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -59,21 +59,58 @@ class AlsCFModel:
     caregiver_ids: list[int]
     user_factors: np.ndarray
     item_factors: np.ndarray
+    # Step 99 — cluster-mean item factors for caregivers absent from ALS training.
+    cold_start_factors: Mapping[int, np.ndarray] = field(default_factory=dict)
+
+    def with_cold_start(self, factors: Mapping[int, np.ndarray]) -> AlsCFModel:
+        return AlsCFModel(
+            version=self.version,
+            patient_ids=self.patient_ids,
+            caregiver_ids=self.caregiver_ids,
+            user_factors=self.user_factors,
+            item_factors=self.item_factors,
+            cold_start_factors=dict(factors),
+        )
+
+    def _item_vector(self, cid: int) -> np.ndarray | None:
+        idx = self._caregiver_idx.get(cid)
+        if idx is not None:
+            return self.item_factors[idx]
+        vec = self.cold_start_factors.get(cid)
+        if vec is not None:
+            return np.asarray(vec, dtype=np.float32)
+        return None
 
     def predict(self, patient_id: int | None, caregiver_ids: Sequence[int]) -> np.ndarray:
         if patient_id is None or patient_id not in self._patient_idx:
             return np.full(len(caregiver_ids), 0.5, dtype=np.float32)
         u = self.user_factors[self._patient_idx[patient_id]]
-        raw = np.array(
-            [
-                float(np.dot(u, self.item_factors[self._caregiver_idx[cid]]))
-                if cid in self._caregiver_idx
-                else 0.0
-                for cid in caregiver_ids
-            ],
-            dtype=np.float32,
+        global_mean = (
+            self.item_factors.mean(axis=0).astype(np.float32)
+            if self.item_factors.size
+            else None
         )
-        return _normalize_scores(raw)
+        raw_list: list[float] = []
+        for cid in caregiver_ids:
+            vec = self._item_vector(int(cid))
+            if vec is None and global_mean is not None and self.cold_start_factors:
+                vec = global_mean
+            if vec is None:
+                raw_list.append(0.0)
+            else:
+                raw_list.append(float(np.dot(u, vec)))
+        return _normalize_scores(np.asarray(raw_list, dtype=np.float32))
+
+    def raw_scores(self, patient_id: int, caregiver_ids: Sequence[int]) -> np.ndarray:
+        """Unnormalized dots — used by tests to assert cold-start ≠ 0."""
+        if patient_id not in self._patient_idx:
+            return np.zeros(len(caregiver_ids), dtype=np.float32)
+        u = self.user_factors[self._patient_idx[patient_id]]
+        out = []
+        for cid in caregiver_ids:
+            vec = self._item_vector(int(cid))
+            out.append(0.0 if vec is None else float(np.dot(u, vec)))
+        return np.asarray(out, dtype=np.float32)
 
     @property
     def _patient_idx(self) -> dict[int, int]:
@@ -120,13 +157,22 @@ def load_cf_model_from_dir(version_dir: Path | str) -> AlsCFModel | None:
         return None
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     factors = np.load(factors_path)
-    return AlsCFModel(
+    model = AlsCFModel(
         version=meta["version"],
         patient_ids=list(meta["patient_ids"]),
         caregiver_ids=list(meta["caregiver_ids"]),
         user_factors=np.asarray(factors["user_factors"], dtype=np.float32),
         item_factors=np.asarray(factors["item_factors"], dtype=np.float32),
     )
+    try:
+        from apps.matching.clustering import load_cold_start_vectors
+
+        cold = load_cold_start_vectors()
+        if cold:
+            model = model.with_cold_start(cold)
+    except Exception:
+        pass
+    return model
 
 
 def set_current_cf_pointer(*, version: str, dir_name: str) -> None:
@@ -149,10 +195,19 @@ def get_cf_model() -> CFModel:
 def cf_model_info(model: CFModel) -> dict:
     """Metadata for API responses and fusion diagnostics."""
     if isinstance(model, AlsCFModel):
-        return {"enabled": True, "backend": "als", "version": model.version}
+        return {
+            "enabled": True,
+            "backend": "als",
+            "version": model.version,
+            "cold_start_seeded": len(model.cold_start_factors),
+        }
     if isinstance(model, StubCFModel):
         return {"enabled": False, "backend": "stub", "version": None}
-    return {"enabled": is_cf_active(model), "backend": "custom", "version": getattr(model, "version", None)}
+    return {
+        "enabled": is_cf_active(model),
+        "backend": "custom",
+        "version": getattr(model, "version", None),
+    }
 
 
 def is_cf_active(model: CFModel) -> bool:

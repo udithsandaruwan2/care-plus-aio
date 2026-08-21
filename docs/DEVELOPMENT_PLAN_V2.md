@@ -61,7 +61,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 | **M23 · Adaptive ranking**               | 99–103  | Cold-start clustering, exploration, learned weights, A/B, fairness   |
 | **M24 · History surface & retention**    | 104–106 | User-visible trail, complete export, retention policy                |
 
-**Start at Step 99.** M22 (offline & local intelligence) is complete through Step 98.
+**Start at Step 100.** M23 continues with exploration slots after cold-start clustering.
 
 ---
 
@@ -438,7 +438,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ## M23 · Adaptive ranking
 
-### Step 99 — Cold-start clustering
+### Step 99 — Cold-start clustering ✅ **DONE**
 
 **Branch:** `feat/step99-cold-start-clusters`
 **Goal:** a caregiver absent from the trained factors currently scores a flat 0.0 and is structurally disadvantaged.
