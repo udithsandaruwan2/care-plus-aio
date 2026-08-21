@@ -394,7 +394,11 @@ def _match_payload_from_run(run: MatchRun) -> dict:
 
 
 def _latest_match_for_user(user) -> dict | None:
-    run = MatchRun.objects.filter(user=user).order_by("-created_at").first()
+    run = (
+        MatchRun.objects.filter(user=user, deleted_at__isnull=True)
+        .order_by("-created_at")
+        .first()
+    )
     if not run:
         return None
     return _match_payload_from_run(run)

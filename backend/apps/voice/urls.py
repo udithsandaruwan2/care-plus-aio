@@ -4,6 +4,7 @@ from .views import (
     VoiceDialoguePolicyView,
     VoiceIntentHistoryView,
     VoiceIntentView,
+    VoiceMatchHistoryView,
     VoiceSessionClearView,
     VoiceSessionView,
     VoiceTtsView,
@@ -13,6 +14,7 @@ from .views import (
 urlpatterns = [
     path("voice/intent/", VoiceIntentView.as_view(), name="voice_intent"),
     path("voice/intent/history/", VoiceIntentHistoryView.as_view(), name="voice_intent_history"),
+    path("voice/history/", VoiceMatchHistoryView.as_view(), name="voice_match_history"),
     path("voice/turn/", VoiceTurnView.as_view(), name="voice_turn"),
     path("voice/tts/", VoiceTtsView.as_view(), name="voice_tts"),
     path("voice/session/", VoiceSessionView.as_view(), name="voice_session"),

@@ -165,6 +165,13 @@ export function AccountPage() {
             desc="Book and cancel care shifts in Asia/Colombo."
           />
         )}
+        {user?.role === 'patient' && (
+          <SettingsLink
+            to="/history"
+            title="Search history"
+            desc="Past Serah matches, recommendations, and reasons."
+          />
+        )}
         <SettingsLink
           to="/settings/notifications"
           title="Notification settings"

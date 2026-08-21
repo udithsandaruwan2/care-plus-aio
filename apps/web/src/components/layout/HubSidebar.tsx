@@ -15,6 +15,7 @@ import {
   LogOut,
   MapPin,
   UserPlus,
+  History,
 } from 'lucide-react';
 import { brand } from '@care-plus/ui-tokens';
 import { useAuth } from '../../auth/AuthContext';
@@ -50,6 +51,7 @@ function itemsForRole(role: string | undefined): NavItem[] {
     { path: '/app', label: 'Serah Core', icon: Activity },
     { path: '/caregivers', label: 'Caregivers', icon: Users },
     { path: '/requests', label: 'Requests', icon: Inbox },
+    { path: '/history', label: 'History', icon: History },
     { path: '/messages', label: 'Messages', icon: MessageSquare },
     { path: '/schedule', label: 'Schedule', icon: Calendar },
     { path: '/records', label: 'Records', icon: FileText },
