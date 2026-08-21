@@ -1,0 +1,66 @@
+{
+  "description": "Step 96 seed corpus for slot classifier training. Includes vocab paraphrases that the rule stub does not cover, so the model can beat extract_stub on the hand holdout.",
+  "examples": [
+    {"text": "මට දියවැඩියාව තියෙනවා, සිංහල කතා කරන කෙනෙක් ඕන.", "condition": "diabetes", "language": "Sinhala", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "எனக்கு நீரிழிவு உள்ளது", "condition": "diabetes", "language": "Tamil", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "I need help managing diabetes at home", "condition": "diabetes", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "insulin shots every morning and evening", "condition": "diabetes", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "my A1C is still elevated after the clinic visit", "condition": "diabetes", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "glucose keeps swinging wildly this week", "condition": "diabetes", "language": "English", "care_level": "intermediate", "urgency": "urgent"},
+    {"text": "ඉන්සියුලින් එන්නත් දාන්න කෙනෙක් ඕන", "condition": "diabetes", "language": "Sinhala", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "இன்சுலின் ஊசி உதவி வேண்டும்", "condition": "diabetes", "language": "Tamil", "care_level": "intermediate", "urgency": "routine"},
+
+    {"text": "high blood pressure for years", "condition": "hypertension", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "අධි රුධිර පීඩනය තියෙනවා", "condition": "hypertension", "language": "Sinhala", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "the top number on my cuff stays above 150", "condition": "hypertension", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "cuff reading keeps climbing despite tablets", "condition": "hypertension", "language": "English", "care_level": "intermediate", "urgency": "urgent"},
+    {"text": "இரத்த அழுத்தம் அதிகமாக உள்ளது", "condition": "hypertension", "language": "Tamil", "care_level": "intermediate", "urgency": "routine"},
+
+    {"text": "I have asthma and need a companion", "condition": "asthma", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "මට ඇදුම තියෙනවා", "condition": "asthma", "language": "Sinhala", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "I struggle to breathe when pollen is bad", "condition": "asthma", "language": "English", "care_level": "intermediate", "urgency": "urgent"},
+    {"text": "inhaler ran out and chest feels tight tonight", "condition": "asthma", "language": "English", "care_level": "advanced", "urgency": "urgent"},
+    {"text": "மகரந்தத்தால் மூச்சு திணறல்", "condition": "asthma", "language": "Tamil", "care_level": "intermediate", "urgency": "urgent"},
+
+    {"text": "emergency: need advanced cardiac care now", "condition": "cardiac", "language": "English", "care_level": "advanced", "urgency": "urgent"},
+    {"text": "හදවත් රෝගයට උදව් ඕන", "condition": "cardiac", "language": "Sinhala", "care_level": "advanced", "urgency": "urgent"},
+    {"text": "recovering after a stent placement last month", "condition": "cardiac", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "post-heart event recovery at home please", "condition": "cardiac", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "இதய அறுவைக்குப் பிறகு பராமரிப்பு", "condition": "cardiac", "language": "Tamil", "care_level": "advanced", "urgency": "routine"},
+
+    {"text": "stroke recovery support needed", "condition": "stroke", "language": "English", "care_level": "advanced", "urgency": "routine"},
+    {"text": "ආඝාතයෙන් පසු උදව්", "condition": "stroke", "language": "Sinhala", "care_level": "advanced", "urgency": "routine"},
+    {"text": "left side still weak after the brain attack", "condition": "stroke", "language": "English", "care_level": "advanced", "urgency": "routine"},
+    {"text": "பக்கவாதத்திற்குப் பிறகு உதவி", "condition": "stroke", "language": "Tamil", "care_level": "advanced", "urgency": "routine"},
+
+    {"text": "dengue fever last week still weak", "condition": "dengue", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "මදුරු උණෙන් පස්සේ බලන්න කෙනෙක්", "condition": "dengue", "language": "Sinhala", "care_level": "basic", "urgency": "routine"},
+    {"text": "mosquito fever drained me, need light help", "condition": "dengue", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "கொசுக் காய்ச்சலுக்குப் பிறகு உதவி", "condition": "dengue", "language": "Tamil", "care_level": "basic", "urgency": "routine"},
+
+    {"text": "just need a companion for walks", "condition": "", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "light day-to-day help only, nothing clinical", "condition": "", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "hospital-grade nursing round the clock", "condition": "", "language": "English", "care_level": "advanced", "urgency": "routine"},
+    {"text": "please hurry this afternoon if you can", "condition": "", "language": "English", "care_level": "intermediate", "urgency": "urgent"},
+    {"text": "තවත් වේගයෙන් එන්න, මට උදව් ඕන", "condition": "", "language": "Sinhala", "care_level": "intermediate", "urgency": "urgent"},
+    {"text": "விரைவாக வரவும் உதவி தேவை", "condition": "", "language": "Tamil", "care_level": "intermediate", "urgency": "urgent"},
+    {"text": "critical overnight monitoring required", "condition": "", "language": "English", "care_level": "advanced", "urgency": "critical"},
+    {"text": "සරල උදව් විතරයි ඕනෙ", "condition": "", "language": "Sinhala", "care_level": "basic", "urgency": "routine"},
+    {"text": "I speak English only please", "condition": "", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "සිංහල කතා කරන caregiver ඕන", "condition": "", "language": "Sinhala", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "தமிழ் பேசும் பராமரிப்பாளர் வேண்டும்", "condition": "", "language": "Tamil", "care_level": "intermediate", "urgency": "routine"},
+
+    {"text": "arthritis pain in both knees", "condition": "arthritis", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "joint swelling makes stairs hard", "condition": "arthritis", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "COPD oxygen support evenings", "condition": "copd", "language": "English", "care_level": "advanced", "urgency": "routine"},
+    {"text": "chronic lung issue needs specialist nights", "condition": "copd", "language": "English", "care_level": "advanced", "urgency": "routine"},
+    {"text": "kidney dialysis transport twice a week", "condition": "ckd", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "dialysis chair days need a ride helper", "condition": "ckd", "language": "English", "care_level": "intermediate", "urgency": "routine"},
+    {"text": "cancer chemo week, need advanced support", "condition": "cancer", "language": "English", "care_level": "advanced", "urgency": "urgent"},
+    {"text": "oncology infusion week help at home", "condition": "cancer", "language": "English", "care_level": "advanced", "urgency": "urgent"},
+    {"text": "postpartum recovery, gentle companion care", "condition": "postpartum-care", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "after delivery I need light household help", "condition": "postpartum-care", "language": "English", "care_level": "basic", "urgency": "routine"},
+    {"text": "Alzheimer evenings wander risk", "condition": "dementia", "language": "English", "care_level": "advanced", "urgency": "routine"},
+    {"text": "memory fading, overnight watch please", "condition": "dementia", "language": "English", "care_level": "advanced", "urgency": "routine"}
+  ]
+}
