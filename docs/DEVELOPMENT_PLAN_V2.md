@@ -454,7 +454,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 100 — Exploration slot
+### Step 100 — Exploration slot ✅ **DONE**
 
 **Branch:** `feat/step100-exploration`
 **Goal:** greedy ranking only ever collects feedback about caregivers it already ranks highly, which starves new joiners and biases every model trained downstream.
