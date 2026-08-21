@@ -228,6 +228,10 @@ CF_USE_NEGATIVES = env.bool("CF_USE_NEGATIVES", default=True)
 CF_POSITIVE_ALPHA = env.float("CF_POSITIVE_ALPHA", default=40.0)
 CF_REJECT_ALPHA = env.float("CF_REJECT_ALPHA", default=80.0)
 CF_WEAK_NEG_ALPHA = env.float("CF_WEAK_NEG_ALPHA", default=5.0)
+# Step 99 — embedding clusters for CF cold-start + demand taxonomy.
+CLUSTER_ARTIFACT_DIR = env("CLUSTER_ARTIFACT_DIR", default="")
+CLUSTER_CAREGIVER_K = env.int("CLUSTER_CAREGIVER_K", default=0)  # 0 = auto
+CLUSTER_INTENT_K = env.int("CLUSTER_INTENT_K", default=0)
 # Minimum patient profile completion % before requesting care (Step 22b).
 PATIENT_PROFILE_MIN_COMPLETION = env.int("PATIENT_PROFILE_MIN_COMPLETION", default=80)
 # Caregiver onboarding + auto-approval (Step 22c).

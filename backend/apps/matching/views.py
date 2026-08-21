@@ -1078,3 +1078,15 @@ class AdminAnalyticsView(APIView):
         except ValueError:
             raise ValidationError({"window_days": "Must be an integer."}) from None
         return Response(build_admin_analytics(window_days=window_days))
+
+
+class AdminClusterListView(APIView):
+    """GET /api/v1/admin/clusters/ — caregiver + intent cluster inspection (Step 99)."""
+
+    permission_classes = [RolePermission]
+    allowed_roles = ("admin", "auditor")
+
+    def get(self, request):
+        from .clustering import clusters_admin_payload
+
+        return Response(clusters_admin_payload())

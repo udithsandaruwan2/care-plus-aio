@@ -9,6 +9,7 @@ from .media_views import (
 )
 from .views import (
     AdminAnalyticsView,
+    AdminClusterListView,
     AhpWeightsView,
     CaregiverDetailView,
     CaregiverAvailabilityPublicListView,
@@ -96,4 +97,5 @@ urlpatterns = [
     path("reviews/", ReviewListCreateView.as_view(), name="review_list"),
     path("reviews/<int:pk>/moderate/", ReviewModerationView.as_view(), name="review_moderate"),
     path("admin/analytics/", AdminAnalyticsView.as_view(), name="admin_analytics"),
+    path("admin/clusters/", AdminClusterListView.as_view(), name="admin_clusters"),
 ]
