@@ -1,0 +1,20 @@
+{
+  "experiment_id": "weight_ab_v1",
+  "salt": "careplus-step102",
+  "min_runs_per_variant": 200,
+  "min_days": 14,
+  "variants": [
+    {
+      "id": "control",
+      "traffic": 50,
+      "active": true,
+      "weights": null
+    },
+    {
+      "id": "geo_tilt",
+      "traffic": 50,
+      "active": true,
+      "weights": [0.35, 0.1, 0.35, 0.2]
+    }
+  ]
+}

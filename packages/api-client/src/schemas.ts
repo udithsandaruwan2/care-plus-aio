@@ -885,6 +885,36 @@ export const AdminAnalytics = z.object({
     ended: z.number(),
     by_status: z.array(AnalyticsSeriesItem),
   }),
+  /** Step 102 — weight A/B comparison + stopping rule. */
+  weight_ab: z
+    .object({
+      experiment_id: z.string(),
+      window_days: z.number(),
+      variants: z.array(
+        z.object({
+          variant: z.string(),
+          n_runs: z.number(),
+          n_users: z.number(),
+          accept_rate: z.number(),
+          n_accepts: z.number(),
+          completion_rate: z.number(),
+          n_completes: z.number(),
+          time_to_accept_ms_p50: z.number().nullable(),
+          time_to_accept_ms_avg: z.number().nullable(),
+          n_tta: z.number(),
+        }),
+      ),
+      stopping_rule: z.object({
+        ready: z.boolean(),
+        min_runs_per_variant: z.number(),
+        min_days: z.number(),
+        window_days: z.number(),
+        reasons: z.array(z.string()),
+        guidance: z.string(),
+      }),
+      config_path: z.string().optional(),
+    })
+    .optional(),
 });
 export type AdminAnalytics = z.infer<typeof AdminAnalytics>;
 

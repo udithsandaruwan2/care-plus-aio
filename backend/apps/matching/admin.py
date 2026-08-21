@@ -116,13 +116,14 @@ class MatchRunAdmin(admin.ModelAdmin):
         "id",
         "user",
         "emergency",
+        "variant",
         "weights_source",
         "index_version",
         "latency_ms",
         "created_at",
     )
-    list_filter = ("emergency", "embedding_backend", "weights_source")
-    search_fields = ("user__email", "request_id", "index_version")
+    list_filter = ("emergency", "embedding_backend", "weights_source", "variant")
+    search_fields = ("user__email", "request_id", "index_version", "variant")
     readonly_fields = (
         "user",
         "query",
@@ -138,6 +139,7 @@ class MatchRunAdmin(admin.ModelAdmin):
         "index_version",
         "faiss_model",
         "weights_source",
+        "variant",
         "filters",
         "voice_intent",
         "request_id",
