@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class SerahLine:
     text: str
-    """stub | gemini | rate_limited — never used for caregiver ranking."""
+    """stub | gemini | local_llm | rate_limited — never used for caregiver ranking."""
     source: str
 
 
@@ -370,6 +370,52 @@ def gemini_chat_reply(
         return None
 
 
+def local_chat_reply(
+    text: str,
+    lang: str,
+    *,
+    situation: str,
+    has_prior_match: bool,
+    match: dict | None = None,
+    history: list | None = None,
+) -> SerahLine | None:
+    """Optional on-prem OpenAI-compatible chat (Step 97). Never ranks caregivers."""
+    from .local_llm import local_llm_configured, post_chat_completion
+
+    if not local_llm_configured():
+        return None
+    if situation == "request":
+        return None
+
+    top_name = ""
+    top_xai = ""
+    if match and match.get("results"):
+        top = match["results"][0]
+        top_name = top.get("display_name") or ""
+        top_xai = localize_explanation(top.get("explanation") or "", lang)
+
+    guidance = (
+        f"Situation={situation}. has_prior_match={has_prior_match}. "
+        f"Top caregiver context (do not invent): {top_name} / {top_xai}. "
+        "Reply in 1–3 short spoken sentences. Never invent caregiver rankings."
+    )
+    system = (
+        "You are Serah, Care Plus voice assistant for Sri Lanka. "
+        "Never pick or re-rank caregivers — VEHMF does that locally. "
+        f"Reply ONLY in {_display_lang(lang)}."
+    )
+    user_content = (
+        f"{guidance}\n"
+        f"{_match_grounding(match, lang) if match else ''}\n"
+        f"Recent conversation:\n{_history_blurb(history) or '(none yet)'}\n"
+        f"Patient just said: {text}"
+    )
+    out = post_chat_completion(system=system, user=user_content)
+    if not out:
+        return None
+    return SerahLine(text=out, source="local_llm")
+
+
 def serah_reply(
     *,
     text: str,
@@ -380,6 +426,23 @@ def serah_reply(
     history: list | None = None,
     user_id: int | None = None,
 ) -> SerahLine:
+    backend = resolve_chat_backend()
+    if backend == "local":
+        local = local_chat_reply(
+            text,
+            lang,
+            situation=situation,
+            has_prior_match=has_prior_match,
+            match=match,
+            history=history,
+        )
+        if local is not None:
+            return local
+        return SerahLine(
+            text=stub_for_situation(situation, lang, text=text, match=match),
+            source="stub",
+        )
+
     cloud = gemini_chat_reply(
         text,
         lang,

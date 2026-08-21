@@ -164,7 +164,7 @@ CELERY_BEAT_SCHEDULE = {
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
 GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
-# stub | gemini | local (local URL empty until you add an on-prem model)
+# stub | gemini | local | auto (local classifier → gemini → stub)
 VOICE_INTENT_BACKEND = env("VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub")
 # auto | client | gemini_audio | faster_whisper — default is local Whisper (own ASR)
 ASR_BACKEND = env("ASR_BACKEND", default="faster_whisper")
@@ -195,8 +195,10 @@ DIALOGUE_CHAT_BACKEND = env("DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_
 # Gemini chat only (MATCH/REFINE always local VEHMF). 0 disables Gemini chat.
 DIALOGUE_GEMINI_RATE_LIMIT = env.int("DIALOGUE_GEMINI_RATE_LIMIT", default=120)
 DIALOGUE_GEMINI_RATE_WINDOW_SEC = env.int("DIALOGUE_GEMINI_RATE_WINDOW_SEC", default=3600)
-# Future local LLM endpoint (leave blank)
+# OpenAI-compatible chat endpoint for DIALOGUE_CHAT_BACKEND=local (never used for match).
 LOCAL_LLM_URL = env("LOCAL_LLM_URL", default="")
+LOCAL_LLM_MODEL = env("LOCAL_LLM_MODEL", default="local")
+LOCAL_LLM_TIMEOUT_SEC = env.float("LOCAL_LLM_TIMEOUT_SEC", default=8)
 
 # ── Matching / embeddings (Step 17) ──────────────────────────────
 # "hash" = deterministic feature hashing (lean/CI). "e5" = multilingual-e5-base.

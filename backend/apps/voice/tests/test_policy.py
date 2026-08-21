@@ -29,7 +29,7 @@ class PolicyResolveTests(SimpleTestCase):
     def test_gemini_without_key_falls_to_stub(self):
         self.assertEqual(resolve_chat_backend(), "stub")
 
-    @override_settings(DIALOGUE_CHAT_BACKEND="", GEMINI_API_KEY="")
+    @override_settings(DIALOGUE_CHAT_BACKEND="", GEMINI_API_KEY="", LOCAL_LLM_URL="")
     def test_empty_backend_no_key_is_stub(self):
         self.assertEqual(resolve_chat_backend(), "stub")
 
