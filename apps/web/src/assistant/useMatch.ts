@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { MatchResponse, VoiceTurnIntent } from '@care-plus/api-client';
 import { AssistantState, type IntentDraft } from '@care-plus/core';
 import { api } from '../auth/api';
-import { getAccessToken } from '../auth/session';
+import { getAccessToken, loadCachedUser } from '../auth/session';
+import { persistLastMatch } from '../lib/query/matchCache';
 import { useAuth } from '../auth/AuthContext';
 import { useAssistant } from './store';
 import { matchVoiceCopy } from './locale';
@@ -14,6 +15,12 @@ import {
   rememberStreamedReply,
   type TurnStage,
 } from './turnStream';
+
+function rememberMatch(match: MatchResponse | null) {
+  const user = loadCachedUser();
+  if (!user?.id) return;
+  void persistLastMatch(user.id, match);
+}
 
 let lastReadyRequestId: number | null = null;
 let findingAnnounced = false;
@@ -151,6 +158,7 @@ function handleTurnMessage(type: string, payload: TurnPayload) {
 
   if (stage === 'match' && payload.match) {
     store.setMatch(payload.match);
+    rememberMatch(payload.match);
     store.setMatching(false);
     if (
       payload.situation === 'emergency_match' ||
@@ -220,6 +228,7 @@ export function useMatchSocket(opts?: {
         if (msg.type === 'match.results' && msg.payload) {
           const store = useAssistant.getState();
           store.setMatch(msg.payload);
+          rememberMatch(msg.payload);
           store.setMatching(false);
           if ((msg.payload as { emergency_context?: unknown }).emergency_context) {
             store.setState(AssistantState.EMERGENCY, { force: true });
@@ -267,6 +276,7 @@ export async function runClientMatch(): Promise<boolean> {
       emergency,
     });
     store.setMatch(result);
+    rememberMatch(result);
     store.setMatching(false);
     store.setState(AssistantState.RESULTS, { force: true });
     announceMatchReady(result.request_id);

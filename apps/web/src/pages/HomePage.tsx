@@ -13,6 +13,7 @@ import { MatchSearchPanel } from '../assistant/MatchSearchPanel';
 import { LanguagePicker } from '../assistant/LanguagePicker';
 import { NeuralOrb } from '../assistant/NeuralOrb';
 import { useSerahEngine } from '../assistant/SerahEngine';
+import { useHydrateLastMatch } from '../assistant/useHydrateLastMatch';
 import { stateCopy } from '../assistant/locale';
 import { Button } from '../components/ui/Button';
 import '../assistant/SerahHud.css';
@@ -55,12 +56,15 @@ export function HomePage() {
     transcript,
     interim,
     match,
+    matchFromCache,
+    matchStale,
     matching,
     asleep,
     chat,
     uiLanguage,
     setUiLanguage,
   } = useAssistant();
+  useHydrateLastMatch();
 
   const progress = Math.round(goalRingProgress(intent) * 100);
   const missingField = nextMissingField(intent);
@@ -207,6 +211,8 @@ export function HomePage() {
               match={match}
               canRequestCare={canRequestCare}
               uiLanguage={uiLanguage}
+              fromCache={matchFromCache}
+              stale={matchStale}
             />
           </div>
         ) : null}

@@ -28,6 +28,9 @@ type AssistantStore = {
   chat: ChatMessage[];
   /** Latest VEHMF match payload (Step 20). */
   match: MatchResponse | null;
+  /** Step 94 — match restored from IndexedDB rather than this session's network. */
+  matchFromCache: boolean;
+  matchStale: boolean;
   matchError: string | null;
   /** Server DialogueSession id (Step 15g). */
   sessionId: number | null;
@@ -47,7 +50,7 @@ type AssistantStore = {
   setTranscript: (text: string) => void;
   appendTranscript: (text: string) => void;
   setInterim: (text: string) => void;
-  setMatch: (match: MatchResponse | null) => void;
+  setMatch: (match: MatchResponse | null, opts?: { fromCache?: boolean; stale?: boolean }) => void;
   setMatchError: (msg: string | null) => void;
   appendChat: (msg: Omit<ChatMessage, 'id'>) => void;
   setSessionId: (id: number | null) => void;
@@ -65,6 +68,8 @@ const initial = {
   interim: '',
   chat: [] as ChatMessage[],
   match: null as MatchResponse | null,
+  matchFromCache: false,
+  matchStale: false,
   matchError: null as string | null,
   sessionId: null as number | null,
   uiLanguage: loadUiVoiceLanguage(),
@@ -95,7 +100,13 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
     set((s) => ({ transcript: (s.transcript + ' ' + text).trim(), interim: '' })),
   setInterim: (text) => set({ interim: text }),
 
-  setMatch: (match) => set({ match, matchError: null }),
+  setMatch: (match, opts) =>
+    set({
+      match,
+      matchError: null,
+      matchFromCache: Boolean(opts?.fromCache),
+      matchStale: Boolean(opts?.stale),
+    }),
   setMatchError: (msg) => set({ matchError: msg }),
   appendChat: (msg) =>
     set((s) => ({

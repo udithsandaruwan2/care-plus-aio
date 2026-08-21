@@ -1,40 +1,44 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import type { CaregiverMeProfile } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
+import { queryKeys, STALE_MS } from '../lib/query/keys';
+import { useCachedQuery } from '../lib/query/useCachedQuery';
 
 export function useCaregiverProfile() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<CaregiverMeProfile | null>(null);
-  const [loading, setLoading] = useState(user?.role === 'caregiver');
+  const enabled = user?.role === 'caregiver' && Boolean(user?.id);
+  const key = enabled ? queryKeys.caregiverMe(user!.id) : null;
 
-  const refresh = useCallback(async () => {
-    if (user?.role !== 'caregiver') {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      setProfile(await api.myCaregiverProfile());
-    } catch {
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.role, user?.id]);
+  const { data, loading, refresh, setData, fromCache, stale } = useCachedQuery<CaregiverMeProfile>({
+    key,
+    staleTimeMs: STALE_MS.profile,
+    enabled,
+    fetcher: () => api.myCaregiverProfile(),
+  });
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const setProfile = useCallback(
+    (
+      value:
+        | CaregiverMeProfile
+        | null
+        | ((prev: CaregiverMeProfile | null) => CaregiverMeProfile | null),
+    ) => {
+      const next = typeof value === 'function' ? value(data) : value;
+      void setData(next);
+    },
+    [data, setData],
+  );
 
   return {
-    profile,
+    profile: data,
     setProfile,
     loading,
-    refresh,
-    isMatchEligible: user?.role !== 'caregiver' || profile?.is_match_eligible === true,
-    onboardingComplete: profile?.onboarding_complete === true,
-    completionPercent: profile?.completion_percent ?? 0,
+    refresh: () => refresh({ force: true }),
+    fromCache,
+    stale,
+    isMatchEligible: user?.role !== 'caregiver' || data?.is_match_eligible === true,
+    onboardingComplete: data?.onboarding_complete === true,
+    completionPercent: data?.completion_percent ?? 0,
   };
 }

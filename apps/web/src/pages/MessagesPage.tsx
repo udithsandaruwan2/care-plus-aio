@@ -6,6 +6,10 @@ import { useMessageSocket } from '../messaging/useMessageSocket';
 import { Link, Navigate } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
+import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
+import { queryKeys, STALE_MS } from '../lib/query/keys';
+import { readQuery, writeQuery } from '../lib/query/queryClient';
+import { useCachedQuery } from '../lib/query/useCachedQuery';
 
 const POLL_MS = 4000;
 
@@ -16,57 +20,64 @@ function formatTime(value: string): string {
 
 export function MessagesPage() {
   const { user } = useAuth();
-  const [thread, setThread] = useState<MessageThread | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const lastIdRef = useRef(0);
 
   const isPatient = user?.role === 'patient';
   const isCaregiver = user?.role === 'caregiver';
+  const enabled = Boolean(user?.id && (isPatient || isCaregiver));
 
-  const mergeMessages = useCallback((incoming: Message[]) => {
-    if (!incoming.length) return;
-    setMessages((prev) => {
-      const map = new Map(prev.map((m) => [m.id, m]));
+  const threadQuery = useCachedQuery<MessageThread | null>({
+    key: enabled ? queryKeys.messageThread(user!.id) : null,
+    staleTimeMs: STALE_MS.messageThread,
+    enabled,
+    fetcher: async () => {
+      try {
+        return await api.currentMessageThread();
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  const thread = threadQuery.data;
+  const messagesKey = thread ? queryKeys.messages(thread.id) : null;
+
+  const messagesQuery = useCachedQuery<Message[]>({
+    key: messagesKey,
+    staleTimeMs: STALE_MS.messages,
+    enabled: Boolean(thread),
+    fetcher: async () => {
+      if (!thread) return [];
+      return api.listMessages(thread.id, { limit: 100 });
+    },
+  });
+
+  const messages = messagesQuery.data ?? [];
+  const loading =
+    (threadQuery.loading && !threadQuery.data) ||
+    (Boolean(thread) && messagesQuery.loading && !messagesQuery.data);
+  const error = sendError || threadQuery.error || messagesQuery.error;
+
+  useEffect(() => {
+    lastIdRef.current = messages[messages.length - 1]?.id ?? 0;
+  }, [messages]);
+
+  const mergeMessages = useCallback(
+    async (incoming: Message[]) => {
+      if (!incoming.length || !messagesKey) return;
+      const existing = (await readQuery<Message[]>(messagesKey))?.data ?? [];
+      const map = new Map(existing.map((m) => [m.id, m]));
       for (const m of incoming) map.set(m.id, m);
       const merged = [...map.values()].sort((a, b) => a.id - b.id);
       lastIdRef.current = merged[merged.length - 1]?.id ?? lastIdRef.current;
-      return merged;
-    });
-  }, []);
-
-  const loadThread = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    return api
-      .currentMessageThread()
-      .then((t) => {
-        setThread(t);
-        return t;
-      })
-      .catch((err) => {
-        setThread(null);
-        setError(err instanceof Error ? err.message : 'Could not load conversation.');
-        return null;
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const loadMessages = useCallback(
-    (threadId: number, afterId = 0) => {
-      return api
-        .listMessages(threadId, { after_id: afterId || undefined, limit: 100 })
-        .then((rows) => mergeMessages(rows))
-        .catch((err) => {
-          setError(err instanceof Error ? err.message : 'Could not load messages.');
-        });
+      await writeQuery(messagesKey, merged);
     },
-    [mergeMessages],
+    [messagesKey],
   );
 
   const markRead = useCallback((threadId: number, lastId: number) => {
@@ -74,41 +85,37 @@ export function MessagesPage() {
     void api.markMessagesRead(threadId, lastId).catch(() => undefined);
   }, []);
 
-  useEffect(() => {
-    if (!isPatient && !isCaregiver) {
-      setLoading(false);
-      return;
-    }
-    void loadThread().then((t) => {
-      if (t) void loadMessages(t.id);
-    });
-  }, [isPatient, isCaregiver, loadThread, loadMessages]);
-
   useMessageSocket(thread?.id ?? null, {
     onConnected: () => setWsConnected(true),
     onDisconnected: () => setWsConnected(false),
     onMessage: (msg) => {
-      mergeMessages([msg]);
+      void mergeMessages([msg]);
       if (!msg.is_mine && thread) markRead(thread.id, msg.id);
     },
     onRead: (payload) => {
-      setMessages((prev) =>
-        prev.map((m) =>
+      void (async () => {
+        if (!messagesKey) return;
+        const existing = (await readQuery<Message[]>(messagesKey))?.data ?? [];
+        const next = existing.map((m) =>
           m.is_mine && m.id <= payload.last_read_message_id && m.read_at == null
             ? { ...m, read_at: new Date().toISOString() }
             : m,
-        ),
-      );
+        );
+        await writeQuery(messagesKey, next);
+      })();
     },
   });
 
   useEffect(() => {
     if (!thread || wsConnected) return;
     const id = window.setInterval(() => {
-      void loadMessages(thread.id, lastIdRef.current);
+      void api
+        .listMessages(thread.id, { after_id: lastIdRef.current || undefined, limit: 100 })
+        .then((rows) => mergeMessages(rows))
+        .catch(() => undefined);
     }, POLL_MS);
     return () => window.clearInterval(id);
-  }, [thread, wsConnected, loadMessages]);
+  }, [thread, wsConnected, mergeMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -126,13 +133,13 @@ export function MessagesPage() {
     e.preventDefault();
     if (!thread || !body.trim()) return;
     setSending(true);
-    setError(null);
+    setSendError(null);
     try {
       const sent = await api.sendMessage(thread.id, body.trim());
-      mergeMessages([sent]);
+      await mergeMessages([sent]);
       setBody('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send message.');
+      setSendError(err instanceof Error ? err.message : 'Could not send message.');
     } finally {
       setSending(false);
     }
@@ -144,17 +151,23 @@ export function MessagesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col">
-      <PageHeader
-        eyebrow="Messaging"
-        title={thread?.partner_label ?? 'Care chat'}
-        subtitle={
-          thread
-            ? wsConnected
-              ? 'Connected: messages arrive in realtime.'
-              : 'Realtime unavailable: polling for new messages.'
-            : 'Start care with a linked partner to unlock messaging.'
-        }
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          eyebrow="Messaging"
+          title={thread?.partner_label ?? 'Care chat'}
+          subtitle={
+            thread
+              ? wsConnected
+                ? 'Connected: messages arrive in realtime.'
+                : 'Realtime unavailable: polling for new messages.'
+              : 'Start care with a linked partner to unlock messaging.'
+          }
+        />
+        <CacheSourceBadge
+          fromCache={threadQuery.fromCache || messagesQuery.fromCache}
+          stale={threadQuery.stale || messagesQuery.stale}
+        />
+      </div>
 
       {error && (
         <p className="mt-6 rounded-xl border border-rose/40 bg-rose/5 px-4 py-3 text-sm text-rose">
