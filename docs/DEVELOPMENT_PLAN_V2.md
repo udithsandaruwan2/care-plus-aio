@@ -385,7 +385,7 @@ Everything below follows from those four. Ordering matters: **M18 must land firs
 
 ---
 
-### Step 96 — Local slot classifier
+### Step 96 — Local slot classifier ✅ **DONE**
 
 **Branch:** `feat/step96-slot-classifier`
 **Goal:** offline intent understanding that improves with use — the bridge between offline support and self-improvement.

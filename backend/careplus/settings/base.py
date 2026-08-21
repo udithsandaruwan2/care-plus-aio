@@ -214,6 +214,13 @@ CF_PROMOTE_METRIC = env("CF_PROMOTE_METRIC", default="ndcg_at_5")
 CF_EVAL_HOLDOUT_DAYS = env.int("CF_EVAL_HOLDOUT_DAYS", default=14)
 # When false, train_cf_als promotes unconditionally (legacy / emergency).
 CF_GATED_PROMOTION = env.bool("CF_GATED_PROMOTION", default=True)
+# Step 96 — offline slot classifier artifacts + gated promotion on hand holdout.
+SLOT_ARTIFACT_DIR = env("SLOT_ARTIFACT_DIR", default="")
+SLOT_GATED_PROMOTION = env.bool("SLOT_GATED_PROMOTION", default=True)
+SLOT_PROMOTE_MARGIN = env.float("SLOT_PROMOTE_MARGIN", default=0.02)
+SLOT_PROMOTE_METRIC = env("SLOT_PROMOTE_METRIC", default="condition")
+SLOT_HOLDOUT_PATH = env("SLOT_HOLDOUT_PATH", default="")
+SLOT_TRAIN_SEED_PATH = env("SLOT_TRAIN_SEED_PATH", default="")
 # Step 92 — confidence-weighted ALS with REJECT (hard) and VIEW-only (weak) negatives.
 CF_USE_NEGATIVES = env.bool("CF_USE_NEGATIVES", default=True)
 CF_POSITIVE_ALPHA = env.float("CF_POSITIVE_ALPHA", default=40.0)
