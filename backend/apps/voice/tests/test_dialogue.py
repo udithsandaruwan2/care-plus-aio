@@ -465,7 +465,24 @@ class ProcessTurnLanguageMergeTests(TestCase):
         syn.assert_not_called()
         self.assertEqual(out["tts_source"], "browser")
 
-    @override_settings(TTS_BACKEND="auto")
+    @override_settings(TTS_BACKEND="auto", TTS_DEFER_UNCACHED=False, TTS_PHRASE_CACHE=False)
+    def test_english_chat_uses_neural_tts(self):
+        from apps.voice.tts import TtsResult
+
+        with patch(
+            "apps.voice.tts.synthesize",
+            return_value=TtsResult(audio=b"abcd", mime="audio/mpeg", source="edge"),
+        ) as syn:
+            out = process_turn(
+                user=self.user,
+                client_text="hello",
+                ui_language="English",
+            )
+        syn.assert_called()
+        self.assertEqual(out["tts_source"], "edge")
+        self.assertTrue(out["reply_audio_base64"])
+
+    @override_settings(TTS_BACKEND="auto", TTS_DEFER_UNCACHED=False, TTS_PHRASE_CACHE=False)
     def test_sinhala_chat_attaches_server_audio(self):
         from apps.voice.tts import TtsResult
 

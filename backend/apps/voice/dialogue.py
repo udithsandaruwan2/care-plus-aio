@@ -78,11 +78,17 @@ def _tts_lang(primary: str | None, languages: list[str] | None) -> str:
 
 
 def _use_server_voice(reply_lang: str, *, has_match: bool = False) -> bool:
-    """Browsers almost never ship Sinhala/Tamil voices — those must be server audio."""
-    if has_match:
-        return True
-    lang = (reply_lang or "").lower()
-    return lang.startswith("si") or lang.startswith("ta")
+    """Serah always speaks in a neural voice.
+
+    English used to fall through to ``speechSynthesis`` for speed, which meant
+    most patients heard the robotic default browser voice. Deferred synthesis
+    plus the phrase cache cover the latency, so every line is server audio now;
+    ``TTS_BACKEND=browser`` remains the opt-out.
+    """
+    from django.conf import settings
+
+    backend = (getattr(settings, "TTS_BACKEND", "auto") or "auto").strip().lower()
+    return backend not in ("browser", "none", "")
 
 
 def _route(text: str, intent: dict, has_prior_match: bool) -> str:
@@ -168,7 +174,14 @@ def _clarify_reply(intent: dict, lang: str) -> str:
     return "Tell me a bit more so I can find the right caregiver."
 
 
-def _attach_tts(payload: dict, reply: str, reply_lang: str, *, server_voice: bool = True) -> dict:
+def _attach_tts(
+    payload: dict,
+    reply: str,
+    reply_lang: str,
+    *,
+    server_voice: bool = True,
+    persona: str | None = None,
+) -> dict:
     from django.conf import settings
 
     from .tts import lookup_phrase_cache, pack_for_api, synthesize
@@ -185,7 +198,7 @@ def _attach_tts(payload: dict, reply: str, reply_lang: str, *, server_voice: boo
         )
         return payload
 
-    cached = lookup_phrase_cache(reply, reply_lang)
+    cached = lookup_phrase_cache(reply, reply_lang, persona)
     if cached is not None:
         payload.update(pack_for_api(cached))
         payload["audio_pending"] = False
@@ -205,7 +218,7 @@ def _attach_tts(payload: dict, reply: str, reply_lang: str, *, server_voice: boo
         )
         return payload
 
-    tts = synthesize(reply, reply_lang)
+    tts = synthesize(reply, reply_lang, persona)
     payload.update(pack_for_api(tts))
     payload["audio_pending"] = False
     payload["tts_cache_hit"] = False
@@ -414,6 +427,7 @@ def process_turn(
     prior_intent: dict | None = None,
     prior_match: dict | None = None,
     ui_language: str | None = None,
+    voice_persona: str | None = None,
 ) -> dict:
     """Full conversational turn used by ``POST /voice/turn/``."""
     clock = StageClock()
@@ -843,6 +857,7 @@ def process_turn(
             reply,
             reply_lang,
             server_voice=_use_server_voice(reply_lang, has_match=bool(match_payload)),
+            persona=voice_persona,
         )
     if not out.get("audio_pending"):
         _emit_turn(

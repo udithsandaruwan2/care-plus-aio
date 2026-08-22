@@ -187,6 +187,8 @@ WHISPER_PRELOAD = env.bool("WHISPER_PRELOAD", default=False)
 TTS_BACKEND = env("TTS_BACKEND", default="auto")
 TTS_GEMINI_MODEL = env("TTS_GEMINI_MODEL", default="gemini-2.5-flash-preview-tts")
 TTS_GEMINI_VOICE = env("TTS_GEMINI_VOICE", default="Kore")
+# female | male — default persona when the client sends no voice preference.
+TTS_VOICE_PERSONA = env("TTS_VOICE_PERSONA", default="female")
 # Step 84 — Redis phrase cache + defer uncached synthesis off the turn response.
 TTS_PHRASE_CACHE = env.bool("TTS_PHRASE_CACHE", default=True)
 TTS_DEFER_UNCACHED = env.bool("TTS_DEFER_UNCACHED", default=True)

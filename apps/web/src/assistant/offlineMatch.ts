@@ -96,6 +96,7 @@ export function rankFromEdgeCache(
 
   const scored = caregivers
     .filter((c) => c.is_available !== false)
+    .filter((c) => (c.display_name.match(/\p{L}/gu) || []).length >= 3 && c.specialties.length > 0)
     .map((c) => {
       const score = Math.max(0, dot(qVec, c.vector));
       return { c, score };
@@ -146,8 +147,11 @@ export async function runOfflineMatch(
 export async function warmEdgeCacheFromProfiles(
   profiles: Parameters<typeof rememberEdgeCaregivers>[0],
 ): Promise<void> {
-  if (!profiles.length) return;
-  await rememberEdgeCaregivers(profiles);
+  const usable = profiles.filter(
+    (p) => (p.display_name.match(/\p{L}/gu) || []).length >= 3 && p.specialties.length > 0,
+  );
+  if (!usable.length) return;
+  await rememberEdgeCaregivers(usable);
 }
 
 export function hitsToEdgeProfiles(

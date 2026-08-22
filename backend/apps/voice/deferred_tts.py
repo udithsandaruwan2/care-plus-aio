@@ -20,13 +20,14 @@ def schedule_deferred_reply_audio(
     reply_lang: str,
     request_id: str = "",
     session_id: int | None = None,
+    persona: str | None = None,
 ) -> None:
     """Synthesize off the request thread and push ``turn.reply_audio``."""
 
     def _work() -> None:
         token = request_id_var.set(request_id or "")
         try:
-            tts = synthesize(reply, reply_lang)
+            tts = synthesize(reply, reply_lang, persona)
             packed = pack_for_api(tts)
             push_turn_stage(
                 int(user_id),

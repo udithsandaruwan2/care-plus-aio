@@ -7,8 +7,12 @@ from django.test import SimpleTestCase, override_settings
 
 from apps.voice.tts import (
     TtsResult,
+    _edge_voice,
+    _gemini_voice,
     _run_coroutine,
     pack_for_api,
+    phrase_cache_key,
+    resolve_persona,
     synthesize,
     synthesize_espeak,
     synthesize_piper,
@@ -84,3 +88,19 @@ class TtsRouterTests(SimpleTestCase):
             return _run_coroutine(_ping)
 
         self.assertEqual(asyncio.run(_outer()), b"ok")
+
+    def test_resolve_persona_defaults_to_female(self):
+        self.assertEqual(resolve_persona(None), "female")
+        self.assertEqual(resolve_persona("MALE"), "male")
+        self.assertEqual(resolve_persona("robot"), "female")
+
+    def test_edge_and_gemini_voices_follow_persona(self):
+        self.assertEqual(_edge_voice("si-LK", "female"), "si-LK-ThiliniNeural")
+        self.assertEqual(_edge_voice("si-LK", "male"), "si-LK-SameeraNeural")
+        self.assertEqual(_gemini_voice("female"), "Kore")
+        self.assertEqual(_gemini_voice("male"), "Puck")
+
+    def test_phrase_cache_key_separates_personas(self):
+        female = phrase_cache_key("Hello", "en-US", voice="female")
+        male = phrase_cache_key("Hello", "en-US", voice="male")
+        self.assertNotEqual(female, male)

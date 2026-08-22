@@ -41,7 +41,7 @@ from apps.common.idempotency import (
 )
 
 from .care_requests import accept_care_request, cancel_care_request, create_care_request, reject_care_request
-from .caregiver_profile import activate_caregiver_if_ready
+from .caregiver_profile import activate_caregiver_if_ready, listable_caregivers
 from .models import (
     CaregiverAvailabilitySlot,
     CareRequest,
@@ -102,7 +102,7 @@ class CaregiverListView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = (
-            CaregiverProfile.objects.filter(is_active=True)
+            listable_caregivers(CaregiverProfile.objects.filter(is_active=True))
             .select_related("user")
             .annotate(
                 approved_review_count=Count(
@@ -180,7 +180,9 @@ class CaregiverDetailView(generics.RetrieveAPIView):
     lookup_field = "pk"
 
     def get_queryset(self):
-        return CaregiverProfile.objects.filter(is_active=True).select_related("user")
+        return listable_caregivers(
+            CaregiverProfile.objects.filter(is_active=True)
+        ).select_related("user")
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

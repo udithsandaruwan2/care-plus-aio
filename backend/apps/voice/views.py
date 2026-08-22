@@ -16,7 +16,7 @@ from .models import DialogueSession, VoiceIntent, create_voice_intent
 from .policy import policy_snapshot
 from .serializers import VoiceIntentInputSerializer, VoiceIntentSerializer
 from .session import clear_active_sessions
-from .tts import pack_for_api, synthesize
+from .tts import pack_for_api, resolve_persona, synthesize
 
 
 class VoiceIntentView(APIView):
@@ -126,6 +126,8 @@ class VoiceTurnView(APIView):
         if ui_language not in ("Sinhala", "Tamil", "English"):
             ui_language = None
 
+        voice_persona = resolve_persona(request.data.get("voice"))
+
         prior_match = None
         raw_match = request.data.get("prior_match")
         if raw_match:
@@ -145,6 +147,7 @@ class VoiceTurnView(APIView):
             prior_intent=prior_intent,
             prior_match=prior_match if isinstance(prior_match, dict) else None,
             ui_language=ui_language,
+            voice_persona=voice_persona,
         )
 
         record_audit(
@@ -181,6 +184,7 @@ class VoiceTurnView(APIView):
                 reply_lang=result.get("reply_lang") or "en-US",
                 request_id=str(timings.get("request_id") or getattr(request, "request_id", "") or ""),
                 session_id=result.get("session_id"),
+                persona=voice_persona,
             )
         return Response(result, status=status.HTTP_200_OK)
 
@@ -201,7 +205,8 @@ class VoiceTtsView(APIView):
                 {"reply_audio_base64": "", "reply_audio_mime": "", "tts_source": "none"},
                 status=status.HTTP_200_OK,
             )
-        packed = pack_for_api(synthesize(text, reply_lang))
+        persona = resolve_persona(request.data.get("voice"))
+        packed = pack_for_api(synthesize(text, reply_lang, persona))
         return Response(packed, status=status.HTTP_200_OK)
 
 

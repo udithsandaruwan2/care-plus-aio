@@ -1,7 +1,7 @@
 """Text-to-speech backends — Care Plus pluggable TTS.
 
 ``TTS_BACKEND``:
-  - ``auto`` (default): Piper (English) → Gemini TTS → Edge neural → espeak → none
+  - ``auto`` (default): Edge neural → Gemini TTS → Piper (English) → espeak → none
   - ``piper``: local Piper only
   - ``gemini_tts``: Gemini speech models only
   - ``edge``: Microsoft Edge neural voices (Sinhala/Tamil/English, no API key)
@@ -43,18 +43,29 @@ _BCP47 = {
     "en-US": "en-US",
 }
 
+#: Voice personas a patient can choose between. Serah defaults to the warm
+#: female voice; the male alternative exists for households that prefer it.
+VOICE_PERSONAS = ("female", "male")
+DEFAULT_PERSONA = "female"
+
 # Microsoft Edge neural voices (edge-tts) — strong Sinhala/Tamil without Gemini quota.
 _EDGE_VOICES = {
-    "si-LK": "si-LK-SameeraNeural",
-    "si": "si-LK-SameeraNeural",
-    "Sinhala": "si-LK-SameeraNeural",
-    "ta-LK": "ta-LK-SaranyaNeural",
-    "ta": "ta-LK-SaranyaNeural",
-    "Tamil": "ta-LK-SaranyaNeural",
-    "en-US": "en-US-JennyNeural",
-    "en": "en-US-JennyNeural",
-    "English": "en-US-JennyNeural",
+    "si-LK": {"female": "si-LK-ThiliniNeural", "male": "si-LK-SameeraNeural"},
+    "ta-LK": {"female": "ta-LK-SaranyaNeural", "male": "ta-LK-KumarNeural"},
+    "en-US": {"female": "en-US-AriaNeural", "male": "en-US-GuyNeural"},
 }
+
+# Gemini prebuilt voices, matched to the same two personas.
+_GEMINI_VOICES = {"female": "Kore", "male": "Puck"}
+
+
+def resolve_persona(persona: str | None) -> str:
+    """Coerce a client-supplied persona to one we have voices for."""
+    name = (persona or "").strip().lower()
+    if name in VOICE_PERSONAS:
+        return name
+    configured = (getattr(settings, "TTS_VOICE_PERSONA", "") or "").strip().lower()
+    return configured if configured in VOICE_PERSONAS else DEFAULT_PERSONA
 
 _ESPEAK_LANG = {
     "si-LK": "si",
@@ -139,7 +150,7 @@ def synthesize_piper(text: str, lang: str) -> TtsResult:
         out_wav.unlink(missing_ok=True)
 
 
-def synthesize_gemini_tts(text: str, lang: str) -> TtsResult:
+def synthesize_gemini_tts(text: str, lang: str, persona: str | None = None) -> TtsResult:
     """Gemini TTS (supports Sinhala, Tamil, English)."""
     from apps.common.envutil import refresh_env
 
@@ -150,7 +161,7 @@ def synthesize_gemini_tts(text: str, lang: str) -> TtsResult:
     model_name = (
         getattr(settings, "TTS_GEMINI_MODEL", "") or "gemini-2.5-flash-preview-tts"
     ).strip()
-    voice = (getattr(settings, "TTS_GEMINI_VOICE", "") or "Kore").strip() or "Kore"
+    voice = _gemini_voice(persona)
 
     # Prefer new google-genai SDK; fall back to REST.
     try:
@@ -254,9 +265,20 @@ def _gemini_tts_rest(text: str, lang: str, model_name: str, voice: str) -> TtsRe
     return TtsResult(audio=_pcm16_to_wav(data), mime="audio/wav", source="gemini_tts")
 
 
-def _edge_voice(lang: str) -> str:
+def _gemini_voice(persona: str | None = None) -> str:
+    name = resolve_persona(persona)
+    if name == DEFAULT_PERSONA:
+        # TTS_GEMINI_VOICE stays authoritative for deployments that pinned one.
+        configured = (getattr(settings, "TTS_GEMINI_VOICE", "") or "").strip()
+        if configured:
+            return configured
+    return _GEMINI_VOICES[name]
+
+
+def _edge_voice(lang: str, persona: str | None = None) -> str:
     bcp = _BCP47.get(lang, lang) or "en-US"
-    return _EDGE_VOICES.get(lang) or _EDGE_VOICES.get(bcp) or _EDGE_VOICES["en-US"]
+    voices = _EDGE_VOICES.get(bcp) or _EDGE_VOICES["en-US"]
+    return voices[resolve_persona(persona)]
 
 
 def _run_coroutine(factory, timeout: float = 60):
@@ -269,7 +291,7 @@ def _run_coroutine(factory, timeout: float = 60):
         return pool.submit(lambda: asyncio.run(factory())).result(timeout=timeout)
 
 
-def synthesize_edge_tts(text: str, lang: str) -> TtsResult:
+def synthesize_edge_tts(text: str, lang: str, persona: str | None = None) -> TtsResult:
     """Microsoft Edge neural TTS — Sinhala/Tamil/English without Gemini quota."""
     if not text.strip():
         return _empty("edge")
@@ -281,7 +303,7 @@ def synthesize_edge_tts(text: str, lang: str) -> TtsResult:
         logger.warning("edge-tts not installed")
         return _empty("edge")
 
-    voice = _edge_voice(lang)
+    voice = _edge_voice(lang, persona)
 
     async def _stream() -> bytes:
         communicate = edge_tts.Communicate(text, voice)
@@ -332,8 +354,9 @@ def synthesize_espeak(text: str, lang: str) -> TtsResult:
         out_wav.unlink(missing_ok=True)
 
 
-def _cache_voice() -> str:
-    return (getattr(settings, "TTS_GEMINI_VOICE", "") or "Kore").strip() or "Kore"
+def _cache_voice(persona: str | None = None) -> str:
+    """Cache identity for a phrase — personas must not share cached audio."""
+    return resolve_persona(persona)
 
 
 def phrase_cache_key(text: str, lang: str, *, voice: str | None = None) -> str:
@@ -383,13 +406,15 @@ def _log_cache_event(*, hit: bool) -> None:
     )
 
 
-def lookup_phrase_cache(text: str, reply_lang: str) -> TtsResult | None:
+def lookup_phrase_cache(
+    text: str, reply_lang: str, persona: str | None = None
+) -> TtsResult | None:
     if not text.strip():
         return None
     if not getattr(settings, "TTS_PHRASE_CACHE", True):
         return None
     lang = _BCP47.get(reply_lang, reply_lang) or "en-US"
-    key = phrase_cache_key(text, lang)
+    key = phrase_cache_key(text, lang, voice=_cache_voice(persona))
     try:
         raw = cache.get(key)
     except Exception:
@@ -416,13 +441,15 @@ def lookup_phrase_cache(text: str, reply_lang: str) -> TtsResult | None:
         return None
 
 
-def store_phrase_cache(text: str, reply_lang: str, result: TtsResult) -> None:
+def store_phrase_cache(
+    text: str, reply_lang: str, result: TtsResult, persona: str | None = None
+) -> None:
     if not result.audio or not text.strip():
         return
     if not getattr(settings, "TTS_PHRASE_CACHE", True):
         return
     lang = _BCP47.get(reply_lang, reply_lang) or "en-US"
-    key = phrase_cache_key(text, lang)
+    key = phrase_cache_key(text, lang, voice=_cache_voice(persona))
     body = {
         "audio_b64": result.audio_base64,
         "mime": result.mime,
@@ -434,25 +461,25 @@ def store_phrase_cache(text: str, reply_lang: str, result: TtsResult) -> None:
         logger.debug("tts phrase cache set failed", exc_info=True)
 
 
-def synthesize(text: str, reply_lang: str) -> TtsResult:
+def synthesize(text: str, reply_lang: str, persona: str | None = None) -> TtsResult:
     """Route TTS per ``TTS_BACKEND``, with Redis phrase cache (Step 84)."""
     backend = (getattr(settings, "TTS_BACKEND", "auto") or "auto").strip().lower()
     if backend in ("browser", "none", ""):
         return _empty("none")
 
-    cached = lookup_phrase_cache(text, reply_lang)
+    cached = lookup_phrase_cache(text, reply_lang, persona)
     if cached is not None:
         return cached
 
     _bump_cache_counter(_CACHE_MISSES_KEY)
     _log_cache_event(hit=False)
-    result = _synthesize_uncached(text, reply_lang)
+    result = _synthesize_uncached(text, reply_lang, persona)
     if result.audio:
-        store_phrase_cache(text, reply_lang, result)
+        store_phrase_cache(text, reply_lang, result, persona)
     return result
 
 
-def _synthesize_uncached(text: str, reply_lang: str) -> TtsResult:
+def _synthesize_uncached(text: str, reply_lang: str, persona: str | None = None) -> TtsResult:
     """Route TTS per ``TTS_BACKEND`` (no cache)."""
     backend = (getattr(settings, "TTS_BACKEND", "auto") or "auto").strip().lower()
     lang = _BCP47.get(reply_lang, reply_lang) or "en-US"
@@ -464,36 +491,26 @@ def _synthesize_uncached(text: str, reply_lang: str) -> TtsResult:
         return synthesize_piper(text, lang)
 
     if backend == "gemini_tts":
-        return synthesize_gemini_tts(text, lang)
+        return synthesize_gemini_tts(text, lang, persona)
 
     if backend == "edge":
-        return synthesize_edge_tts(text, lang)
+        return synthesize_edge_tts(text, lang, persona)
 
     if backend == "espeak":
         return synthesize_espeak(text, lang)
 
-    # auto: language-aware chain — Edge neural for si/ta (no Gemini quota burn)
-    if lang.startswith("si") or lang.startswith("ta"):
-        neural = synthesize_edge_tts(text, lang)
-        if neural.audio:
-            return neural
-        cloud = synthesize_gemini_tts(text, lang)
-        if cloud.audio:
-            return cloud
-        offline = synthesize_espeak(text, lang)
-        if offline.audio:
-            return offline
-        return _empty("none")
-
-    local = synthesize_piper(text, lang)
-    if local.audio:
-        return local
-    neural = synthesize_edge_tts(text, lang)
+    # auto: Edge neural first everywhere. Piper only has one English voice, so it
+    # cannot honour a persona choice and now sits behind Edge rather than ahead.
+    neural = synthesize_edge_tts(text, lang, persona)
     if neural.audio:
         return neural
-    cloud = synthesize_gemini_tts(text, lang)
+    cloud = synthesize_gemini_tts(text, lang, persona)
     if cloud.audio:
         return cloud
+    if lang.startswith("en"):
+        local = synthesize_piper(text, lang)
+        if local.audio:
+            return local
     offline = synthesize_espeak(text, lang)
     if offline.audio:
         return offline
