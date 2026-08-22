@@ -5,6 +5,7 @@ import { RequireAuth } from './auth/RequireAuth';
 import { RequireOtp } from './auth/RequireOtp';
 import { AppShell } from './components/layout/AppShell';
 import { PublicSiteLayout } from './components/layout/PublicSiteLayout';
+import { SessionAwareLayout } from './components/layout/SessionAwareLayout';
 
 function lazyNamed<T extends Record<string, ComponentType>>(
   loader: () => Promise<T>,
@@ -92,10 +93,14 @@ export function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyNoticePage />} />
+            <Route path="/offline" element={<OfflinePage />} />
+          </Route>
+
+          {/* Public browsing that keeps the hub sidebar once signed in. */}
+          <Route element={<SessionAwareLayout />}>
             <Route path="/catalog" element={<CatalogPage />} />
             <Route path="/caregivers" element={<BrowseCaregiversPage />} />
             <Route path="/caregivers/:id" element={<CaregiverDetailPage />} />
-            <Route path="/offline" element={<OfflinePage />} />
           </Route>
 
           <Route element={<RequireAuth />}>

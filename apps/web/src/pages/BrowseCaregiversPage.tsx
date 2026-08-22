@@ -3,6 +3,7 @@ import type { CaregiverProfile } from '@care-plus/api-client';
 import { CaregiverCard } from '../components/caregivers/CaregiverCard';
 import { CaregiverMap } from '../components/CaregiverMap';
 import { api } from '../auth/api';
+import { useAuth } from '../auth/AuthContext';
 import { PublicPage } from '../components/layout/PublicPage';
 import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
@@ -33,6 +34,7 @@ const emptyFilters: Filters = {
 };
 
 export function BrowseCaregiversPage() {
+  const { user } = useAuth();
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draftQ, setDraftQ] = useState('');
   const [view, setView] = useState<'cards' | 'map'>('cards');
@@ -75,7 +77,7 @@ export function BrowseCaregiversPage() {
 
   return (
     <PublicPage>
-      <BackLink to="/">Home</BackLink>
+      <BackLink to={user ? '/hub' : '/'}>{user ? 'Dashboard' : 'Home'}</BackLink>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           eyebrow="Caregiver directory"
