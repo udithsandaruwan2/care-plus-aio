@@ -202,6 +202,7 @@ export function useVoiceTurn() {
             ? (store.match as unknown as Record<string, unknown>)
             : undefined,
           uiLanguage: store.uiLanguage,
+          voice: 'female',
         });
         const rid = result.timings?.request_id || '';
         setConsentNeeded(false);
@@ -295,6 +296,7 @@ export function useVoiceTurn() {
               const tts = await api.voiceTts({
                 text: result.reply,
                 replyLang: result.reply_lang,
+                voice: 'female',
               });
               audioBase64 = tts.reply_audio_base64;
               audioMime = tts.reply_audio_mime;

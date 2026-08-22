@@ -145,11 +145,26 @@ function pickVoice(
   target: string,
 ): SpeechSynthesisVoice | undefined {
   const prefix = target.slice(0, 2).toLowerCase();
-  return (
-    voices.find((v) => v.lang.toLowerCase() === target.toLowerCase()) ||
-    voices.find((v) => v.lang.toLowerCase().startsWith(prefix)) ||
-    voices.find((v) => v.lang.toLowerCase().includes(prefix))
+  const sameLang = voices.filter(
+    (v) =>
+      v.lang.toLowerCase() === target.toLowerCase() ||
+      v.lang.toLowerCase().startsWith(prefix),
   );
+  const pool = sameLang.length ? sameLang : voices;
+  const scored = [...pool].sort((a, b) => voiceQuality(b, prefix) - voiceQuality(a, prefix));
+  return scored[0];
+}
+
+function voiceQuality(voice: SpeechSynthesisVoice, prefix: string): number {
+  const name = `${voice.name} ${voice.lang}`.toLowerCase();
+  let score = 0;
+  if (voice.lang.toLowerCase().startsWith(prefix)) score += 20;
+  if (voice.localService) score += 4;
+  if (voice.default) score += 2;
+  if (/neural|natural|premium|enhanced|online \(natural\)/.test(name)) score += 12;
+  if (/google|microsoft|samantha|siri|aria|jenny|guy/.test(name)) score += 8;
+  if (/compact|eloquence/.test(name)) score -= 6;
+  return score;
 }
 
 async function speakBrowser(text: string, lang: string): Promise<void> {
@@ -170,7 +185,8 @@ async function speakBrowser(text: string, lang: string): Promise<void> {
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = target;
-  utter.rate = 0.98;
+  utter.rate = 0.92;
+  utter.pitch = 1.02;
   if (match) utter.voice = match;
 
   return new Promise((resolve) => {

@@ -5,9 +5,26 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from django.conf import settings
+from django.db.models import QuerySet
 
 from .models import CaregiverProfile
 from .patient_profile import ProfileCompletion, _filled
+
+# Initials and debug stubs ("X", "CG", "AB") are not people. Real names have
+# at least three visible characters after trimming.
+_PLACEHOLDER_NAME_REGEX = r"^\s*\S{0,2}\s*$"
+
+
+def listable_caregivers(queryset: QuerySet | None = None) -> QuerySet:
+    """Narrow to profiles that are presentable to patients.
+
+    A caregiver with no specialties cannot be ranked or described, and one with
+    a placeholder display name reads as broken data on a card. Browse, detail,
+    matching, and the FAISS index all apply this so half-created rows never
+    surface, even if someone flips ``is_active``/``is_approved`` by hand.
+    """
+    qs = CaregiverProfile.objects.all() if queryset is None else queryset
+    return qs.exclude(specialties__len=0).exclude(display_name__regex=_PLACEHOLDER_NAME_REGEX)
 
 
 def caregiver_profile_completion(profile: CaregiverProfile) -> ProfileCompletion:

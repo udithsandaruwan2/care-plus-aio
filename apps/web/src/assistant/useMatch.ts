@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { MatchResponse, VoiceTurnIntent } from '@care-plus/api-client';
+import type { MatchInput, MatchResponse, VoiceTurnIntent } from '@care-plus/api-client';
 import { AssistantState, type IntentDraft } from '@care-plus/core';
 import { api } from '../auth/api';
 import { getAccessToken, loadCachedUser } from '../auth/session';
@@ -27,7 +27,23 @@ import {
 function rememberMatch(match: MatchResponse | null) {
   const user = loadCachedUser();
   if (!user?.id) return;
-  void persistLastMatch(user.id, match);
+  // The intent rides along so a restored match can be re-run against VEHMF.
+  void persistLastMatch(user.id, match, useAssistant.getState().intent);
+}
+
+function hasIntent(intent: IntentDraft): boolean {
+  return Boolean(intent.condition || intent.language || intent.care_level || intent.raw_text);
+}
+
+function matchPayload(intent: IntentDraft): MatchInput {
+  return {
+    condition: intent.condition || intent.raw_text || 'general care',
+    language: intent.language || 'English',
+    care_level: intent.care_level || 'intermediate',
+    query: intent.raw_text ?? '',
+    k: 5,
+    emergency: intent.urgency === 'urgent' || intent.urgency === 'critical',
+  };
 }
 
 let lastReadyRequestId: number | null = null;
@@ -313,6 +329,33 @@ export async function runClientMatch(): Promise<boolean> {
     store.setMatching(false);
     store.setMatchError(err instanceof Error ? err.message : 'Match failed.');
     store.setState(AssistantState.IDLE, { force: true });
+    return false;
+  }
+}
+
+/**
+ * Silently re-run a match that was restored from IndexedDB so the panel shows
+ * live VEHMF results instead of sitting behind a "may be out of date" badge.
+ *
+ * Bails out if the user has already moved on to a different match, and never
+ * speaks or changes assistant state — this runs behind the visible UI.
+ */
+export async function refreshHydratedMatch(
+  intent: IntentDraft,
+  hydratedRequestId: number,
+): Promise<boolean> {
+  if (!hasIntent(intent)) return false;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+
+  try {
+    const result = await api.match(matchPayload(intent));
+    const store = useAssistant.getState();
+    if (store.match?.request_id !== hydratedRequestId) return false;
+    void warmEdgeCacheFromProfiles(hitsToEdgeProfiles(result.results));
+    store.setMatch(result);
+    rememberMatch(result);
+    return true;
+  } catch {
     return false;
   }
 }

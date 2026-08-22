@@ -327,6 +327,7 @@ export function createApiClient(options: ApiClientOptions) {
       priorIntent?: Record<string, unknown> | null;
       priorMatch?: Record<string, unknown> | null;
       uiLanguage?: 'Sinhala' | 'Tamil' | 'English';
+      voice?: 'female' | 'male';
     }) => {
       const form = new FormData();
       if (input.text) form.append('text', input.text);
@@ -335,6 +336,7 @@ export function createApiClient(options: ApiClientOptions) {
       if (input.priorIntent) form.append('prior_intent', JSON.stringify(input.priorIntent));
       if (input.priorMatch) form.append('prior_match', JSON.stringify(input.priorMatch));
       if (input.uiLanguage) form.append('ui_language', input.uiLanguage);
+      if (input.voice) form.append('voice', input.voice);
       return request(
         '/voice/turn/',
         {
@@ -345,7 +347,7 @@ export function createApiClient(options: ApiClientOptions) {
         (d) => VoiceTurnResponse.parse(d),
       );
     },
-    voiceTts: (input: { text: string; replyLang?: string }) =>
+    voiceTts: (input: { text: string; replyLang?: string; voice?: 'female' | 'male' }) =>
       request(
         '/voice/tts/',
         {
@@ -353,6 +355,7 @@ export function createApiClient(options: ApiClientOptions) {
           body: JSON.stringify({
             text: input.text,
             reply_lang: input.replyLang || 'en-US',
+            ...(input.voice ? { voice: input.voice } : {}),
           }),
         },
         (d) => VoiceTtsResponse.parse(d),

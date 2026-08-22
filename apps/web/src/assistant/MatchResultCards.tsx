@@ -280,6 +280,12 @@ function MatchCard({
   );
 }
 
+function isPresentableHit(hit: MatchHit): boolean {
+  const name = (hit.display_name || '').trim();
+  const letters = (name.match(/\p{L}/gu) || []).length;
+  return letters >= 3 && (hit.specialties || []).length > 0;
+}
+
 /** Ranked VEHMF cards — dense lead row; factors behind disclosure (Step 87). */
 export function MatchResultCards({
   match,
@@ -293,7 +299,8 @@ export function MatchResultCards({
   id?: string;
 }) {
   const ui = matchUi(uiLanguage);
-  if (!match.results.length) {
+  const results = match.results.filter(isPresentableHit);
+  if (!results.length) {
     return <p className="mt-4 text-center text-sm text-muted">{ui.noMatches}</p>;
   }
   const heading = match.refined
@@ -303,7 +310,7 @@ export function MatchResultCards({
         ? 'புதுப்பிக்கப்பட்ட பொருத்தங்கள்'
         : 'Updated matches'
     : ui.title;
-  const runnerUp = match.results.find((h) => h.rank === 2) ?? match.results[1];
+  const runnerUp = results.find((h) => h.rank === 2) ?? results[1];
 
   return (
     <section
@@ -319,7 +326,7 @@ export function MatchResultCards({
           {match.latency_ms} ms
         </span>
       </div>
-      {match.results.map((hit) => (
+      {results.map((hit) => (
         <MatchCard
           key={`${match.request_id}-${hit.caregiver_id}`}
           hit={hit}

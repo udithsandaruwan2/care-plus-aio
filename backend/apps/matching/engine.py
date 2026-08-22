@@ -16,6 +16,7 @@ from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 
 from .ahp import get_ahp_weights, normalize_weights
+from .caregiver_profile import listable_caregivers
 from .cf_model import cf_model_info, get_cf_model, is_cf_active
 from .embeddings import get_embedder, intent_to_text
 from .exploration import apply_exploration_slot, exploration_epsilon
@@ -204,11 +205,13 @@ class VEHMFEngine:
         # but are hidden from match top-N (browse can still show them via ?available=0).
         profiles = {
             p.id: p
-            for p in CaregiverProfile.objects.filter(
-                id__in=caregiver_ids,
-                is_active=True,
-                is_available=True,
-                is_approved=True,
+            for p in listable_caregivers(
+                CaregiverProfile.objects.filter(
+                    id__in=caregiver_ids,
+                    is_active=True,
+                    is_available=True,
+                    is_approved=True,
+                )
             )
         }
         # Keep FAISS order but drop missing/inactive/unavailable/unapproved.

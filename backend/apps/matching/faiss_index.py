@@ -14,6 +14,7 @@ import faiss
 import numpy as np
 from django.conf import settings
 
+from .caregiver_profile import listable_caregivers
 from .embeddings import get_embedder, profile_to_text
 from .models import EMBEDDING_DIM, CaregiverProfile
 
@@ -101,7 +102,7 @@ def is_index_dirty() -> bool:
 def expected_index_version() -> str:
     backend = getattr(settings, "EMBEDDING_BACKEND", "hash")
     ids = list(
-        CaregiverProfile.objects.filter(is_active=True)
+        listable_caregivers(CaregiverProfile.objects.filter(is_active=True))
         .order_by("id")
         .values_list("id", flat=True)
     )
@@ -189,7 +190,7 @@ def rebuild_from_stored_embeddings(*, persist: bool = True) -> CaregiverIndex:
     """Rebuild FAISS from ``CaregiverProfile.embedding``; embed any missing rows."""
     backend = getattr(settings, "EMBEDDING_BACKEND", "hash")
     profiles = list(
-        CaregiverProfile.objects.filter(is_active=True)
+        listable_caregivers(CaregiverProfile.objects.filter(is_active=True))
         .order_by("id")
         .only(
             "id",
@@ -245,7 +246,7 @@ def build_index(*, persist: bool = True) -> CaregiverIndex:
     embedder = get_embedder()
     backend = getattr(settings, "EMBEDDING_BACKEND", "hash")
     qs = (
-        CaregiverProfile.objects.filter(is_active=True)
+        listable_caregivers(CaregiverProfile.objects.filter(is_active=True))
         .order_by("id")
         .only(
             "id",
