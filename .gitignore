@@ -45,3 +45,6 @@ backend/media/
 
 # ── Local reference only (old HND Lumora/Care Plus dump) ──
 Old Care Plus/
+
+# ── Local Colombo stakeholder survey toolkit (never publish) ──
+research/stakeholder-survey/
