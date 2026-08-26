@@ -158,6 +158,8 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
     except ImportError:
         return extract_stub(text, hint_language)
 
+    timeout = float(getattr(settings, "VOICE_INTENT_GEMINI_TIMEOUT_SEC", 8) or 8)
+
     try:
         genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel(
@@ -176,14 +178,16 @@ def extract_gemini(text: str, hint_language: str | None = None) -> dict:
         prompt = text
         if hint_language:
             prompt = f"(UI language hint was {hint_language}; prefer auto-detect from text)\n{text}"
-        resp = model.generate_content(
-            prompt,
-            generation_config={
+        kwargs = {
+            "generation_config": {
                 "response_mime_type": "application/json",
                 "response_schema": _SCHEMA_HINT,
                 "temperature": 0.0,
             },
-        )
+        }
+        if timeout > 0:
+            kwargs["request_options"] = {"timeout": timeout}
+        resp = model.generate_content(prompt, **kwargs)
         import json
 
         data = json.loads(resp.text)

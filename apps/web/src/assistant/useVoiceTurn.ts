@@ -33,8 +33,10 @@ import {
   claimTurnStage,
   markTurnReplySpoken,
   rememberStreamedReply,
+  lastStreamedReplyText,
 } from './turnStream';
 import { classifyTurnFailure, type PendingTurn, type TurnFailure } from './turnFailure';
+import { bindTurnFailureClearer } from './turnFailureClear';
 import { executeSerahAction } from './executeSerahAction';
 
 function applyTurnState(
@@ -180,6 +182,16 @@ export function useVoiceTurn() {
     pendingRef.current = null;
     autoReplayRef.current = false;
   }, []);
+
+  // Late WS reply after an HTTP timeout should drop the "took too long" banner.
+  useEffect(
+    () =>
+      bindTurnFailureClearer(() => {
+        setFailure(null);
+        setError(null);
+      }),
+    [],
+  );
 
   const runTurn = useCallback(
     async (opts: { text: string; audio: Blob | null; continueListening?: () => void }) => {
@@ -362,6 +374,12 @@ export function useVoiceTurn() {
           after.setState(AssistantState.RESULTS, { force: true });
         }
       } catch (err) {
+        // WS may already have delivered the reply while HTTP timed out — don't flash Retry.
+        if (lastStreamedReplyText().trim()) {
+          clearFailure();
+          setBusy(false);
+          return;
+        }
         store.setMatching(false);
         setSerahReply(null);
         setAsrSource(null);

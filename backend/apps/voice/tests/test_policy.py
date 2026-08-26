@@ -59,12 +59,22 @@ class RateLimitTests(TestCase):
         gemini_chat_allowed(self.user.pk)
         gemini_chat_allowed(self.user.pk)
         line = serah_reply(
-            text="hello",
+            text="what should I know about fever care at home",
+            lang="en-US",
+            situation="advice",
+            user_id=self.user.pk,
+        )
+        self.assertEqual(line.source, "rate_limited")
+        self.assertTrue(line.text)
+
+    def test_greeting_skips_gemini_for_speed(self):
+        line = serah_reply(
+            text="hi",
             lang="en-US",
             situation="greeting",
             user_id=self.user.pk,
         )
-        self.assertEqual(line.source, "rate_limited")
+        self.assertEqual(line.source, "stub")
         self.assertTrue(line.text)
 
 

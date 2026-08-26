@@ -201,6 +201,10 @@ DIALOGUE_CHAT_BACKEND = env("DIALOGUE_CHAT_BACKEND", default="gemini" if GEMINI_
 # Gemini chat only (MATCH/REFINE always local VEHMF). 0 disables Gemini chat.
 DIALOGUE_GEMINI_RATE_LIMIT = env.int("DIALOGUE_GEMINI_RATE_LIMIT", default=120)
 DIALOGUE_GEMINI_RATE_WINDOW_SEC = env.int("DIALOGUE_GEMINI_RATE_WINDOW_SEC", default=3600)
+# Hard cap so /voice/turn/ returns with a stub instead of hanging until the client aborts.
+DIALOGUE_GEMINI_TIMEOUT_SEC = env.float("DIALOGUE_GEMINI_TIMEOUT_SEC", default=8.0)
+# Intent extract for MATCH/REFINE — keep under client voice-turn budget.
+VOICE_INTENT_GEMINI_TIMEOUT_SEC = env.float("VOICE_INTENT_GEMINI_TIMEOUT_SEC", default=8.0)
 # OpenAI-compatible chat endpoint for DIALOGUE_CHAT_BACKEND=local (never used for match).
 LOCAL_LLM_URL = env("LOCAL_LLM_URL", default="")
 LOCAL_LLM_MODEL = env("LOCAL_LLM_MODEL", default="local")
