@@ -183,6 +183,40 @@ _REQUEST_STATUS = re.compile(
     re.I,
 )
 
+_SELECT_PACKAGE = re.compile(
+    r"\b("
+    r"(select|choose|pick|take|want)\s+(the\s+)?(package|plan|option)|"
+    r"(package|plan)\s*(#?\s*\d+|number\s*\d+|one|two|three|first|second|third)|"
+    r"(#?\s*\d+|number\s*\d+|first|second|third)\s+(package|plan|option)|"
+    r"basic(\s+home)?(\s+care)?|"
+    r"intermediate(\s+nursing)?|"
+    r"advanced(\s+clinical)?(\s+care)?|"
+    r"night\s+respite|"
+    r"pediatric|"
+    r"palliative|"
+    r"post[\s-]*surgery|"
+    r"standard(\s+(package|plan|care))?|"
+    r"\d{1,3}\s*days?|"
+    r"(a\s+)?(week|fortnight|month)\s*(of\s+care)?|"
+    r"(add|with|include|plus)\s+(meals?|food|meal\s+support|transport|supplies|hospital\s+escort|physio)"
+    r")\b|"
+    r"පැකේජ|பேக்கேஜ்",
+    re.I,
+)
+
+_CONFIRM_CHECKOUT = re.compile(
+    r"\b("
+    r"continue\s+(to\s+)?(payment|pay|checkout)|"
+    r"(go\s+to|open)\s+(payment|pay|checkout)|"
+    r"(confirm|ready\s+for|proceed\s+(to\s+)?|start)\s*(the\s*)?(checkout|payment|order)|"
+    r"checkout(\s+now)?|"
+    r"create\s+(the\s+)?order|"
+    r"take\s+me\s+to\s+(pay|payment|checkout)"
+    r")\b|"
+    r"ගෙවීම|செலுத்த",
+    re.I,
+)
+
 # Last Serah line offered opening a profile / sending a request (yes-after-offer).
 _OFFER_PROFILE = re.compile(
     r"(check|open|review|see|look\s*at).{0,40}profile|"
@@ -196,6 +230,23 @@ _OFFER_REQUEST = re.compile(
     r"(request|hire|book).{0,24}(them|him|her|caregiver)|"
     r"go\s+ahead.{0,24}(request|hire|book)|"
     r"shall\s+i\s+(send|request|hire)",
+    re.I,
+)
+
+_OFFER_PACKAGE = re.compile(
+    r"(pick|choose|select).{0,24}package|"
+    r"here are a few packages|"
+    r"package options|"
+    r"say .{0,40}(basic|days|package)",
+    re.I,
+)
+
+_OFFER_CHECKOUT = re.compile(
+    r"continue to payment|"
+    r"tap\s+pay|"
+    r"ready to checkout|"
+    r"confirm.{0,20}package|"
+    r"when you'?re ready",
     re.I,
 )
 
@@ -266,12 +317,23 @@ def classify_turn(
     if _CANCEL.search(raw):
         return RouteDecision("CHAT", "cancel", clear_match=True)
     if _AFFIRM.match(raw.strip()) and not _MATCH_SEEK.search(raw):
-        # Bare "yes" after Serah offered a profile or care request.
-        if has_prior_match and last_serah_text:
-            if _OFFER_PROFILE.search(last_serah_text):
-                return RouteDecision("ACTION", "view_profile")
-            if _OFFER_REQUEST.search(last_serah_text):
-                return RouteDecision("ACTION", "request")
+        # Bare "yes" after Serah offered a profile, care request, package, or checkout.
+        if last_serah_text:
+            low = last_serah_text.lower()
+            # After pay screen open ("tap Pay"), yes must not auto-charge.
+            if "tap pay" in low or "won’t charge" in low or "wont charge" in low:
+                return RouteDecision("CHAT", "affirm")
+            if "continue to payment" in low or (
+                _OFFER_CHECKOUT.search(last_serah_text) and "package" in low
+            ):
+                return RouteDecision("ACTION", "confirm_checkout")
+            if _OFFER_PACKAGE.search(last_serah_text):
+                return RouteDecision("ACTION", "select_package")
+            if has_prior_match:
+                if _OFFER_PROFILE.search(last_serah_text):
+                    return RouteDecision("ACTION", "view_profile")
+                if _OFFER_REQUEST.search(last_serah_text):
+                    return RouteDecision("ACTION", "request")
         return RouteDecision("CHAT", "affirm")
 
     # 3) Greetings / identity / FAQ (unless also seeking care)
@@ -285,6 +347,12 @@ def classify_turn(
     # Status check can run with or without visible cards (poll uses careRequestId).
     if _REQUEST_STATUS.search(raw):
         return RouteDecision("ACTION", "request_status")
+
+    # Checkout / package selection (accepted-request funnel; needs match context).
+    if _CONFIRM_CHECKOUT.search(raw):
+        return RouteDecision("ACTION", "confirm_checkout")
+    if (has_prior_match or has_history_match) and _SELECT_PACKAGE.search(raw):
+        return RouteDecision("ACTION", "select_package")
 
     # 4) Questions about a prior match (session memory — cards may be off-screen)
     if has_history_match and _ABOUT_MATCH.search(raw):

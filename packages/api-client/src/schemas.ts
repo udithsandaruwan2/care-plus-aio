@@ -447,8 +447,13 @@ export const SerahAction = z.object({
   caregiver_id: z.number().nullable().optional(),
   rank: z.number().nullable().optional(),
   name_query: z.string().optional().default(''),
+  /** Numeric id, slug, or spoken package name hint from the dialogue turn. */
   package_id: z.union([z.string(), z.number()]).nullable().optional(),
   days: z.number().nullable().optional(),
+  /** Catalog add-on ids when the turn named add-ons explicitly. */
+  addon_ids: z.array(z.number()).optional().default([]),
+  /** Spoken add-on hints (slugs/names) when ids are not known server-side. */
+  addon_query: z.string().optional().default(''),
 });
 export type SerahAction = z.infer<typeof SerahAction>;
 

@@ -19,7 +19,7 @@ export function nextRankedCaregiver(
 export function acceptedNarration(name: string): string {
   return (
     `${name} accepted your care request. ` +
-    `Next we can pick a package — say Standard, or tell me how many days you need.`
+    `I’ll list a few care packages next so we can checkout by voice.`
   );
 }
 
@@ -67,7 +67,9 @@ export function applyCareRequestTerminalStatus(row: CareRequest): boolean {
 
   if (row.status === 'accepted') {
     store.setBookingStage('packages');
+    store.resetCheckoutDraft();
     announce(acceptedNarration(name));
+    void import('./voiceCheckout').then((m) => m.offerPackagesAfterAccept());
     return true;
   }
 

@@ -26,6 +26,23 @@ export type BookingStage =
 /** TTS depth when the Serah profile drawer opens. */
 export type ProfileNarrateMode = 'brief' | 'detail';
 
+/** Voice checkout draft before POST /checkout/ (Pay stays manual). */
+export type CheckoutDraft = {
+  packageId: number | null;
+  packageName: string;
+  addonIds: number[];
+  days: number;
+  orderId: number | null;
+};
+
+export const emptyCheckoutDraft = (): CheckoutDraft => ({
+  packageId: null,
+  packageName: '',
+  addonIds: [],
+  days: 7,
+  orderId: null,
+});
+
 const CHAT_LIMIT = 24;
 let chatSeq = 0;
 
@@ -62,6 +79,8 @@ type AssistantStore = {
   bookingStage: BookingStage;
   /** Pending drawer read-aloud; cleared after Serah speaks the summary. */
   profileNarrateMode: ProfileNarrateMode | null;
+  /** Package / days / add-ons chosen by voice before pay. */
+  checkoutDraft: CheckoutDraft;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -83,6 +102,8 @@ type AssistantStore = {
   setBookingStage: (stage: BookingStage) => void;
   setProfileNarrateMode: (mode: ProfileNarrateMode | null) => void;
   clearProfileNarrate: () => void;
+  setCheckoutDraft: (partial: Partial<CheckoutDraft>) => void;
+  resetCheckoutDraft: () => void;
   reset: () => void;
 };
 
@@ -105,6 +126,7 @@ const initial = {
   careRequestId: null as number | null,
   bookingStage: 'idle' as BookingStage,
   profileNarrateMode: null as ProfileNarrateMode | null,
+  checkoutDraft: emptyCheckoutDraft(),
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -156,12 +178,16 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
   setBookingStage: (stage) => set({ bookingStage: stage }),
   setProfileNarrateMode: (mode) => set({ profileNarrateMode: mode }),
   clearProfileNarrate: () => set({ profileNarrateMode: null }),
+  setCheckoutDraft: (partial) =>
+    set((s) => ({ checkoutDraft: { ...s.checkoutDraft, ...partial } })),
+  resetCheckoutDraft: () => set({ checkoutDraft: emptyCheckoutDraft() }),
 
   reset: () =>
     set({
       ...initial,
       uiLanguage: get().uiLanguage,
       sessionLive: get().sessionLive,
+      checkoutDraft: emptyCheckoutDraft(),
     }),
 }));
 
