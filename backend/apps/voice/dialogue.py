@@ -12,6 +12,7 @@ from apps.matching.interactions import record_match_interactions
 from apps.matching.models import CaregiverProfile, MatchResult, MatchRun, create_match_run
 from apps.matching.push import push_match_results, push_turn_stage
 
+from .actions import build_voice_action, last_serah_text
 from .asr import resolve_transcript
 from .backends import extract_intent
 from .extraction import extract_stub
@@ -583,12 +584,17 @@ def process_turn(
     has_history_match = _match_has_results(history_match)
     effective_prior = has_visible_match
 
+    context_match = visible_match or history_match
+    chat_history = list(session.turns or [])[-8:]
+    prior_serah = last_serah_text(chat_history)
+
     with clock.span("route_ms"):
         decision = classify_turn(
             text,
             base,
             has_prior_match=has_visible_match,
             has_history_match=has_history_match,
+            last_serah_text=prior_serah,
         )
     route = decision.route
     situation = decision.situation
@@ -620,11 +626,9 @@ def process_turn(
         session_id=session.pk,
     )
 
-    context_match = visible_match or history_match
-    chat_history = list(session.turns or [])[-8:]
-
     match_payload = None
     chat_source = "none"
+    action_payload = None
     if route == "EMERGENCY":
         base["_emergency"] = True
         base["urgency"] = "urgent"
@@ -707,14 +711,16 @@ def process_turn(
             reply = _clarify_reply(base, reply_lang)
         chat_source = "stub"
     elif route == "ACTION":
+        action_match = visible_match or history_match
+        action_payload = build_voice_action(situation, text, action_match)
         with clock.span("chat_ms"):
             reply, chat_source = _serah(
                 user=user,
                 text=text,
                 lang=reply_lang,
-                situation="request",
+                situation=situation,
                 has_prior_match=has_visible_match,
-                match=visible_match or history_match,
+                match=action_match,
                 history=chat_history,
             )
         match_payload = None
@@ -808,6 +814,7 @@ def process_turn(
         "reply_lang": reply_lang,
         "intent": intent_out,
         "match": match_payload,
+        "action": action_payload,
         "clear_match": decision.clear_match,
         "session_id": session.pk,
         "open_questions": open_qs,
@@ -835,6 +842,7 @@ def process_turn(
         reply_lang=reply_lang,
         route=route,
         situation=situation,
+        action=action_payload,
         clear_match=decision.clear_match,
         open_questions=open_qs,
         chat_source=chat_source,

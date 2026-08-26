@@ -441,6 +441,17 @@ export const VoiceTurnTimings = z.object({
 });
 export type VoiceTurnTimings = z.infer<typeof VoiceTurnTimings>;
 
+/** Client-executable Serah action from a voice turn (booking funnel). */
+export const SerahAction = z.object({
+  type: z.string(),
+  caregiver_id: z.number().nullable().optional(),
+  rank: z.number().nullable().optional(),
+  name_query: z.string().optional().default(''),
+  package_id: z.union([z.string(), z.number()]).nullable().optional(),
+  days: z.number().nullable().optional(),
+});
+export type SerahAction = z.infer<typeof SerahAction>;
+
 export const VoiceTurnResponse = z.object({
   route: z.enum(['CHAT', 'MATCH', 'CLARIFY', 'REFINE', 'ACTION', 'EMERGENCY']),
   situation: z.string().optional().default(''),
@@ -458,6 +469,7 @@ export const VoiceTurnResponse = z.object({
   tts_cache_hit: z.boolean().optional().default(false),
   intent: VoiceTurnIntent.nullable(),
   match: MatchResponse.nullable().optional(),
+  action: SerahAction.nullable().optional(),
   clear_match: z.boolean().optional().default(false),
   session_id: z.number().nullable().optional(),
   open_questions: z.array(z.string()).optional().default([]),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { MatchInput, MatchResponse, VoiceTurnIntent } from '@care-plus/api-client';
+import type { MatchInput, MatchResponse, SerahAction, VoiceTurnIntent } from '@care-plus/api-client';
 import { AssistantState, type IntentDraft } from '@care-plus/core';
 import { api } from '../auth/api';
 import { getAccessToken, loadCachedUser } from '../auth/session';
@@ -13,8 +13,11 @@ import {
   lastStreamedReplyText,
   markTurnReplySpoken,
   rememberStreamedReply,
+  replyTextAlreadyStreamed,
+  turnReplyAlreadySpoken,
   type TurnStage,
 } from './turnStream';
+import { executeSerahAction } from './executeSerahAction';
 import {
   compareEdgeRankings,
   hitsToEdgeProfiles,
@@ -118,6 +121,7 @@ type TurnPayload = {
   reply?: string;
   reply_lang?: string;
   match?: MatchResponse | null;
+  action?: SerahAction | null;
   reply_audio_base64?: string;
   reply_audio_mime?: string;
 };
@@ -166,9 +170,16 @@ function handleTurnMessage(type: string, payload: TurnPayload) {
   if (stage === 'reply_text') {
     const reply = (payload.reply || '').trim();
     if (!reply) return;
-    rememberStreamedReply(reply);
-    if (lastSerahLine() !== reply) {
-      store.appendChat({ role: 'serah', text: reply, route: payload.route });
+    if (replyTextAlreadyStreamed(reply)) {
+      rememberStreamedReply(reply);
+    } else {
+      rememberStreamedReply(reply);
+      if (lastSerahLine() !== reply) {
+        store.appendChat({ role: 'serah', text: reply, route: payload.route });
+      }
+    }
+    if (payload.action && claimTurnStage('action', payload.request_id)) {
+      void executeSerahAction(payload.action);
     }
     if (
       store.state !== AssistantState.RESULTS &&
@@ -200,6 +211,7 @@ function handleTurnMessage(type: string, payload: TurnPayload) {
     const reply = lastStreamedReplyText() || lastSerahLine();
     const audio = payload.reply_audio_base64 || '';
     if (!reply.trim()) return;
+    if (turnReplyAlreadySpoken(reply)) return;
     markTurnReplySpoken(reply);
     void speakSerah(reply, payload.reply_lang || store.uiLanguage, {
       audioBase64: audio,

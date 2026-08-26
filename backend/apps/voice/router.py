@@ -135,12 +135,53 @@ _NEW_SEARCH = re.compile(
 )
 
 _ACTION = re.compile(
-    r"\b(request\s*(the\s*)?(first|top|#?\s*1|this|her|him)|"
-    r"book\s*(the\s*)?(first|top|#?\s*1|them)|"
-    r"hire|choose\s*(the\s*)?(first|top|#?\s*1)|"
-    r"i\s*want\s*(the\s*)?(first|top|#?\s*1|this\s*one)|"
-    r"select\s*(#?\s*)?\d+)\b|"
+    r"\b(request\s*(the\s*)?(first|top|#?\s*\d+|this|her|him|them)|"
+    r"send\s*(the\s*)?(care\s*)?request|"
+    r"book\s*(the\s*)?(first|top|#?\s*\d+|them|him|her)|"
+    r"hire(\s*(the\s*)?(first|top|#?\s*\d+|them|him|her))?|"
+    r"choose\s*(the\s*)?(first|top|#?\s*\d+)|"
+    r"i\s*want\s*(the\s*)?(first|top|#?\s*\d+|this\s*one)|"
+    r"select\s*(#?\s*)?\d+|"
+    r"yes[,.]?\s*(send|request|hire|book)|"
+    r"go\s+ahead\s+(and\s+)?(send|request|hire|book))\b|"
     r"ඉල්ලීම|තෝර|முதல்\s*நபர்|முன்பதிவு",
+    re.I,
+)
+
+_VIEW_PROFILE = re.compile(
+    r"\b("
+    r"(review|check|open|show|see|look\s*at)\s+"
+    r"((his|her|their|the|a)\s+)?(profile|details?)|"
+    r"(review|check|open|show)\s+(#?\s*\d+|number\s*\d+|"
+    r"the\s*(first|second|third|top)|[\w'-]{2,})|"
+    r"go\s+ahead\s+(and\s+)?(check|open|review|show)|"
+    r"yes[,.]?\s*(check|open|review|show)\s*(his|her|their|the)?\s*(profile)?"
+    r")\b|"
+    r"පැතිකඩ|சுயவிவரம்",
+    re.I,
+)
+
+_DESCRIBE = re.compile(
+    r"\b(tell\s*me\s*more|read\s*(me\s*)?(their|his|her|the)?\s*(details?|profile|bio)|"
+    r"describe\s*(them|him|her|this|the\s*caregiver)?|"
+    r"what\s*(can\s*you\s*tell|do\s*you\s*know)\s*about)\b|"
+    r"වැඩිපුර|மேலும்\s*சொல்லு",
+    re.I,
+)
+
+# Last Serah line offered opening a profile / sending a request (yes-after-offer).
+_OFFER_PROFILE = re.compile(
+    r"(check|open|review|see|look\s*at).{0,40}profile|"
+    r"profile.{0,24}(check|open|review)|"
+    r"would\s+you\s+like.{0,40}(profile|review|details)",
+    re.I,
+)
+
+_OFFER_REQUEST = re.compile(
+    r"(send|make).{0,24}(care\s*)?request|"
+    r"(request|hire|book).{0,24}(them|him|her|caregiver)|"
+    r"go\s+ahead.{0,24}(request|hire|book)|"
+    r"shall\s+i\s+(send|request|hire)",
     re.I,
 )
 
@@ -192,6 +233,7 @@ def classify_turn(
     *,
     has_prior_match: bool = False,
     has_history_match: bool = False,
+    last_serah_text: str = "",
 ) -> RouteDecision:
     """Return route + situation for this utterance."""
     raw = (text or "").strip()
@@ -210,6 +252,12 @@ def classify_turn(
     if _CANCEL.search(raw):
         return RouteDecision("CHAT", "cancel", clear_match=True)
     if _AFFIRM.match(raw.strip()) and not _MATCH_SEEK.search(raw):
+        # Bare "yes" after Serah offered a profile or care request.
+        if has_prior_match and last_serah_text:
+            if _OFFER_PROFILE.search(last_serah_text):
+                return RouteDecision("ACTION", "view_profile")
+            if _OFFER_REQUEST.search(last_serah_text):
+                return RouteDecision("ACTION", "request")
         return RouteDecision("CHAT", "affirm")
 
     # 3) Greetings / identity / FAQ (unless also seeking care)
@@ -226,6 +274,10 @@ def classify_turn(
 
     # 5) Post-match conversation while caregiver cards are visible on screen
     if has_prior_match:
+        if _VIEW_PROFILE.search(raw):
+            return RouteDecision("ACTION", "view_profile")
+        if _DESCRIBE.search(raw):
+            return RouteDecision("ACTION", "describe_caregiver")
         if _ACTION.search(raw):
             return RouteDecision("ACTION", "request")
         if _REFINE.search(raw):
