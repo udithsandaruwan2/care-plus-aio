@@ -769,7 +769,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 40;
+  z-index: 50;
   display: flex;
   width: min(22.5rem, 92vw);
   flex-direction: column;
@@ -917,7 +917,75 @@
   position: relative;
 }
 
+/* Live captions while listening — visible over match cards too. */
+.serah-live-caption {
+  margin: 0 0 10px;
+  width: 100%;
+  max-width: 22rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 35%, var(--cp-border-hair));
+  background: color-mix(in srgb, var(--cp-bg-panel) 92%, var(--cp-accent-cyan));
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px color-mix(in srgb, black 12%, transparent);
+}
+
+.serah-live-caption--center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.serah-live-caption.is-listening {
+  border-color: color-mix(in srgb, var(--cp-accent-rose) 40%, var(--cp-border-hair));
+  animation: serah-live-caption-pulse 1.4s ease-in-out infinite;
+}
+
+.serah-live-caption-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cp-accent-cyan);
+}
+
+.serah-live-caption.is-listening .serah-live-caption-label {
+  color: var(--cp-accent-rose);
+}
+
+.serah-live-caption-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--cp-text-mist);
+  word-break: break-word;
+}
+
+.serah-live-caption-text .is-interim {
+  color: var(--cp-text-muted);
+  font-style: italic;
+}
+
+.serah-live-caption-text .is-waiting {
+  color: var(--cp-text-muted);
+}
+
+@keyframes serah-live-caption-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 24px color-mix(in srgb, black 12%, transparent);
+  }
+  50% {
+    box-shadow: 0 8px 28px color-mix(in srgb, var(--cp-accent-rose) 22%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .serah-live-caption.is-listening {
+    animation: none;
+  }
+
   .serah-profile-drawer.is-open {
     animation: none;
     transform: translateX(0);
