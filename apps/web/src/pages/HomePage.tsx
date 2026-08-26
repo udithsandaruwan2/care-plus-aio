@@ -162,6 +162,25 @@ export function HomePage() {
             </p>
           {showMatchPanel ? (
             <div className="serah-field-chat">
+              {(listening || interim || transcript) && (
+                <div
+                  className={`serah-live-caption${listening ? ' is-listening' : ''}`}
+                  aria-live="polite"
+                  aria-atomic="true"
+                  data-testid="serah-live-caption"
+                >
+                  <span className="serah-live-caption-label">
+                    {listening ? 'You’re saying' : 'You said'}
+                  </span>
+                  <p className="serah-live-caption-text">
+                    {transcript ? <span>{transcript} </span> : null}
+                    {interim ? <span className="is-interim">{interim}</span> : null}
+                    {!transcript && !interim && listening ? (
+                      <span className="is-waiting">Listening…</span>
+                    ) : null}
+                  </p>
+                </div>
+              )}
               <ChatBubbles
                 messages={chat}
                 compact
@@ -179,15 +198,38 @@ export function HomePage() {
                 </p>
               ) : null}
               <div className="serah-core-chat">
-                {hologramText ? (
-                  <div className="hologram-transcript visible">
-                    <p>{hologramText}</p>
+                {(listening || hologramText) && (
+                  <div
+                    className={`serah-live-caption serah-live-caption--center${
+                      listening ? ' is-listening' : ''
+                    }`}
+                    aria-live="polite"
+                    aria-atomic="true"
+                    data-testid="serah-live-caption"
+                  >
+                    {listening ? (
+                      <>
+                        <span className="serah-live-caption-label">You’re saying</span>
+                        <p className="serah-live-caption-text">
+                          {transcript ? <span>{transcript} </span> : null}
+                          {interim ? <span className="is-interim">{interim}</span> : null}
+                          {!transcript && !interim ? (
+                            <span className="is-waiting">Listening…</span>
+                          ) : null}
+                        </p>
+                      </>
+                    ) : hologramText ? (
+                      <div className="hologram-transcript visible">
+                        <p>{hologramText}</p>
+                      </div>
+                    ) : null}
                   </div>
-                ) : (
+                )}
+                {!listening && !hologramText ? (
                   <p className="serah-field-hint">
                     Tap the field or type below to talk with Serah.
                   </p>
-                )}
+                ) : null}
                 <ChatBubbles
                   messages={chat}
                   failure={turnFailure}
@@ -200,9 +242,11 @@ export function HomePage() {
                   </p>
                 )}
                 <div className="mt-3">
-                  <EntityChips intent={intent} uiLanguage={uiLanguage} hideEmpty />
+                  <EntityChips intent={intent} hideEmpty uiLanguage={uiLanguage} />
                 </div>
-                <Transcript transcript={transcript} interim={interim} />
+                {!listening ? (
+                  <Transcript transcript={transcript} interim={interim} />
+                ) : null}
               </div>
             </>
           ) : null}

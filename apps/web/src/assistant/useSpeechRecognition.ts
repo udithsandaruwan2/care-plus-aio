@@ -78,6 +78,7 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
         }
       }
       if (interim) hRef.current.onInterim(interim.trim());
+      else if (!sawFinal) hRef.current.onInterim('');
 
       // End turn only after a real silence window, so users can speak naturally.
       if (interim || sawFinal) {
@@ -88,7 +89,7 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
           } catch {
             /* already stopped */
           }
-        }, 1500);
+        }, 900);
       }
     };
 

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
 import { ApiError } from '@care-plus/api-client';
 import { Avatar } from '../components/ui/Avatar';
@@ -207,12 +206,13 @@ function MatchCard({
       </div>
 
       <div className="mt-3 flex flex-col gap-2">
-        <Link
-          to={`/caregivers/${hit.caregiver_id}`}
+        <button
+          type="button"
           className="block w-full rounded-xl border border-hair px-3 py-2 text-center text-xs font-semibold text-muted transition hover:border-cyan hover:text-cyan"
+          onClick={() => useAssistant.getState().setFocusedCaregiverId(hit.caregiver_id)}
         >
           {ui.viewProfile}
-        </Link>
+        </button>
         {!showForm && (
           <button
             type="button"
