@@ -10,6 +10,7 @@ import { EntityChips } from '../assistant/EntityChips';
 import { Transcript } from '../assistant/Transcript';
 import { StateStepper } from '../assistant/StateStepper';
 import { MatchSearchPanel } from '../assistant/MatchSearchPanel';
+import { CaregiverProfileDrawer } from '../assistant/CaregiverProfileDrawer';
 import { LanguagePicker } from '../assistant/LanguagePicker';
 import { NeuralOrb } from '../assistant/NeuralOrb';
 import { useSerahEngine } from '../assistant/SerahEngine';
@@ -63,6 +64,7 @@ export function HomePage() {
     chat,
     uiLanguage,
     setUiLanguage,
+    focusedCaregiverId,
   } = useAssistant();
   useHydrateLastMatch();
 
@@ -72,10 +74,13 @@ export function HomePage() {
     state === AssistantState.CLARIFYING && missingField ? CLARIFY_PROMPTS[missingField] : null;
   const hologramText = interim || transcript || chat.at(-1)?.text || '';
   const showMatchPanel = matching || Boolean(match);
+  const profileDrawerOpen = focusedCaregiverId != null && focusedCaregiverId > 0;
 
   return (
     <div
-      className={`serah-immersive-container min-h-0 flex-1${showMatchPanel ? ' is-searching' : ''}`}
+      className={`serah-immersive-container min-h-0 flex-1${showMatchPanel ? ' is-searching' : ''}${
+        profileDrawerOpen ? ' has-profile-drawer' : ''
+      }`}
     >
       <div className={`serah-ambient-bg state-${visual}`} aria-hidden />
 
@@ -332,6 +337,7 @@ export function HomePage() {
       </div>
 
       {import.meta.env.DEV && !showMatchPanel && <StateStepper />}
+      <CaregiverProfileDrawer />
     </div>
   );
 }

@@ -762,3 +762,166 @@
     animation: none !important;
   }
 }
+
+/* —— Serah caregiver profile drawer (voice booking slice 2) —— */
+.serah-profile-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  width: min(22.5rem, 92vw);
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 28%, var(--cp-border-hair));
+  background: color-mix(in srgb, var(--cp-bg-panel) 97%, white);
+  box-shadow: -12px 0 40px color-mix(in srgb, black 28%, transparent);
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
+.serah-profile-drawer.is-open {
+  pointer-events: auto;
+  animation: serah-drawer-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes serah-drawer-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.serah-profile-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 8px;
+  border-bottom: 1px solid var(--cp-border-hair);
+}
+
+.serah-profile-drawer-eyebrow {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cp-accent-cyan);
+}
+
+.serah-profile-drawer-close {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--cp-border-hair);
+  color: var(--cp-text-muted);
+  background: transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.serah-profile-drawer-close:hover {
+  border-color: var(--cp-accent-cyan);
+  color: var(--cp-accent-cyan);
+}
+
+.serah-profile-drawer-status,
+.serah-profile-drawer-error {
+  margin: 16px;
+  font-size: 0.8125rem;
+}
+
+.serah-profile-drawer-error {
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-rose) 40%, transparent);
+  background: color-mix(in srgb, var(--cp-accent-rose) 8%, transparent);
+  padding: 10px 12px;
+  color: var(--cp-accent-rose);
+}
+
+.serah-profile-drawer-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.serah-profile-drawer-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.serah-profile-drawer-bio {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--cp-text-mist) 92%, transparent);
+}
+
+.serah-profile-drawer-meta {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.serah-profile-drawer-meta dt {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cp-text-muted);
+}
+
+.serah-profile-drawer-meta dd {
+  margin: 2px 0 0;
+  font-size: 0.8125rem;
+  color: var(--cp-accent-cyan);
+}
+
+.serah-profile-drawer-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--cp-text-muted);
+}
+
+.serah-profile-drawer-full {
+  display: block;
+  margin-top: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--cp-border-hair);
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cp-text-muted);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.serah-profile-drawer-full:hover {
+  border-color: var(--cp-accent-cyan);
+  color: var(--cp-accent-cyan);
+}
+
+.serah-immersive-container.has-profile-drawer {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .serah-profile-drawer.is-open {
+    animation: none;
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+

@@ -9,7 +9,7 @@ export type ExecuteSerahActionResult =
 /**
  * Run a structured Serah voice action against local match state.
  * ``request`` uses the same ``enqueueCareRequest`` path as MatchResultCards.
- * ``view_profile`` / ``describe_caregiver`` only set focus state (drawer in a later slice).
+ * ``view_profile`` / ``describe_caregiver`` open the Serah profile drawer + TTS.
  */
 export async function executeSerahAction(
   action: SerahAction | null | undefined,
@@ -24,6 +24,9 @@ export async function executeSerahAction(
     if (hit) {
       store.setFocusedCaregiverId(hit.caregiver_id);
       store.setBookingStage('profile');
+      store.setProfileNarrateMode(
+        action.type === 'describe_caregiver' ? 'detail' : 'brief',
+      );
       return { ok: true, type: action.type, caregiverId: hit.caregiver_id };
     }
     return { ok: false, type: action.type, error: 'No matching caregiver in the current list.' };
