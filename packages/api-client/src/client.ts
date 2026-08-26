@@ -121,8 +121,14 @@ export function createApiClient(options: ApiClientOptions) {
     onRequestOutcome?.(outcome);
   }
 
-  async function doFetch(path: string, init: RequestInit): Promise<Response> {
-    return fetchWithTimeout(`${baseUrl.replace(/\/$/, '')}${path}`, init, { timeoutMs });
+  async function doFetch(
+    path: string,
+    init: RequestInit,
+    overrideTimeoutMs?: number,
+  ): Promise<Response> {
+    return fetchWithTimeout(`${baseUrl.replace(/\/$/, '')}${path}`, init, {
+      timeoutMs: overrideTimeoutMs ?? timeoutMs,
+    });
   }
 
   async function refreshAccessToken(): Promise<string | null> {
@@ -184,6 +190,7 @@ export function createApiClient(options: ApiClientOptions) {
     init: RequestInit,
     parse: (data: unknown) => T,
     retried: boolean,
+    overrideTimeoutMs?: number,
   ): Promise<T> {
     const headers = new Headers(init.headers);
     if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
@@ -192,7 +199,7 @@ export function createApiClient(options: ApiClientOptions) {
     const token = getAccessToken?.();
     if (token) headers.set('Authorization', `Bearer ${token}`);
 
-    const res = await doFetch(path, { ...init, headers });
+    const res = await doFetch(path, { ...init, headers }, overrideTimeoutMs);
     const text = await res.text();
     let data: unknown = null;
     if (text) {
@@ -205,7 +212,7 @@ export function createApiClient(options: ApiClientOptions) {
     if (res.status === 401 && !retried && getRefreshToken && !path.includes('/auth/token')) {
       const next = await refreshAccessToken();
       if (next) {
-        return requestOnce(path, init, parse, true);
+        return requestOnce(path, init, parse, true, overrideTimeoutMs);
       }
     }
     if (!res.ok) {
@@ -221,11 +228,12 @@ export function createApiClient(options: ApiClientOptions) {
     init: RequestInit = {},
     parse: (data: unknown) => T,
     retried = false,
+    opts?: { timeoutMs?: number },
   ): Promise<T> {
     try {
       return await withRetry(
         typeof init.method === 'string' ? init.method : 'GET',
-        () => requestOnce(path, init, parse, retried),
+        () => requestOnce(path, init, parse, retried, opts?.timeoutMs),
         { maxRetries },
       );
     } catch (err) {
@@ -345,6 +353,9 @@ export function createApiClient(options: ApiClientOptions) {
           headers: {}, // let browser set multipart boundary
         },
         (d) => VoiceTurnResponse.parse(d),
+        false,
+        // Gemini chat/intent can spike; server hard-caps cloud calls — keep client above that.
+        { timeoutMs: 90_000 },
       );
     },
     voiceTts: (input: { text: string; replyLang?: string; voice?: 'female' | 'male' }) =>

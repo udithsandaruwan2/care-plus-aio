@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 from dataclasses import dataclass
 
@@ -12,6 +13,33 @@ from apps.matching.i18n import localize_explanation
 from .policy import gemini_chat_allowed, resolve_chat_backend
 
 logger = logging.getLogger(__name__)
+
+# Canned beats — stub is instant; calling Gemini here only adds latency.
+_FAST_STUB_SITUATIONS = frozenset(
+    {
+        "greeting",
+        "thanks",
+        "goodbye",
+        "affirm",
+        "faq",
+        "smalltalk",
+        "cancel",
+        "cancel_flow",
+        "empty",
+        "view_profile",
+        "describe_caregiver",
+        "request",
+        "request_status",
+        "select_package",
+        "confirm_checkout",
+    }
+)
+
+# Shared pool so a timed-out Gemini call does not block the HTTP worker on teardown.
+_GEMINI_CHAT_POOL = concurrent.futures.ThreadPoolExecutor(
+    max_workers=4,
+    thread_name_prefix="serah-gemini-chat",
+)
 
 
 @dataclass(frozen=True)
@@ -360,15 +388,8 @@ def gemini_chat_reply(
     backend = resolve_chat_backend()
     if backend != "gemini":
         return None
-    # Hire/request copy stays deterministic (points at client action executor).
-    if situation in {
-        "request",
-        "view_profile",
-        "describe_caregiver",
-        "request_status",
-        "select_package",
-        "confirm_checkout",
-    }:
+    # Deterministic / social beats — never wait on the cloud for these.
+    if situation in _FAST_STUB_SITUATIONS:
         return None
 
     allowed, reason = gemini_chat_allowed(user_id)
@@ -430,34 +451,49 @@ def gemini_chat_reply(
         else ""
     )
 
-    try:
+    timeout = float(getattr(settings, "DIALOGUE_GEMINI_TIMEOUT_SEC", 8) or 8)
+    if timeout <= 0:
+        return None
+
+    prompt = (
+        "You are Serah, Care Plus voice assistant for Sri Lanka. "
+        "Reply in 1–3 short spoken sentences that continue the dialogue. "
+        "Never invent caregiver names, scores, or rankings. "
+        "Never pick or re-rank caregivers — VEHMF does that locally when they ask. "
+        "Never say you are waiting for VEHMF, that matching is in progress, or that "
+        "you will show caregiver results later. If no caregiver list is in the grounding "
+        "block, do not mention matching, ranking, cards, or results on screen. "
+        "Do not say goodbye unless the user is clearly leaving. "
+        f"Situation={situation}. has_prior_match={has_prior_match}. "
+        f"Guidance: {guidance}\n"
+        f"{match_block}\n"
+        f"Recent conversation:\n{history_block or '(none yet)'}\n"
+        f"Reply ONLY in {_display_lang(lang)} — never mix English if the user chose Sinhala or Tamil. "
+        f"Patient just said: {text}"
+    )
+
+    def _call() -> SerahLine | None:
         import google.generativeai as genai
 
         genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel(settings.GEMINI_MODEL)
         resp = model.generate_content(
-            (
-                "You are Serah, Care Plus voice assistant for Sri Lanka. "
-                "Reply in 1–3 short spoken sentences that continue the dialogue. "
-                "Never invent caregiver names, scores, or rankings. "
-                "Never pick or re-rank caregivers — VEHMF does that locally when they ask. "
-                "Never say you are waiting for VEHMF, that matching is in progress, or that "
-                "you will show caregiver results later. If no caregiver list is in the grounding "
-                "block, do not mention matching, ranking, cards, or results on screen. "
-                "Do not say goodbye unless the user is clearly leaving. "
-                f"Situation={situation}. has_prior_match={has_prior_match}. "
-                f"Guidance: {guidance}\n"
-                f"{match_block}\n"
-                f"Recent conversation:\n{history_block or '(none yet)'}\n"
-                f"Reply ONLY in {_display_lang(lang)} — never mix English if the user chose Sinhala or Tamil. "
-                f"Patient just said: {text}"
-            ),
+            prompt,
             generation_config={"temperature": 0.45, "max_output_tokens": 180},
+            request_options={"timeout": timeout},
         )
         out = (resp.text or "").strip()
         if out:
             return SerahLine(text=out, source="gemini")
         return None
+
+    try:
+        fut = _GEMINI_CHAT_POOL.submit(_call)
+        try:
+            return fut.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            logger.warning("Serah Gemini chat timed out after %.1fs; using stub", timeout)
+            return None
     except Exception:
         logger.exception("Serah situational chat failed")
         return None

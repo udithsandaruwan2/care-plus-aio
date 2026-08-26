@@ -18,6 +18,7 @@ import {
   type TurnStage,
 } from './turnStream';
 import { executeSerahAction } from './executeSerahAction';
+import { clearTurnFailureFromStream } from './turnFailureClear';
 import {
   compareEdgeRankings,
   hitsToEdgeProfiles,
@@ -170,6 +171,7 @@ function handleTurnMessage(type: string, payload: TurnPayload) {
   if (stage === 'reply_text') {
     const reply = (payload.reply || '').trim();
     if (!reply) return;
+    clearTurnFailureFromStream();
     if (replyTextAlreadyStreamed(reply)) {
       rememberStreamedReply(reply);
     } else {
