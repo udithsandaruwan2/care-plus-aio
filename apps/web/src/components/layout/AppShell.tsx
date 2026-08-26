@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SkipLink } from '../../a11y/SkipLink';
 import { SerahEngineProvider } from '../../assistant/SerahEngine';
+import { bindAppNavigate } from '../../assistant/appNavigate';
 import { useAuth } from '../../auth/AuthContext';
 import { useConnectionStore } from '../../auth/connectionStore';
 import { bindEdgeRankingLifecycle } from '../../assistant/useMatch';
@@ -45,7 +46,15 @@ function ConnectionBanner() {
 
 export function AppShell() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const serahCore = pathname === '/app';
+
+  useEffect(() => {
+    bindAppNavigate((to, opts) => {
+      navigate(to, { replace: opts?.replace });
+    });
+    return () => bindAppNavigate(null);
+  }, [navigate]);
 
   useEffect(() => {
     const unbindOutbox = bindOutboxLifecycle();

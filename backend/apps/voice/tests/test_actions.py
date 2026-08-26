@@ -125,3 +125,63 @@ class RouterActionFixtureTests(SimpleTestCase):
         d = classify_turn("any update on the request?", COMPLETE, has_prior_match=False)
         self.assertEqual(d.route, "ACTION")
         self.assertEqual(d.situation, "request_status")
+
+    def test_select_package_phrases(self):
+        for phrase in (
+            "Basic Home Care for 7 days",
+            "pick the first package",
+            "intermediate with meals",
+            "standard for a week",
+            "add meal support",
+        ):
+            d = classify_turn(phrase, COMPLETE, has_prior_match=True)
+            self.assertEqual(d.route, "ACTION", phrase)
+            self.assertEqual(d.situation, "select_package", phrase)
+
+    def test_confirm_checkout_phrases(self):
+        for phrase in (
+            "continue to payment",
+            "go to checkout",
+            "confirm checkout",
+            "take me to pay",
+        ):
+            d = classify_turn(phrase, COMPLETE, has_prior_match=True)
+            self.assertEqual(d.route, "ACTION", phrase)
+            self.assertEqual(d.situation, "confirm_checkout", phrase)
+
+    def test_yes_after_package_selected_confirms_checkout(self):
+        d = classify_turn(
+            "yes",
+            COMPLETE,
+            has_prior_match=True,
+            last_serah_text="Got it — Basic Home Care for 7 days. Say continue to payment when you’re ready.",
+        )
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "confirm_checkout")
+
+    def test_yes_after_tap_pay_stays_affirm(self):
+        d = classify_turn(
+            "yes",
+            COMPLETE,
+            has_prior_match=True,
+            last_serah_text="I’ve filled the order — tap Pay on this screen to confirm.",
+        )
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "affirm")
+
+
+class PackageActionBuilderTests(SimpleTestCase):
+    def test_build_select_package_parses_days_and_addons(self):
+        action = build_voice_action(
+            "select_package",
+            "Basic Home Care for 7 days with meals",
+            {"results": RESULTS},
+        )
+        self.assertEqual(action["type"], "select_package")
+        self.assertIn("basic", str(action.get("package_id") or "").lower())
+        self.assertEqual(action["days"], 7)
+        self.assertIn("meal", action.get("addon_query", ""))
+
+    def test_build_confirm_checkout_action(self):
+        action = build_voice_action("confirm_checkout", "continue to payment", None)
+        self.assertEqual(action["type"], "confirm_checkout")

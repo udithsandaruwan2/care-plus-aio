@@ -2,15 +2,25 @@ import type { SerahAction } from '@care-plus/api-client';
 import { useAssistant } from './store';
 import { resolveCaregiverFromAction } from './resolveCaregiver';
 import { checkCareRequestStatus } from './careRequestStatus';
+import { confirmCheckoutFromVoice, selectPackageFromAction } from './voiceCheckout';
 
 export type ExecuteSerahActionResult =
-  | { ok: true; type: string; caregiverId?: number; queued?: boolean; careRequestId?: number }
+  | {
+      ok: true;
+      type: string;
+      caregiverId?: number;
+      queued?: boolean;
+      careRequestId?: number;
+      orderId?: number;
+      needsOtp?: boolean;
+    }
   | { ok: false; type: string; error: string };
 
 /**
- * Run a structured Serah voice action against local match state.
+ * Run a structured Serah voice action against local match / checkout state.
  * ``request`` uses the same ``enqueueCareRequest`` path as MatchResultCards.
  * ``view_profile`` / ``describe_caregiver`` open the Serah profile drawer + TTS.
+ * ``select_package`` / ``confirm_checkout`` drive voice checkout (Pay stays manual).
  */
 export async function executeSerahAction(
   action: SerahAction | null | undefined,
@@ -99,6 +109,29 @@ export async function executeSerahAction(
     return { ok: true, type: 'request_status' };
   }
 
-  // Later slices: select_package, confirm_checkout, cancel_flow.
+  if (action.type === 'select_package') {
+    const outcome = await selectPackageFromAction(action);
+    if (!outcome.ok) {
+      return { ok: false, type: 'select_package', error: outcome.error };
+    }
+    return { ok: true, type: 'select_package' };
+  }
+
+  if (action.type === 'confirm_checkout') {
+    const outcome = await confirmCheckoutFromVoice();
+    if (!outcome.ok) {
+      return { ok: false, type: 'confirm_checkout', error: outcome.error };
+    }
+    if ('needsOtp' in outcome && outcome.needsOtp) {
+      return { ok: true, type: 'confirm_checkout', needsOtp: true };
+    }
+    return {
+      ok: true,
+      type: 'confirm_checkout',
+      orderId: 'orderId' in outcome ? outcome.orderId : undefined,
+    };
+  }
+
+  // Later slice: cancel_flow.
   return { ok: true, type: action.type, caregiverId: hit?.caregiver_id };
 }

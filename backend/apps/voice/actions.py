@@ -1,8 +1,9 @@
 """Structured voice actions for the Serah client executor.
 
-The dialogue turn returns ``action: { type, caregiver_id?, rank?, name_query? }``
-so the web client can open a profile, describe a caregiver, or enqueue a care
-request without parsing free-text replies.
+The dialogue turn returns ``action: { type, caregiver_id?, rank?, name_query?,
+package_id?, days?, addon_query? }`` so the web client can open a profile,
+describe a caregiver, enqueue a care request, or drive package checkout
+without parsing free-text replies alone.
 """
 
 from __future__ import annotations
@@ -64,6 +65,46 @@ _STRIP_FOR_NAME = re.compile(
     re.I,
 )
 
+_PACKAGE_HINT = re.compile(
+    r"\b("
+    r"basic(\s+home)?(\s+care)?|"
+    r"intermediate(\s+nursing)?|"
+    r"advanced(\s+clinical)?(\s+care)?|"
+    r"night\s+respite(\s+care)?|"
+    r"pediatric(\s+home)?(\s+support)?|"
+    r"palliative(\s+comfort)?(\s+care)?|"
+    r"post[\s-]*surgery(\s+recovery)?|"
+    r"standard(\s+(package|plan|care))?"
+    r")\b",
+    re.I,
+)
+
+_ADDON_HINT = re.compile(
+    r"\b("
+    r"meals?|meal\s+support|food|"
+    r"hospital\s+escort|escort|"
+    r"clinic\s+transport|transport|"
+    r"care\s+supplies(\s+kit)?|supplies|"
+    r"physiotherapy(\s+visit)?|physio|"
+    r"overnight(\s+watch)?"
+    r")\b",
+    re.I,
+)
+
+_STRIP_FOR_PACKAGE = re.compile(
+    r"\b("
+    r"please|thanks|thank\s*you|"
+    r"select|choose|pick|take|want|get|"
+    r"the|a|an|this|that|"
+    r"package|plan|option|care|"
+    r"for|with|and|plus|add|include|including|"
+    r"days?|week|fortnight|month|"
+    r"number|rank|first|second|third|fourth|fifth|top|1st|2nd|3rd|4th|5th|"
+    r"\d+"
+    r")\b|[^\w\s'-]",
+    re.I,
+)
+
 
 def parse_rank(text: str) -> int | None:
     raw = (text or "").strip()
@@ -94,6 +135,57 @@ def parse_name_query(text: str) -> str:
     if cleaned.lower() in {"yes", "yeah", "yep", "ok", "okay", "sure", "him", "her", "them"}:
         return ""
     return cleaned
+
+
+def parse_days(text: str) -> int | None:
+    raw = (text or "").strip().lower()
+    if not raw:
+        return None
+    m = re.search(r"\b(\d{1,3})\s*(?:day|days)\b", raw)
+    if m:
+        try:
+            n = int(m.group(1))
+        except ValueError:
+            return None
+        return n if 1 <= n <= 365 else None
+    if re.search(r"\b(a\s+)?week\b|\bseven\s+days\b", raw):
+        return 7
+    if re.search(r"\b(a\s+)?fortnight\b|\btwo\s+weeks?\b", raw):
+        return 14
+    if re.search(r"\b(a\s+)?month\b|\bthirty\s+days\b", raw):
+        return 30
+    if re.search(r"\bfive\s+days\b", raw):
+        return 5
+    if re.search(r"\bten\s+days\b", raw):
+        return 10
+    return None
+
+
+def parse_package_query(text: str) -> str:
+    """Spoken package hint (name / level) for the client catalog resolver."""
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    m = _PACKAGE_HINT.search(raw)
+    if m:
+        return re.sub(r"\s+", " ", m.group(0)).strip()
+    cleaned = _STRIP_FOR_PACKAGE.sub(" ", raw)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -'")
+    if len(cleaned) < 2:
+        return ""
+    if cleaned.lower() in {"yes", "yeah", "yep", "ok", "okay", "sure"}:
+        return ""
+    return cleaned
+
+
+def parse_addon_query(text: str) -> str:
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    hits = [m.group(0) for m in _ADDON_HINT.finditer(raw)]
+    if not hits:
+        return ""
+    return " ".join(dict.fromkeys(h.lower() for h in hits))
 
 
 def _norm_name(value: str) -> str:
@@ -170,12 +262,34 @@ def build_voice_action(
 
     rank = parse_rank(text)
     name_query = parse_name_query(text)
+    days = parse_days(text)
+    package_query = parse_package_query(text)
+    addon_query = parse_addon_query(text)
+
+    action: dict[str, Any] = {"type": situation}
+
+    if situation in {"select_package", "confirm_checkout"}:
+        if package_query:
+            action["package_id"] = package_query
+            action["name_query"] = package_query
+        elif name_query:
+            action["name_query"] = name_query
+        if rank is not None:
+            action["rank"] = rank
+        if days is not None:
+            action["days"] = days
+        if addon_query:
+            action["addon_query"] = addon_query
+        action.setdefault("package_id", None)
+        action.setdefault("days", days)
+        action.setdefault("addon_ids", [])
+        return action
+
     hit = resolve_hit(results, rank=rank, name_query=name_query)
     # Default to top match when the user did not specify who.
     if hit is None and results and not name_query and rank is None:
         hit = results[0]
 
-    action: dict[str, Any] = {"type": situation}
     if hit is not None:
         try:
             action["caregiver_id"] = int(hit["caregiver_id"])
@@ -190,9 +304,9 @@ def build_voice_action(
         action["rank"] = rank
     if name_query:
         action["name_query"] = name_query
-    # Reserved for later slices (packages / checkout).
     action.setdefault("package_id", None)
     action.setdefault("days", None)
+    action.setdefault("addon_ids", [])
     return action
 
 

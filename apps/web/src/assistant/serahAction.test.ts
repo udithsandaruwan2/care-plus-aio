@@ -263,12 +263,32 @@ describe('careRequestStatus helpers', () => {
       speakSerah: vi.fn(async () => undefined),
       stopSpeaking: vi.fn(),
     }));
+    vi.doMock('../auth/api', () => ({
+      api: {
+        listCarePackages: vi.fn(async () => [
+          {
+            id: 1,
+            slug: 'basic-home-care',
+            name: 'Basic Home Care',
+            description: '',
+            care_level: 'basic',
+            price_lkr: '8500',
+            default_days: 7,
+            sort_order: 10,
+          },
+        ]),
+        listCatalogAddOns: vi.fn(async () => []),
+        listCareRequests: vi.fn(async () => ({ results: [] })),
+      },
+    }));
 
     const { useAssistant } = await import('./store');
     const {
       applyCareRequestTerminalStatus,
       acceptedNarration,
     } = await import('./careRequestStatus');
+    const { resetCatalogCache } = await import('./voiceCheckout');
+    resetCatalogCache();
 
     useAssistant.getState().reset();
     useAssistant.getState().setMatch({
@@ -341,5 +361,227 @@ describe('careRequestStatus helpers', () => {
     expect(useAssistant.getState().focusedCaregiverId).toBe(20);
     expect(useAssistant.getState().bookingStage).toBe('profile');
     expect(useAssistant.getState().chat.at(-1)?.text).toMatch(/Nimal/);
+  });
+});
+
+describe('resolvePackage', () => {
+  const packages = [
+    {
+      id: 1,
+      slug: 'basic-home-care',
+      name: 'Basic Home Care',
+      description: '',
+      care_level: 'basic' as const,
+      price_lkr: '8500',
+      default_days: 7,
+      sort_order: 10,
+    },
+    {
+      id: 2,
+      slug: 'intermediate-nursing',
+      name: 'Intermediate Nursing',
+      description: '',
+      care_level: 'intermediate' as const,
+      price_lkr: '14500',
+      default_days: 7,
+      sort_order: 20,
+    },
+    {
+      id: 3,
+      slug: 'advanced-clinical',
+      name: 'Advanced Clinical Care',
+      description: '',
+      care_level: 'advanced' as const,
+      price_lkr: '22000',
+      default_days: 7,
+      sort_order: 30,
+    },
+  ];
+
+  const addons = [
+    {
+      id: 10,
+      slug: 'meal-support',
+      name: 'Meal support',
+      description: '',
+      category: 'food' as const,
+      price_lkr: '2500',
+      sort_order: 20,
+    },
+    {
+      id: 11,
+      slug: 'hospital-escort',
+      name: 'Hospital escort',
+      description: '',
+      category: 'hospital' as const,
+      price_lkr: '3500',
+      sort_order: 10,
+    },
+  ];
+
+  it('resolves by id, rank, name, and standard→basic', async () => {
+    const { resolvePackage, parseDaysFromText, resolveAddOns } = await import(
+      './resolvePackage'
+    );
+    expect(resolvePackage(packages, { packageId: 2 })?.slug).toBe('intermediate-nursing');
+    expect(resolvePackage(packages, { rank: 1 })?.slug).toBe('basic-home-care');
+    expect(resolvePackage(packages, { nameQuery: 'intermediate' })?.id).toBe(2);
+    expect(resolvePackage(packages, { nameQuery: 'standard' })?.slug).toBe('basic-home-care');
+    expect(parseDaysFromText('Basic for 7 days with meals')).toBe(7);
+    expect(parseDaysFromText('a week of care')).toBe(7);
+    expect(resolveAddOns(addons, { nameQuery: 'with meals' }).map((a) => a.slug)).toEqual([
+      'meal-support',
+    ]);
+  });
+});
+
+describe('executeSerahAction select_package / confirm_checkout', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('updates checkoutDraft on select_package', async () => {
+    vi.doMock('./useTts', () => ({
+      speakSerah: vi.fn(async () => undefined),
+      stopSpeaking: vi.fn(),
+    }));
+    vi.doMock('../auth/api', () => ({
+      api: {
+        listCarePackages: vi.fn(async () => [
+          {
+            id: 1,
+            slug: 'basic-home-care',
+            name: 'Basic Home Care',
+            description: '',
+            care_level: 'basic',
+            price_lkr: '8500',
+            default_days: 7,
+            sort_order: 10,
+          },
+        ]),
+        listCatalogAddOns: vi.fn(async () => [
+          {
+            id: 10,
+            slug: 'meal-support',
+            name: 'Meal support',
+            description: '',
+            category: 'food',
+            price_lkr: '2500',
+            sort_order: 20,
+          },
+        ]),
+        createCheckout: vi.fn(),
+      },
+    }));
+
+    const { resetCatalogCache } = await import('./voiceCheckout');
+    resetCatalogCache();
+    const { useAssistant } = await import('./store');
+    useAssistant.getState().reset();
+    useAssistant.getState().setCareRequestId(99);
+    useAssistant.getState().setBookingStage('packages');
+
+    const { executeSerahAction } = await import('./executeSerahAction');
+    const result = await executeSerahAction({
+      type: 'select_package',
+      package_id: 'basic',
+      name_query: 'basic with meals',
+      days: 7,
+      addon_query: 'meals',
+      addon_ids: [],
+    });
+
+    expect(result?.ok).toBe(true);
+    expect(useAssistant.getState().checkoutDraft).toMatchObject({
+      packageId: 1,
+      packageName: 'Basic Home Care',
+      days: 7,
+      addonIds: [10],
+    });
+    expect(useAssistant.getState().bookingStage).toBe('packages');
+  });
+
+  it('posts checkout and navigates to pay without charging', async () => {
+    const createCheckout = vi.fn(async () => ({
+      id: 555,
+      care_request_id: 99,
+      patient_id: 1,
+      status: 'awaiting_payment',
+      days: 7,
+      currency: 'LKR',
+      subtotal_lkr: '59500',
+      total_lkr: '59500',
+      lines: [],
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }));
+    const navigate = vi.fn();
+
+    vi.doMock('./useTts', () => ({
+      speakSerah: vi.fn(async () => undefined),
+      stopSpeaking: vi.fn(),
+    }));
+    vi.doMock('../auth/api', () => ({
+      api: {
+        listCarePackages: vi.fn(async () => [
+          {
+            id: 1,
+            slug: 'basic-home-care',
+            name: 'Basic Home Care',
+            description: '',
+            care_level: 'basic',
+            price_lkr: '8500',
+            default_days: 7,
+            sort_order: 10,
+          },
+        ]),
+        listCatalogAddOns: vi.fn(async () => []),
+        createCheckout,
+      },
+    }));
+    vi.doMock('../auth/session', () => ({
+      loadCachedUser: () => ({
+        id: 1,
+        email: 'p@example.com',
+        role: 'patient',
+        first_name: 'P',
+        last_name: 'T',
+        otp_enabled: false,
+        otp_verified: true,
+      }),
+    }));
+    vi.doMock('./appNavigate', () => ({
+      appNavigate: navigate,
+      bindAppNavigate: vi.fn(),
+    }));
+
+    const { resetCatalogCache } = await import('./voiceCheckout');
+    resetCatalogCache();
+    const { useAssistant } = await import('./store');
+    useAssistant.getState().reset();
+    useAssistant.getState().setCareRequestId(99);
+    useAssistant.getState().setCheckoutDraft({
+      packageId: 1,
+      packageName: 'Basic Home Care',
+      addonIds: [],
+      days: 7,
+      orderId: null,
+    });
+    useAssistant.getState().setBookingStage('packages');
+
+    const { executeSerahAction } = await import('./executeSerahAction');
+    const result = await executeSerahAction({ type: 'confirm_checkout' });
+
+    expect(result?.ok).toBe(true);
+    expect(createCheckout).toHaveBeenCalledWith({
+      care_request_id: 99,
+      package_id: 1,
+      addon_ids: [],
+      days: 7,
+    });
+    expect(navigate).toHaveBeenCalledWith('/orders/555/pay');
+    expect(useAssistant.getState().bookingStage).toBe('pay');
+    expect(useAssistant.getState().checkoutDraft.orderId).toBe(555);
+    expect(useAssistant.getState().chat.at(-1)?.text).toMatch(/tap Pay/i);
   });
 });
