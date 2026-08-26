@@ -193,6 +193,17 @@ export function useVoiceTurn() {
         looksLikeSearchPromise(result.reply || '');
       const outcome = applyTurnState(result, store, stillSeeking);
       if (outcome === 'hold') {
+        const s = useAssistant.getState();
+        const line = userLine || result.transcript?.trim() || '';
+        if (!s.intent.raw_text && line) {
+          const fever = /\bfever\b/i.test(line) ? 'fever' : undefined;
+          s.setIntent({
+            raw_text: line,
+            ...(fever && !s.intent.condition ? { condition: fever } : {}),
+          });
+        } else if (s.intent.raw_text && !s.intent.condition && /\bfever\b/i.test(s.intent.raw_text)) {
+          s.setIntent({ condition: 'fever' });
+        }
         void runClientMatch();
       }
 

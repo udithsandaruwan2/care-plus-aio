@@ -265,6 +265,17 @@ export function useVoiceTurn() {
         }
 
         if (outcome === 'hold') {
+          const s = useAssistant.getState();
+          // Ensure VEHMF has something to rank when Gemini chatted names but left intent thin.
+          if (!s.intent.raw_text && lineText) {
+            const fever = /\bfever\b/i.test(lineText) ? 'fever' : undefined;
+            s.setIntent({
+              raw_text: lineText,
+              ...(fever && !s.intent.condition ? { condition: fever } : {}),
+            });
+          } else if (s.intent.raw_text && !s.intent.condition && /\bfever\b/i.test(s.intent.raw_text)) {
+            s.setIntent({ condition: 'fever' });
+          }
           announceMatchFinding();
           void runClientMatch();
         }
