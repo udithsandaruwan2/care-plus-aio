@@ -7,6 +7,8 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
 import { dismissFailedOutbox, flushOutbox } from '../lib/outbox/flush';
 import { useOutboxStore } from '../lib/outbox/outboxStore';
+import { applyCareRequestTerminalStatus } from '../assistant/careRequestStatus';
+import { useAssistant } from '../assistant/store';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Pending',
@@ -56,6 +58,11 @@ export function CareRequestsPage() {
     try {
       const updated = await api.acceptCareRequest(id);
       setRows((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      const store = useAssistant.getState();
+      if (store.careRequestId === updated.id || store.bookingStage === 'awaiting_accept') {
+        store.setCareRequestId(updated.id);
+        applyCareRequestTerminalStatus(updated);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not accept request.');
     } finally {
@@ -70,6 +77,10 @@ export function CareRequestsPage() {
       setRows((prev) => prev.map((r) => (r.id === id ? updated : r)));
       setRejectId(null);
       setRejectReason('');
+      const store = useAssistant.getState();
+      if (store.careRequestId === updated.id) {
+        applyCareRequestTerminalStatus(updated);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not reject request.');
     } finally {

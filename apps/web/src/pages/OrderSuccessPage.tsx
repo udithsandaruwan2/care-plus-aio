@@ -61,8 +61,14 @@ export function OrderSuccessPage() {
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Link
-          to="/hub"
+          to="/schedule"
           className="rounded-lg border border-mint/50 px-4 py-2.5 text-sm text-mint transition hover:bg-mint/10"
+        >
+          Open schedule
+        </Link>
+        <Link
+          to="/hub"
+          className="rounded-lg border border-hair px-4 py-2.5 text-sm text-muted hover:border-cyan hover:text-cyan"
         >
           Open hub
         </Link>
@@ -86,7 +92,17 @@ export function OrderSuccessPage() {
         >
           Care requests
         </Link>
+        <Link
+          to="/orders"
+          className="rounded-lg border border-hair px-4 py-2.5 text-sm text-muted hover:border-cyan hover:text-cyan"
+        >
+          Orders
+        </Link>
       </div>
+      <p className="mt-4 text-sm text-muted">
+        If a shift is not listed yet, open Schedule — slots appear once your caregiver publishes
+        availability, or ask them in Messages.
+      </p>
     </div>
   );
 }

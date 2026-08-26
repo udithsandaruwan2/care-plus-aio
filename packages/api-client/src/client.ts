@@ -749,6 +749,7 @@ export function createApiClient(options: ApiClientOptions) {
     createCheckout: (input: CheckoutCreate) =>
       request('/checkout/', { method: 'POST', body: JSON.stringify(input) }, (d) => Order.parse(d)),
     getOrder: (id: number) => request(`/orders/${id}/`, {}, (d) => Order.parse(d)),
+    listOrders: () => request('/orders/', {}, (d) => z.array(Order).parse(d)),
     getOrderReceiptHtml: (id: number) => request(`/orders/${id}/receipt/`, {}, (d) => String(d)),
     createPaymentIntent: (orderId: number) =>
       request(
@@ -812,6 +813,8 @@ export function createApiClient(options: ApiClientOptions) {
       ),
     currentMessageThread: () =>
       request('/message-threads/current/', {}, (d) => (d == null ? null : MessageThread.parse(d))),
+    listMessageThreads: () =>
+      request('/message-threads/', {}, (d) => z.array(MessageThread).parse(d)),
     listMessages: (threadId: number, params?: { after_id?: number; limit?: number }) => {
       const qs = new URLSearchParams();
       if (params?.after_id != null) qs.set('after_id', String(params.after_id));

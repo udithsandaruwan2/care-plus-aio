@@ -46,6 +46,25 @@ def get_or_create_thread_for_relationship(rel: CareRelationship) -> MessageThrea
     return thread
 
 
+def list_threads_for_user(user) -> list[MessageThread]:
+    """Active care-relationship threads the user can open (inbox)."""
+    role = getattr(user, "role", None)
+    qs = MessageThread.objects.select_related(
+        "relationship",
+        "relationship__caregiver",
+        "relationship__caregiver__user",
+        "relationship__patient",
+        "relationship__patient__patient_profile",
+    ).filter(relationship__status=CareRelationshipStatus.ACTIVE)
+    if role == Role.PATIENT:
+        qs = qs.filter(relationship__patient=user)
+    elif role == Role.CAREGIVER:
+        qs = qs.filter(relationship__caregiver__user=user)
+    else:
+        return []
+    return list(qs.order_by("-created_at")[:50])
+
+
 def current_thread_for_user(user) -> MessageThread | None:
     qs = CareRelationship.objects.select_related(
         "caregiver",

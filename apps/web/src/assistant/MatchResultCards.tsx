@@ -7,6 +7,7 @@ import type { UiVoiceLanguage } from './uiVoiceLanguage';
 import { useAssistant } from './store';
 import { speakSerah } from './useTts';
 import { comparativeMatchLine } from './compareMatch';
+import { applyCareRequestBookingState } from './bookingFromCareRequest';
 
 function FactorBar({
   label,
@@ -87,9 +88,15 @@ function MatchCard({
 
   function startRequest() {
     if (!canRequestCare) {
-      setFormError(
-        'Complete your patient profile (at least 80%) before requesting care. Open Account or go to /onboarding.',
-      );
+      const msg =
+        'Complete your patient profile (at least 80%) before requesting care. Open Account or go to /onboarding.';
+      setFormError(msg);
+      const store = useAssistant.getState();
+      const last = [...store.chat].reverse().find((m) => m.role === 'serah');
+      if (last?.text !== msg) {
+        store.appendChat({ role: 'serah', text: msg, route: 'ACTION' });
+      }
+      void speakSerah(msg, uiLanguage);
       return;
     }
     if (sent || busy) return;
@@ -117,6 +124,15 @@ function MatchCard({
       }, `Request to ${hit.display_name || 'caregiver'}`);
       setSent(true);
       setShowForm(false);
+      const createdId =
+        !outcome.queued && outcome.result && typeof outcome.result.id === 'number'
+          ? outcome.result.id
+          : undefined;
+      applyCareRequestBookingState({
+        caregiverId: hit.caregiver_id,
+        careRequestId: createdId,
+        queued: outcome.queued,
+      });
       const confirmation = outcome.queued
         ? uiLanguage === 'Sinhala'
           ? `${hit.display_name || 'මෙම caregiver'} වෙත ඉල්ලීම පෝලිමේ. ඔබ නැවත online වූ විට යැවේ.`

@@ -21,9 +21,25 @@ from .serializers import (
 from .services import (
     current_thread_for_user,
     get_thread_for_user,
+    list_threads_for_user,
     mark_messages_read,
     send_message,
 )
+
+
+class MessageThreadListView(APIView):
+    """GET /message-threads/ — active relationship threads for inbox."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        role = getattr(request.user, "role", None)
+        if role not in (Role.PATIENT, Role.CAREGIVER):
+            raise PermissionDenied("Only patients and caregivers can use messaging.")
+        threads = list_threads_for_user(request.user)
+        return Response(
+            MessageThreadSerializer(threads, many=True, context={"request": request}).data
+        )
 
 
 class MessageThreadCurrentView(APIView):

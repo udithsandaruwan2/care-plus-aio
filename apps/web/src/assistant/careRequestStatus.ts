@@ -19,7 +19,8 @@ export function nextRankedCaregiver(
 export function acceptedNarration(name: string): string {
   return (
     `${name} accepted your care request. ` +
-    `I’ll list a few care packages next so we can checkout by voice.`
+    `I’ll list a few care packages next so we can checkout by voice. ` +
+    `You can also open Messages anytime to say hi.`
   );
 }
 

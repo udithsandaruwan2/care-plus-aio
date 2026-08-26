@@ -3,6 +3,22 @@ import { useAssistant } from './store';
 import { resolveCaregiverFromAction } from './resolveCaregiver';
 import { checkCareRequestStatus } from './careRequestStatus';
 import { confirmCheckoutFromVoice, selectPackageFromAction } from './voiceCheckout';
+import { applyCareRequestBookingState } from './bookingFromCareRequest';
+
+const PROFILE_GATE_MSG =
+  'Complete your patient profile (at least 80%) before requesting care. Open Account or go to onboarding.';
+
+async function patientCanRequestCare(): Promise<boolean> {
+  try {
+    const { api } = await import('../auth/api');
+    const me = await api.me();
+    if (me.role !== 'patient') return true;
+    const profile = await api.myPatientProfile();
+    return profile.can_request_care === true;
+  } catch {
+    return true;
+  }
+}
 
 export type ExecuteSerahActionResult =
   | {
@@ -49,6 +65,10 @@ export async function executeSerahAction(
       store.appendChat({ role: 'serah', text: error, route: 'ACTION' });
       return { ok: false, type: 'request', error };
     }
+    if (!(await patientCanRequestCare())) {
+      store.appendChat({ role: 'serah', text: PROFILE_GATE_MSG, route: 'ACTION' });
+      return { ok: false, type: 'request', error: PROFILE_GATE_MSG };
+    }
     try {
       const { enqueueCareRequest } = await import('../lib/outbox/flush');
       const outcome = await enqueueCareRequest(
@@ -65,9 +85,16 @@ export async function executeSerahAction(
         },
         `Request to ${hit.display_name || 'caregiver'}`,
       );
-      store.setFocusedCaregiverId(hit.caregiver_id);
+      const createdId =
+        !outcome.queued && outcome.result && typeof outcome.result.id === 'number'
+          ? outcome.result.id
+          : undefined;
+      applyCareRequestBookingState({
+        caregiverId: hit.caregiver_id,
+        careRequestId: createdId,
+        queued: outcome.queued,
+      });
       if (outcome.queued) {
-        store.setBookingStage('requested');
         const queued =
           `Request to ${hit.display_name || 'this caregiver'} is queued and will send when you reconnect.`;
         const last = [...store.chat].reverse().find((m) => m.role === 'serah');
@@ -81,17 +108,12 @@ export async function executeSerahAction(
           queued: true,
         };
       }
-      const createdId = outcome.result?.id;
-      if (typeof createdId === 'number') {
-        store.setCareRequestId(createdId);
-      }
-      store.setBookingStage('awaiting_accept');
       return {
         ok: true,
         type: 'request',
         caregiverId: hit.caregiver_id,
         queued: false,
-        careRequestId: typeof createdId === 'number' ? createdId : undefined,
+        careRequestId: createdId,
       };
     } catch (err) {
       const error =

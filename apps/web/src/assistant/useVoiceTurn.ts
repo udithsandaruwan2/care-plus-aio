@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { SerahAction } from '@care-plus/api-client';
 import {
   ApiError,
   AI_CONSENT_SCOPE,
@@ -35,7 +36,7 @@ import {
   rememberStreamedReply,
   lastStreamedReplyText,
 } from './turnStream';
-import { classifyTurnFailure, type PendingTurn, type TurnFailure } from './turnFailure';
+import { classifyTurnFailure, actionTurnFailure, type PendingTurn, type TurnFailure } from './turnFailure';
 import { bindTurnFailureClearer } from './turnFailureClear';
 import { executeSerahAction } from './executeSerahAction';
 
@@ -167,6 +168,7 @@ export function useVoiceTurn() {
   const [ttsSource, setTtsSource] = useState<string | null>(null);
 
   const pendingRef = useRef<PendingTurn | null>(null);
+  const pendingActionRef = useRef<SerahAction | null>(null);
   /** When true, the next transition to online replays ``pendingRef`` once. */
   const autoReplayRef = useRef(false);
   const continueListeningRef = useRef<(() => void) | undefined>(undefined);
@@ -288,7 +290,14 @@ export function useVoiceTurn() {
         }
 
         if (result.action && claimTurnStage('action', rid)) {
-          void executeSerahAction(result.action);
+          pendingActionRef.current = result.action;
+          const actionOutcome = await executeSerahAction(result.action);
+          if (actionOutcome && !actionOutcome.ok) {
+            setFailure(actionTurnFailure(actionOutcome.error));
+            setError(actionOutcome.error);
+          } else {
+            pendingActionRef.current = null;
+          }
         }
 
         if (outcome === 'hold') {
@@ -410,8 +419,28 @@ export function useVoiceTurn() {
   runTurnRef.current = runTurn;
 
   const retryFailedTurn = useCallback(async () => {
+    if (busyRef.current) return;
+    const pendingAction = pendingActionRef.current;
+    if (pendingAction && failure?.kind === 'action') {
+      autoReplayRef.current = false;
+      setFailure(null);
+      setError(null);
+      setBusy(true);
+      try {
+        const actionOutcome = await executeSerahAction(pendingAction);
+        if (actionOutcome && !actionOutcome.ok) {
+          setFailure(actionTurnFailure(actionOutcome.error));
+          setError(actionOutcome.error);
+        } else {
+          pendingActionRef.current = null;
+        }
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     const pending = pendingRef.current;
-    if (!pending || busyRef.current) return;
+    if (!pending) return;
     // Manual retry claims the queue — online handler must not also fire.
     autoReplayRef.current = false;
     setFailure(null);
@@ -421,7 +450,7 @@ export function useVoiceTurn() {
       audio: pending.audio,
       continueListening: continueListeningRef.current,
     });
-  }, []);
+  }, [failure?.kind]);
 
   // Auto-replay once when the browser reports online again (Step 86).
   useEffect(() => {

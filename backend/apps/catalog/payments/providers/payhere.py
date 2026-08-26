@@ -73,22 +73,33 @@ class PayHereProvider:
             else "https://www.payhere.lk/pay/checkout"
         )
         amount = f"{Decimal(order.total_lkr):.2f}"
+        configured = bool(self.merchant_id and self.merchant_secret)
         payload = {
             "mode": "payhere",
             "sandbox": self.sandbox,
             "checkout_url": checkout_host,
             "merchant_id": self.merchant_id,
             "order_id": order_id,
-            "amount": amount,
+            "items": f"Care Plus order #{order.pk}",
             "currency": order.currency,
+            "amount": amount,
+            "first_name": "Care",
+            "last_name": "Plus",
+            "email": getattr(order.patient, "email", "") or "patient@careplus.local",
+            "phone": "0770000000",
+            "address": "Colombo",
+            "city": "Colombo",
+            "country": "Sri Lanka",
             "notify_url": self.notify_url or "/api/v1/payments/payhere/webhook/",
-            # Live redirect/form posting is wired in Step 32 UI.
-            "stub": True,
+            "return_url": getattr(settings, "PAYHERE_RETURN_URL", "") or "",
+            "cancel_url": getattr(settings, "PAYHERE_CANCEL_URL", "") or "",
+            # Live when merchant credentials are configured; otherwise UI stays demo-only.
+            "stub": not configured,
         }
         return CreateIntentResult(
             provider_intent_id=order_id,
             client_payload=payload,
-            provider_response={"provider": "payhere", "stub": True},
+            provider_response={"provider": "payhere", "stub": not configured},
         )
 
     def verify_webhook_signature(self, *, body: bytes, headers: Mapping[str, str]) -> bool:

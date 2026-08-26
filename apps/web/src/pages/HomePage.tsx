@@ -65,6 +65,7 @@ export function HomePage() {
     uiLanguage,
     setUiLanguage,
     focusedCaregiverId,
+    bookingStage,
   } = useAssistant();
   useHydrateLastMatch();
 
@@ -93,6 +94,11 @@ export function HomePage() {
           <div className="status-indicator" />
           <span>{asleep ? 'SLEEPING' : visual.toUpperCase()}</span>
           <span className="hud-goal">Goal {progress}%</span>
+          {bookingStage !== 'idle' ? (
+            <span className="hud-goal" data-testid="serah-booking-stage">
+              Book {bookingStage.replace(/_/g, ' ')}
+            </span>
+          ) : null}
         </div>
         <LanguagePicker
           value={uiLanguage}

@@ -25,6 +25,8 @@ export function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [inbox, setInbox] = useState<MessageThread[]>([]);
+  const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const lastIdRef = useRef(0);
 
@@ -39,6 +41,24 @@ export function MessagesPage() {
     ),
   );
 
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    api
+      .listMessageThreads()
+      .then((rows) => {
+        if (cancelled) return;
+        setInbox(rows);
+        setSelectedThreadId((prev) => prev ?? rows[0]?.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setInbox([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, user?.id]);
+
   const threadQuery = useCachedQuery<MessageThread | null>({
     key: enabled ? queryKeys.messageThread(user!.id) : null,
     staleTimeMs: STALE_MS.messageThread,
@@ -52,7 +72,8 @@ export function MessagesPage() {
     },
   });
 
-  const thread = threadQuery.data;
+  const selectedFromInbox = inbox.find((t) => t.id === selectedThreadId) ?? null;
+  const thread = selectedFromInbox ?? threadQuery.data;
   const messagesKey = thread ? queryKeys.messages(thread.id) : null;
 
   const messagesQuery = useCachedQuery<Message[]>({
@@ -191,6 +212,27 @@ export function MessagesPage() {
       )}
 
       {loading && <p className="mt-8 text-sm text-muted">Loading conversation…</p>}
+
+      {!loading && inbox.length > 0 ? (
+        <div className="mt-6 flex flex-wrap gap-2" role="list" aria-label="Message threads">
+          {inbox.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="listitem"
+              onClick={() => setSelectedThreadId(t.id)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                thread?.id === t.id
+                  ? 'border-cyan bg-cyan/15 text-cyan'
+                  : 'border-hair text-muted hover:border-cyan hover:text-cyan'
+              }`}
+            >
+              {t.partner_label || `Thread #${t.id}`}
+              {t.unread_count > 0 ? ` · ${t.unread_count}` : ''}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {!loading && !thread && (
         <div className="mt-8 rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
