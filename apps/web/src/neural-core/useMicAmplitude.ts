@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { shouldPublishAmplitude } from './frameBudget';
 
+export type MicStartOptions = {
+  /**
+   * During Serah TTS: disable AGC so distant room voices are not boosted into
+   * barge-in range; keep echoCancellation + noiseSuppression.
+   */
+  nearField?: boolean;
+};
+
 export type MicAmplitudeControls = {
   /** 0–1 smoothed microphone level (throttled React snapshot, ~15 Hz). */
   amplitude: number;
@@ -8,7 +16,7 @@ export type MicAmplitudeControls = {
   amplitudeRef: MutableRefObject<number>;
   active: boolean;
   error: string | null;
-  start: () => Promise<void>;
+  start: (opts?: MicStartOptions) => Promise<void>;
   stop: () => void;
 };
 
@@ -28,6 +36,7 @@ export function useMicAmplitude(): MicAmplitudeControls {
   const smoothRef = useRef(0);
   const amplitudeRef = useRef(0);
   const lastPublishMs = useRef(0);
+  const nearFieldRef = useRef(false);
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -40,67 +49,77 @@ export function useMicAmplitude(): MicAmplitudeControls {
     smoothRef.current = 0;
     amplitudeRef.current = 0;
     lastPublishMs.current = 0;
+    nearFieldRef.current = false;
     setAmplitude(0);
     setActive(false);
   }, []);
 
-  const start = useCallback(async () => {
-    setError(null);
-    stop();
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: false,
-      });
-      const ctx = new AudioContext();
-      const source = ctx.createMediaStreamSource(stream);
-      // Light high-pass so low-frequency rumble does not inflate orb / VAD levels.
-      const highpass = ctx.createBiquadFilter();
-      highpass.type = 'highpass';
-      highpass.frequency.value = 85;
-      highpass.Q.value = 0.7;
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.75;
-      source.connect(highpass);
-      highpass.connect(analyser);
-
-      streamRef.current = stream;
-      ctxRef.current = ctx;
-      analyserRef.current = analyser;
-      setActive(true);
-
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      const tick = () => {
-        const a = analyserRef.current;
-        if (!a) return;
-        a.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) sum += data[i];
-        const raw = Math.min(1, sum / data.length / 90);
-        smoothRef.current = smoothRef.current * 0.7 + raw * 0.3;
-        amplitudeRef.current = smoothRef.current;
-        const now = performance.now();
-        if (shouldPublishAmplitude(now, lastPublishMs.current)) {
-          lastPublishMs.current = now;
-          setAmplitude(smoothRef.current);
-        }
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
-    } catch (err) {
-      const message =
-        err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Microphone permission denied.'
-          : 'Could not access the microphone.';
-      setError(message);
+  const start = useCallback(
+    async (opts?: MicStartOptions) => {
+      setError(null);
+      const nearField = Boolean(opts?.nearField);
+      // Reuse stream when mode unchanged to avoid permission flicker mid-turn.
+      if (streamRef.current && nearFieldRef.current === nearField) {
+        return;
+      }
       stop();
-    }
-  }, [stop]);
+      nearFieldRef.current = nearField;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            // Near-field barge watch: no AGC so far voices stay quiet.
+            autoGainControl: !nearField,
+          },
+          video: false,
+        });
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const highpass = ctx.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = nearField ? 120 : 85;
+        highpass.Q.value = 0.7;
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.75;
+        source.connect(highpass);
+        highpass.connect(analyser);
+
+        streamRef.current = stream;
+        ctxRef.current = ctx;
+        analyserRef.current = analyser;
+        setActive(true);
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const tick = () => {
+          const a = analyserRef.current;
+          if (!a) return;
+          a.getByteFrequencyData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) sum += data[i];
+          const raw = Math.min(1, sum / data.length / 90);
+          smoothRef.current = smoothRef.current * 0.7 + raw * 0.3;
+          amplitudeRef.current = smoothRef.current;
+          const now = performance.now();
+          if (shouldPublishAmplitude(now, lastPublishMs.current)) {
+            lastPublishMs.current = now;
+            setAmplitude(smoothRef.current);
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      } catch (err) {
+        const message =
+          err instanceof DOMException && err.name === 'NotAllowedError'
+            ? 'Microphone permission denied.'
+            : 'Could not access the microphone.';
+        setError(message);
+        stop();
+      }
+    },
+    [stop],
+  );
 
   useEffect(() => () => stop(), [stop]);
 

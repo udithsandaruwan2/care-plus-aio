@@ -18,7 +18,13 @@ import { api } from '../auth/api';
 import { useConnectionStore } from '../auth/connectionStore';
 import { useAssistant } from './store';
 import { announceMatchFinding, announceMatchReady, runClientMatch } from './useMatch';
-import { speakSerah, stopSpeaking } from './useTts';
+import {
+  stopActivePlayback,
+  stopSpeaking,
+  takeInterruptedResidual,
+  enqueueAfterBargeIn,
+  resumeResidual,
+} from './useTts';
 import {
   httpNeedsTurnStage,
   resetTurnStream,
@@ -190,7 +196,7 @@ export function useVoiceTurn() {
       } else {
         store.setState(AssistantState.THINKING, { force: true });
       }
-      stopSpeaking();
+      stopActivePlayback();
 
       try {
         const result = await api.voiceTurn({
@@ -304,13 +310,20 @@ export function useVoiceTurn() {
               /* browser TTS fallback inside speakSerah */
             }
           }
-          // Fire-and-forget: barge-in / speak-end handler starts the next listen.
-          void speakSerah(result.reply, result.reply_lang, {
-            audioBase64,
-            audioMime,
+          const residual = takeInterruptedResidual();
+          // Residual (cut-off reply) first, then the new turn reply.
+          void enqueueAfterBargeIn(residual, {
+            text: result.reply,
+            lang: result.reply_lang,
+            opts: { audioBase64, audioMime },
           });
-        } else if (opts.continueListening) {
-          opts.continueListening();
+        } else {
+          const residual = takeInterruptedResidual();
+          if (residual) {
+            void resumeResidual(residual);
+          } else if (opts.continueListening) {
+            opts.continueListening();
+          }
         }
 
         const after = useAssistant.getState();
