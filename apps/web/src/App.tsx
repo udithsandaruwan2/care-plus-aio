@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth } from './auth/RequireAuth';
 import { RequireOtp } from './auth/RequireOtp';
+import { RequireRole } from './auth/RequireRole';
 import { AppShell } from './components/layout/AppShell';
 import { PublicSiteLayout } from './components/layout/PublicSiteLayout';
 import { SessionAwareLayout } from './components/layout/SessionAwareLayout';
@@ -57,6 +58,7 @@ const MedicalRecordsPage = lazyNamed(
 );
 const CheckoutPage = lazyNamed(() => import('./pages/CheckoutPage'), 'CheckoutPage');
 const OrderPayPage = lazyNamed(() => import('./pages/OrderPayPage'), 'OrderPayPage');
+const OrdersPage = lazyNamed(() => import('./pages/OrdersPage'), 'OrdersPage');
 const OrderSuccessPage = lazyNamed(() => import('./pages/OrderSuccessPage'), 'OrderSuccessPage');
 const OrderFailedPage = lazyNamed(() => import('./pages/OrderFailedPage'), 'OrderFailedPage');
 const CaregiverPresencePage = lazyNamed(
@@ -117,6 +119,7 @@ export function App() {
               <Route path="/otp" element={<OtpPage />} />
               <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
               <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
               <Route element={<RequireOtp />}>
                 <Route path="/records" element={<MedicalRecordsPage />} />
                 <Route path="/requests/:careRequestId/checkout" element={<CheckoutPage />} />
@@ -126,11 +129,15 @@ export function App() {
               <Route path="/orders/:orderId/failed" element={<OrderFailedPage />} />
               <Route path="/presence" element={<CaregiverPresencePage />} />
               <Route path="/schedule" element={<SchedulePage />} />
-              <Route path="/users" element={<AdminUsersPage />} />
-              <Route path="/admin/catalog" element={<AdminCatalogPage />} />
-              <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
-              <Route path="/admin/audit" element={<AdminAuditPage />} />
-              <Route path="/leads" element={<LeadsPage />} />
+              <Route element={<RequireRole roles={['admin', 'auditor']} />}>
+                <Route path="/users" element={<AdminUsersPage />} />
+                <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+                <Route path="/admin/audit" element={<AdminAuditPage />} />
+              </Route>
+              <Route element={<RequireRole roles={['admin']} />}>
+                <Route path="/admin/catalog" element={<AdminCatalogPage />} />
+                <Route path="/leads" element={<LeadsPage />} />
+              </Route>
             </Route>
           </Route>
 

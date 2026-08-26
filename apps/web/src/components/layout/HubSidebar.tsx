@@ -51,6 +51,7 @@ function itemsForRole(role: string | undefined): NavItem[] {
     { path: '/app', label: 'Serah Core', icon: Activity },
     { path: '/caregivers', label: 'Caregivers', icon: Users },
     { path: '/requests', label: 'Requests', icon: Inbox },
+    { path: '/orders', label: 'Orders', icon: Package },
     { path: '/history', label: 'History', icon: History },
     { path: '/messages', label: 'Messages', icon: MessageSquare },
     { path: '/schedule', label: 'Schedule', icon: Calendar },

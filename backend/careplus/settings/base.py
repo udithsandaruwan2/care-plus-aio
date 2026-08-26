@@ -294,6 +294,8 @@ PAYHERE_MERCHANT_ID = env("PAYHERE_MERCHANT_ID", default="")
 PAYHERE_MERCHANT_SECRET = env("PAYHERE_MERCHANT_SECRET", default="")
 PAYHERE_SANDBOX = env.bool("PAYHERE_SANDBOX", default=True)
 PAYHERE_NOTIFY_URL = env("PAYHERE_NOTIFY_URL", default="")
+PAYHERE_RETURN_URL = env("PAYHERE_RETURN_URL", default="")
+PAYHERE_CANCEL_URL = env("PAYHERE_CANCEL_URL", default="")
 # Step 33 — email LKR receipt after successful payment.
 RECEIPT_EMAIL_ENABLED = env.bool("RECEIPT_EMAIL_ENABLED", default=True)
 

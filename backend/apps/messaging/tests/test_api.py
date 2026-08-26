@@ -78,6 +78,13 @@ class MessagingApiTests(APITestCase):
         self.assertEqual(res.data["id"], self.thread.pk)
         self.assertEqual(res.data["partner_label"], "CG Msg")
 
+    def test_list_threads_inbox(self):
+        self.client.force_authenticate(user=self.patient)
+        res = self.client.get(reverse("v1:message_thread_list"))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]["id"], self.thread.pk)
+
     def test_patient_sends_and_caregiver_lists(self):
         self.client.force_authenticate(user=self.patient)
         res = self.client.post(self.messages_url, {"body": "Hello caregiver"}, format="json")

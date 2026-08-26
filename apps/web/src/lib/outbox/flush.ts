@@ -58,25 +58,24 @@ export async function registerOutboxSync(): Promise<void> {
   }
 }
 
-async function deliver(item: OutboxItem): Promise<void> {
+async function deliver(item: OutboxItem): Promise<unknown> {
   const key = item.id;
   if (item.kind === 'care_request') {
-    await api.createCareRequest({
+    return api.createCareRequest({
       ...(item.payload as CareRequestCreate),
       idempotency_key: key,
     });
-    return;
   }
   if (item.kind === 'message') {
     const threadId = Number(item.payload.thread_id);
     const body = String(item.payload.body ?? '');
-    await api.sendMessage(threadId, body, key);
-    return;
+    return api.sendMessage(threadId, body, key);
   }
   if (item.kind === 'payment_confirm') {
     const providerIntentId = String(item.payload.provider_intent_id ?? '');
-    await api.confirmMockPayment(providerIntentId, key);
+    return api.confirmMockPayment(providerIntentId, key);
   }
+  return undefined;
 }
 
 export async function flushOne(item: OutboxItem): Promise<void> {
@@ -88,9 +87,13 @@ export async function flushOne(item: OutboxItem): Promise<void> {
   await outboxPut(sending);
   await refreshStore();
   try {
-    await deliver(item);
+    const result = await deliver(item);
     await outboxDelete(item.id);
     await refreshStore();
+    if (item.kind === 'care_request' && result && typeof result === 'object' && 'id' in result) {
+      const { promoteQueuedCareRequest } = await import('../../assistant/bookingFromCareRequest');
+      promoteQueuedCareRequest(result as import('@care-plus/api-client').CareRequest);
+    }
   } catch (err) {
     if (isPermanentFailure(err)) {
       await outboxPut({

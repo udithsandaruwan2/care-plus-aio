@@ -151,6 +151,10 @@ class CheckoutOrderTests(APITestCase):
         self.assertEqual(package_line.unit_price_lkr, Decimal("8500.00"))
         self.assertEqual(package_line.line_total_lkr, Decimal("85000.00"))
 
+        list_resp = self.client.get(reverse("v1:order_list"))
+        self.assertEqual(list_resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(row["id"] == order.pk for row in list_resp.data))
+
         self.assertTrue(
             AuditLog.objects.filter(
                 actor=self.patient,

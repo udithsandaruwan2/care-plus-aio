@@ -127,7 +127,8 @@ export function AdminAnalyticsPage() {
             <ChartCard title={`Voice turn latency (last ${data.turn_latency.window_days}d)`}>
               <p className="mb-3 text-xs text-muted">
                 Full <code>/voice/turn/</code> wall time (ASR + intent + route + match + chat + TTS).
-                Distinct from VEHMF engine time above.
+                Distinct from VEHMF engine time above. Watch <strong>chat p95</strong> — spikes over
+                ~8s fall back to stub replies so the client does not show a false timeout.
               </p>
               <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                 <Metric label="Samples" value={String(data.turn_latency.sample_size)} />

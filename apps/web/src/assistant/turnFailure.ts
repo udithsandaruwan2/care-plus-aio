@@ -6,6 +6,7 @@ export type TurnFailureKind =
   | 'throttle'
   | 'consent'
   | 'auth'
+  | 'action'
   | 'unknown';
 
 export type TurnFailure = {
@@ -20,6 +21,15 @@ export type PendingTurn = {
   text: string;
   audio: Blob | null;
 };
+
+export function actionTurnFailure(message: string): TurnFailure {
+  return {
+    kind: 'action',
+    message: message || 'That action didn’t complete. Retry when you’re ready.',
+    autoReplay: false,
+    canRetry: true,
+  };
+}
 
 const CONSENT_STATUS = 451;
 

@@ -48,3 +48,7 @@ Old Care Plus/
 
 # ── Local Colombo stakeholder survey toolkit (never publish) ──
 research/stakeholder-survey/
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/

@@ -14,7 +14,7 @@ export type ChatMessage = {
   route?: string;
 };
 
-/** Booking funnel stage for voice navigation (drawer / accept / packages later). */
+/** Booking funnel stage: idle → profile → requested|awaiting_accept → packages → pay. */
 export type BookingStage =
   | 'idle'
   | 'profile'

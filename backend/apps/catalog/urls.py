@@ -10,6 +10,7 @@ from .views import (
     CheckoutCreateView,
     MockPaymentConfirmView,
     OrderDetailView,
+    OrderListView,
     OrderReceiptView,
     PayHereWebhookView,
     PaymentIntentView,
@@ -39,6 +40,7 @@ urlpatterns = [
         name="admin_catalog_addon_detail",
     ),
     path("checkout/", CheckoutCreateView.as_view(), name="checkout_create"),
+    path("orders/", OrderListView.as_view(), name="order_list"),
     path("orders/<int:pk>/", OrderDetailView.as_view(), name="order_detail"),
     path("orders/<int:pk>/receipt/", OrderReceiptView.as_view(), name="order_receipt"),
     path(

@@ -135,13 +135,60 @@ export function OrderPayPage() {
 
           {mode === 'payhere' && intent && (
             <div className="rounded-2xl border border-cyan/40 bg-cyan/5 p-5">
-              <p className="text-sm text-mist/90">
-                PayHere redirect will open the provider checkout when live. Until then, use the
-                Stripe demo gateway or contact Care Plus support.
-              </p>
-              <p className="mt-2 font-mono text-xs text-muted">
-                order_id: {String(intent.client_payload?.order_id ?? intent.provider_intent_id)}
-              </p>
+              {intent.client_payload?.stub ? (
+                <>
+                  <p className="text-sm text-mist/90">
+                    PayHere is not configured yet (set <code>PAYHERE_MERCHANT_ID</code> /{' '}
+                    <code>PAYHERE_MERCHANT_SECRET</code> and <code>PAYMENT_PROVIDER=payhere</code>).
+                    Use the Stripe demo gateway for thesis demos.
+                  </p>
+                  <p className="mt-2 font-mono text-xs text-muted">
+                    order_id: {String(intent.client_payload?.order_id ?? intent.provider_intent_id)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-mist/90">
+                    Continue to PayHere checkout to complete this order securely.
+                  </p>
+                  <form
+                    method="post"
+                    action={String(intent.client_payload?.checkout_url || '')}
+                    className="mt-4"
+                  >
+                    {[
+                      'merchant_id',
+                      'return_url',
+                      'cancel_url',
+                      'notify_url',
+                      'order_id',
+                      'items',
+                      'currency',
+                      'amount',
+                      'first_name',
+                      'last_name',
+                      'email',
+                      'phone',
+                      'address',
+                      'city',
+                      'country',
+                    ].map((key) => (
+                      <input
+                        key={key}
+                        type="hidden"
+                        name={key}
+                        value={String(intent.client_payload?.[key] ?? '')}
+                      />
+                    ))}
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-cyan px-4 py-2.5 text-sm font-semibold text-inverse"
+                    >
+                      Continue to PayHere
+                    </button>
+                  </form>
+                </>
+              )}
               <Link
                 to={`/orders/${id}/failed`}
                 className="mt-4 inline-block text-sm text-cyan hover:underline"

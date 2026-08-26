@@ -230,6 +230,21 @@ class OrderDetailView(generics.RetrieveAPIView):
         return Order.objects.filter(patient=self.request.user).prefetch_related("lines")
 
 
+class OrderListView(generics.ListAPIView):
+    """GET /api/v1/orders/ — patient order history (newest first)."""
+
+    permission_classes = [permissions.IsAuthenticated, IsPatient]
+    serializer_class = OrderSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            Order.objects.filter(patient=self.request.user)
+            .prefetch_related("lines")
+            .order_by("-created_at")
+        )
+
+
 class OrderReceiptView(APIView):
     """GET /api/v1/orders/<id>/receipt/ — HTML receipt for print/download (Step 33)."""
 
