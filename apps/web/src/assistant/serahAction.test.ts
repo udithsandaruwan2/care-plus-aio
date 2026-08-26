@@ -180,5 +180,41 @@ describe('executeSerahAction request', () => {
     expect(enqueue).not.toHaveBeenCalled();
     expect(useAssistant.getState().focusedCaregiverId).toBe(7);
     expect(useAssistant.getState().bookingStage).toBe('profile');
+    expect(useAssistant.getState().profileNarrateMode).toBe('brief');
+  });
+
+  it('sets detail narrate mode for describe_caregiver', async () => {
+    const { useAssistant } = await import('./store');
+    useAssistant.getState().reset();
+    useAssistant.getState().setMatch({
+      request_id: 1,
+      latency_ms: 1,
+      query: 'x',
+      emergency: false,
+      weights: { cbf: 0.4, cf: 0.3, geo: 0.2, trust: 0.1 },
+      results: [
+        {
+          caregiver_id: 7,
+          rank: 1,
+          score: 0.5,
+          breakdown: { cbf: 0.5, cf: 0.2, geo: 0.2, trust: 0.1 },
+          explanation: 'ok',
+          display_name: 'Asha',
+          specialties: [],
+          languages: [],
+          care_levels: [],
+        },
+      ],
+    });
+
+    const { executeSerahAction } = await import('./executeSerahAction');
+    const result = await executeSerahAction({
+      type: 'describe_caregiver',
+      rank: 1,
+      name_query: '',
+    });
+    expect(result?.ok).toBe(true);
+    expect(useAssistant.getState().focusedCaregiverId).toBe(7);
+    expect(useAssistant.getState().profileNarrateMode).toBe('detail');
   });
 });

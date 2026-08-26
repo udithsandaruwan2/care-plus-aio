@@ -23,6 +23,9 @@ export type BookingStage =
   | 'packages'
   | 'pay';
 
+/** TTS depth when the Serah profile drawer opens. */
+export type ProfileNarrateMode = 'brief' | 'detail';
+
 const CHAT_LIMIT = 24;
 let chatSeq = 0;
 
@@ -51,10 +54,12 @@ type AssistantStore = {
   asleep: boolean;
   /** User started a Serah session (mic or typed). Survives hub navigation. */
   sessionLive: boolean;
-  /** Caregiver focused by voice (profile drawer in a later slice). */
+  /** Caregiver focused by voice (profile drawer). */
   focusedCaregiverId: number | null;
   /** Voice booking funnel stage. */
   bookingStage: BookingStage;
+  /** Pending drawer read-aloud; cleared after Serah speaks the summary. */
+  profileNarrateMode: ProfileNarrateMode | null;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -73,6 +78,8 @@ type AssistantStore = {
   setSessionLive: (sessionLive: boolean) => void;
   setFocusedCaregiverId: (id: number | null) => void;
   setBookingStage: (stage: BookingStage) => void;
+  setProfileNarrateMode: (mode: ProfileNarrateMode | null) => void;
+  clearProfileNarrate: () => void;
   reset: () => void;
 };
 
@@ -93,6 +100,7 @@ const initial = {
   sessionLive: false,
   focusedCaregiverId: null as number | null,
   bookingStage: 'idle' as BookingStage,
+  profileNarrateMode: null as ProfileNarrateMode | null,
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -141,6 +149,8 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
   setSessionLive: (sessionLive) => set({ sessionLive }),
   setFocusedCaregiverId: (id) => set({ focusedCaregiverId: id }),
   setBookingStage: (stage) => set({ bookingStage: stage }),
+  setProfileNarrateMode: (mode) => set({ profileNarrateMode: mode }),
+  clearProfileNarrate: () => set({ profileNarrateMode: null }),
 
   reset: () =>
     set({
