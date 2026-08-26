@@ -18,6 +18,7 @@ import { useSpeechRecognition } from './useSpeechRecognition';
 import { resetMatchNarration, useMatchSocket } from './useMatch';
 import { useAudioRecorder } from './useAudioRecorder';
 import { useVoiceTurn } from './useVoiceTurn';
+import { useCareRequestPoll } from './useCareRequestPoll';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
@@ -102,6 +103,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   useMatchSocket({
     onEmergencyMatch: (payload) => setEmergencyMatchId(payload.request_id),
   });
+  useCareRequestPoll();
 
   const endingRef = useRef(false);
   const ignoreSpeechEndRef = useRef(false);

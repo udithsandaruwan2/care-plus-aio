@@ -56,6 +56,8 @@ type AssistantStore = {
   sessionLive: boolean;
   /** Caregiver focused by voice (profile drawer). */
   focusedCaregiverId: number | null;
+  /** Active care request created by voice (accept poll). */
+  careRequestId: number | null;
   /** Voice booking funnel stage. */
   bookingStage: BookingStage;
   /** Pending drawer read-aloud; cleared after Serah speaks the summary. */
@@ -77,6 +79,7 @@ type AssistantStore = {
   setAsleep: (asleep: boolean) => void;
   setSessionLive: (sessionLive: boolean) => void;
   setFocusedCaregiverId: (id: number | null) => void;
+  setCareRequestId: (id: number | null) => void;
   setBookingStage: (stage: BookingStage) => void;
   setProfileNarrateMode: (mode: ProfileNarrateMode | null) => void;
   clearProfileNarrate: () => void;
@@ -99,6 +102,7 @@ const initial = {
   asleep: false,
   sessionLive: false,
   focusedCaregiverId: null as number | null,
+  careRequestId: null as number | null,
   bookingStage: 'idle' as BookingStage,
   profileNarrateMode: null as ProfileNarrateMode | null,
 };
@@ -148,6 +152,7 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
   setAsleep: (asleep) => set({ asleep }),
   setSessionLive: (sessionLive) => set({ sessionLive }),
   setFocusedCaregiverId: (id) => set({ focusedCaregiverId: id }),
+  setCareRequestId: (id) => set({ careRequestId: id }),
   setBookingStage: (stage) => set({ bookingStage: stage }),
   setProfileNarrateMode: (mode) => set({ profileNarrateMode: mode }),
   clearProfileNarrate: () => set({ profileNarrateMode: null }),

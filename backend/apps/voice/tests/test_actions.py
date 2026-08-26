@@ -108,3 +108,20 @@ class RouterActionFixtureTests(SimpleTestCase):
         d = classify_turn("yes", COMPLETE, has_prior_match=True, last_serah_text="Got it.")
         self.assertEqual(d.route, "CHAT")
         self.assertEqual(d.situation, "affirm")
+
+    def test_request_status_phrases(self):
+        for phrase in (
+            "any update?",
+            "what's the status",
+            "did they accept",
+            "still waiting",
+            "check on the request",
+        ):
+            d = classify_turn(phrase, COMPLETE, has_prior_match=True)
+            self.assertEqual(d.route, "ACTION", phrase)
+            self.assertEqual(d.situation, "request_status", phrase)
+
+    def test_request_status_without_prior_match(self):
+        d = classify_turn("any update on the request?", COMPLETE, has_prior_match=False)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "request_status")
