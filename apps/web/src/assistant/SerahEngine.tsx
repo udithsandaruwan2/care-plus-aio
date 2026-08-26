@@ -22,7 +22,13 @@ import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
 import { startEndOfUtteranceWatch } from './silenceWatch';
-import { subscribeSerahSpeaking } from './useTts';
+import {
+  clearInterruptedResidual,
+  interruptSpeaking,
+  resumeResidual,
+  subscribeSerahSpeaking,
+  takeInterruptedResidual,
+} from './useTts';
 import type { TurnFailure } from './turnFailure';
 
 type SerahEngineValue = {
@@ -189,6 +195,12 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
         if (!text) {
           endingRef.current = false;
           captionHeardRef.current = false;
+          // False / empty barge: finish the cut-off reply instead of dropping it.
+          const residual = takeInterruptedResidual();
+          if (residual) {
+            void resumeResidual(residual);
+            return;
+          }
           if (!conversationOnRef.current) {
             mic.stop();
             return;
@@ -264,8 +276,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     armSilenceWatchRef.current();
   };
 
-  // Step 85 — during Serah playback keep the analyser up, suppress ASR echo,
-  // and barge-in when the user speaks over her.
+  // During Serah playback: near-field analyser (AGC off), suppress ASR echo,
+  // barge-in only on near loud speech; snapshot residual for resume.
   useEffect(() => {
     return subscribeSerahSpeaking((active) => {
       if (active) {
@@ -280,7 +292,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
             speech.stop();
           }
           void recorder.stop();
-          if (!mic.active) await mic.start();
+          await mic.start({ nearField: true });
           const s = useAssistant.getState().state;
           if (
             s !== AssistantState.RESULTS &&
@@ -297,7 +309,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
               bargedRef.current = true;
               bargeStopRef.current?.();
               bargeStopRef.current = null;
-              stopTurnSpeaking();
+              interruptSpeaking();
               if (conversationOnRef.current) {
                 void resumeListeningRef.current();
               }
@@ -313,11 +325,13 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
         bargedRef.current = false;
         return;
       }
+      // Natural end — no barge residual to keep.
+      clearInterruptedResidual();
       if (conversationOnRef.current && !busyRef.current) {
         continueListening();
       }
     });
-  }, [continueListening, mic, recorder, setState, speech, stopTurnSpeaking]);
+  }, [continueListening, mic, recorder, setState, speech]);
 
   const listening = mic.active || speech.listening;
   const state = useAssistant((s) => s.state);
