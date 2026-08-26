@@ -26,11 +26,16 @@ import {
   resumeResidual,
 } from './useTts';
 import {
-  httpNeedsTurnStage,
   resetTurnStream,
+  takeHttpTurnStage,
   turnReplyAlreadySpoken,
+  replyTextAlreadyStreamed,
+  claimTurnStage,
+  markTurnReplySpoken,
+  rememberStreamedReply,
 } from './turnStream';
 import { classifyTurnFailure, type PendingTurn, type TurnFailure } from './turnFailure';
+import { executeSerahAction } from './executeSerahAction';
 
 function applyTurnState(
   result: Awaited<ReturnType<typeof api.voiceTurn>>,
@@ -226,7 +231,7 @@ export function useVoiceTurn() {
           return;
         }
 
-        if (httpNeedsTurnStage('transcript', rid) && result.transcript) {
+        if (takeHttpTurnStage('transcript', rid) && result.transcript) {
           store.setTranscript(result.transcript);
           store.setInterim('');
         }
@@ -236,7 +241,7 @@ export function useVoiceTurn() {
         }
 
         const lineText = userLine || result.transcript?.trim() || '';
-        if (lineText && httpNeedsTurnStage('transcript', rid)) {
+        if (lineText) {
           const chat = useAssistant.getState().chat;
           const lastUser = [...chat].reverse().find((m) => m.role === 'user');
           if (lastUser?.text !== lineText) {
@@ -250,18 +255,28 @@ export function useVoiceTurn() {
           looksLikeCareSeek(result.transcript || '') ||
           looksLikeSearchPromise(result.reply || '');
 
-        const needReplyText = httpNeedsTurnStage('reply_text', rid);
-        const needMatch = httpNeedsTurnStage('match', rid);
+        const needReplyText = takeHttpTurnStage('reply_text', rid);
+        const needMatch = takeHttpTurnStage('match', rid);
         const outcome = applyTurnState(result, store, stillSeeking);
         const skipSearchNarration = outcome === 'hold' || outcome === 'matched';
 
-        if (needReplyText && result.reply?.trim() && !skipSearchNarration) {
+        if (
+          needReplyText &&
+          result.reply?.trim() &&
+          !skipSearchNarration &&
+          !replyTextAlreadyStreamed(result.reply)
+        ) {
+          rememberStreamedReply(result.reply);
           const lastSerah = [...useAssistant.getState().chat]
             .reverse()
             .find((m) => m.role === 'serah');
-          if (lastSerah?.text !== result.reply) {
+          if (lastSerah?.text.trim() !== result.reply.trim()) {
             store.appendChat({ role: 'serah', text: result.reply, route: result.route });
           }
+        }
+
+        if (result.action && claimTurnStage('action', rid)) {
+          void executeSerahAction(result.action);
         }
 
         if (outcome === 'hold') {
@@ -298,7 +313,7 @@ export function useVoiceTurn() {
         // when playback ends or barge-in fires (Step 85).
         setBusy(false);
 
-        const needAudio = httpNeedsTurnStage('reply_audio', rid);
+        const needAudio = takeHttpTurnStage('reply_audio', rid);
         const shouldSpeak =
           needAudio &&
           Boolean(result.reply?.trim()) &&
@@ -306,6 +321,7 @@ export function useVoiceTurn() {
           !turnReplyAlreadySpoken(result.reply);
 
         if (shouldSpeak) {
+          markTurnReplySpoken(result.reply);
           let audioBase64 = result.reply_audio_base64;
           let audioMime = result.reply_audio_mime;
           if (result.audio_pending && !audioBase64) {

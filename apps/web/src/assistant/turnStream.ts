@@ -7,12 +7,17 @@ export type TurnStage =
   | 'reply_text'
   | 'match'
   | 'reply_audio'
+  | 'action'
   | 'done';
 
 const STAGES = new Set<TurnStage>();
 let activeRequestId = '';
 let replySpoken = false;
 let lastStreamedReply = '';
+
+function normReply(text: string): string {
+  return text.trim().replace(/\s+/g, ' ');
+}
 
 /** Call at the start of each ``voiceTurn`` HTTP request. */
 export function resetTurnStream(): void {
@@ -53,21 +58,36 @@ export function httpNeedsTurnStage(stage: TurnStage, requestId?: string): boolea
   return !STAGES.has(stage);
 }
 
+/**
+ * HTTP path: apply a stage only once. Claims the stage so a late WS frame
+ * cannot append/speak the same reply again.
+ */
+export function takeHttpTurnStage(stage: TurnStage, requestId?: string): boolean {
+  if (!httpNeedsTurnStage(stage, requestId)) return false;
+  return claimTurnStage(stage, requestId);
+}
+
 export function markTurnReplySpoken(text: string): void {
   replySpoken = true;
-  lastStreamedReply = text.trim();
+  lastStreamedReply = normReply(text);
 }
 
 export function turnReplyAlreadySpoken(text?: string): boolean {
   if (!replySpoken) return false;
   if (!text?.trim()) return true;
-  return lastStreamedReply === text.trim();
+  return lastStreamedReply === normReply(text);
 }
 
 export function rememberStreamedReply(text: string): void {
-  lastStreamedReply = text.trim();
+  lastStreamedReply = normReply(text);
 }
 
 export function lastStreamedReplyText(): string {
   return lastStreamedReply;
+}
+
+/** True when this reply text was already appended for the active turn. */
+export function replyTextAlreadyStreamed(text?: string): boolean {
+  if (!text?.trim()) return false;
+  return lastStreamedReply === normReply(text);
 }

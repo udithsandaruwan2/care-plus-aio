@@ -45,10 +45,16 @@ def stub_for_situation(
     match: dict | None = None,
 ) -> str:
     """Deterministic spoken replies for each conversation situation."""
+    from .actions import parse_name_query, parse_rank, resolve_hit
+
     top = None
     has_results = bool(match and match.get("results"))
     if has_results:
-        top = match["results"][0]
+        top = resolve_hit(
+            list(match["results"]),
+            rank=parse_rank(text),
+            name_query=parse_name_query(text),
+        ) or match["results"][0]
     name = (top or {}).get("display_name") or ""
 
     if situation == "thanks":
@@ -140,31 +146,67 @@ def stub_for_situation(
         if not has_results:
             if _si(lang):
                 return (
-                    "දැනට match cards නැහැ. Browse පිටුවෙන් caregiver profile එකක් තෝරා "
-                    "«Request this caregiver» ඔබන්න, නැත්නම් මට අලුත් match එකක් හොයන්න කියන්න."
+                    "දැනට match cards නැහැ. Browse පිටුවෙන් caregiver තෝරන්න, "
+                    "නැත්නම් මට අලුත් match එකක් හොයන්න කියන්න."
                 )
             if _ta(lang):
                 return (
-                    "இப்போது match cards இல்லை. Browse பக்கத்தில் ஒரு பராமரிப்பாளர் சுயவிவரத்தைத் தேர்ந்து "
-                    "«Request this caregiver» அழுத்துங்கள், அல்லது புதிய match தேடச் சொல்லுங்கள்."
+                    "இப்போது match cards இல்லை. Browse பக்கத்தில் ஒரு பராமரிப்பாளரைத் தேர்வுசெய்யுங்கள், "
+                    "அல்லது புதிய match தேடச் சொல்லுங்கள்."
                 )
             return (
                 "I can’t see active match cards right now. "
-                "Use Browse to open a caregiver profile and tap Request, or ask me for a fresh match."
+                "Ask me for a fresh match, or pick someone from Browse."
             )
         if _si(lang):
             return (
-                f"{name or 'මේ පරිචාරක'} ඉල්ලීම යවන්න පුළුවන් — පැතිකඩෙන් "
-                "«Request this caregiver» ඔබන්න, නැත්නම් ඉහළ match card එකෙන් ඉල්ලන්න."
+                f"{name or 'මේ පරිචාරක'} වෙත care request එක යවනවා. "
+                "ඔහු/ඇය පිළිතුරු දෙන තෙක් මොහොතක් ඉන්න."
             )
         if _ta(lang):
             return (
-                f"{name or 'இந்த பராமரிப்பாளர்'} கோரிக்கை அனுப்பலாம் — "
-                "சுயவிவரத்தில் «Request this caregiver» அல்லது match card-இல் கிளிக் செய்யுங்கள்."
+                f"{name or 'இந்த பராமரிப்பாளர்'}-க்கு care request அனுப்புகிறேன். "
+                "பதில் வரும் வரை சிறிது காத்திருங்கள்."
             )
         return (
-            f"You can request {name or 'this caregiver'} from their profile "
-            "or the Request button on the match card."
+            f"Sending your care request to {name or 'this caregiver'} now. "
+            "I’ll let you know when they respond."
+        )
+
+    if situation == "view_profile":
+        if not has_results:
+            if _si(lang):
+                return "දැනට match list එකක් නැහැ — පැතිකඩක් විවෘත කරන්න පෙර match එකක් හොයමු."
+            if _ta(lang):
+                return "இப்போது match பட்டியல் இல்லை — சுயவிவரம் திறக்க முன் ஒரு match தேடுவோம்."
+            return "I don’t have a match list yet — let’s find caregivers first, then I can open a profile."
+        if _si(lang):
+            return f"{name or 'මේ පරිචාරක'}ගේ පැතිකඩ විවෘත කරනවා."
+        if _ta(lang):
+            return f"{name or 'இந்த பராமரிப்பாளர்'} சுயவிவரத்தைத் திறக்கிறேன்."
+        return f"Opening {name or 'this caregiver'}’s profile for you."
+
+    if situation == "describe_caregiver":
+        if not has_results:
+            if _si(lang):
+                return "විස්තර කියන්න match list එකක් ඕනේ — මුලින් caregivers හොයමු."
+            if _ta(lang):
+                return "விவரம் சொல்ல match பட்டியல் வேண்டும் — முதலில் caregivers தேடுவோம்."
+            return "I need a match list before I can describe someone — let’s search first."
+        explanation = localize_explanation((top or {}).get("explanation") or "", lang)
+        if _si(lang):
+            return (
+                f"{name or 'ඉහළම තේරීම'}: {explanation or 'කුසලතා ගැලපීම හොඳයි'}. "
+                "ඉල්ලීම යවන්න කියන්න, නැත්නම් වෙනත් කෙනෙක් තෝරන්න."
+            )
+        if _ta(lang):
+            return (
+                f"{name or 'சிறந்த தேர்வு'}: {explanation or 'திறன் பொருத்தம் நன்று'}. "
+                "கோரிக்கை அனுப்பச் சொல்லுங்கள், அல்லது வேறு நபரைத் தேர்வுசெய்யுங்கள்."
+            )
+        return (
+            f"About {name or 'the top match'}: {explanation or 'strong skill match'}. "
+            "Say send the request when you’re ready, or pick someone else."
         )
 
     if situation == "cancel":
@@ -287,8 +329,8 @@ def gemini_chat_reply(
     backend = resolve_chat_backend()
     if backend != "gemini":
         return None
-    # Hire/request copy stays deterministic (points at UI buttons).
-    if situation == "request":
+    # Hire/request copy stays deterministic (points at client action executor).
+    if situation in {"request", "view_profile", "describe_caregiver"}:
         return None
 
     allowed, reason = gemini_chat_allowed(user_id)
@@ -384,7 +426,7 @@ def local_chat_reply(
 
     if not local_llm_configured():
         return None
-    if situation == "request":
+    if situation in {"request", "view_profile", "describe_caregiver"}:
         return None
 
     top_name = ""

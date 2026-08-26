@@ -14,6 +14,15 @@ export type ChatMessage = {
   route?: string;
 };
 
+/** Booking funnel stage for voice navigation (drawer / accept / packages later). */
+export type BookingStage =
+  | 'idle'
+  | 'profile'
+  | 'requested'
+  | 'awaiting_accept'
+  | 'packages'
+  | 'pay';
+
 const CHAT_LIMIT = 24;
 let chatSeq = 0;
 
@@ -42,6 +51,10 @@ type AssistantStore = {
   asleep: boolean;
   /** User started a Serah session (mic or typed). Survives hub navigation. */
   sessionLive: boolean;
+  /** Caregiver focused by voice (profile drawer in a later slice). */
+  focusedCaregiverId: number | null;
+  /** Voice booking funnel stage. */
+  bookingStage: BookingStage;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -58,6 +71,8 @@ type AssistantStore = {
   setMatching: (matching: boolean) => void;
   setAsleep: (asleep: boolean) => void;
   setSessionLive: (sessionLive: boolean) => void;
+  setFocusedCaregiverId: (id: number | null) => void;
+  setBookingStage: (stage: BookingStage) => void;
   reset: () => void;
 };
 
@@ -76,6 +91,8 @@ const initial = {
   matching: false,
   asleep: false,
   sessionLive: false,
+  focusedCaregiverId: null as number | null,
+  bookingStage: 'idle' as BookingStage,
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -122,6 +139,8 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
   setMatching: (matching) => set({ matching }),
   setAsleep: (asleep) => set({ asleep }),
   setSessionLive: (sessionLive) => set({ sessionLive }),
+  setFocusedCaregiverId: (id) => set({ focusedCaregiverId: id }),
+  setBookingStage: (stage) => set({ bookingStage: stage }),
 
   reset: () =>
     set({
