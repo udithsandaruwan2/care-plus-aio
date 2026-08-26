@@ -89,6 +89,15 @@ export function looksLikeCareSeek(text: string): boolean {
   if (looksLikeSearchLaunch(raw)) return true;
   return (
     /\b(caregiver|care[\s-]*giver|nurses?|carer|attendant|match me|vehmf)\b/i.test(raw) ||
+    /\b(hire|hiring|book)\b/i.test(raw) ||
+    // ASR often hears "hire" as "higher" in care-seeking lines.
+    /\b(i\s+can\s+)?higher\b/i.test(raw) ||
+    /\bsuggest\s+(me\s+)?(the\s+)?best\b/i.test(raw) ||
+    /\bin\s+my\s+area\b/i.test(raw) ||
+    (/\bcolombo\s*\d+\b/i.test(raw) &&
+      /\b(fever|care|hire|higher|suggest|nurse|caregiver|best|match|find)\b/i.test(raw)) ||
+    (/\b(fever|diabetes|hypertension|stroke)\b/i.test(raw) &&
+      /\b(colombo|area|care|hire|higher|suggest|nurse|caregiver|best|match|find)\b/i.test(raw)) ||
     /\b(need|want)\s+(a\s+)?(someone|somebody|person)\b/i.test(raw) ||
     /\b(find|get|search(ing)?\s+for|look(ing)?\s+for)\s+(me\s+)?(a\s+)?(someone|somebody|person|care)\b/i.test(
       raw,
@@ -118,7 +127,12 @@ export function looksLikeSearchPromise(text: string): boolean {
     /\bget that search\b/i.test(raw) ||
     /\blet['’]?s (get )?(that )?(search|match)\b/i.test(raw) ||
     /\bstart(ing)? (a |the )?search\b/i.test(raw) ||
-    /\b(ranking|finding|searching)\s+(your\s+)?(best\s+)?(match|caregivers?)\b/i.test(raw)
+    /\b(ranking|finding|searching)\s+(your\s+)?(best\s+)?(match|caregivers?)\b/i.test(raw) ||
+    // Chat listed caregivers instead of returning a match payload — still open VEHMF cards.
+    /\bavailable caregivers?\b/i.test(raw) ||
+    /\bshow you (the )?(available )?caregivers?\b/i.test(raw) ||
+    /\btake a look at the first\b/i.test(raw) ||
+    /\bwould you like to (take a )?look\b/i.test(raw)
   );
 }
 
