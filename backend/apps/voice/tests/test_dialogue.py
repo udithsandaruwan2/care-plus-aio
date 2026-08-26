@@ -518,3 +518,26 @@ class ReplyGroundingTests(SimpleTestCase):
         line = stub_for_situation("request", "en-US", match=None)
         self.assertIn("browse", line.lower())
         self.assertIn("fresh match", line.lower())
+
+    def test_booking_situation_stubs(self):
+        match = {
+            "results": [
+                {
+                    "caregiver_id": 1,
+                    "rank": 1,
+                    "display_name": "Asha",
+                    "explanation": "strong skill match",
+                }
+            ]
+        }
+        self.assertIn("profile", stub_for_situation("view_profile", "en-US", match=match).lower())
+        self.assertIn("asha", stub_for_situation("describe_caregiver", "en-US", match=match).lower())
+        self.assertIn(
+            "care request",
+            stub_for_situation("request_status", "en-US", match=match).lower(),
+        )
+        self.assertIn("package", stub_for_situation("select_package", "en-US", match=match).lower())
+        self.assertIn("checkout", stub_for_situation("confirm_checkout", "en-US", match=match).lower())
+        cancel = stub_for_situation("cancel_flow", "en-US", match=match).lower()
+        self.assertIn("cancel", cancel)
+        self.assertIn("match", cancel)

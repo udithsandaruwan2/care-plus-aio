@@ -5,7 +5,10 @@ from django.test import SimpleTestCase
 from apps.voice.actions import (
     build_voice_action,
     last_serah_text,
+    parse_addon_query,
+    parse_days,
     parse_name_query,
+    parse_package_query,
     parse_rank,
     resolve_hit,
 )
@@ -45,6 +48,12 @@ class ActionResolverTests(SimpleTestCase):
         self.assertIn("rizwan", parse_name_query("review Mohamed Rizwan").lower())
         self.assertEqual(parse_name_query("yes"), "")
 
+    def test_parse_days_and_package_addons(self):
+        self.assertEqual(parse_days("Basic for 7 days"), 7)
+        self.assertEqual(parse_days("a week of care"), 7)
+        self.assertEqual(parse_package_query("standard package").lower(), "standard package")
+        self.assertIn("meal", parse_addon_query("with meals and hospital escort").lower())
+
     def test_resolve_hit_fuzzy_name(self):
         hit = resolve_hit(RESULTS, name_query="Rizwan")
         self.assertEqual(hit["caregiver_id"], 10)
@@ -59,6 +68,23 @@ class ActionResolverTests(SimpleTestCase):
         action = build_voice_action("view_profile", "review number two", {"results": RESULTS})
         self.assertEqual(action["type"], "view_profile")
         self.assertEqual(action["caregiver_id"], 20)
+
+    def test_build_describe_by_name(self):
+        action = build_voice_action(
+            "describe_caregiver",
+            "tell me more about Mohamed Rizwan",
+            {"results": RESULTS},
+        )
+        self.assertEqual(action["type"], "describe_caregiver")
+        self.assertEqual(action["caregiver_id"], 10)
+
+    def test_build_request_status_and_cancel_flow(self):
+        status = build_voice_action("request_status", "any update?", {"results": RESULTS})
+        self.assertEqual(status["type"], "request_status")
+
+        cancel = build_voice_action("cancel_flow", "never mind", {"results": RESULTS})
+        self.assertEqual(cancel["type"], "cancel_flow")
+        self.assertEqual(cancel.get("addon_ids"), [])
 
     def test_last_serah_text(self):
         history = [
@@ -168,6 +194,24 @@ class RouterActionFixtureTests(SimpleTestCase):
         )
         self.assertEqual(d.route, "CHAT")
         self.assertEqual(d.situation, "affirm")
+
+    def test_cancel_flow_after_match(self):
+        for phrase in ("never mind", "cancel the request", "forget it"):
+            d = classify_turn(phrase, COMPLETE, has_prior_match=True)
+            self.assertEqual(d.route, "ACTION", phrase)
+            self.assertEqual(d.situation, "cancel_flow", phrase)
+            self.assertFalse(d.clear_match, phrase)
+
+    def test_cancel_flow_with_history_match_only(self):
+        d = classify_turn("cancel", COMPLETE, has_prior_match=False, has_history_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "cancel_flow")
+
+    def test_cancel_pre_match_clears_search(self):
+        d = classify_turn("stop searching", COMPLETE, has_prior_match=False)
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "cancel")
+        self.assertTrue(d.clear_match)
 
 
 class PackageActionBuilderTests(SimpleTestCase):

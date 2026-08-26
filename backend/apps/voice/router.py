@@ -315,6 +315,9 @@ def classify_turn(
     if _GOODBYE.search(raw) and not _MATCH_SEEK.search(raw):
         return RouteDecision("CHAT", "goodbye", clear_match=True)
     if _CANCEL.search(raw):
+        # Post-match booking funnel: cancel pending request / close drawer (client).
+        if has_prior_match or has_history_match:
+            return RouteDecision("ACTION", "cancel_flow")
         return RouteDecision("CHAT", "cancel", clear_match=True)
     if _AFFIRM.match(raw.strip()) and not _MATCH_SEEK.search(raw):
         # Bare "yes" after Serah offered a profile, care request, package, or checkout.

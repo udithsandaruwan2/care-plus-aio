@@ -501,6 +501,93 @@ describe('executeSerahAction select_package / confirm_checkout', () => {
     expect(useAssistant.getState().bookingStage).toBe('packages');
   });
 
+  it('cancels pending request and resets booking on cancel_flow', async () => {
+    const cancelCareRequest = vi.fn(async () => ({
+      id: 501,
+      patient_email: 'p@example.com',
+      caregiver_id: 42,
+      caregiver_name: 'Mohamed Rizwan',
+      status: 'cancelled',
+      message: '',
+      match_snapshot: {},
+      expires_at: '2099-01-01T00:00:00Z',
+    }));
+
+    vi.doMock('../auth/api', () => ({
+      api: {
+        cancelCareRequest,
+        listCareRequests: vi.fn(),
+        listCarePackages: vi.fn(async () => []),
+        listCatalogAddOns: vi.fn(async () => []),
+      },
+    }));
+
+    const { useAssistant } = await import('./store');
+    useAssistant.getState().reset();
+    useAssistant.getState().setMatch({
+      request_id: 1,
+      latency_ms: 1,
+      query: 'x',
+      emergency: false,
+      weights: { cbf: 0.4, cf: 0.3, geo: 0.2, trust: 0.1 },
+      results: [
+        {
+          caregiver_id: 42,
+          rank: 1,
+          score: 0.9,
+          breakdown: { cbf: 0.5, cf: 0.2, geo: 0.2, trust: 0.1 },
+          explanation: 'top',
+          display_name: 'Mohamed Rizwan',
+          specialties: [],
+          languages: [],
+          care_levels: [],
+        },
+      ],
+    });
+    useAssistant.getState().setFocusedCaregiverId(42);
+    useAssistant.getState().setCareRequestId(501);
+    useAssistant.getState().setBookingStage('awaiting_accept');
+    useAssistant.getState().setCheckoutDraft({
+      packageId: 1,
+      packageName: 'Basic',
+      addonIds: [2],
+      days: 7,
+      orderId: null,
+    });
+
+    const { executeSerahAction } = await import('./executeSerahAction');
+    const result = await executeSerahAction({ type: 'cancel_flow' });
+
+    expect(result?.ok).toBe(true);
+    expect(cancelCareRequest).toHaveBeenCalledWith(501);
+    expect(useAssistant.getState().bookingStage).toBe('idle');
+    expect(useAssistant.getState().focusedCaregiverId).toBeNull();
+    expect(useAssistant.getState().careRequestId).toBeNull();
+    expect(useAssistant.getState().checkoutDraft.packageId).toBeNull();
+    expect(useAssistant.getState().match?.results).toHaveLength(1);
+    expect(useAssistant.getState().chat.at(-1)?.text).toMatch(/cancelled that care request/i);
+  });
+
+  it('closes drawer without API cancel when no pending request', async () => {
+    const cancelCareRequest = vi.fn();
+    vi.doMock('../auth/api', () => ({
+      api: { cancelCareRequest },
+    }));
+
+    const { useAssistant } = await import('./store');
+    useAssistant.getState().reset();
+    useAssistant.getState().setFocusedCaregiverId(7);
+    useAssistant.getState().setBookingStage('profile');
+
+    const { executeSerahAction } = await import('./executeSerahAction');
+    const result = await executeSerahAction({ type: 'cancel_flow' });
+
+    expect(result?.ok).toBe(true);
+    expect(cancelCareRequest).not.toHaveBeenCalled();
+    expect(useAssistant.getState().bookingStage).toBe('idle');
+    expect(useAssistant.getState().focusedCaregiverId).toBeNull();
+  });
+
   it('posts checkout and navigates to pay without charging', async () => {
     const createCheckout = vi.fn(async () => ({
       id: 555,
