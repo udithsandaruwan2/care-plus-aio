@@ -230,6 +230,16 @@ def stub_for_situation(
             return "Checkout தயார் செய்கிறேன்."
         return "Preparing checkout."
 
+    if situation == "cancel_flow":
+        if _si(lang):
+            return "හරි — booking එක නවත්තුවා. Match list එක තවම තියෙනවා නම් වෙනත් කෙනෙක් තෝරන්න."
+        if _ta(lang):
+            return "சரி — booking-ஐ நிறுத்தினேன். Match பட்டியல் இருந்தால் வேறு நபரைத் தேர்வுசெய்யுங்கள்."
+        return (
+            "Okay — I’ve cancelled that booking step. "
+            "Your match list is still here if you want to pick someone else."
+        )
+
     if situation == "cancel":
         if _si(lang):
             return "හරි, matching නවත්තුවා. ඕනෑම වෙලාවක ආයෙත් caregiver සොයන්න කියන්න."
@@ -389,6 +399,19 @@ def gemini_chat_reply(
             "Do not re-run or invent rankings. If they want a new search they must ask."
         ),
         "cancel": "Acknowledge canceling the search, then stay open for ordinary chat.",
+        "cancel_flow": (
+            "They cancelled the booking step (request, drawer, or checkout draft). "
+            "Confirm briefly. Do NOT clear or invent match rankings. Invite picking another caregiver."
+        ),
+        "view_profile": "Confirm you are opening the caregiver profile drawer. Keep it short.",
+        "describe_caregiver": "Summarize the grounded caregiver briefly; invite a care request if ready.",
+        "request": "Confirm you are sending the care request; say you will wait for their response.",
+        "request_status": "Say you are checking the care request status now.",
+        "select_package": "Confirm updating their package / days / add-ons choice.",
+        "confirm_checkout": (
+            "Confirm preparing checkout. Remind them payment still requires tapping Pay — "
+            "never claim you charged them."
+        ),
         "emergency": "Urge real emergency services first; offer caregiver search second.",
         "general": (
             "Continue the conversation as a warm, useful companion. Answer what they said. "

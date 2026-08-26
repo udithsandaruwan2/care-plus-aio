@@ -174,3 +174,87 @@ class RouterFixtureTests(SimpleTestCase):
         d = classify_turn("hmm interesting", COMPLETE, has_prior_match=True)
         self.assertEqual(d.route, "CHAT")
         self.assertEqual(d.situation, "post_match_chat")
+
+    def test_view_profile_and_describe(self):
+        d = classify_turn("review Mohamed Rizwan", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "view_profile")
+
+        d = classify_turn("tell me more about number two", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "describe_caregiver")
+
+    def test_yes_after_profile_offer_is_view_profile(self):
+        d = classify_turn(
+            "yes",
+            COMPLETE,
+            has_prior_match=True,
+            last_serah_text="Would you like to check his profile?",
+        )
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "view_profile")
+
+    def test_yes_after_request_offer_is_request(self):
+        d = classify_turn(
+            "yes",
+            COMPLETE,
+            has_prior_match=True,
+            last_serah_text="Shall I send them a care request?",
+        )
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "request")
+
+    def test_request_status(self):
+        d = classify_turn("any update on the request?", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "request_status")
+
+        # Status works even when cards are off-screen.
+        d = classify_turn("check on the status", COMPLETE, has_prior_match=False)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "request_status")
+
+    def test_select_package_and_confirm_checkout(self):
+        d = classify_turn("Basic Home Care for 7 days", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "select_package")
+
+        d = classify_turn("continue to payment", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "confirm_checkout")
+
+    def test_yes_after_checkout_offer_is_confirm(self):
+        d = classify_turn(
+            "yes",
+            COMPLETE,
+            has_prior_match=True,
+            last_serah_text="Say continue to payment when your package looks right.",
+        )
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "confirm_checkout")
+
+    def test_yes_after_tap_pay_stays_chat(self):
+        d = classify_turn(
+            "yes",
+            COMPLETE,
+            has_prior_match=True,
+            last_serah_text="I’ve filled the order — tap Pay to confirm. I won’t charge you by voice.",
+        )
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "affirm")
+
+    def test_cancel_flow_after_match(self):
+        d = classify_turn("never mind", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "cancel_flow")
+        self.assertFalse(d.clear_match)
+
+        d = classify_turn("cancel the request", COMPLETE, has_history_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "cancel_flow")
+
+    def test_cancel_pre_match_clears_search(self):
+        d = classify_turn("stop searching", COMPLETE, has_prior_match=False)
+        self.assertEqual(d.route, "CHAT")
+        self.assertEqual(d.situation, "cancel")
+        self.assertTrue(d.clear_match)

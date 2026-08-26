@@ -132,6 +132,53 @@ export async function executeSerahAction(
     };
   }
 
-  // Later slice: cancel_flow.
+  if (action.type === 'cancel_flow') {
+    return cancelBookingFlow();
+  }
+
   return { ok: true, type: action.type, caregiverId: hit?.caregiver_id };
+}
+
+/** Cancel a pending care request (if any) and reset drawer / booking stage. */
+async function cancelBookingFlow(): Promise<ExecuteSerahActionResult> {
+  const store = useAssistant.getState();
+  const careRequestId = store.careRequestId;
+  const stage = store.bookingStage;
+  let cancelledRequest = false;
+
+  if (
+    careRequestId != null &&
+    (stage === 'awaiting_accept' || stage === 'requested')
+  ) {
+    try {
+      const { api } = await import('../auth/api');
+      await api.cancelCareRequest(careRequestId);
+      cancelledRequest = true;
+    } catch (err) {
+      const error =
+        err instanceof Error ? err.message : 'Could not cancel the care request.';
+      store.appendChat({ role: 'serah', text: error, route: 'ACTION' });
+      return { ok: false, type: 'cancel_flow', error };
+    }
+  }
+
+  store.setFocusedCaregiverId(null);
+  store.setCareRequestId(null);
+  store.setBookingStage('idle');
+  store.resetCheckoutDraft();
+  store.clearProfileNarrate();
+
+  const line = cancelledRequest
+    ? 'Okay — I’ve cancelled that care request. Your match list is still here if you want someone else.'
+    : 'Okay — I’ve closed that booking step. Your match list is still here if you want someone else.';
+  const last = [...store.chat].reverse().find((m) => m.role === 'serah');
+  if (last?.text !== line) {
+    store.appendChat({ role: 'serah', text: line, route: 'ACTION' });
+  }
+
+  return {
+    ok: true,
+    type: 'cancel_flow',
+    careRequestId: cancelledRequest ? careRequestId ?? undefined : undefined,
+  };
 }
