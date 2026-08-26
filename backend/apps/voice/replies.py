@@ -209,6 +209,13 @@ def stub_for_situation(
             "Say send the request when you’re ready, or pick someone else."
         )
 
+    if situation == "request_status":
+        if _si(lang):
+            return "මම care request එකේ තත්ත්වය බලනවා."
+        if _ta(lang):
+            return "கேர் கோரிக்கை நிலையை இப்போது பார்க்கிறேன்."
+        return "I’ll check on your care request now."
+
     if situation == "cancel":
         if _si(lang):
             return "හරි, matching නවත්තුවා. ඕනෑම වෙලාවක ආයෙත් caregiver සොයන්න කියන්න."
@@ -330,7 +337,7 @@ def gemini_chat_reply(
     if backend != "gemini":
         return None
     # Hire/request copy stays deterministic (points at client action executor).
-    if situation in {"request", "view_profile", "describe_caregiver"}:
+    if situation in {"request", "view_profile", "describe_caregiver", "request_status"}:
         return None
 
     allowed, reason = gemini_chat_allowed(user_id)
@@ -426,7 +433,7 @@ def local_chat_reply(
 
     if not local_llm_configured():
         return None
-    if situation in {"request", "view_profile", "describe_caregiver"}:
+    if situation in {"request", "view_profile", "describe_caregiver", "request_status"}:
         return None
 
     top_name = ""

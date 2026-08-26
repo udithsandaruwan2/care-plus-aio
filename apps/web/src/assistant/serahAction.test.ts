@@ -99,7 +99,10 @@ describe('executeSerahAction request', () => {
   });
 
   it('enqueues a care request for the resolved hit', async () => {
-    const enqueue = vi.fn(async () => ({ queued: false, item: null }));
+    const enqueue = vi.fn(async () => ({
+      queued: false,
+      result: { id: 501, caregiver_id: 42, status: 'pending' },
+    }));
     vi.doMock('../lib/outbox/flush', () => ({
       enqueueCareRequest: enqueue,
     }));
@@ -141,8 +144,9 @@ describe('executeSerahAction request', () => {
       caregiver_id: 42,
       match_run_id: 99,
     });
-    expect(useAssistant.getState().bookingStage).toBe('requested');
+    expect(useAssistant.getState().bookingStage).toBe('awaiting_accept');
     expect(useAssistant.getState().focusedCaregiverId).toBe(42);
+    expect(useAssistant.getState().careRequestId).toBe(501);
   });
 
   it('sets focus for view_profile without enqueueing', async () => {
@@ -216,5 +220,126 @@ describe('executeSerahAction request', () => {
     expect(result?.ok).toBe(true);
     expect(useAssistant.getState().focusedCaregiverId).toBe(7);
     expect(useAssistant.getState().profileNarrateMode).toBe('detail');
+  });
+});
+
+describe('careRequestStatus helpers', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('picks the next ranked caregiver after a reject', async () => {
+    const { nextRankedCaregiver } = await import('./careRequestStatus');
+    const results = [
+      {
+        caregiver_id: 10,
+        rank: 1,
+        score: 0.9,
+        breakdown: { cbf: 0.5, cf: 0.2, geo: 0.2, trust: 0.1 },
+        explanation: 'top',
+        display_name: 'A',
+        specialties: [],
+        languages: [],
+        care_levels: [],
+      },
+      {
+        caregiver_id: 20,
+        rank: 2,
+        score: 0.8,
+        breakdown: { cbf: 0.4, cf: 0.2, geo: 0.2, trust: 0.1 },
+        explanation: 'second',
+        display_name: 'B',
+        specialties: [],
+        languages: [],
+        care_levels: [],
+      },
+    ];
+    expect(nextRankedCaregiver(results, 10)?.caregiver_id).toBe(20);
+    expect(nextRankedCaregiver(results, 20)).toBeNull();
+  });
+
+  it('advances to packages on accept and offers next on reject', async () => {
+    vi.doMock('./useTts', () => ({
+      speakSerah: vi.fn(async () => undefined),
+      stopSpeaking: vi.fn(),
+    }));
+
+    const { useAssistant } = await import('./store');
+    const {
+      applyCareRequestTerminalStatus,
+      acceptedNarration,
+    } = await import('./careRequestStatus');
+
+    useAssistant.getState().reset();
+    useAssistant.getState().setMatch({
+      request_id: 1,
+      latency_ms: 1,
+      query: 'x',
+      emergency: false,
+      weights: { cbf: 0.4, cf: 0.3, geo: 0.2, trust: 0.1 },
+      results: [
+        {
+          caregiver_id: 10,
+          rank: 1,
+          score: 0.9,
+          breakdown: { cbf: 0.5, cf: 0.2, geo: 0.2, trust: 0.1 },
+          explanation: 'top',
+          display_name: 'Asha',
+          specialties: [],
+          languages: [],
+          care_levels: [],
+        },
+        {
+          caregiver_id: 20,
+          rank: 2,
+          score: 0.8,
+          breakdown: { cbf: 0.4, cf: 0.2, geo: 0.2, trust: 0.1 },
+          explanation: 'next',
+          display_name: 'Nimal',
+          specialties: [],
+          languages: [],
+          care_levels: [],
+        },
+      ],
+    });
+    useAssistant.getState().setCareRequestId(77);
+    useAssistant.getState().setBookingStage('awaiting_accept');
+    useAssistant.getState().setFocusedCaregiverId(10);
+
+    expect(
+      applyCareRequestTerminalStatus({
+        id: 77,
+        patient_email: 'p@example.com',
+        caregiver_id: 10,
+        caregiver_name: 'Asha',
+        status: 'accepted',
+        message: '',
+        match_snapshot: {},
+        expires_at: '2099-01-01T00:00:00Z',
+        relationship_status: 'pending_payment',
+      }),
+    ).toBe(true);
+    expect(useAssistant.getState().bookingStage).toBe('packages');
+    expect(useAssistant.getState().chat.at(-1)?.text).toBe(acceptedNarration('Asha'));
+
+    useAssistant.getState().setCareRequestId(78);
+    useAssistant.getState().setBookingStage('awaiting_accept');
+    useAssistant.getState().setFocusedCaregiverId(10);
+    expect(
+      applyCareRequestTerminalStatus({
+        id: 78,
+        patient_email: 'p@example.com',
+        caregiver_id: 10,
+        caregiver_name: 'Asha',
+        status: 'rejected',
+        message: '',
+        match_snapshot: {},
+        expires_at: '2099-01-01T00:00:00Z',
+      }),
+    ).toBe(true);
+    expect(useAssistant.getState().careRequestId).toBeNull();
+    expect(useAssistant.getState().focusedCaregiverId).toBe(20);
+    expect(useAssistant.getState().bookingStage).toBe('profile');
+    expect(useAssistant.getState().chat.at(-1)?.text).toMatch(/Nimal/);
   });
 });

@@ -1,9 +1,10 @@
 import type { SerahAction } from '@care-plus/api-client';
 import { useAssistant } from './store';
 import { resolveCaregiverFromAction } from './resolveCaregiver';
+import { checkCareRequestStatus } from './careRequestStatus';
 
 export type ExecuteSerahActionResult =
-  | { ok: true; type: string; caregiverId?: number; queued?: boolean }
+  | { ok: true; type: string; caregiverId?: number; queued?: boolean; careRequestId?: number }
   | { ok: false; type: string; error: string };
 
 /**
@@ -55,20 +56,32 @@ export async function executeSerahAction(
         `Request to ${hit.display_name || 'caregiver'}`,
       );
       store.setFocusedCaregiverId(hit.caregiver_id);
-      store.setBookingStage('requested');
       if (outcome.queued) {
+        store.setBookingStage('requested');
         const queued =
           `Request to ${hit.display_name || 'this caregiver'} is queued and will send when you reconnect.`;
         const last = [...store.chat].reverse().find((m) => m.role === 'serah');
         if (last?.text !== queued) {
           store.appendChat({ role: 'serah', text: queued, route: 'ACTION' });
         }
+        return {
+          ok: true,
+          type: 'request',
+          caregiverId: hit.caregiver_id,
+          queued: true,
+        };
       }
+      const createdId = outcome.result?.id;
+      if (typeof createdId === 'number') {
+        store.setCareRequestId(createdId);
+      }
+      store.setBookingStage('awaiting_accept');
       return {
         ok: true,
         type: 'request',
         caregiverId: hit.caregiver_id,
-        queued: Boolean(outcome.queued),
+        queued: false,
+        careRequestId: typeof createdId === 'number' ? createdId : undefined,
       };
     } catch (err) {
       const error =
@@ -78,6 +91,14 @@ export async function executeSerahAction(
     }
   }
 
-  // Later slices: request_status, select_package, confirm_checkout, cancel_flow.
+  if (action.type === 'request_status') {
+    const outcome = await checkCareRequestStatus({ speakIfPending: true });
+    if (outcome === 'error') {
+      return { ok: false, type: 'request_status', error: 'Status check failed.' };
+    }
+    return { ok: true, type: 'request_status' };
+  }
+
+  // Later slices: select_package, confirm_checkout, cancel_flow.
   return { ok: true, type: action.type, caregiverId: hit?.caregiver_id };
 }

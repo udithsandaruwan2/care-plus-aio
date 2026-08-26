@@ -169,6 +169,20 @@ _DESCRIBE = re.compile(
     re.I,
 )
 
+_REQUEST_STATUS = re.compile(
+    r"\b("
+    r"any\s*(update|news|response|word)|"
+    r"(what'?s|what\s+is)\s*(the\s*)?(status|update)|"
+    r"(request|booking)\s*status|"
+    r"(did|has)\s*(they|he|she|the\s*caregiver)\s*(accept|respond|reply|answer)|"
+    r"still\s*waiting|"
+    r"have\s*they\s*(accepted|responded|replied)|"
+    r"check\s*(on\s*)?(the\s*)?(request|status)"
+    r")\b|"
+    r"තත්ත්වය|நிலைமை|நிலை",
+    re.I,
+)
+
 # Last Serah line offered opening a profile / sending a request (yes-after-offer).
 _OFFER_PROFILE = re.compile(
     r"(check|open|review|see|look\s*at).{0,40}profile|"
@@ -267,6 +281,10 @@ def classify_turn(
         return RouteDecision("CHAT", "smalltalk")
     if _FAQ.search(raw) and not _MATCH_SEEK.search(raw):
         return RouteDecision("CHAT", "faq")
+
+    # Status check can run with or without visible cards (poll uses careRequestId).
+    if _REQUEST_STATUS.search(raw):
+        return RouteDecision("ACTION", "request_status")
 
     # 4) Questions about a prior match (session memory — cards may be off-screen)
     if has_history_match and _ABOUT_MATCH.search(raw):
