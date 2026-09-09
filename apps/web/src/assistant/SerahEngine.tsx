@@ -19,6 +19,7 @@ import { resetMatchNarration, useMatchSocket } from './useMatch';
 import { useAudioRecorder } from './useAudioRecorder';
 import { useVoiceTurn } from './useVoiceTurn';
 import { useCareRequestPoll } from './useCareRequestPoll';
+import { useSerahLiveBridge } from './useSerahLiveBridge';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
@@ -100,6 +101,16 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     grantConsent,
     stopSpeaking: stopTurnSpeaking,
   } = useVoiceTurn();
+  const {
+    liveActive,
+    liveSpeaking,
+    startLive,
+    stopLive,
+    sendLiveText,
+    interruptLive,
+  } = useSerahLiveBridge();
+  const liveActiveRef = useRef(false);
+  liveActiveRef.current = liveActive;
   useMatchSocket({
     onEmergencyMatch: (payload) => setEmergencyMatchId(payload.request_id),
   });
@@ -335,11 +346,15 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     });
   }, [continueListening, mic, recorder, setState, speech]);
 
-  const listening = mic.active || speech.listening;
+  const listening = mic.active || speech.listening || liveActive;
   const state = useAssistant((s) => s.state);
   const matching = useAssistant((s) => s.matching);
   const emergencyActive = state === AssistantState.EMERGENCY && emergencyMatchId != null;
-  const visual = orbVisualState(state, listening, matching);
+  const visual = orbVisualState(
+    liveSpeaking ? AssistantState.SPEAKING : state,
+    listening,
+    matching,
+  );
 
   useEffect(() => {
     if (consentNeeded) consentBtnRef.current?.focus();
@@ -368,17 +383,19 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   }, [mic.active, speech, busy, stopTurnSpeaking]);
 
   const toggleMic = useCallback(async () => {
-    if (listening) {
+    if (listening || liveActive) {
       setConversationOn(false);
       clearRearmTimer();
       silenceStopRef.current?.();
       silenceStopRef.current = null;
+      stopLive();
       speech.stop();
       mic.stop();
       void recorder.stop();
       return;
     }
     if (busy) {
+      interruptLive();
       stopTurnSpeaking();
       return;
     }
@@ -411,6 +428,14 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     clearRearmTimer();
     silenceStopRef.current?.();
     silenceStopRef.current = null;
+
+    // Prefer Gemini Live; fall back to Web Speech + HTTP turn.
+    const liveOk = await startLive({ uiLanguage: store.uiLanguage as 'English' | 'Tamil' | 'Sinhala' });
+    if (liveOk) {
+      setState(AssistantState.LISTENING, { force: true });
+      return;
+    }
+
     await mic.start();
     await recorder.start();
     speech.start();
@@ -418,6 +443,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     armSilenceWatchRef.current();
   }, [
     listening,
+    liveActive,
     busy,
     speech,
     stopTurnSpeaking,
@@ -428,6 +454,9 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     mic,
     recorder,
     setState,
+    startLive,
+    stopLive,
+    interruptLive,
   ]);
 
   const onGrantConsent = useCallback(async () => {
@@ -445,6 +474,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     if (clearing || busy || listening) return;
     setClearing(true);
     stopTurnSpeaking();
+    stopLive();
     setConversationOn(false);
     setSessionLive(false);
     setAsleep(false);
@@ -458,13 +488,17 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       setSessionLive(false);
       setClearing(false);
     }
-  }, [clearing, busy, listening, stopTurnSpeaking, setSessionLive, setAsleep, reset]);
+  }, [clearing, busy, listening, stopTurnSpeaking, stopLive, setSessionLive, setAsleep, reset]);
 
   const submitText = useCallback(
     async (line: string) => {
       const trimmed = line.trim();
       if (!trimmed || listening) return;
       setSessionLive(true);
+      if (liveActiveRef.current && sendLiveText(trimmed)) {
+        useAssistant.getState().appendChat({ role: 'user', text: trimmed });
+        return;
+      }
       if (busyRef.current) {
         pendingTextRef.current = trimmed;
         return;
@@ -476,7 +510,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
         await beginTurn({ text: queued, audio: null, source: 'text' });
       }
     },
-    [listening, beginTurn, setSessionLive],
+    [listening, beginTurn, setSessionLive, sendLiveText],
   );
 
   const onTextSubmit = useCallback(

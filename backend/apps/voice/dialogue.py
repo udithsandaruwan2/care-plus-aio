@@ -435,8 +435,9 @@ def process_turn(
     prior_match: dict | None = None,
     ui_language: str | None = None,
     voice_persona: str | None = None,
+    skip_tts: bool = False,
 ) -> dict:
-    """Full conversational turn used by ``POST /voice/turn/``."""
+    """Full conversational turn used by ``POST /voice/turn/`` and Live tools."""
     clock = StageClock()
     ui = ui_language if ui_language in ("Sinhala", "Tamil", "English") else None
     session = get_or_create_active_session(user, lang=ui or "")
@@ -870,9 +871,19 @@ def process_turn(
             payload,
             reply,
             reply_lang,
-            server_voice=_use_server_voice(reply_lang, has_match=bool(match_payload)),
+            server_voice=(
+                False
+                if skip_tts
+                else _use_server_voice(reply_lang, has_match=bool(match_payload))
+            ),
             persona=voice_persona,
         )
+    if skip_tts:
+        out["tts_source"] = "live"
+        out["audio_pending"] = False
+        out["tts_cache_hit"] = False
+        out["reply_audio_base64"] = ""
+        out["reply_audio_mime"] = ""
     if not out.get("audio_pending"):
         _emit_turn(
             user,

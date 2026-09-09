@@ -48,28 +48,31 @@ class TtsRouterTests(SimpleTestCase):
 
     @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True, TTS_PHRASE_CACHE=False)
     @patch("apps.voice.tts.synthesize_edge_tts")
-    def test_auto_sinhala_prefers_edge_first(self, mock_edge):
+    @patch("apps.voice.tts.synthesize_gemini_tts")
+    def test_auto_prefers_gemini_first(self, mock_gemini, mock_edge):
+        mock_gemini.return_value = TtsResult(audio=b"g", mime="audio/wav", source="gemini_tts")
         mock_edge.return_value = TtsResult(audio=b"x", mime="audio/mpeg", source="edge")
         out = synthesize("හොඳ දවසක්", "si-LK")
-        self.assertEqual(out.source, "edge")
-        mock_edge.assert_called_once()
+        self.assertEqual(out.source, "gemini_tts")
+        mock_gemini.assert_called_once()
+        mock_edge.assert_not_called()
 
     @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True, TTS_PHRASE_CACHE=False)
     @patch("apps.voice.tts.synthesize_gemini_tts")
     @patch("apps.voice.tts.synthesize_edge_tts")
-    def test_auto_falls_back_to_gemini_when_edge_empty(self, mock_edge, mock_gemini):
-        mock_edge.return_value = TtsResult(audio=b"", mime="", source="edge")
-        mock_gemini.return_value = TtsResult(audio=b"g", mime="audio/wav", source="gemini_tts")
+    def test_auto_falls_back_to_edge_when_gemini_empty(self, mock_edge, mock_gemini):
+        mock_gemini.return_value = TtsResult(audio=b"", mime="", source="gemini_tts")
+        mock_edge.return_value = TtsResult(audio=b"x", mime="audio/mpeg", source="edge")
         out = synthesize("හොඳ දවසක්", "si-LK")
-        self.assertEqual(out.source, "gemini_tts")
+        self.assertEqual(out.source, "edge")
 
     @override_settings(TTS_BACKEND="auto", EDGE_TTS_ENABLED=True, TTS_PHRASE_CACHE=False)
     @patch("apps.voice.tts.synthesize_espeak")
     @patch("apps.voice.tts.synthesize_edge_tts")
     @patch("apps.voice.tts.synthesize_gemini_tts")
     def test_auto_falls_back_to_espeak_when_cloud_empty(self, mock_gemini, mock_edge, mock_espeak):
-        mock_edge.return_value = TtsResult(audio=b"", mime="", source="edge")
         mock_gemini.return_value = TtsResult(audio=b"", mime="", source="gemini_tts")
+        mock_edge.return_value = TtsResult(audio=b"", mime="", source="edge")
         mock_espeak.return_value = TtsResult(audio=b"w", mime="audio/wav", source="espeak")
         out = synthesize("හොඳ දවසක්", "si-LK")
         self.assertEqual(out.source, "espeak")

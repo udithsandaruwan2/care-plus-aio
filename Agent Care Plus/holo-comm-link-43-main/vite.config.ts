@@ -31,11 +31,12 @@ export default defineConfig({
       alias: {
         "@": path.resolve(rootDir, "src"),
         "@care-plus/api-client": path.resolve(rootDir, "../../packages/api-client/src/index.ts"),
+        "@care-plus/serah-live": path.resolve(rootDir, "../../packages/serah-live/src/index.ts"),
       },
       dedupe: ["zod"],
     },
     optimizeDeps: {
-      exclude: ["@care-plus/api-client"],
+      exclude: ["@care-plus/api-client", "@care-plus/serah-live"],
       include: ["zod"],
     },
   },

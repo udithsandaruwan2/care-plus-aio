@@ -318,10 +318,10 @@ def transcribe_faster_whisper(
 
 def transcribe_gemini_audio(audio: bytes, content_type: str) -> AsrResult:
     """Optional Gemini ASR — only when ASR_BACKEND=gemini_audio (not default)."""
-    from apps.common.envutil import refresh_env
+    from apps.common.envutil import gemini_voice_api_key
 
-    refresh_env()
-    if not settings.GEMINI_API_KEY:
+    api_key = gemini_voice_api_key()
+    if not api_key:
         return AsrResult(text="", source="gemini_audio")
 
     try:
@@ -341,7 +341,7 @@ def transcribe_gemini_audio(audio: bytes, content_type: str) -> AsrResult:
 
     path: Path | None = None
     try:
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        genai.configure(api_key=api_key)
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
             tmp.write(audio)
             path = Path(tmp.name)
@@ -399,13 +399,11 @@ def resolve_transcript(
     content_type: str | None,
     ui_language: str | None = None,
 ) -> AsrResult:
-    """Pick the best transcript — captions when trusted, else local Whisper."""
-    from apps.common.envutil import refresh_env
+    """Pick the best transcript — captions when trusted, else Gemini/Whisper."""
+    from apps.common.envutil import gemini_voice_api_key, refresh_env
 
     refresh_env()
     backend = (getattr(settings, "ASR_BACKEND", "faster_whisper") or "faster_whisper").strip()
-    if not backend or backend == "auto":
-        backend = "faster_whisper"
     client = (client_text or "").strip()
     ui = ui_language if ui_language in ("Sinhala", "Tamil", "English") else None
 
@@ -460,7 +458,16 @@ def resolve_transcript(
             languages=langs or [hint],
         )
 
-    # faster_whisper (default) — never prefer English browser captions over audio.
+    # auto: prefer Gemini ASR for Tamil/Sinhala when voice key is set.
+    if backend in ("auto", "") and audio and ui in ("Tamil", "Sinhala") and gemini_voice_api_key():
+        gem = transcribe_gemini_audio(audio, content_type or "audio/webm")
+        if gem.text:
+            gem.language_hint = ui
+            if ui not in gem.languages:
+                gem.languages = [ui, *gem.languages]
+            return gem
+
+    # faster_whisper (default / auto fallback) — never prefer English captions over audio.
     if audio:
         result = transcribe_faster_whisper(audio, content_type or "audio/webm", ui_language=ui)
         if result.text:
