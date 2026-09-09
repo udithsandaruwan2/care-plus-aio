@@ -61,7 +61,7 @@ export default defineConfig({
   optimizeDeps: {
     // Workspace packages are source TS — prebundling them freezes stale exports
     // and whitescreens the app after core/api-client changes.
-    exclude: ['@care-plus/core', '@care-plus/api-client', '@care-plus/ui-tokens'],
+    exclude: ['@care-plus/core', '@care-plus/api-client', '@care-plus/ui-tokens', '@care-plus/serah-live'],
   },
   build: {
     modulePreload: {

@@ -1,12 +1,14 @@
 """Text-to-speech backends — Care Plus pluggable TTS.
 
 ``TTS_BACKEND``:
-  - ``auto`` (default): Edge neural → Gemini TTS → Piper (English) → espeak → none
+  - ``auto`` (default): Gemini TTS → Edge neural → Piper (English) → espeak → none
   - ``piper``: local Piper only
   - ``gemini_tts``: Gemini speech models only
   - ``edge``: Microsoft Edge neural voices (Sinhala/Tamil/English, no API key)
   - ``espeak``: local espeak-ng (offline, robotic)
   - ``browser`` / ``none``: skip server audio (client speechSynthesis)
+
+Gemini TTS / Live use ``GEMINI_VOICE_API_KEY`` (falls back to ``GEMINI_API_KEY``).
 """
 
 from __future__ import annotations
@@ -152,10 +154,10 @@ def synthesize_piper(text: str, lang: str) -> TtsResult:
 
 def synthesize_gemini_tts(text: str, lang: str, persona: str | None = None) -> TtsResult:
     """Gemini TTS (supports Sinhala, Tamil, English)."""
-    from apps.common.envutil import refresh_env
+    from apps.common.envutil import gemini_voice_api_key
 
-    refresh_env()
-    if not text.strip() or not settings.GEMINI_API_KEY:
+    api_key = gemini_voice_api_key()
+    if not text.strip() or not api_key:
         return _empty("gemini_tts")
 
     model_name = (
@@ -165,11 +167,11 @@ def synthesize_gemini_tts(text: str, lang: str, persona: str | None = None) -> T
 
     # Prefer new google-genai SDK; fall back to REST.
     try:
-        return _gemini_tts_sdk(text, lang, model_name, voice)
+        return _gemini_tts_sdk(text, lang, model_name, voice, api_key)
     except Exception:
         logger.exception("gemini TTS SDK path failed; trying REST")
     try:
-        return _gemini_tts_rest(text, lang, model_name, voice)
+        return _gemini_tts_rest(text, lang, model_name, voice, api_key)
     except Exception:
         logger.exception("gemini TTS REST failed")
         return _empty("gemini_tts")
@@ -185,11 +187,13 @@ def _prompt_for_lang(text: str, lang: str) -> str:
     return f"{style}\n\n{text}"
 
 
-def _gemini_tts_sdk(text: str, lang: str, model_name: str, voice: str) -> TtsResult:
+def _gemini_tts_sdk(
+    text: str, lang: str, model_name: str, voice: str, api_key: str
+) -> TtsResult:
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    client = genai.Client(api_key=api_key)
     resp = client.models.generate_content(
         model=model_name,
         contents=_prompt_for_lang(text, lang),
@@ -225,14 +229,16 @@ def _gemini_tts_sdk(text: str, lang: str, model_name: str, voice: str) -> TtsRes
     return TtsResult(audio=wav, mime="audio/wav", source="gemini_tts")
 
 
-def _gemini_tts_rest(text: str, lang: str, model_name: str, voice: str) -> TtsResult:
+def _gemini_tts_rest(
+    text: str, lang: str, model_name: str, voice: str, api_key: str
+) -> TtsResult:
     import json
     import urllib.error
     import urllib.request
 
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model_name}:generateContent?key={settings.GEMINI_API_KEY}"
+        f"{model_name}:generateContent?key={api_key}"
     )
     body = {
         "contents": [{"parts": [{"text": _prompt_for_lang(text, lang)}]}],
@@ -499,14 +505,13 @@ def _synthesize_uncached(text: str, reply_lang: str, persona: str | None = None)
     if backend == "espeak":
         return synthesize_espeak(text, lang)
 
-    # auto: Edge neural first everywhere. Piper only has one English voice, so it
-    # cannot honour a persona choice and now sits behind Edge rather than ahead.
-    neural = synthesize_edge_tts(text, lang, persona)
-    if neural.audio:
-        return neural
+    # auto: Gemini TTS first (dedicated voice key), then Edge, Piper, espeak.
     cloud = synthesize_gemini_tts(text, lang, persona)
     if cloud.audio:
         return cloud
+    neural = synthesize_edge_tts(text, lang, persona)
+    if neural.audio:
+        return neural
     if lang.startswith("en"):
         local = synthesize_piper(text, lang)
         if local.audio:

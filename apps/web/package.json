@@ -17,6 +17,7 @@
   "dependencies": {
     "@care-plus/api-client": "workspace:*",
     "@care-plus/core": "workspace:*",
+    "@care-plus/serah-live": "workspace:*",
     "@care-plus/ui-tokens": "workspace:*",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/noto-sans-sinhala": "^5.3.0",

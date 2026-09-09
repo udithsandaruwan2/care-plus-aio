@@ -120,6 +120,9 @@ importers:
       '@care-plus/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@care-plus/serah-live':
+        specifier: workspace:*
+        version: link:../../packages/serah-live
       '@care-plus/ui-tokens':
         specifier: workspace:*
         version: link:../../packages/ui-tokens
@@ -257,6 +260,12 @@ importers:
       '@noble/hashes':
         specifier: ^2.3.0
         version: 2.3.0
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  packages/serah-live:
     devDependencies:
       typescript:
         specifier: ^5.6.3

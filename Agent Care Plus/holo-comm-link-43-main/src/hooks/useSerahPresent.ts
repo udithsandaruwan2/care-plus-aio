@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MatchResponse, VoiceTurnIntent } from "@care-plus/api-client";
+import {
+  createSerahLiveSession,
+  type SerahLiveSession,
+} from "@care-plus/serah-live";
 
-import { api } from "@/lib/careplus-api";
+import { api, getAccessToken } from "@/lib/careplus-api";
 import {
   ensureSerahSession,
   type BootResult,
@@ -105,18 +109,23 @@ export function useSerahPresent() {
   const finalChunks = useRef<string[]>([]);
   const interimRef = useRef("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const liveRef = useRef<SerahLiveSession | null>(null);
+  const liveActiveRef = useRef(false);
+  const userIdRef = useRef<number | null>(null);
+  const [liveActive, setLiveActive] = useState(false);
 
   const pushLog = useCallback((text: string) => {
     setLogs((prev) => [...prev.slice(-10), { id: uid(), text }]);
   }, []);
 
   useEffect(() => {
-    setMicSupported(getSpeechCtor() !== null);
+    setMicSupported(getSpeechCtor() !== null || Boolean(navigator.mediaDevices?.getUserMedia));
     let cancelled = false;
     void (async () => {
       const result = await ensureSerahSession();
       if (cancelled) return;
       setBoot(result);
+      userIdRef.current = result.userId;
       if (result.status === "online") {
         pushLog(`AUTH :: ${result.message}`);
         pushLog("SEC :: AI processing consent verified");
@@ -128,6 +137,79 @@ export function useSerahPresent() {
       cancelled = true;
     };
   }, [pushLog]);
+
+  useEffect(() => {
+    if (boot.status !== "online" || !boot.userId) return;
+    const session = createSerahLiveSession({
+      apiBaseUrl: (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api/v1",
+      getAccessToken,
+      getUserId: () => userIdRef.current,
+      handlers: {
+        onReady: ({ model }) => {
+          liveActiveRef.current = true;
+          setLiveActive(true);
+          pushLog(`LIVE :: Gemini ${model} ready`);
+        },
+        onUnavailable: (reason) => {
+          liveActiveRef.current = false;
+          setLiveActive(false);
+          pushLog(`LIVE :: unavailable — ${reason.slice(0, 80)}`);
+        },
+        onInputTranscript: (text, final) => {
+          if (final && text.trim()) {
+            setInterim("");
+            setMessages((prev) => [...prev, { id: uid(), role: "user", text: text.trim() }]);
+          } else {
+            setInterim(text);
+          }
+        },
+        onOutputTranscript: (text, final) => {
+          if (final && text.trim()) {
+            setMessages((prev) => [...prev, { id: uid(), role: "assistant", text: text.trim() }]);
+          }
+        },
+        onTool: (_name, status) => {
+          if (status === "running") {
+            setMode("thinking");
+            pushLog("TURN :: Serah is thinking…");
+          }
+        },
+        onMatch: (payload, cleared) => {
+          if (cleared || !payload) {
+            matchRef.current = null;
+            setMatch(null);
+            pushLog("MATCH :: Cleared prior results");
+            return;
+          }
+          const asMatch = payload as MatchResponse;
+          matchRef.current = asMatch;
+          setMatch(asMatch);
+          pushLog(
+            `MATCH :: VEHMF returned ${(asMatch.results || []).length} caregivers`,
+          );
+        },
+        onSpeaking: (speaking) => {
+          setMode(speaking ? "speaking" : liveActiveRef.current ? "listening" : "idle");
+          if (speaking) pushLog("SYNTH :: Streaming Serah Live voice");
+        },
+        onError: (message) => {
+          setError(message);
+          pushLog(`ERR :: ${message}`);
+        },
+        onClosed: () => {
+          liveActiveRef.current = false;
+          setLiveActive(false);
+          setMode((m) => (m === "listening" || m === "speaking" ? "idle" : m));
+        },
+      },
+    });
+    liveRef.current = session;
+    return () => {
+      session.stop();
+      liveRef.current = null;
+      liveActiveRef.current = false;
+    };
+  }, [boot.status, boot.userId, pushLog]);
 
   const stopPlayback = useCallback(() => {
     if (audioRef.current) {
@@ -202,6 +284,13 @@ export function useSerahPresent() {
       if (!trimmed || busyRef.current) return;
       if (boot.status !== "online") {
         setError("Care Plus link is offline. Restart the backend and refresh.");
+        return;
+      }
+
+      if (liveActiveRef.current && liveRef.current?.ready) {
+        setMessages((prev) => [...prev, { id: uid(), role: "user", text: trimmed }]);
+        setMode("thinking");
+        liveRef.current.sendText(trimmed);
         return;
       }
 
@@ -285,98 +374,125 @@ export function useSerahPresent() {
   );
 
   const startListening = useCallback(() => {
-    const Ctor = getSpeechCtor();
-    if (!Ctor) {
-      setError("Speech recognition is not supported in this browser. Use text chat.");
-      return;
-    }
     if (busyRef.current || boot.status !== "online") return;
-
     stopPlayback();
     clearSilence();
-    finalChunks.current = [];
-    interimRef.current = "";
-    setInterim("");
     setError(null);
-    setMode("listening");
-    pushLog("AUDIO :: Listening for operator…");
 
-    const rec = new Ctor();
-    rec.lang = "en-US";
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
-
-    rec.onresult = (event) => {
-      let interimText = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        const text = result[0]?.transcript ?? "";
-        if (result.isFinal) {
-          finalChunks.current.push(text.trim());
-        } else {
-          interimText += text;
-        }
-      }
-      interimRef.current = interimText.trim();
-      setInterim(interimRef.current);
-      if (interimText || finalChunks.current.length) {
-        clearSilence();
-        silenceTimer.current = setTimeout(() => {
-          try {
-            rec.stop();
-          } catch {
-            /* already stopped */
+    void (async () => {
+      const live = liveRef.current;
+      if (live) {
+        pushLog("LIVE :: Connecting Gemini Live…");
+        setMode("listening");
+        const ok = await live.start({ uiLanguage: "English", voice: "female" });
+        if (ok) {
+          const micOk = await live.startMic();
+          if (micOk) {
+            liveActiveRef.current = true;
+            setLiveActive(true);
+            pushLog("AUDIO :: Live mic streaming");
+            return;
           }
-        }, 900);
+          live.stop();
+        }
+        pushLog("LIVE :: Falling back to Web Speech + HTTP turn");
       }
-    };
 
-    rec.onerror = (event) => {
-      if (event.error === "no-speech" || event.error === "aborted") return;
-      if (event.error === "not-allowed") {
-        setError("Microphone permission denied. You can still type.");
-      } else {
-        setError(`Speech error: ${event.error}`);
+      const Ctor = getSpeechCtor();
+      if (!Ctor) {
+        setError("Speech recognition is not supported in this browser. Use text chat.");
+        setMode("idle");
+        return;
       }
-    };
 
-    rec.onend = () => {
-      clearSilence();
-      recRef.current = null;
-      const spoken = [...finalChunks.current, interimRef.current]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
       finalChunks.current = [];
       interimRef.current = "";
       setInterim("");
-      if (spoken) {
-        void runTurn(spoken);
-      } else if (!busyRef.current) {
-        setMode("idle");
-        pushLog("IDLE :: No speech captured");
-      }
-    };
+      setMode("listening");
+      pushLog("AUDIO :: Listening for operator…");
 
-    recRef.current = rec;
-    try {
-      rec.start();
-    } catch {
-      setError("Could not start the microphone.");
-      setMode("idle");
-    }
+      const rec = new Ctor();
+      rec.lang = "en-US";
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+
+      rec.onresult = (event) => {
+        let interimText = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const text = result[0]?.transcript ?? "";
+          if (result.isFinal) {
+            finalChunks.current.push(text.trim());
+          } else {
+            interimText += text;
+          }
+        }
+        interimRef.current = interimText.trim();
+        setInterim(interimRef.current);
+        if (interimText || finalChunks.current.length) {
+          clearSilence();
+          silenceTimer.current = setTimeout(() => {
+            try {
+              rec.stop();
+            } catch {
+              /* already stopped */
+            }
+          }, 900);
+        }
+      };
+
+      rec.onerror = (event) => {
+        if (event.error === "no-speech" || event.error === "aborted") return;
+        if (event.error === "not-allowed") {
+          setError("Microphone permission denied. You can still type.");
+        } else {
+          setError(`Speech error: ${event.error}`);
+        }
+      };
+
+      rec.onend = () => {
+        clearSilence();
+        recRef.current = null;
+        const spoken = [...finalChunks.current, interimRef.current]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+        finalChunks.current = [];
+        interimRef.current = "";
+        setInterim("");
+        if (spoken) {
+          void runTurn(spoken);
+        } else if (!busyRef.current) {
+          setMode("idle");
+          pushLog("IDLE :: No speech captured");
+        }
+      };
+
+      recRef.current = rec;
+      try {
+        rec.start();
+      } catch {
+        setError("Could not start the microphone.");
+        setMode("idle");
+      }
+    })();
   }, [boot.status, pushLog, runTurn, stopPlayback]);
 
   const toggleListening = useCallback(() => {
-    if (mode === "listening") {
+    if (mode === "listening" || liveActive) {
+      liveRef.current?.stopMic();
+      liveRef.current?.stop();
+      liveActiveRef.current = false;
+      setLiveActive(false);
       stopMic();
+      setMode("idle");
       return;
     }
     if (mode === "idle" || mode === "speaking") {
       startListening();
     }
-  }, [mode, startListening, stopMic]);
+  }, [mode, liveActive, startListening, stopMic]);
 
   const submitText = useCallback(
     (text: string) => {
@@ -389,6 +505,9 @@ export function useSerahPresent() {
   const newRequest = useCallback(async () => {
     stopMic();
     stopPlayback();
+    liveRef.current?.stop();
+    liveActiveRef.current = false;
+    setLiveActive(false);
     matchRef.current = null;
     intentRef.current = null;
     setMatch(null);

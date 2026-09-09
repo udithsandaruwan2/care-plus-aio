@@ -167,11 +167,13 @@ CELERY_BEAT_SCHEDULE = {
 
 # ── Cognitive layer (voice → intent + dialogue) ──────────────────
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+# Dedicated key for Live API + Gemini TTS (+ optional gemini_audio ASR). Falls back to GEMINI_API_KEY.
+GEMINI_VOICE_API_KEY = env("GEMINI_VOICE_API_KEY", default="")
 GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-flash-lite-latest")
 # stub | gemini | local | auto (local classifier → gemini → stub)
 VOICE_INTENT_BACKEND = env("VOICE_INTENT_BACKEND", default="gemini" if GEMINI_API_KEY else "stub")
-# auto | client | gemini_audio | faster_whisper — default is local Whisper (own ASR)
-ASR_BACKEND = env("ASR_BACKEND", default="faster_whisper")
+# auto | client | gemini_audio | faster_whisper — auto tries Gemini ASR for si/ta when voice key set
+ASR_BACKEND = env("ASR_BACKEND", default="auto")
 WHISPER_MODEL = env("WHISPER_MODEL", default="small")
 WHISPER_DEVICE = env("WHISPER_DEVICE", default="cpu")
 WHISPER_COMPUTE_TYPE = env("WHISPER_COMPUTE_TYPE", default="int8")
@@ -183,7 +185,7 @@ WHISPER_SINHALA_MODEL = env(
 )
 WHISPER_SINHALA_COMPUTE_TYPE = env("WHISPER_SINHALA_COMPUTE_TYPE", default="")
 WHISPER_PRELOAD = env.bool("WHISPER_PRELOAD", default=False)
-# auto | piper | gemini_tts | browser — server TTS for Serah (si/ta/en)
+# auto | piper | gemini_tts | browser — auto prefers Gemini TTS then Edge
 TTS_BACKEND = env("TTS_BACKEND", default="auto")
 TTS_GEMINI_MODEL = env("TTS_GEMINI_MODEL", default="gemini-2.5-flash-preview-tts")
 TTS_GEMINI_VOICE = env("TTS_GEMINI_VOICE", default="Kore")
@@ -194,6 +196,11 @@ TTS_PHRASE_CACHE = env.bool("TTS_PHRASE_CACHE", default=True)
 TTS_DEFER_UNCACHED = env.bool("TTS_DEFER_UNCACHED", default=True)
 # Neural Sinhala/Tamil via edge-tts when Gemini TTS quota is exhausted.
 EDGE_TTS_ENABLED = env.bool("EDGE_TTS_ENABLED", default=True)
+# Gemini Live (native audio) bridge — ws/voice/live/<user_id>/
+VOICE_LIVE_ENABLED = env.bool("VOICE_LIVE_ENABLED", default=True)
+VOICE_LIVE_MODEL = env("VOICE_LIVE_MODEL", default="gemini-3.1-flash-live-preview")
+VOICE_LIVE_RATE_LIMIT = env.int("VOICE_LIVE_RATE_LIMIT", default=60)
+VOICE_LIVE_RATE_WINDOW_SEC = env.int("VOICE_LIVE_RATE_WINDOW_SEC", default=3600)
 PIPER_BIN = env("PIPER_BIN", default="")
 PIPER_MODEL_DIR = env("PIPER_MODEL_DIR", default="/ml/tts/piper")
 PIPER_EN_MODEL = env("PIPER_EN_MODEL", default="en_US-lessac-medium.onnx")
