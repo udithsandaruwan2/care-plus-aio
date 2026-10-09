@@ -9,17 +9,20 @@ import {
   takePcmFrames,
 } from './micGate';
 import {
+  appendPlayback,
   createPlaybackHold,
   createSpeakWatch,
+  fadeInFromSilence,
   HOLD_LIMIT_MS,
   holdPlayback,
   onSourceEnd,
   onSourceStart,
+  PLAYBACK_PREROLL_SEC,
   pollSpeakingStopped,
+  pullPlayback,
   releasePlayback,
   replyMicMode,
   resamplePlayback,
-  schedulePcmStart,
   shouldPlayPcm,
   TURN_IDLE_MS,
 } from './playbackHold';
@@ -106,10 +109,14 @@ function decodeBase64Pcm(b64: string): Int16Array {
   return new Int16Array(bytes.buffer);
 }
 
-/** Play 24 kHz mono s16le PCM via Web Audio. */
+/** Play 24 kHz mono s16le PCM as one stream, so chunk edges do not click. */
 class PcmPlayer {
   private ctx: AudioContext | null = null;
-  private nextTime = 0;
+  private processor: ScriptProcessorNode | null = null;
+  private clock: OscillatorNode | null = null;
+  private pending = new Float32Array(0);
+  private primed = false;
+  private primeTimer: ReturnType<typeof setTimeout> | null = null;
   private onSpeaking: ((v: boolean) => void) | undefined;
   private watch = createSpeakWatch();
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -118,59 +125,104 @@ class PcmPlayer {
     this.onSpeaking = onSpeaking;
   }
 
-  enqueue(pcm: Int16Array, sampleRate = 24000) {
-    if (!pcm.length) return;
-    if (!this.ctx) {
-      try {
-        this.ctx = new AudioContext({ sampleRate });
-      } catch {
-        this.ctx = new AudioContext();
-      }
-      this.nextTime = 0;
+  private ensureGraph(sampleRate: number) {
+    if (this.ctx) return;
+    try {
+      this.ctx = new AudioContext({ sampleRate });
+    } catch {
+      this.ctx = new AudioContext();
     }
     const ctx = this.ctx;
     if (ctx.state === 'suspended') void ctx.resume();
-    const f32 = new Float32Array(pcm.length);
-    for (let i = 0; i < pcm.length; i++) f32[i] = (pcm[i] ?? 0) / 32768;
-    const rendered = resamplePlayback(f32, sampleRate, ctx.sampleRate);
-    const buf = ctx.createBuffer(1, rendered.length, ctx.sampleRate);
-    buf.copyToChannel(rendered, 0);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    const startAt = schedulePcmStart(ctx.currentTime, this.nextTime);
-    src.start(startAt);
-    this.nextTime = startAt + buf.duration;
-    if (this.idleTimer != null) {
-      clearTimeout(this.idleTimer);
-      this.idleTimer = null;
-    }
-    if (onSourceStart(this.watch)) this.onSpeaking?.(true);
-    src.onended = () => {
+    const processor = ctx.createScriptProcessor(2048, 1, 1);
+    processor.onaudioprocess = (ev) => {
+      const output = ev.outputBuffer.getChannelData(0);
+      const pulled = pullPlayback(this.pending, output.length, this.primed);
+      this.pending = pulled.pending;
+      output.set(pulled.output);
+      if (!this.primed) return;
+      if (pulled.played > 0) {
+        this.watch.idleSince = null;
+        if (this.idleTimer != null) {
+          clearTimeout(this.idleTimer);
+          this.idleTimer = null;
+        }
+        if (this.watch.sources === 0 && onSourceStart(this.watch)) this.onSpeaking?.(true);
+        return;
+      }
+      if (this.watch.sources === 0) return;
       const endedAt = performance.now();
       onSourceEnd(this.watch, endedAt);
-      if (this.watch.sources > 0) return;
       if (this.idleTimer != null) clearTimeout(this.idleTimer);
       this.idleTimer = setTimeout(() => {
         this.idleTimer = null;
         if (pollSpeakingStopped(this.watch, endedAt + 160)) this.onSpeaking?.(false);
       }, 160);
     };
+    const clock = ctx.createOscillator();
+    clock.frequency.value = 1;
+    clock.connect(processor);
+    processor.connect(ctx.destination);
+    clock.start();
+    this.processor = processor;
+    this.clock = clock;
   }
 
-  stop() {
+  private primeNow() {
+    if (this.primeTimer != null) {
+      clearTimeout(this.primeTimer);
+      this.primeTimer = null;
+    }
+    if (this.primed || !this.ctx) return;
+    this.primed = true;
+    fadeInFromSilence(this.pending, this.ctx.sampleRate);
+  }
+
+  enqueue(pcm: Int16Array, sampleRate = 24000) {
+    if (!pcm.length) return;
+    this.ensureGraph(sampleRate);
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (ctx.state === 'suspended') void ctx.resume();
+    const f32 = new Float32Array(pcm.length);
+    for (let i = 0; i < pcm.length; i++) f32[i] = (pcm[i] ?? 0) / 32768;
+    this.pending = appendPlayback(this.pending, resamplePlayback(f32, sampleRate, ctx.sampleRate));
     if (this.idleTimer != null) {
       clearTimeout(this.idleTimer);
       this.idleTimer = null;
     }
+    this.watch.idleSince = null;
+    if (this.watch.sources === 0 && onSourceStart(this.watch)) this.onSpeaking?.(true);
+    if (this.primed) return;
+    const need = Math.round(ctx.sampleRate * PLAYBACK_PREROLL_SEC);
+    if (this.pending.length >= need) this.primeNow();
+    else if (this.primeTimer == null) {
+      this.primeTimer = setTimeout(() => this.primeNow(), PLAYBACK_PREROLL_SEC * 1000);
+    }
+  }
+
+  stop() {
+    if (this.primeTimer != null) {
+      clearTimeout(this.primeTimer);
+      this.primeTimer = null;
+    }
+    if (this.idleTimer != null) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+    this.pending = new Float32Array(0);
+    this.primed = false;
     this.watch = createSpeakWatch();
     try {
+      this.clock?.stop();
+      this.processor?.disconnect();
       void this.ctx?.close();
     } catch {
       /* ignore */
     }
+    this.clock = null;
+    this.processor = null;
     this.ctx = null;
-    this.nextTime = 0;
     this.onSpeaking?.(false);
   }
 
