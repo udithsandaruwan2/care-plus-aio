@@ -12,7 +12,7 @@ from django.conf import settings
 
 from apps.common.envutil import gemini_voice_api_key, voice_live_enabled
 from apps.voice.live_activity import live_realtime_input_config
-from apps.voice.output_hold import apply_output_hold
+from apps.voice.output_hold import apply_output_hold, hold_expired
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
     SERAH_LIVE_SYSTEM,
@@ -48,6 +48,7 @@ class LiveSessionRunner:
         self._prior_match: dict | None = None
         self._audio_q: asyncio.Queue[bytes | None] = asyncio.Queue()
         self._hold_output = False
+        self._hold_gen = 0
 
     @property
     def model(self) -> str:
@@ -129,12 +130,25 @@ class LiveSessionRunner:
     async def interrupt(self) -> None:
         # Drop the rest of this model turn so barge-in does not resume her voice.
         self._hold_output = True
+        self._hold_gen += 1
+        generation = self._hold_gen
         while not self._audio_q.empty():
             try:
                 self._audio_q.get_nowait()
             except asyncio.QueueEmpty:
                 break
         await self.emit({"type": "live.interrupted"})
+        asyncio.create_task(self._expire_hold(generation))
+
+    async def _expire_hold(self, generation: int) -> None:
+        await asyncio.sleep(2.5)
+        if self._closed or self._hold_gen != generation or not self._hold_output:
+            return
+        if not hold_expired(2500):
+            return
+        self._hold_output = False
+        self._hold_gen += 1
+        await self.emit({"type": "live.resume"})
 
     async def close(self) -> None:
         self._closed = True
@@ -213,6 +227,7 @@ class LiveSessionRunner:
         if interrupted:
             await self.emit({"type": "live.interrupted"})
         if release:
+            self._hold_gen += 1
             await self.emit({"type": "live.resume"})
 
         if sc is not None:

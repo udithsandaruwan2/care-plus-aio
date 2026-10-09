@@ -20,6 +20,13 @@ export function shouldPlayPcm(state: PlaybackHold): boolean {
   return !state.holding;
 }
 
+/** Let the next reply through if the model never closes the interrupted turn. */
+export const HOLD_LIMIT_MS = 2500;
+
+export function holdReleaseDue(elapsedMs: number, limitMs = HOLD_LIMIT_MS): boolean {
+  return elapsedMs >= limitMs;
+}
+
 /** Seconds to wait after a gap so the next chunks can line up before sound starts. */
 export const PLAYBACK_PREROLL_SEC = 0.08;
 

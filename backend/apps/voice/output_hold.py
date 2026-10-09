@@ -17,3 +17,8 @@ def apply_output_hold(
     if holding and (interrupted or turn_complete):
         return False, True
     return holding, False
+
+
+def hold_expired(held_for_ms: int, limit_ms: int = 2500) -> bool:
+    """Release a barge hold if the model never closes the interrupted turn."""
+    return held_for_ms >= limit_ms
