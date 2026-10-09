@@ -17,6 +17,7 @@ import {
   onSourceStart,
   pollSpeakingStopped,
   releasePlayback,
+  resamplePlayback,
   schedulePcmStart,
   shouldPlayPcm,
 } from './playbackHold';
@@ -128,8 +129,9 @@ class PcmPlayer {
     if (ctx.state === 'suspended') void ctx.resume();
     const f32 = new Float32Array(pcm.length);
     for (let i = 0; i < pcm.length; i++) f32[i] = (pcm[i] ?? 0) / 32768;
-    const buf = ctx.createBuffer(1, f32.length, sampleRate);
-    buf.copyToChannel(f32, 0);
+    const rendered = resamplePlayback(f32, sampleRate, ctx.sampleRate);
+    const buf = ctx.createBuffer(1, rendered.length, ctx.sampleRate);
+    buf.copyToChannel(rendered, 0);
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(ctx.destination);
@@ -192,7 +194,13 @@ async function openMicPcmStream(
     voiceIsolation: true,
   };
   const stream = await navigator.mediaDevices.getUserMedia({ audio });
-  const ctx = new AudioContext({ sampleRate: 16000 });
+  let ctx: AudioContext;
+  try {
+    ctx = new AudioContext({ sampleRate: 16000 });
+  } catch {
+    ctx = new AudioContext();
+  }
+  if (ctx.state === 'suspended') void ctx.resume();
   const source = ctx.createMediaStreamSource(stream);
   const processor = ctx.createScriptProcessor(4096, 1, 1);
   const mute = ctx.createGain();

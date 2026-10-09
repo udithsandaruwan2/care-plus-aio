@@ -27,6 +27,36 @@ export function holdReleaseDue(elapsedMs: number, limitMs = HOLD_LIMIT_MS): bool
   return elapsedMs >= limitMs;
 }
 
+/**
+ * The model sends 24 kHz PCM. The device context is often 44.1 or 48 kHz, and
+ * `createBuffer` rejects a buffer whose rate does not match the context.
+ * Linear resampling keeps her pitch and duration at whatever rate the context is.
+ */
+export function resamplePlayback(
+  samples: ArrayLike<number>,
+  fromRate: number,
+  toRate: number,
+): Float32Array {
+  const same = new Float32Array(samples.length);
+  for (let i = 0; i < samples.length; i++) same[i] = samples[i] ?? 0;
+  if (samples.length === 0 || fromRate <= 0 || toRate <= 0 || Math.abs(fromRate - toRate) < 1) {
+    return same;
+  }
+  const outLen = Math.max(1, Math.round((samples.length * toRate) / fromRate));
+  const out = new Float32Array(outLen);
+  const scale = fromRate / toRate;
+  const last = samples.length - 1;
+  for (let i = 0; i < outLen; i++) {
+    const pos = i * scale;
+    const j = Math.min(last, Math.floor(pos));
+    const frac = pos - j;
+    const a = samples[j] ?? 0;
+    const b = samples[Math.min(last, j + 1)] ?? a;
+    out[i] = a + (b - a) * frac;
+  }
+  return out;
+}
+
 /** Seconds to wait after a gap so the next chunks can line up before sound starts. */
 export const PLAYBACK_PREROLL_SEC = 0.08;
 
