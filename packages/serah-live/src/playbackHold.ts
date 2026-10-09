@@ -60,6 +60,42 @@ export function resamplePlayback(
 /** Seconds to wait after a gap so the next chunks can line up before sound starts. */
 export const PLAYBACK_PREROLL_SEC = 0.08;
 
+export function appendPlayback(pending: Float32Array, incoming: ArrayLike<number>): Float32Array {
+  const out = new Float32Array(pending.length + incoming.length);
+  out.set(pending, 0);
+  for (let i = 0; i < incoming.length; i++) out[pending.length + i] = incoming[i] ?? 0;
+  return out;
+}
+
+/**
+ * One continuous pull. Separate clips per chunk click at the join.
+ * Before the preroll is primed, the frame stays silent.
+ */
+export function pullPlayback(
+  pending: Float32Array,
+  frameCount: number,
+  primed: boolean,
+): { pending: Float32Array; output: Float32Array; played: number } {
+  const output = new Float32Array(Math.max(0, frameCount));
+  if (!primed || frameCount <= 0 || pending.length === 0) {
+    return { pending, output, played: 0 };
+  }
+  const played = Math.min(frameCount, pending.length);
+  output.set(pending.subarray(0, played));
+  return { pending: pending.subarray(played), output, played };
+}
+
+/** Rise out of silence so the first samples of a reply do not click. */
+export function fadeInFromSilence(
+  samples: Float32Array,
+  sampleRate: number,
+  seconds = 0.005,
+): void {
+  const n = Math.min(samples.length, Math.max(0, Math.round(sampleRate * seconds)));
+  if (n <= 1) return;
+  for (let i = 0; i < n; i++) samples[i] *= i / (n - 1);
+}
+
 /**
  * Chain a chunk onto audio that is already queued.
  * The first chunk of a turn waits a short preroll so a burst can line up.

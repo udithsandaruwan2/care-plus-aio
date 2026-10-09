@@ -8,6 +8,8 @@ import {
   onSourceEnd,
   onSourceStart,
   pollSpeakingStopped,
+  fadeInFromSilence,
+  pullPlayback,
   releasePlayback,
   replyMicMode,
   resamplePlayback,
@@ -52,6 +54,28 @@ describe('replyMicMode', () => {
     assert.equal(replyMicMode(false, false, false, 1000, 1450), 'echo-tail');
     assert.equal(replyMicMode(false, false, false, 1500, 1450), false);
     assert.equal(replyMicMode(true, true, true, 1000, 0), false);
+  });
+});
+
+describe('pullPlayback', () => {
+  it('plays one continuous buffer and stays silent until primed', () => {
+    const queued = pullPlayback(new Float32Array([0.2, 0.4, 0.6, 0.8]), 3, true);
+    assert.equal(queued.played, 3);
+    assert.ok(Math.abs(queued.output[0] - 0.2) < 1e-6);
+    assert.ok(Math.abs(queued.output[2] - 0.6) < 1e-6);
+    assert.equal(queued.pending.length, 1);
+    const next = pullPlayback(queued.pending, 3, true);
+    assert.equal(next.played, 1);
+    assert.ok(Math.abs(next.output[0] - 0.8) < 1e-6);
+    assert.equal(next.output[1], 0);
+    const held = pullPlayback(new Float32Array([0.5, 0.5]), 2, false);
+    assert.equal(held.played, 0);
+    assert.equal(held.output[0], 0);
+    assert.equal(held.pending.length, 2);
+    const edge = new Float32Array([1, 1, 1, 1]);
+    fadeInFromSilence(edge, 200, 0.02);
+    assert.equal(edge[0], 0);
+    assert.equal(edge[edge.length - 1], 1);
   });
 });
 
