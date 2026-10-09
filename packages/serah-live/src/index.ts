@@ -137,7 +137,11 @@ class PcmPlayer {
 
 async function openMicPcmStream(
   onChunk: (pcm: Int16Array) => void,
-  opts?: { isAssistantSpeaking?: () => boolean; onBarge?: () => void },
+  opts?: {
+    isAssistantSpeaking?: () => boolean | 'echo-tail';
+    onBarge?: () => void;
+    onEchoTailOpen?: () => void;
+  },
 ): Promise<{ stop: () => void } | null> {
   if (!navigator.mediaDevices?.getUserMedia) return null;
   const audio: MediaTrackConstraints & { voiceIsolation?: boolean } = {
@@ -161,15 +165,16 @@ async function openMicPcmStream(
   const gate = createMicGateState();
   processor.onaudioprocess = (ev) => {
     const input = ev.inputBuffer.getChannelData(0);
-    const speaking = Boolean(opts?.isAssistantSpeaking?.());
+    const speaking = opts?.isAssistantSpeaking?.() ?? false;
     const decision = pushMicBuffer(input, speaking, gate);
     if (decision === 'drop') {
-      // While she talks, send nothing (speaker bleed and breath stay off the wire).
+      // While she talks, or while her speaker tail is still in the room, send nothing.
       // While she is quiet, send silence so the model still hears the end of a turn.
       if (!speaking) onChunk(new Int16Array(input.length));
       return;
     }
     if (decision === 'barge') opts?.onBarge?.();
+    else if (speaking === 'echo-tail') opts?.onEchoTailOpen?.();
     const memory = { x: gate.hpX, y: gate.hpY };
     const cleaned = suppressNoise(input, gate.noiseFloor, memory);
     gate.hpX = memory.x;
@@ -224,9 +229,19 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
   let ws: WebSocket | null = null;
   let ready = false;
   let micStop: (() => void) | null = null;
-  const player = new PcmPlayer(opts.handlers?.onSpeaking);
-  const playback = createPlaybackHold();
+  let echoTailUntil = 0;
+  let userHasFloor = false;
   const h = opts.handlers || {};
+  const player = new PcmPlayer((speaking) => {
+    if (speaking) {
+      userHasFloor = false;
+      echoTailUntil = 0;
+    } else if (!userHasFloor) {
+      echoTailUntil = performance.now() + 450;
+    }
+    h.onSpeaking?.(speaking);
+  });
+  const playback = createPlaybackHold();
 
   const sendJson = (payload: Record<string, unknown>) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -366,6 +381,8 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     start,
     stop,
     interrupt: () => {
+      userHasFloor = true;
+      echoTailUntil = 0;
       holdPlayback(playback);
       player.stop();
       sendJson({ type: 'live.interrupt' });
@@ -382,11 +399,21 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
           sendJson({ type: 'live.audio', data: pcmToBase64(pcm) });
         },
         {
-          isAssistantSpeaking: () => player.speaking,
+          isAssistantSpeaking: () => {
+            if (userHasFloor) return false;
+            if (player.speaking) return true;
+            return performance.now() < echoTailUntil ? 'echo-tail' : false;
+          },
           onBarge: () => {
+            userHasFloor = true;
+            echoTailUntil = 0;
             holdPlayback(playback);
             player.stop();
             sendJson({ type: 'live.interrupt' });
+          },
+          onEchoTailOpen: () => {
+            userHasFloor = true;
+            echoTailUntil = 0;
           },
         },
       );

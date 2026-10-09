@@ -127,19 +127,25 @@ export function isVoicedHop(samples: ArrayLike<number>): boolean {
   return periodicity(samples) >= MIC_GATE.voicedPeriod;
 }
 
+export type MicListenMode = boolean | 'echo-tail';
+
 /**
  * One mic buffer (typically 4096 samples). Updates `state`.
  * `drop` means do not forward the waveform.
+ * `'echo-tail'` is the speaker ring after she stops: bleed is dropped, and a
+ * nearer voice is sent without counting as a barge-in.
  */
 export function pushMicBuffer(
   samples: ArrayLike<number>,
-  assistantSpeaking: boolean,
+  assistantSpeaking: MicListenMode,
   state: MicGateState,
 ): MicGateDecision {
+  const echoTail = assistantSpeaking === 'echo-tail';
+  const assistant = assistantSpeaking === true || echoTail;
   const hop = MIC_GATE.hop;
   let voiced = 0;
   let near = 0;
-  if (!assistantSpeaking) {
+  if (!assistant) {
     state.wasSpeaking = false;
     state.speakBuffers = 0;
   } else if (!state.wasSpeaking) {
@@ -147,12 +153,12 @@ export function pushMicBuffer(
     state.speakBuffers = 0;
   }
 
-  const training = assistantSpeaking && state.speakBuffers < MIC_GATE.echoTrainBuffers;
+  const training = assistant && !echoTail && state.speakBuffers < MIC_GATE.echoTrainBuffers;
   let consonants = 0;
 
   for (let offset = 0; offset + hop <= samples.length; offset += hop) {
     const hopInfo = analyzeHop(samples, offset, hop);
-    if (assistantSpeaking) {
+    if (assistant) {
       const margin = Math.max(MIC_GATE.bargeRms, state.echoFloor * MIC_GATE.echoMargin);
       if (!training && hopInfo.voiced && hopInfo.rms >= margin) {
         near += 1;
@@ -169,12 +175,12 @@ export function pushMicBuffer(
     }
   }
 
-  if (assistantSpeaking) {
-    state.speakBuffers += 1;
+  if (assistant) {
+    if (!echoTail) state.speakBuffers += 1;
     state.quietBuffers = 0;
     if (!training && near >= MIC_GATE.speechHops) {
       state.inUtterance = true;
-      return 'barge';
+      return echoTail ? 'send' : 'barge';
     }
     state.inUtterance = false;
     return 'drop';
