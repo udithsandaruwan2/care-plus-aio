@@ -20,6 +20,8 @@ import {
   PLAYBACK_QUANTUM,
   PLAYBACK_STALL_MS,
   createPlaybackHeard,
+  ECHO_TAIL_MS,
+  micAfterBarge,
   micAfterPlaybackStop,
   notePlaybackPull,
   playbackStalled,
@@ -405,7 +407,15 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
   };
 
   const armEchoTail = () => {
-    if (!userHasFloor) echoTailUntil = performance.now() + 450;
+    if (!userHasFloor) echoTailUntil = performance.now() + ECHO_TAIL_MS;
+  };
+
+  const applyBarge = () => {
+    const next = micAfterBarge(performance.now());
+    userHasFloor = next.userHasFloor;
+    turnOpen = next.turnOpen;
+    echoTailUntil = next.echoTailUntil;
+    clearGapTimer();
   };
 
   const player = new PcmPlayer((speaking) => {
@@ -548,13 +558,10 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             if (shouldPlayPcm(playback)) player.enqueue(decodeBase64Pcm(msg.data), 24000);
             break;
           case 'live.interrupted':
-            // The model already heard the user. Echo-tail would treat the rest
-            // of that sentence as speaker bleed and drop it.
-            userHasFloor = true;
             turnOpen = false;
-            echoTailUntil = 0;
             clearGapTimer();
             armHold();
+            if (!userHasFloor) armEchoTail();
             player.stop();
             break;
           case 'live.turn_complete':
@@ -621,10 +628,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     start,
     stop,
     interrupt: () => {
-      userHasFloor = true;
-      turnOpen = false;
-      clearGapTimer();
-      echoTailUntil = 0;
+      applyBarge();
       armHold();
       player.stop();
       sendJson({ type: 'live.interrupt' });
@@ -644,10 +648,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
           isAssistantSpeaking: () =>
             replyMicMode(userHasFloor, player.speaking, turnOpen, performance.now(), echoTailUntil),
           onBarge: () => {
-            userHasFloor = true;
-            turnOpen = false;
-            clearGapTimer();
-            echoTailUntil = 0;
+            applyBarge();
             armHold();
             player.stop();
             sendJson({ type: 'live.interrupt' });
