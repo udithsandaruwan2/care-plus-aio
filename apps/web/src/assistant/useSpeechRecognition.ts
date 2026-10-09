@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { acceptCaption } from './captionGate';
 
 export type RecognitionLang = 'si-LK' | 'ta-LK' | 'en-US';
 
@@ -69,7 +70,10 @@ export function useSpeechRecognition(handlers: Handlers): SpeechControls {
       let sawFinal = false;
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
-        const text = result[0]?.transcript ?? '';
+        const alt = result[0];
+        const text = alt?.transcript ?? '';
+        const confidence = result.isFinal ? alt?.confidence : undefined;
+        if (!acceptCaption(text, confidence)) continue;
         if (result.isFinal) {
           sawFinal = true;
           hRef.current.onFinal(text.trim());
