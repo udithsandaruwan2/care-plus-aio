@@ -11,6 +11,7 @@ from typing import Any
 from django.conf import settings
 
 from apps.common.envutil import gemini_voice_api_key, voice_live_enabled
+from apps.voice.live_activity import live_realtime_input_config
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
     SERAH_LIVE_SYSTEM,
@@ -84,6 +85,7 @@ class LiveSessionRunner:
             },
             "input_audio_transcription": {},
             "output_audio_transcription": {},
+            "realtime_input_config": live_realtime_input_config(),
             "tools": [{"function_declarations": LIVE_TOOL_DECLARATIONS}],
         }
 
