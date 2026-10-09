@@ -1,6 +1,7 @@
 /** Shared Gemini Live bridge client for apps/web + Agent present UI. */
 
 import { createMicGateState, pushMicBuffer, suppressNoise } from './micGate';
+import { createPlaybackHold, holdPlayback, releasePlayback, shouldPlayPcm } from './playbackHold';
 
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
@@ -30,6 +31,8 @@ export type LiveServerMessage =
   | { type: 'live.tool'; name: string; status: 'running' | 'done'; route?: string }
   | { type: 'live.match'; payload: LiveMatchPayload; cleared?: boolean }
   | { type: 'live.error'; message: string }
+  | { type: 'live.interrupted' }
+  | { type: 'live.resume' }
   | { type: 'live.closed' };
 
 export type LiveClientHandlers = {
@@ -222,6 +225,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
   let ready = false;
   let micStop: (() => void) | null = null;
   const player = new PcmPlayer(opts.handlers?.onSpeaking);
+  const playback = createPlaybackHold();
   const h = opts.handlers || {};
 
   const sendJson = (payload: Record<string, unknown>) => {
@@ -300,7 +304,14 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             finish(false);
             break;
           case 'live.audio':
-            player.enqueue(decodeBase64Pcm(msg.data), 24000);
+            if (shouldPlayPcm(playback)) player.enqueue(decodeBase64Pcm(msg.data), 24000);
+            break;
+          case 'live.interrupted':
+            holdPlayback(playback);
+            player.stop();
+            break;
+          case 'live.resume':
+            releasePlayback(playback);
             break;
           case 'live.input_transcript':
             h.onInputTranscript?.(msg.text, Boolean(msg.final));
@@ -355,6 +366,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     start,
     stop,
     interrupt: () => {
+      holdPlayback(playback);
       player.stop();
       sendJson({ type: 'live.interrupt' });
     },
@@ -372,6 +384,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
         {
           isAssistantSpeaking: () => player.speaking,
           onBarge: () => {
+            holdPlayback(playback);
             player.stop();
             sendJson({ type: 'live.interrupt' });
           },
