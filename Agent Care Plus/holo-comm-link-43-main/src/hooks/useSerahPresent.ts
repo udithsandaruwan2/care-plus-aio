@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MatchResponse, VoiceTurnIntent } from "@care-plus/api-client";
 import {
+  acceptCaption,
   createSerahLiveSession,
   type SerahLiveSession,
 } from "@care-plus/serah-live";
@@ -419,15 +420,21 @@ export function useSerahPresent() {
 
       rec.onresult = (event) => {
         let interimText = "";
+        let accepted = false;
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
-          const text = result[0]?.transcript ?? "";
+          const alt = result[0];
+          const text = alt?.transcript ?? "";
+          const confidence = result.isFinal ? alt?.confidence : undefined;
+          if (!acceptCaption(text, confidence)) continue;
+          accepted = true;
           if (result.isFinal) {
             finalChunks.current.push(text.trim());
           } else {
             interimText += text;
           }
         }
+        if (!accepted) return;
         interimRef.current = interimText.trim();
         setInterim(interimRef.current);
         if (interimText || finalChunks.current.length) {
