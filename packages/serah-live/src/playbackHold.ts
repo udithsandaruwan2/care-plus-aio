@@ -69,6 +69,23 @@ export const PLAYBACK_QUANTUM = 512;
 /** If no sample has played by now, the graph is stuck and must not keep the mic closed. */
 export const PLAYBACK_STALL_MS = 1000;
 
+export type PlaybackHeard = { heard: number; lastPlayed: number; afterGap: boolean };
+
+export function createPlaybackHeard(): PlaybackHeard {
+  return { heard: 0, lastPlayed: 0, afterGap: false };
+}
+
+/**
+ * An empty pull is a gap, not proof that this reply never played.
+ * `afterGap` fades the next chunk back in without clearing what was already heard.
+ */
+export function notePlaybackPull(state: PlaybackHeard, played: number, held: boolean): PlaybackHeard {
+  if (held) return state;
+  if (played > 0) return { heard: state.heard + played, lastPlayed: played, afterGap: false };
+  if (state.lastPlayed > 0) return { heard: state.heard, lastPlayed: state.lastPlayed, afterGap: true };
+  return state;
+}
+
 /** What the mic should do when playback reports that she stopped. */
 export function micAfterPlaybackStop(opts: {
   userHasFloor: boolean;
