@@ -69,6 +69,18 @@ export const PLAYBACK_QUANTUM = 512;
 /** If no sample has played by now, the graph is stuck and must not keep the mic closed. */
 export const PLAYBACK_STALL_MS = 1000;
 
+/** What the mic should do when playback reports that she stopped. */
+export function micAfterPlaybackStop(opts: {
+  userHasFloor: boolean;
+  turnOpen: boolean;
+  audible: boolean;
+}): 'floor' | 'gap' | 'tail' | 'open' {
+  if (opts.userHasFloor) return 'floor';
+  if (opts.audible && opts.turnOpen) return 'gap';
+  if (opts.audible) return 'tail';
+  return 'open';
+}
+
 export function playbackStalled(
   playedSamples: number,
   announced: boolean,
