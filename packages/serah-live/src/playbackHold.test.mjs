@@ -8,7 +8,9 @@ import {
   onSourceEnd,
   onSourceStart,
   PLAYBACK_QUANTUM,
+  createPlaybackHeard,
   micAfterPlaybackStop,
+  notePlaybackPull,
   playbackStalled,
   pollSpeakingStopped,
   prerollCoversQuantum,
@@ -94,6 +96,32 @@ describe('pullPlayback', () => {
     assert.equal(prerollCoversQuantum(24000), true);
     assert.equal(prerollCoversQuantum(48000), true);
     assert.equal(PLAYBACK_QUANTUM <= Math.round(24000 * 0.08), true);
+  });
+});
+
+describe('notePlaybackPull', () => {
+  it('keeps a played reply audible across an empty pull', () => {
+    let state = notePlaybackPull(createPlaybackHeard(), 512, false);
+    state = notePlaybackPull(state, 0, false);
+    assert.equal(state.heard, 512);
+    assert.equal(state.lastPlayed, 512);
+    assert.equal(state.afterGap, true);
+    assert.equal(
+      micAfterPlaybackStop({ userHasFloor: false, turnOpen: true, audible: state.heard > 0 }),
+      'gap',
+    );
+    state = notePlaybackPull(state, 400, false);
+    assert.equal(state.afterGap, false);
+    assert.equal(state.heard, 912);
+  });
+
+  it('does not treat silence before the first sample as a gap', () => {
+    const state = notePlaybackPull(createPlaybackHeard(), 0, false);
+    assert.equal(state.heard, 0);
+    assert.equal(state.afterGap, false);
+    const held = notePlaybackPull(createPlaybackHeard(), 0, true);
+    assert.equal(held.heard, 0);
+    assert.equal(held.lastPlayed, 0);
   });
 });
 

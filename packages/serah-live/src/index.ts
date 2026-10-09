@@ -19,7 +19,9 @@ import {
   PLAYBACK_PREROLL_SEC,
   PLAYBACK_QUANTUM,
   PLAYBACK_STALL_MS,
+  createPlaybackHeard,
   micAfterPlaybackStop,
+  notePlaybackPull,
   playbackStalled,
   pollSpeakingStopped,
   pullPlayback,
@@ -119,7 +121,7 @@ class PcmPlayer {
   private clock: OscillatorNode | null = null;
   private pending = new Float32Array(0);
   private primed = false;
-  private lastPlayed = 0;
+  private heard = createPlaybackHeard();
   private forcePartial = false;
   private stallTimer: ReturnType<typeof setTimeout> | null = null;
   private announcedAt = 0;
@@ -151,13 +153,13 @@ class PcmPlayer {
         output.length,
         this.primed,
         edge,
-        this.lastPlayed === 0,
-        this.lastPlayed === 0 && !this.forcePartial,
+        this.heard.lastPlayed === 0 || this.heard.afterGap,
+        this.heard.lastPlayed === 0 && !this.forcePartial,
       );
       this.pending = pulled.pending;
       const held = pulled.played === 0 && before > 0 && this.primed;
       this.forcePartial = held;
-      if (!held) this.lastPlayed = pulled.played;
+      this.heard = notePlaybackPull(this.heard, pulled.played, held);
       output.set(pulled.output);
       if (!this.primed || held) return;
       if (pulled.played > 0) {
@@ -202,7 +204,7 @@ class PcmPlayer {
     this.stallTimer = setTimeout(() => {
       this.stallTimer = null;
       const elapsed = performance.now() - this.announcedAt;
-      if (!playbackStalled(this.lastPlayed, this.watch.announced, elapsed, PLAYBACK_STALL_MS))
+      if (!playbackStalled(this.heard.lastPlayed, this.watch.announced, elapsed, PLAYBACK_STALL_MS))
         return;
       void this.ctx?.resume();
       this.watch = createSpeakWatch();
@@ -234,7 +236,7 @@ class PcmPlayer {
     }
     this.watch.idleSince = null;
     if (this.watch.sources === 0 && onSourceStart(this.watch)) {
-      this.lastPlayed = 0;
+      this.heard = createPlaybackHeard();
       this.onSpeaking?.(true);
       this.armStall();
     }
@@ -271,7 +273,7 @@ class PcmPlayer {
     this.processor = null;
     this.ctx = null;
     this.onSpeaking?.(false);
-    this.lastPlayed = 0;
+    this.heard = createPlaybackHeard();
   }
 
   get speaking(): boolean {
@@ -280,7 +282,7 @@ class PcmPlayer {
 
   /** True once this reply has actually reached the speakers. */
   get audible(): boolean {
-    return this.lastPlayed > 0;
+    return this.heard.heard > 0;
   }
 }
 
