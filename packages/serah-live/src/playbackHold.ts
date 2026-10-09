@@ -86,6 +86,21 @@ export function notePlaybackPull(state: PlaybackHeard, played: number, held: boo
   return state;
 }
 
+/** How long her voice can still be in the room after the speakers stop. */
+export const ECHO_TAIL_MS = 450;
+
+/**
+ * A barge cuts her playback, but the mic stays in the echo tail.
+ * Her ring is not sent; the next nearer frame still takes the floor.
+ */
+export function micAfterBarge(now: number): {
+  userHasFloor: false;
+  turnOpen: false;
+  echoTailUntil: number;
+} {
+  return { userHasFloor: false, turnOpen: false, echoTailUntil: now + ECHO_TAIL_MS };
+}
+
 /** What the mic should do when playback reports that she stopped. */
 export function micAfterPlaybackStop(opts: {
   userHasFloor: boolean;

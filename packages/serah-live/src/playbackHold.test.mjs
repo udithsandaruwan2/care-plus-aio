@@ -9,6 +9,7 @@ import {
   onSourceStart,
   PLAYBACK_QUANTUM,
   createPlaybackHeard,
+  micAfterBarge,
   micAfterPlaybackStop,
   notePlaybackPull,
   playbackStalled,
@@ -122,6 +123,23 @@ describe('notePlaybackPull', () => {
     const held = notePlaybackPull(createPlaybackHeard(), 0, true);
     assert.equal(held.heard, 0);
     assert.equal(held.lastPlayed, 0);
+  });
+});
+
+describe('micAfterBarge', () => {
+  it('cuts her off but keeps the mic in the echo tail', () => {
+    const now = 1000;
+    const next = micAfterBarge(now);
+    assert.equal(next.userHasFloor, false);
+    assert.equal(next.turnOpen, false);
+    assert.equal(
+      replyMicMode(next.userHasFloor, false, next.turnOpen, now + 10, next.echoTailUntil),
+      'echo-tail',
+    );
+    assert.equal(
+      replyMicMode(true, false, false, now + 10, next.echoTailUntil),
+      false,
+    );
   });
 });
 
