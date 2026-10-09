@@ -248,3 +248,46 @@ export function suppressNoise(
   }
   return out;
 }
+
+/** Average blocks so the live model always receives 16 kHz, whatever the device rate is. */
+export function downsampleTo16k(samples: ArrayLike<number>, fromRate: number): Float32Array {
+  const rate = fromRate > 0 ? fromRate : MIC_GATE.sampleRate;
+  if (Math.abs(rate - MIC_GATE.sampleRate) < 1) {
+    const same = new Float32Array(samples.length);
+    for (let i = 0; i < samples.length; i++) same[i] = samples[i] ?? 0;
+    return same;
+  }
+  const ratio = rate / MIC_GATE.sampleRate;
+  const outLen = Math.max(0, Math.floor(samples.length / ratio));
+  const out = new Float32Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const start = Math.floor(i * ratio);
+    const end = Math.min(samples.length, Math.floor((i + 1) * ratio));
+    let sum = 0;
+    let n = 0;
+    for (let j = start; j < end; j++) {
+      sum += samples[j] ?? 0;
+      n += 1;
+    }
+    out[i] = n ? sum / n : 0;
+  }
+  return out;
+}
+
+/** Pull fixed 16 kHz frames out of a rolling buffer so a short device buffer can still hold a word. */
+export function takePcmFrames(
+  pending: Float32Array,
+  incoming: ArrayLike<number>,
+  frameSize: number,
+): { pending: Float32Array; frames: Float32Array[] } {
+  const merged = new Float32Array(pending.length + incoming.length);
+  merged.set(pending, 0);
+  for (let i = 0; i < incoming.length; i++) merged[pending.length + i] = incoming[i] ?? 0;
+  const frames: Float32Array[] = [];
+  let offset = 0;
+  while (frameSize > 0 && offset + frameSize <= merged.length) {
+    frames.push(merged.slice(offset, offset + frameSize));
+    offset += frameSize;
+  }
+  return { pending: merged.slice(offset), frames };
+}

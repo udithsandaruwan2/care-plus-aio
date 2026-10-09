@@ -1,6 +1,6 @@
 /** Shared Gemini Live bridge client for apps/web + Agent present UI. */
 
-import { createMicGateState, pushMicBuffer, suppressNoise } from './micGate';
+import { createMicGateState, downsampleTo16k, pushMicBuffer, suppressNoise, takePcmFrames } from './micGate';
 import {
   createPlaybackHold,
   createSpeakWatch,
@@ -194,28 +194,36 @@ async function openMicPcmStream(
   const mute = ctx.createGain();
   mute.gain.value = 0;
   const gate = createMicGateState();
+  let pending = new Float32Array(0);
+  const inputRate = ctx.sampleRate || 16000;
+  const wireFrame = 2048;
   processor.onaudioprocess = (ev) => {
     const input = ev.inputBuffer.getChannelData(0);
+    const at16k = downsampleTo16k(input, inputRate);
+    const taken = takePcmFrames(pending, at16k, wireFrame);
+    pending = taken.pending;
     const speaking = opts?.isAssistantSpeaking?.() ?? false;
-    const decision = pushMicBuffer(input, speaking, gate);
-    if (decision === 'drop') {
-      // While she talks, or while her speaker tail is still in the room, send nothing.
-      // While she is quiet, send silence so the model still hears the end of a turn.
-      if (!speaking) onChunk(new Int16Array(input.length));
-      return;
+    for (const frame of taken.frames) {
+      const decision = pushMicBuffer(frame, speaking, gate);
+      if (decision === 'drop') {
+        // While she talks, or while her speaker tail is still in the room, send nothing.
+        // While she is quiet, send silence so the model still hears the end of a turn.
+        if (!speaking) onChunk(new Int16Array(frame.length));
+        continue;
+      }
+      if (decision === 'barge') opts?.onBarge?.();
+      else if (speaking === 'echo-tail') opts?.onEchoTailOpen?.();
+      const memory = { x: gate.hpX, y: gate.hpY };
+      const cleaned = suppressNoise(frame, gate.noiseFloor, memory);
+      gate.hpX = memory.x;
+      gate.hpY = memory.y;
+      const pcm = new Int16Array(cleaned.length);
+      for (let i = 0; i < cleaned.length; i++) {
+        const s = Math.max(-1, Math.min(1, cleaned[i] ?? 0));
+        pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      }
+      onChunk(pcm);
     }
-    if (decision === 'barge') opts?.onBarge?.();
-    else if (speaking === 'echo-tail') opts?.onEchoTailOpen?.();
-    const memory = { x: gate.hpX, y: gate.hpY };
-    const cleaned = suppressNoise(input, gate.noiseFloor, memory);
-    gate.hpX = memory.x;
-    gate.hpY = memory.y;
-    const pcm = new Int16Array(cleaned.length);
-    for (let i = 0; i < cleaned.length; i++) {
-      const s = Math.max(-1, Math.min(1, cleaned[i] ?? 0));
-      pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-    }
-    onChunk(pcm);
   };
   source.connect(highpass);
   highpass.connect(processor);

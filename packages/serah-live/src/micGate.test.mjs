@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   createMicGateState,
+  downsampleTo16k,
   frameRms,
   isVoicedHop,
   periodicity,
   pushMicBuffer,
   suppressNoise,
+  takePcmFrames,
 } from '../.test-out/micGate.js';
 
 const N = 4096;
@@ -89,6 +91,29 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(vowel(0.06), false, state), 'send');
     assert.equal(pushMicBuffer(fricative(0.12), false, state), 'send');
     assert.equal(pushMicBuffer(breath(0.35), false, state), 'drop');
+  });
+});
+
+describe('resample', () => {
+  it('keeps 16 kHz and folds 48 kHz down to the model rate', () => {
+    const same = downsampleTo16k([0.25, -0.25, 0.25], 16000);
+    assert.equal(same.length, 3);
+    assert.equal(same[0], 0.25);
+    const fast = new Float32Array(4800);
+    fast.fill(0.4);
+    const slow = downsampleTo16k(fast, 48000);
+    assert.equal(slow.length, 1600);
+    assert.ok(Math.abs(slow[0] - 0.4) < 1e-6);
+  });
+
+  it('assembles a full frame across short buffers', () => {
+    const first = takePcmFrames(new Float32Array(0), new Float32Array(1000), 2048);
+    assert.equal(first.frames.length, 0);
+    assert.equal(first.pending.length, 1000);
+    const second = takePcmFrames(first.pending, new Float32Array(1500), 2048);
+    assert.equal(second.frames.length, 1);
+    assert.equal(second.frames[0].length, 2048);
+    assert.equal(second.pending.length, 452);
   });
 });
 
