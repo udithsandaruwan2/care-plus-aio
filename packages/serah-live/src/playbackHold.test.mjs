@@ -138,6 +138,10 @@ describe('micAfterBarge', () => {
     );
     assert.equal(
       replyMicMode(true, false, false, now + 10, next.echoTailUntil),
+      'echo-tail',
+    );
+    assert.equal(
+      replyMicMode(true, false, false, next.echoTailUntil, next.echoTailUntil),
       false,
     );
   });
