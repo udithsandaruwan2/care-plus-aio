@@ -9,6 +9,7 @@ import {
   onSourceStart,
   pollSpeakingStopped,
   releasePlayback,
+  resamplePlayback,
   schedulePcmStart,
   shouldPlayPcm,
 } from '../.test-out/playbackHold.js';
@@ -26,6 +27,20 @@ describe('playback hold', () => {
   it('releases if the interrupted turn never closes', () => {
     assert.equal(holdReleaseDue(2000), false);
     assert.equal(holdReleaseDue(2500), true);
+  });
+});
+
+describe('resamplePlayback', () => {
+  it('keeps 24 kHz and stretches a chunk onto a 48 kHz device', () => {
+    const same = resamplePlayback([0.25, -0.5], 24000, 24000);
+    assert.equal(same.length, 2);
+    assert.equal(same[1], -0.5);
+    const stretched = resamplePlayback([0, 1], 24000, 48000);
+    assert.equal(stretched.length, 4);
+    assert.equal(stretched[0], 0);
+    assert.ok(stretched[stretched.length - 1] > 0.9);
+    const flat = resamplePlayback([0.4, 0.4, 0.4, 0.4], 24000, 48000);
+    assert.ok(flat.every((sample) => Math.abs(sample - 0.4) < 1e-6));
   });
 });
 
