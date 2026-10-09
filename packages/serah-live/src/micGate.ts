@@ -157,6 +157,7 @@ export function pushMicBuffer(
 
   const training = assistant && !echoTail && state.speakBuffers < MIC_GATE.echoTrainBuffers;
   let consonants = 0;
+  let loudConsonants = 0;
 
   for (let offset = 0; offset + hop <= samples.length; offset += hop) {
     const hopInfo = analyzeHop(samples, offset, hop);
@@ -165,6 +166,8 @@ export function pushMicBuffer(
       const userLevel = hopInfo.voiced && hopInfo.rms >= MIC_GATE.bargeRms;
       if (!training && hopInfo.voiced && hopInfo.rms >= margin) {
         near += 1;
+      } else if (echoTail && hopInfo.consonant && hopInfo.rms >= margin) {
+        loudConsonants += 1;
       } else if (!userLevel) {
         // A voice already loud enough to be the user must not become the echo
         // floor. Otherwise the training buffers swallow the barge.
@@ -186,6 +189,11 @@ export function pushMicBuffer(
     if (!training && near >= MIC_GATE.speechHops) {
       state.inUtterance = true;
       return echoTail ? 'send' : 'barge';
+    }
+    // The vowel that cut her off already opened the turn. The consonants of
+    // that word still have to reach the model; her quieter ring does not.
+    if (echoTail && state.inUtterance && loudConsonants >= MIC_GATE.speechHops) {
+      return 'send';
     }
     state.inUtterance = false;
     return 'drop';
