@@ -18,6 +18,8 @@ import {
   onSourceStart,
   PLAYBACK_PREROLL_SEC,
   PLAYBACK_QUANTUM,
+  PLAYBACK_STALL_MS,
+  playbackStalled,
   pollSpeakingStopped,
   pullPlayback,
   releasePlayback,
@@ -118,6 +120,8 @@ class PcmPlayer {
   private primed = false;
   private lastPlayed = 0;
   private forcePartial = false;
+  private stallTimer: ReturnType<typeof setTimeout> | null = null;
+  private announcedAt = 0;
   private primeTimer: ReturnType<typeof setTimeout> | null = null;
   private onSpeaking: ((v: boolean) => void) | undefined;
   private watch = createSpeakWatch();
@@ -162,6 +166,7 @@ class PcmPlayer {
           this.idleTimer = null;
         }
         if (this.watch.sources === 0 && onSourceStart(this.watch)) this.onSpeaking?.(true);
+        this.clearStall();
         return;
       }
       if (this.watch.sources === 0) return;
@@ -183,6 +188,25 @@ class PcmPlayer {
     clock.start();
     this.processor = processor;
     this.clock = clock;
+  }
+
+  private clearStall() {
+    if (this.stallTimer != null) clearTimeout(this.stallTimer);
+    this.stallTimer = null;
+  }
+
+  private armStall() {
+    this.clearStall();
+    this.announcedAt = performance.now();
+    this.stallTimer = setTimeout(() => {
+      this.stallTimer = null;
+      const elapsed = performance.now() - this.announcedAt;
+      if (!playbackStalled(this.lastPlayed, this.watch.announced, elapsed, PLAYBACK_STALL_MS))
+        return;
+      void this.ctx?.resume();
+      this.watch = createSpeakWatch();
+      this.onSpeaking?.(false);
+    }, PLAYBACK_STALL_MS);
   }
 
   private primeNow() {
@@ -208,7 +232,10 @@ class PcmPlayer {
       this.idleTimer = null;
     }
     this.watch.idleSince = null;
-    if (this.watch.sources === 0 && onSourceStart(this.watch)) this.onSpeaking?.(true);
+    if (this.watch.sources === 0 && onSourceStart(this.watch)) {
+      this.onSpeaking?.(true);
+      this.armStall();
+    }
     if (this.primed) return;
     const need = Math.round(ctx.sampleRate * PLAYBACK_PREROLL_SEC);
     if (this.pending.length >= need) this.primeNow();
@@ -226,6 +253,7 @@ class PcmPlayer {
       clearTimeout(this.idleTimer);
       this.idleTimer = null;
     }
+    this.clearStall();
     this.pending = new Float32Array(0);
     this.primed = false;
     this.lastPlayed = 0;
