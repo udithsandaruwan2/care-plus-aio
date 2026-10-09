@@ -7,7 +7,9 @@ import {
   holdReleaseDue,
   onSourceEnd,
   onSourceStart,
+  PLAYBACK_QUANTUM,
   pollSpeakingStopped,
+  prerollCoversQuantum,
   fadeInFromSilence,
   pullPlayback,
   releasePlayback,
@@ -83,6 +85,13 @@ describe('pullPlayback', () => {
     const resumed = pullPlayback(new Float32Array([1, 1, 1, 1]), 4, true, 3, true);
     assert.equal(resumed.output[0], 0);
     assert.equal(resumed.output[2], 1);
+    const waiting = pullPlayback(new Float32Array([1, 1, 1]), 8, true, 2, true, true);
+    assert.equal(waiting.played, 0);
+    assert.equal(waiting.pending.length, 3);
+    assert.equal(waiting.output[0], 0);
+    assert.equal(prerollCoversQuantum(24000), true);
+    assert.equal(prerollCoversQuantum(48000), true);
+    assert.equal(PLAYBACK_QUANTUM <= Math.round(24000 * 0.08), true);
   });
 });
 

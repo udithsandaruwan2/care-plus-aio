@@ -60,6 +60,20 @@ export function resamplePlayback(
 /** Seconds to wait after a gap so the next chunks can line up before sound starts. */
 export const PLAYBACK_PREROLL_SEC = 0.08;
 
+/**
+ * Samples per playback pull. Must stay shorter than the preroll at 24 kHz,
+ * or the first quantum is treated as an underrun and the opening syllable fades out.
+ */
+export const PLAYBACK_QUANTUM = 512;
+
+export function prerollCoversQuantum(
+  sampleRate: number,
+  quantum = PLAYBACK_QUANTUM,
+  prerollSec = PLAYBACK_PREROLL_SEC,
+): boolean {
+  return Math.round(sampleRate * prerollSec) >= quantum;
+}
+
 export function appendPlayback(pending: Float32Array, incoming: ArrayLike<number>): Float32Array {
   const out = new Float32Array(pending.length + incoming.length);
   out.set(pending, 0);
@@ -79,9 +93,15 @@ export function pullPlayback(
   primed: boolean,
   edge = 0,
   fromSilence = false,
+  holdShort = false,
 ): { pending: Float32Array; output: Float32Array; played: number } {
   const output = new Float32Array(Math.max(0, frameCount));
   if (!primed || frameCount <= 0 || pending.length === 0) {
+    return { pending, output, played: 0 };
+  }
+  // A short first quantum is not the end of the reply. Keep it until the next
+  // pull so the opening is not faded away.
+  if (holdShort && pending.length < frameCount) {
     return { pending, output, played: 0 };
   }
   const played = Math.min(frameCount, pending.length);
