@@ -12,6 +12,7 @@ from django.conf import settings
 
 from apps.common.envutil import gemini_voice_api_key, voice_live_enabled
 from apps.voice.live_activity import live_realtime_input_config
+from apps.voice.output_hold import apply_output_hold
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
     SERAH_LIVE_SYSTEM,
@@ -46,6 +47,7 @@ class LiveSessionRunner:
         self._prior_intent: dict | None = None
         self._prior_match: dict | None = None
         self._audio_q: asyncio.Queue[bytes | None] = asyncio.Queue()
+        self._hold_output = False
 
     @property
     def model(self) -> str:
@@ -125,12 +127,14 @@ class LiveSessionRunner:
             logger.exception("Live send text failed")
 
     async def interrupt(self) -> None:
-        # Best-effort: empty queue so barge-in feels snappy; model barge-in is native.
+        # Drop the rest of this model turn so barge-in does not resume her voice.
+        self._hold_output = True
         while not self._audio_q.empty():
             try:
                 self._audio_q.get_nowait()
             except asyncio.QueueEmpty:
                 break
+        await self.emit({"type": "live.interrupted"})
 
     async def close(self) -> None:
         self._closed = True
@@ -187,7 +191,17 @@ class LiveSessionRunner:
     async def _handle_response(self, response, types) -> None:
         # PCM audio chunks
         data = getattr(response, "data", None)
-        if data:
+        sc = getattr(response, "server_content", None)
+        interrupted = bool(sc is not None and getattr(sc, "interrupted", False))
+        turn_complete = bool(sc is not None and getattr(sc, "turn_complete", False))
+        drop_audio = self._hold_output or interrupted
+        still_holding, release = apply_output_hold(
+            holding=self._hold_output,
+            interrupted=interrupted,
+            turn_complete=turn_complete,
+        )
+        self._hold_output = still_holding
+        if data and not drop_audio:
             raw = data if isinstance(data, (bytes, bytearray)) else bytes(data)
             await self.emit(
                 {
@@ -196,8 +210,11 @@ class LiveSessionRunner:
                     "mime": "audio/pcm;rate=24000",
                 }
             )
+        if interrupted:
+            await self.emit({"type": "live.interrupted"})
+        if release:
+            await self.emit({"type": "live.resume"})
 
-        sc = getattr(response, "server_content", None)
         if sc is not None:
             in_t = getattr(sc, "input_transcription", None)
             if in_t and getattr(in_t, "text", None):
