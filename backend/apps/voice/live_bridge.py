@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -12,7 +13,7 @@ from django.conf import settings
 
 from apps.common.envutil import gemini_voice_api_key, voice_live_enabled
 from apps.voice.live_activity import live_realtime_input_config
-from apps.voice.output_hold import apply_output_hold, hold_expired
+from apps.voice.output_hold import apply_output_hold, hold_should_release
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
     SERAH_LIVE_SYSTEM,
@@ -49,6 +50,8 @@ class LiveSessionRunner:
         self._audio_q: asyncio.Queue[bytes | None] = asyncio.Queue()
         self._hold_output = False
         self._hold_gen = 0
+        self._hold_started = 0.0
+        self._last_held_audio = 0.0
 
     @property
     def model(self) -> str:
@@ -132,6 +135,9 @@ class LiveSessionRunner:
         self._hold_output = True
         self._hold_gen += 1
         generation = self._hold_gen
+        now = time.monotonic()
+        self._hold_started = now
+        self._last_held_audio = now
         while not self._audio_q.empty():
             try:
                 self._audio_q.get_nowait()
@@ -142,13 +148,16 @@ class LiveSessionRunner:
 
     async def _expire_hold(self, generation: int) -> None:
         await asyncio.sleep(2.5)
-        if self._closed or self._hold_gen != generation or not self._hold_output:
-            return
-        if not hold_expired(2500):
-            return
-        self._hold_output = False
-        self._hold_gen += 1
-        await self.emit({"type": "live.resume"})
+        while not self._closed and self._hold_gen == generation and self._hold_output:
+            now = time.monotonic()
+            held_ms = int((now - self._hold_started) * 1000)
+            idle_ms = int((now - self._last_held_audio) * 1000)
+            if hold_should_release(held_for_ms=held_ms, idle_for_ms=idle_ms):
+                self._hold_output = False
+                self._hold_gen += 1
+                await self.emit({"type": "live.resume"})
+                return
+            await asyncio.sleep(0.4)
 
     async def close(self) -> None:
         self._closed = True
@@ -209,6 +218,8 @@ class LiveSessionRunner:
         interrupted = bool(sc is not None and getattr(sc, "interrupted", False))
         turn_complete = bool(sc is not None and getattr(sc, "turn_complete", False))
         drop_audio = self._hold_output or interrupted
+        if data and drop_audio:
+            self._last_held_audio = time.monotonic()
         still_holding, release = apply_output_hold(
             holding=self._hold_output,
             interrupted=interrupted,
