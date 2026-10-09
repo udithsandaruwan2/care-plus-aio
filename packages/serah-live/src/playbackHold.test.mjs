@@ -9,6 +9,7 @@ import {
   onSourceStart,
   pollSpeakingStopped,
   releasePlayback,
+  replyMicMode,
   resamplePlayback,
   schedulePcmStart,
   shouldPlayPcm,
@@ -41,6 +42,16 @@ describe('resamplePlayback', () => {
     assert.ok(stretched[stretched.length - 1] > 0.9);
     const flat = resamplePlayback([0.4, 0.4, 0.4, 0.4], 24000, 48000);
     assert.ok(flat.every((sample) => Math.abs(sample - 0.4) < 1e-6));
+  });
+});
+
+describe('replyMicMode', () => {
+  it('keeps the mic closed through a playback gap until the turn ends', () => {
+    assert.equal(replyMicMode(false, false, true, 1000, 0), true);
+    assert.equal(replyMicMode(false, true, false, 1000, 0), true);
+    assert.equal(replyMicMode(false, false, false, 1000, 1450), 'echo-tail');
+    assert.equal(replyMicMode(false, false, false, 1500, 1450), false);
+    assert.equal(replyMicMode(true, true, true, 1000, 0), false);
   });
 });
 

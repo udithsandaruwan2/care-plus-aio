@@ -226,6 +226,8 @@ class LiveSessionRunner:
             )
         if interrupted:
             await self.emit({"type": "live.interrupted"})
+        if turn_complete:
+            await self.emit({"type": "live.turn_complete"})
         if release:
             self._hold_gen += 1
             await self.emit({"type": "live.resume"})

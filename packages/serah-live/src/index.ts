@@ -17,9 +17,11 @@ import {
   onSourceStart,
   pollSpeakingStopped,
   releasePlayback,
+  replyMicMode,
   resamplePlayback,
   schedulePcmStart,
   shouldPlayPcm,
+  TURN_IDLE_MS,
 } from './playbackHold';
 
 export { acceptCaption } from './captionGate';
@@ -53,6 +55,7 @@ export type LiveServerMessage =
   | { type: 'live.match'; payload: LiveMatchPayload; cleared?: boolean }
   | { type: 'live.error'; message: string }
   | { type: 'live.interrupted' }
+  | { type: 'live.turn_complete' }
   | { type: 'live.resume' }
   | { type: 'live.closed' };
 
@@ -285,15 +288,49 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
   let micStop: (() => void) | null = null;
   let echoTailUntil = 0;
   let userHasFloor = false;
+  let turnOpen = false;
+  let gapTimer: ReturnType<typeof setTimeout> | null = null;
   const h = opts.handlers || {};
+
+  const clearGapTimer = () => {
+    if (gapTimer != null) clearTimeout(gapTimer);
+    gapTimer = null;
+  };
+
+  const armEchoTail = () => {
+    if (!userHasFloor) echoTailUntil = performance.now() + 450;
+  };
+
   const player = new PcmPlayer((speaking) => {
     if (speaking) {
       userHasFloor = false;
+      turnOpen = true;
       echoTailUntil = 0;
-    } else if (!userHasFloor) {
-      echoTailUntil = performance.now() + 450;
+      clearGapTimer();
+      h.onSpeaking?.(true);
+      return;
     }
-    h.onSpeaking?.(speaking);
+    if (userHasFloor) {
+      turnOpen = false;
+      clearGapTimer();
+      h.onSpeaking?.(false);
+      return;
+    }
+    // A short gap between chunks is not the end of the reply. Opening the mic
+    // here would send her own voice back into the model.
+    if (turnOpen) {
+      clearGapTimer();
+      gapTimer = setTimeout(() => {
+        gapTimer = null;
+        if (player.speaking || userHasFloor) return;
+        turnOpen = false;
+        armEchoTail();
+        h.onSpeaking?.(false);
+      }, TURN_IDLE_MS);
+      return;
+    }
+    armEchoTail();
+    h.onSpeaking?.(false);
   });
   const playback = createPlaybackHold();
   let holdTimer: ReturnType<typeof setTimeout> | null = null;
@@ -322,8 +359,11 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
   const stop = () => {
     micStop?.();
     micStop = null;
+    turnOpen = false;
+    clearGapTimer();
     liftHold();
     player.stop();
+    clearGapTimer();
     if (ws) {
       try {
         sendJson({ type: 'live.end' });
@@ -394,7 +434,17 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             break;
           case 'live.interrupted':
             armHold();
+            turnOpen = false;
+            clearGapTimer();
             player.stop();
+            break;
+          case 'live.turn_complete':
+            turnOpen = false;
+            clearGapTimer();
+            if (!player.speaking && !userHasFloor) {
+              armEchoTail();
+              h.onSpeaking?.(false);
+            }
             break;
           case 'live.resume':
             liftHold();
@@ -453,6 +503,8 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     stop,
     interrupt: () => {
       userHasFloor = true;
+      turnOpen = false;
+      clearGapTimer();
       echoTailUntil = 0;
       armHold();
       player.stop();
@@ -470,13 +522,12 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
           sendJson({ type: 'live.audio', data: pcmToBase64(pcm) });
         },
         {
-          isAssistantSpeaking: () => {
-            if (userHasFloor) return false;
-            if (player.speaking) return true;
-            return performance.now() < echoTailUntil ? 'echo-tail' : false;
-          },
+          isAssistantSpeaking: () =>
+            replyMicMode(userHasFloor, player.speaking, turnOpen, performance.now(), echoTailUntil),
           onBarge: () => {
             userHasFloor = true;
+            turnOpen = false;
+            clearGapTimer();
             echoTailUntil = 0;
             armHold();
             player.stop();
@@ -484,6 +535,8 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
           },
           onEchoTailOpen: () => {
             userHasFloor = true;
+            turnOpen = false;
+            clearGapTimer();
             echoTailUntil = 0;
           },
         },
