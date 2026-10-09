@@ -1,7 +1,7 @@
 /** Shared Gemini Live bridge client for apps/web + Agent present UI. */
 
 import { createMicGateState, pushMicBuffer, suppressNoise } from './micGate';
-import { createPlaybackHold, holdPlayback, releasePlayback, shouldPlayPcm } from './playbackHold';
+import { createPlaybackHold, holdPlayback, releasePlayback, schedulePcmStart, shouldPlayPcm } from './playbackHold';
 
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
@@ -96,10 +96,15 @@ class PcmPlayer {
   enqueue(pcm: Int16Array, sampleRate = 24000) {
     if (!pcm.length) return;
     if (!this.ctx) {
-      this.ctx = new AudioContext({ sampleRate });
-      this.nextTime = this.ctx.currentTime;
+      try {
+        this.ctx = new AudioContext({ sampleRate });
+      } catch {
+        this.ctx = new AudioContext();
+      }
+      this.nextTime = 0;
     }
     const ctx = this.ctx;
+    if (ctx.state === 'suspended') void ctx.resume();
     const f32 = new Float32Array(pcm.length);
     for (let i = 0; i < pcm.length; i++) f32[i] = (pcm[i] ?? 0) / 32768;
     const buf = ctx.createBuffer(1, f32.length, sampleRate);
@@ -107,7 +112,7 @@ class PcmPlayer {
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(ctx.destination);
-    const startAt = Math.max(ctx.currentTime, this.nextTime);
+    const startAt = schedulePcmStart(ctx.currentTime, this.nextTime);
     src.start(startAt);
     this.nextTime = startAt + buf.duration;
     this.active += 1;
