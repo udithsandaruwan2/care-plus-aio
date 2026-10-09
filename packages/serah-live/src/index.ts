@@ -19,6 +19,7 @@ import {
   PLAYBACK_PREROLL_SEC,
   PLAYBACK_QUANTUM,
   PLAYBACK_STALL_MS,
+  micAfterPlaybackStop,
   playbackStalled,
   pollSpeakingStopped,
   pullPlayback,
@@ -233,6 +234,7 @@ class PcmPlayer {
     }
     this.watch.idleSince = null;
     if (this.watch.sources === 0 && onSourceStart(this.watch)) {
+      this.lastPlayed = 0;
       this.onSpeaking?.(true);
       this.armStall();
     }
@@ -256,7 +258,6 @@ class PcmPlayer {
     this.clearStall();
     this.pending = new Float32Array(0);
     this.primed = false;
-    this.lastPlayed = 0;
     this.forcePartial = false;
     this.watch = createSpeakWatch();
     try {
@@ -270,10 +271,16 @@ class PcmPlayer {
     this.processor = null;
     this.ctx = null;
     this.onSpeaking?.(false);
+    this.lastPlayed = 0;
   }
 
   get speaking(): boolean {
     return this.watch.announced;
+  }
+
+  /** True once this reply has actually reached the speakers. */
+  get audible(): boolean {
+    return this.lastPlayed > 0;
   }
 }
 
@@ -408,15 +415,21 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
       h.onSpeaking?.(true);
       return;
     }
-    if (userHasFloor) {
+    const after = micAfterPlaybackStop({
+      userHasFloor,
+      turnOpen,
+      audible: player.audible,
+    });
+    if (after === 'floor') {
       turnOpen = false;
       clearGapTimer();
       h.onSpeaking?.(false);
       return;
     }
     // A short gap between chunks is not the end of the reply. Opening the mic
-    // here would send her own voice back into the model.
-    if (turnOpen) {
+    // here would send her own voice back into the model. A reply that never
+    // played does not get that hold: nothing came out of the speakers.
+    if (after === 'gap') {
       clearGapTimer();
       gapTimer = setTimeout(() => {
         gapTimer = null;
@@ -427,7 +440,9 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
       }, TURN_IDLE_MS);
       return;
     }
-    armEchoTail();
+    turnOpen = false;
+    clearGapTimer();
+    if (after === 'tail') armEchoTail();
     h.onSpeaking?.(false);
   });
   const playback = createPlaybackHold();

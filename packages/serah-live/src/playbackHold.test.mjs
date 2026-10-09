@@ -8,6 +8,7 @@ import {
   onSourceEnd,
   onSourceStart,
   PLAYBACK_QUANTUM,
+  micAfterPlaybackStop,
   playbackStalled,
   pollSpeakingStopped,
   prerollCoversQuantum,
@@ -93,6 +94,27 @@ describe('pullPlayback', () => {
     assert.equal(prerollCoversQuantum(24000), true);
     assert.equal(prerollCoversQuantum(48000), true);
     assert.equal(PLAYBACK_QUANTUM <= Math.round(24000 * 0.08), true);
+  });
+});
+
+describe('micAfterPlaybackStop', () => {
+  it('opens the mic when a reply never became audible', () => {
+    assert.equal(
+      micAfterPlaybackStop({ userHasFloor: false, turnOpen: true, audible: false }),
+      'open',
+    );
+    assert.equal(
+      micAfterPlaybackStop({ userHasFloor: false, turnOpen: true, audible: true }),
+      'gap',
+    );
+    assert.equal(
+      micAfterPlaybackStop({ userHasFloor: false, turnOpen: false, audible: true }),
+      'tail',
+    );
+    assert.equal(
+      micAfterPlaybackStop({ userHasFloor: true, turnOpen: true, audible: true }),
+      'floor',
+    );
   });
 });
 
