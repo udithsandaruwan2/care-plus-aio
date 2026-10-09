@@ -194,10 +194,6 @@ async function openMicPcmStream(
   const stream = await navigator.mediaDevices.getUserMedia({ audio });
   const ctx = new AudioContext({ sampleRate: 16000 });
   const source = ctx.createMediaStreamSource(stream);
-  const highpass = ctx.createBiquadFilter();
-  highpass.type = 'highpass';
-  highpass.frequency.value = 120;
-  highpass.Q.value = 0.7;
   const processor = ctx.createScriptProcessor(4096, 1, 1);
   const mute = ctx.createGain();
   mute.gain.value = 0;
@@ -234,8 +230,10 @@ async function openMicPcmStream(
       }
     }
   };
-  source.connect(highpass);
-  highpass.connect(processor);
+  // The gate needs energy under 70 Hz to tell an inhale from a consonant.
+  // High-passing here would hide that rumble and let the breath start the next word.
+  // Frames we do send are high-passed inside suppressNoise.
+  source.connect(processor);
   // ScriptProcessor only runs while connected. Gain 0 keeps the mic off the speakers.
   processor.connect(mute);
   mute.connect(ctx.destination);
