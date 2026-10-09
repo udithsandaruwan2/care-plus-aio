@@ -1,5 +1,7 @@
 /** Shared Gemini Live bridge client for apps/web + Agent present UI. */
 
+import { decideMicFrame, frameRms } from './micGate';
+
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
 export type LiveMatchPayload = {
@@ -124,24 +126,46 @@ class PcmPlayer {
     this.active = 0;
     this.onSpeaking?.(false);
   }
+
+  get speaking(): boolean {
+    return this.active > 0;
+  }
 }
 
 async function openMicPcmStream(
   onChunk: (pcm: Int16Array) => void,
+  opts?: { isAssistantSpeaking?: () => boolean; onBarge?: () => void },
 ): Promise<{ stop: () => void } | null> {
   if (!navigator.mediaDevices?.getUserMedia) return null;
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      channelCount: 1,
-      echoCancellation: true,
-      noiseSuppression: true,
-    },
-  });
+  const audio: MediaTrackConstraints & { voiceIsolation?: boolean } = {
+    channelCount: 1,
+    echoCancellation: true,
+    noiseSuppression: true,
+    // AGC boosts inhales into the speech band. Leave it off; the gate decides.
+    autoGainControl: false,
+    voiceIsolation: true,
+  };
+  const stream = await navigator.mediaDevices.getUserMedia({ audio });
   const ctx = new AudioContext({ sampleRate: 16000 });
   const source = ctx.createMediaStreamSource(stream);
+  const highpass = ctx.createBiquadFilter();
+  highpass.type = 'highpass';
+  highpass.frequency.value = 120;
+  highpass.Q.value = 0.7;
   const processor = ctx.createScriptProcessor(4096, 1, 1);
+  const mute = ctx.createGain();
+  mute.gain.value = 0;
   processor.onaudioprocess = (ev) => {
     const input = ev.inputBuffer.getChannelData(0);
+    const speaking = Boolean(opts?.isAssistantSpeaking?.());
+    const decision = decideMicFrame(frameRms(input), speaking);
+    if (decision === 'drop') {
+      // While she talks, send nothing (speaker bleed and breath stay off the wire).
+      // While she is quiet, send silence so the model still hears the end of a turn.
+      if (!speaking) onChunk(new Int16Array(input.length));
+      return;
+    }
+    if (decision === 'barge') opts?.onBarge?.();
     const pcm = new Int16Array(input.length);
     for (let i = 0; i < input.length; i++) {
       const s = Math.max(-1, Math.min(1, input[i] ?? 0));
@@ -149,8 +173,11 @@ async function openMicPcmStream(
     }
     onChunk(pcm);
   };
-  source.connect(processor);
-  processor.connect(ctx.destination);
+  source.connect(highpass);
+  highpass.connect(processor);
+  // ScriptProcessor only runs while connected. Gain 0 keeps the mic off the speakers.
+  processor.connect(mute);
+  mute.connect(ctx.destination);
   return {
     stop: () => {
       try {
@@ -333,9 +360,18 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     },
     startMic: async () => {
       micStop?.();
-      const handle = await openMicPcmStream((pcm) => {
-        sendJson({ type: 'live.audio', data: pcmToBase64(pcm) });
-      });
+      const handle = await openMicPcmStream(
+        (pcm) => {
+          sendJson({ type: 'live.audio', data: pcmToBase64(pcm) });
+        },
+        {
+          isAssistantSpeaking: () => player.speaking,
+          onBarge: () => {
+            player.stop();
+            sendJson({ type: 'live.interrupt' });
+          },
+        },
+      );
       if (!handle) return false;
       micStop = handle.stop;
       return true;

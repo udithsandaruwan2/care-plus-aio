@@ -1,9 +1,11 @@
 import { useCallback, useRef } from 'react';
 
-const MIC_CONSTRAINTS: MediaTrackConstraints = {
+const MIC_CONSTRAINTS: MediaTrackConstraints & { voiceIsolation?: boolean } = {
   echoCancellation: true,
   noiseSuppression: true,
-  autoGainControl: true,
+  // AGC lifts breath and room noise into the speech band.
+  autoGainControl: false,
+  voiceIsolation: true,
 };
 
 /**

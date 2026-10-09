@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "test": "tsc --module nodenext --moduleResolution nodenext --target es2022 --outDir .test-out --skipLibCheck src/micGate.ts && node --test src/micGate.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'serah-live: ok'"
   },
