@@ -23,7 +23,7 @@ import { useSerahLiveBridge } from './useSerahLiveBridge';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
-import { shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
+import { shouldRearmFallbackMic, shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
 import { startEndOfUtteranceWatch } from './silenceWatch';
 import {
   clearInterruptedResidual,
@@ -102,14 +102,8 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     grantConsent,
     stopSpeaking: stopTurnSpeaking,
   } = useVoiceTurn();
-  const {
-    liveActive,
-    liveSpeaking,
-    startLive,
-    stopLive,
-    sendLiveText,
-    interruptLive,
-  } = useSerahLiveBridge();
+  const { liveActive, liveSpeaking, startLive, stopLive, sendLiveText, interruptLive } =
+    useSerahLiveBridge();
   const liveActiveRef = useRef(false);
   liveActiveRef.current = liveActive;
   useMatchSocket({
@@ -242,7 +236,16 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
           }
           rearmTimerRef.current = setTimeout(() => {
             rearmTimerRef.current = null;
-            if (!conversationOnRef.current || endingRef.current || busyRef.current) return;
+            if (
+              !shouldRearmFallbackMic({
+                conversationOn: conversationOnRef.current,
+                busy: busyRef.current,
+                liveActive: liveActiveRef.current,
+                ending: endingRef.current,
+              })
+            ) {
+              return;
+            }
             void (async () => {
               try {
                 if (!mic.active) await mic.start();
@@ -281,6 +284,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   };
 
   resumeListeningRef.current = async () => {
+    if (liveActiveRef.current) return;
     bargeStopRef.current?.();
     bargeStopRef.current = null;
     silenceStopRef.current?.();
@@ -464,7 +468,9 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     silenceStopRef.current = null;
 
     // Prefer Gemini Live; fall back to Web Speech + HTTP turn.
-    const liveOk = await startLive({ uiLanguage: store.uiLanguage as 'English' | 'Tamil' | 'Sinhala' });
+    const liveOk = await startLive({
+      uiLanguage: store.uiLanguage as 'English' | 'Tamil' | 'Sinhala',
+    });
     if (liveOk) {
       setState(AssistantState.LISTENING, { force: true });
       return;

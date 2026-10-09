@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
+import { shouldRearmFallbackMic, shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
 
 describe('shouldReopenMicAfterSpeech', () => {
   it('waits out her speaker tail and stays closed while Live is listening', () => {
@@ -13,5 +13,21 @@ describe('shouldReopenMicAfterSpeech', () => {
     expect(
       shouldReopenMicAfterSpeech({ conversationOn: true, busy: true, liveActive: false }),
     ).toBe(false);
+    expect(
+      shouldRearmFallbackMic({
+        conversationOn: true,
+        busy: false,
+        liveActive: true,
+        ending: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldRearmFallbackMic({
+        conversationOn: true,
+        busy: false,
+        liveActive: false,
+        ending: false,
+      }),
+    ).toBe(true);
   });
 });

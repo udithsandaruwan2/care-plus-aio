@@ -9,3 +9,13 @@ export function shouldReopenMicAfterSpeech(opts: {
 }): boolean {
   return opts.conversationOn && !opts.busy && !opts.liveActive;
 }
+
+/** An empty caption may rearm Web Speech only when Live is not already listening. */
+export function shouldRearmFallbackMic(opts: {
+  conversationOn: boolean;
+  busy: boolean;
+  liveActive: boolean;
+  ending: boolean;
+}): boolean {
+  return !opts.ending && shouldReopenMicAfterSpeech(opts);
+}
