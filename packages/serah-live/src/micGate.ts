@@ -26,6 +26,8 @@ export const MIC_GATE = {
   echoTrainBuffers: 2,
   /** Voiced hops inside one buffer required to send or barge. */
   speechHops: 3,
+  /** Buffers of quiet after a vowel before the utterance closes. */
+  hangoverBuffers: 3,
 } as const;
 
 export type MicGateDecision = 'drop' | 'send' | 'barge';
@@ -35,6 +37,11 @@ export type MicGateState = {
   noiseFloor: number;
   speakBuffers: number;
   wasSpeaking: boolean;
+  /** A vowel has opened the user's turn. Consonants may follow; a breath may not. */
+  inUtterance: boolean;
+  quietBuffers: number;
+  hpX: number;
+  hpY: number;
 };
 
 export function createMicGateState(): MicGateState {
@@ -43,6 +50,10 @@ export function createMicGateState(): MicGateState {
     noiseFloor: 0.005,
     speakBuffers: 0,
     wasSpeaking: false,
+    inUtterance: false,
+    quietBuffers: 0,
+    hpX: 0,
+    hpY: 0,
   };
 }
 
@@ -137,57 +148,86 @@ export function pushMicBuffer(
   }
 
   const training = assistantSpeaking && state.speakBuffers < MIC_GATE.echoTrainBuffers;
+  let consonants = 0;
 
   for (let offset = 0; offset + hop <= samples.length; offset += hop) {
-    const rms = frameRmsAt(samples, offset, hop);
+    const hopInfo = analyzeHop(samples, offset, hop);
     if (assistantSpeaking) {
-      const voicedHop = isVoicedSlice(samples, offset, hop);
       const margin = Math.max(MIC_GATE.bargeRms, state.echoFloor * MIC_GATE.echoMargin);
-      const loud = rms >= margin;
-      if (!training && voicedHop && loud) {
+      if (!training && hopInfo.voiced && hopInfo.rms >= margin) {
         near += 1;
       } else {
-        state.echoFloor = state.echoFloor * 0.82 + rms * 0.18;
+        state.echoFloor = state.echoFloor * 0.82 + hopInfo.rms * 0.18;
       }
-      if (voicedHop) voiced += 1;
-    } else if (isVoicedSlice(samples, offset, hop)) {
+      if (hopInfo.voiced) voiced += 1;
+    } else if (hopInfo.voiced) {
       voiced += 1;
-    } else {
-      state.noiseFloor = state.noiseFloor * 0.8 + rms * 0.2;
+    } else if (hopInfo.consonant) {
+      consonants += 1;
+    } else if (hopInfo.rms < MIC_GATE.silenceRms * 4) {
+      state.noiseFloor = state.noiseFloor * 0.8 + hopInfo.rms * 0.2;
     }
   }
 
   if (assistantSpeaking) {
     state.speakBuffers += 1;
-    return !training && near >= MIC_GATE.speechHops ? 'barge' : 'drop';
+    state.quietBuffers = 0;
+    if (!training && near >= MIC_GATE.speechHops) {
+      state.inUtterance = true;
+      return 'barge';
+    }
+    state.inUtterance = false;
+    return 'drop';
   }
-  return voiced >= MIC_GATE.speechHops ? 'send' : 'drop';
+
+  if (voiced >= MIC_GATE.speechHops) {
+    state.inUtterance = true;
+    state.quietBuffers = 0;
+    return 'send';
+  }
+  if (state.inUtterance && consonants >= MIC_GATE.speechHops) {
+    state.quietBuffers = 0;
+    return 'send';
+  }
+  if (state.inUtterance) {
+    state.quietBuffers += 1;
+    if (state.quietBuffers > MIC_GATE.hangoverBuffers) state.inUtterance = false;
+  }
+  return 'drop';
 }
 
-function frameRmsAt(samples: ArrayLike<number>, offset: number, length: number): number {
-  let sum = 0;
-  for (let i = 0; i < length; i++) {
-    const s = samples[offset + i] ?? 0;
-    sum += s * s;
-  }
-  return Math.sqrt(sum / length);
-}
-
-function isVoicedSlice(samples: ArrayLike<number>, offset: number, length: number): boolean {
+function analyzeHop(
+  samples: ArrayLike<number>,
+  offset: number,
+  length: number,
+): { rms: number; voiced: boolean; consonant: boolean } {
   const hop = new Float32Array(length);
   for (let i = 0; i < length; i++) hop[i] = samples[offset + i] ?? 0;
-  return isVoicedHop(hop);
+  const rms = frameRms(hop);
+  const voiced = isVoicedHop(hop);
+  const consonant =
+    !voiced &&
+    rms >= MIC_GATE.silenceRms &&
+    lowBandRatio(hop) < MIC_GATE.rumbleRatio &&
+    zeroCrossingRate(hop) >= 0.12;
+  return { rms, voiced, consonant };
 }
 
+export type FilterMemory = { x: number; y: number };
+
 /** Attenuate stationary noise. A loud voiced frame keeps most of its level. */
-export function suppressNoise(samples: ArrayLike<number>, noiseRms: number): Float32Array {
+export function suppressNoise(
+  samples: ArrayLike<number>,
+  noiseRms: number,
+  memory?: FilterMemory,
+): Float32Array {
   const out = new Float32Array(samples.length);
   const rms = frameRms(samples);
   if (rms < 1e-8) return out;
   const floor = Math.max(0, noiseRms);
   const gain = rms <= floor ? 0 : Math.min(1, 1 - (floor / rms) * 0.9);
-  let prevX = 0;
-  let prevY = 0;
+  let prevX = memory?.x ?? 0;
+  let prevY = memory?.y ?? 0;
   const a = 0.95;
   for (let i = 0; i < samples.length; i++) {
     const x = (samples[i] ?? 0) * gain;
@@ -195,6 +235,10 @@ export function suppressNoise(samples: ArrayLike<number>, noiseRms: number): Flo
     out[i] = Math.max(-1, Math.min(1, y));
     prevX = x;
     prevY = y;
+  }
+  if (memory) {
+    memory.x = prevX;
+    memory.y = prevY;
   }
   return out;
 }
