@@ -657,7 +657,6 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             userHasFloor = true;
             turnOpen = false;
             clearGapTimer();
-            echoTailUntil = 0;
           },
         },
       );

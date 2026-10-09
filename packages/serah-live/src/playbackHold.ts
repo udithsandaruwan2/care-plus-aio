@@ -243,9 +243,11 @@ export function replyMicMode(
   now: number,
   echoTailUntil: number,
 ): boolean | 'echo-tail' {
+  // The tail outranks the floor. Her ring is still in the room after the
+  // nearer words that cut her off, and those words must not open the mic onto it.
+  if (now < echoTailUntil) return 'echo-tail';
   if (userHasFloor) return false;
   if (playbackActive || turnOpen) return true;
-  if (now < echoTailUntil) return 'echo-tail';
   return false;
 }
 
