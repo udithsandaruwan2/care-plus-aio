@@ -204,10 +204,10 @@ export function pushMicBuffer(
   return 'drop';
 }
 
-export type OnsetQueue = { frames: Float32Array[] };
+export type OnsetQueue = { frames: Float32Array[]; breath: boolean };
 
 export function createOnsetQueue(): OnsetQueue {
-  return { frames: [] };
+  return { frames: [], breath: false };
 }
 
 export type LiveMicEmit = {
@@ -219,17 +219,25 @@ export type LiveMicEmit = {
   echoTailOpen: boolean;
 };
 
-/** A noisy frame that is not rumble. Held, not sent, until a vowel follows. */
+/**
+ * A frame worth keeping until a vowel confirms the word.
+ * Any sub-70 Hz rumble rejects it, so an inhale is not stored.
+ * A short mix of consonant and vowel is kept too: one 128 ms frame often holds both.
+ */
 export function isOnsetFrame(samples: ArrayLike<number>): boolean {
   const hop = MIC_GATE.hop;
   let consonants = 0;
+  let voiced = 0;
   let rumble = 0;
   for (let offset = 0; offset + hop <= samples.length; offset += hop) {
     const info = analyzeHop(samples, offset, hop);
-    if (info.consonant) consonants += 1;
+    if (info.voiced) voiced += 1;
+    else if (info.consonant) consonants += 1;
     else if (info.rumble) rumble += 1;
   }
-  return consonants >= MIC_GATE.speechHops && rumble === 0;
+  if (rumble > 0) return false;
+  if (consonants >= MIC_GATE.speechHops) return true;
+  return voiced > 0 && consonants + voiced >= 2;
 }
 
 /**
@@ -243,17 +251,35 @@ export function gateLiveFrame(
   onset: OnsetQueue,
 ): LiveMicEmit {
   const speaking = assistantSpeaking === true || assistantSpeaking === 'echo-tail';
-  if (speaking) onset.frames.length = 0;
+  if (speaking) {
+    onset.frames.length = 0;
+    onset.breath = false;
+  }
 
   const decision = pushMicBuffer(frame, assistantSpeaking, state);
   if (decision === 'drop') {
     if (!speaking && isOnsetFrame(frame)) {
-      if (onset.frames.length >= MIC_GATE.onsetFrames) onset.frames.shift();
+      if (onset.breath) {
+        return { audio: [], silenceSamples: frame.length, barge: false, echoTailOpen: false };
+      }
+      // A consonant is short. Another noisy frame after the hold is an inhale.
+      if (onset.frames.length >= MIC_GATE.onsetFrames) {
+        const dumped = onset.frames.length + 1;
+        onset.frames.length = 0;
+        onset.breath = true;
+        return {
+          audio: [],
+          silenceSamples: dumped * frame.length,
+          barge: false,
+          echoTailOpen: false,
+        };
+      }
       onset.frames.push(new Float32Array(frame));
       return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
     }
     const held = onset.frames.length;
     onset.frames.length = 0;
+    onset.breath = false;
     return {
       audio: [],
       silenceSamples: speaking ? 0 : (held + 1) * frame.length,
@@ -262,8 +288,9 @@ export function gateLiveFrame(
     };
   }
 
-  const audio = speaking ? [frame] : onset.frames.concat(frame);
+  const audio = speaking || onset.breath ? [frame] : onset.frames.concat(frame);
   onset.frames.length = 0;
+  onset.breath = false;
   return {
     audio,
     silenceSamples: 0,

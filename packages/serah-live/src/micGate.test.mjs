@@ -134,6 +134,38 @@ describe('gateLiveFrame', () => {
     assert.equal(again.frames.length, 0);
   });
 
+  it('keeps a consonant and vowel that share one frame, and does not keep an inhale', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const mixed = new Float32Array(wire);
+    mixed.set(fricative(0.12).subarray(0, wire / 2));
+    mixed.set(vowel(0.06).subarray(0, wire / 2), wire / 2);
+    assert.equal(pushMicBuffer(mixed, false, createMicGateState()), 'drop');
+    assert.equal(isOnsetFrame(mixed), true);
+    const held = gateLiveFrame(mixed, false, state, onset);
+    assert.equal(held.audio.length, 0);
+    assert.equal(held.silenceSamples, 0);
+    const opened = gateLiveFrame(vowel(0.06).subarray(0, wire), false, state, onset);
+    assert.equal(opened.audio.length, 2);
+    assert.equal(opened.audio[0][0], mixed[0]);
+  });
+
+  it('drops a long noisy inhale instead of sending it with the vowel', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const noise = fricative(0.12).subarray(0, wire);
+    assert.equal(gateLiveFrame(noise, false, state, onset).silenceSamples, 0);
+    assert.equal(gateLiveFrame(noise, false, state, onset).silenceSamples, 0);
+    assert.equal(onset.frames.length, 2);
+    const third = gateLiveFrame(noise, false, state, onset);
+    assert.equal(third.audio.length, 0);
+    assert.equal(third.silenceSamples, wire * 3);
+    assert.equal(onset.breath, true);
+    const voice = gateLiveFrame(vowel(0.06).subarray(0, wire), false, state, onset);
+    assert.equal(voice.audio.length, 1);
+    assert.equal(onset.breath, false);
+  });
+
   it('forgets a held consonant when she starts talking, and still barges', () => {
     const state = createMicGateState();
     const onset = createOnsetQueue();
