@@ -182,7 +182,11 @@ def _transcribe(
         task="transcribe",
         beam_size=3,
         vad_filter=True,
-        vad_parameters={"min_silence_duration_ms": 500},
+        vad_parameters={
+            "min_silence_duration_ms": 500,
+            # Drop inhales and other bursts shorter than a spoken word.
+            "min_speech_duration_ms": 250,
+        },
         condition_on_previous_text=False,
         without_timestamps=True,
         initial_prompt=_INITIAL_PROMPT,

@@ -1,5 +1,6 @@
 # ── Node / JS ──────────────────────────────────────────────
 node_modules/
+.test-out/
 .pnpm-store/
 dist/
 build/
