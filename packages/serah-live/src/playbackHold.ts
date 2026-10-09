@@ -100,6 +100,29 @@ export function onSourceEnd(watch: SpeakWatch, now: number): void {
   if (watch.sources === 0) watch.idleSince = now;
 }
 
+/**
+ * A missing chunk is not the end of her reply. Keep the mic closed until the
+ * model marks the turn complete, or until this long with no further audio.
+ */
+export const TURN_IDLE_MS = 800;
+
+/**
+ * Mic mode while a reply may still be sounding.
+ * `true` means she still owns the mic, so her own voice is not sent back.
+ */
+export function replyMicMode(
+  userHasFloor: boolean,
+  playbackActive: boolean,
+  turnOpen: boolean,
+  now: number,
+  echoTailUntil: number,
+): boolean | 'echo-tail' {
+  if (userHasFloor) return false;
+  if (playbackActive || turnOpen) return true;
+  if (now < echoTailUntil) return 'echo-tail';
+  return false;
+}
+
 /** Returns true once the idle grace has passed and stop should be announced. */
 export function pollSpeakingStopped(watch: SpeakWatch, now: number, graceMs = 150): boolean {
   if (!watch.announced || watch.sources > 0 || watch.idleSince == null) return false;
