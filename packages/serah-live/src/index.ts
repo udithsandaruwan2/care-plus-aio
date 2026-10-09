@@ -548,9 +548,13 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             if (shouldPlayPcm(playback)) player.enqueue(decodeBase64Pcm(msg.data), 24000);
             break;
           case 'live.interrupted':
-            armHold();
+            // The model already heard the user. Echo-tail would treat the rest
+            // of that sentence as speaker bleed and drop it.
+            userHasFloor = true;
             turnOpen = false;
+            echoTailUntil = 0;
             clearGapTimer();
+            armHold();
             player.stop();
             break;
           case 'live.turn_complete':

@@ -162,9 +162,12 @@ export function pushMicBuffer(
     const hopInfo = analyzeHop(samples, offset, hop);
     if (assistant) {
       const margin = Math.max(MIC_GATE.bargeRms, state.echoFloor * MIC_GATE.echoMargin);
+      const userLevel = hopInfo.voiced && hopInfo.rms >= MIC_GATE.bargeRms;
       if (!training && hopInfo.voiced && hopInfo.rms >= margin) {
         near += 1;
-      } else {
+      } else if (!userLevel) {
+        // A voice already loud enough to be the user must not become the echo
+        // floor. Otherwise the training buffers swallow the barge.
         state.echoFloor = state.echoFloor * 0.82 + hopInfo.rms * 0.18;
       }
       if (hopInfo.voiced) voiced += 1;

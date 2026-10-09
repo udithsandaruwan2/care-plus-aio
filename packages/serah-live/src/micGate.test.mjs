@@ -69,6 +69,14 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(voice, false, createMicGateState()), 'send');
   });
 
+  it('does not learn the user as echo, so a barge during her first words still cuts in', () => {
+    const state = createMicGateState();
+    const user = vowel(0.28);
+    assert.equal(pushMicBuffer(user, true, state), 'drop');
+    assert.equal(pushMicBuffer(user, true, state), 'drop');
+    assert.equal(pushMicBuffer(user, true, state), 'barge');
+  });
+
   it('learns speaker bleed and only barges on a nearer voice', () => {
     const state = createMicGateState();
     const bleed = vowel(0.05);
