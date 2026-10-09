@@ -25,7 +25,8 @@ export const PLAYBACK_PREROLL_SEC = 0.08;
 
 /**
  * Chain a chunk onto audio that is already queued.
- * After a gap, start a little in the future so a burst can play without a click between packets.
+ * The first chunk of a turn waits a short preroll so a burst can line up.
+ * A late chunk mid-turn starts immediately, so each gap is not padded again.
  */
 export function schedulePcmStart(
   now: number,
@@ -33,5 +34,40 @@ export function schedulePcmStart(
   preroll = PLAYBACK_PREROLL_SEC,
 ): number {
   if (queuedUntil > now) return queuedUntil;
-  return now + preroll;
+  if (queuedUntil <= 0) return now + preroll;
+  return now;
+}
+
+export type SpeakWatch = {
+  sources: number;
+  /** Set when the last source ends. Cleared when a new source starts. */
+  idleSince: number | null;
+  announced: boolean;
+};
+
+export function createSpeakWatch(): SpeakWatch {
+  return { sources: 0, idleSince: null, announced: false };
+}
+
+/** Returns true when playback should be announced as started. */
+export function onSourceStart(watch: SpeakWatch): boolean {
+  watch.sources += 1;
+  watch.idleSince = null;
+  if (watch.announced) return false;
+  watch.announced = true;
+  return true;
+}
+
+export function onSourceEnd(watch: SpeakWatch, now: number): void {
+  watch.sources = Math.max(0, watch.sources - 1);
+  if (watch.sources === 0) watch.idleSince = now;
+}
+
+/** Returns true once the idle grace has passed and stop should be announced. */
+export function pollSpeakingStopped(watch: SpeakWatch, now: number, graceMs = 150): boolean {
+  if (!watch.announced || watch.sources > 0 || watch.idleSince == null) return false;
+  if (now - watch.idleSince < graceMs) return false;
+  watch.announced = false;
+  watch.idleSince = null;
+  return true;
 }

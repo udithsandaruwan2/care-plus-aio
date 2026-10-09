@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   createPlaybackHold,
+  createSpeakWatch,
   holdPlayback,
+  onSourceEnd,
+  onSourceStart,
+  pollSpeakingStopped,
   releasePlayback,
   schedulePcmStart,
   shouldPlayPcm,
@@ -20,9 +24,28 @@ describe('playback hold', () => {
 });
 
 describe('schedulePcmStart', () => {
-  it('chains while audio is queued and pads a gap', () => {
+  it('prerolls only the first chunk and starts a late one immediately', () => {
     assert.equal(schedulePcmStart(10, 10.4), 10.4);
-    assert.equal(schedulePcmStart(10, 9.9), 10.08);
+    assert.equal(schedulePcmStart(10, 9.9), 10);
     assert.equal(schedulePcmStart(10, 0), 10.08);
+  });
+});
+
+describe('speak watch', () => {
+  it('does not say she stopped during a short gap between chunks', () => {
+    const watch = createSpeakWatch();
+    assert.equal(onSourceStart(watch), true);
+    onSourceEnd(watch, 1000);
+    assert.equal(pollSpeakingStopped(watch, 1100), false);
+    assert.equal(onSourceStart(watch), false);
+    assert.equal(watch.announced, true);
+  });
+
+  it('says she stopped after the grace when nothing follows', () => {
+    const watch = createSpeakWatch();
+    onSourceStart(watch);
+    onSourceEnd(watch, 1000);
+    assert.equal(pollSpeakingStopped(watch, 1200), true);
+    assert.equal(watch.announced, false);
   });
 });

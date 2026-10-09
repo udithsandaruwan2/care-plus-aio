@@ -1,7 +1,17 @@
 /** Shared Gemini Live bridge client for apps/web + Agent present UI. */
 
 import { createMicGateState, pushMicBuffer, suppressNoise } from './micGate';
-import { createPlaybackHold, holdPlayback, releasePlayback, schedulePcmStart, shouldPlayPcm } from './playbackHold';
+import {
+  createPlaybackHold,
+  createSpeakWatch,
+  holdPlayback,
+  onSourceEnd,
+  onSourceStart,
+  pollSpeakingStopped,
+  releasePlayback,
+  schedulePcmStart,
+  shouldPlayPcm,
+} from './playbackHold';
 
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
@@ -86,8 +96,9 @@ function decodeBase64Pcm(b64: string): Int16Array {
 class PcmPlayer {
   private ctx: AudioContext | null = null;
   private nextTime = 0;
-  private active = 0;
   private onSpeaking: ((v: boolean) => void) | undefined;
+  private watch = createSpeakWatch();
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(onSpeaking?: (v: boolean) => void) {
     this.onSpeaking = onSpeaking;
@@ -115,15 +126,29 @@ class PcmPlayer {
     const startAt = schedulePcmStart(ctx.currentTime, this.nextTime);
     src.start(startAt);
     this.nextTime = startAt + buf.duration;
-    this.active += 1;
-    this.onSpeaking?.(true);
+    if (this.idleTimer != null) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+    if (onSourceStart(this.watch)) this.onSpeaking?.(true);
     src.onended = () => {
-      this.active = Math.max(0, this.active - 1);
-      if (this.active === 0) this.onSpeaking?.(false);
+      const endedAt = performance.now();
+      onSourceEnd(this.watch, endedAt);
+      if (this.watch.sources > 0) return;
+      if (this.idleTimer != null) clearTimeout(this.idleTimer);
+      this.idleTimer = setTimeout(() => {
+        this.idleTimer = null;
+        if (pollSpeakingStopped(this.watch, endedAt + 160)) this.onSpeaking?.(false);
+      }, 160);
     };
   }
 
   stop() {
+    if (this.idleTimer != null) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+    this.watch = createSpeakWatch();
     try {
       void this.ctx?.close();
     } catch {
@@ -131,12 +156,11 @@ class PcmPlayer {
     }
     this.ctx = null;
     this.nextTime = 0;
-    this.active = 0;
     this.onSpeaking?.(false);
   }
 
   get speaking(): boolean {
-    return this.active > 0;
+    return this.watch.announced;
   }
 }
 
