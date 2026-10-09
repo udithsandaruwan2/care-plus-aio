@@ -3,9 +3,11 @@
  * Prefers server audio (base64) when present; falls back to speechSynthesis
  * only when the browser actually has a matching voice (Sinhala/Tamil usually do not).
  *
- * Near-field barge-in: interruptSpeaking() pauses/snapshots residual so the
- * truncated reply can resume before the next turn's audio.
+ * Near-field barge-in: interruptSpeaking() keeps a residual. An empty barge
+ * may finish that line. A real user utterance replaces it.
  */
+
+import { shouldPlayCutOffAfterBarge } from './speakerTail';
 
 export type SpeakOpts = {
   audioBase64?: string | null;
@@ -359,21 +361,28 @@ async function drainSpeakQueue(): Promise<void> {
   }
 }
 
-/**
- * Queue residual (if any) then the new reply so routing is:
- * finish interrupted speech → speak new output.
- */
+/** Drop a detached residual so the cut-off line cannot start again. */
+function releaseResidual(residual: InterruptedResidual | null) {
+  if (!residual || residual.kind !== 'server') return;
+  residual.audio.onended = null;
+  residual.audio.onerror = null;
+  residual.audio.pause();
+  URL.revokeObjectURL(residual.objectUrl);
+  residual.audio.src = '';
+}
+
 export function enqueueAfterBargeIn(
   residual: InterruptedResidual | null,
   next: SpeakJob | null,
 ): Promise<void> {
   return (async () => {
-    if (residual) {
-      await resumeResidual(residual);
-    }
-    if (next?.text.trim()) {
+    const userSpoke = Boolean(next?.text.trim());
+    if (!shouldPlayCutOffAfterBarge(userSpoke) && next) {
+      releaseResidual(residual);
       await speakSerah(next.text, next.lang, next.opts);
+      return;
     }
+    if (residual) await resumeResidual(residual);
   })();
 }
 

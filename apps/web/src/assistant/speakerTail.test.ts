@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { shouldRearmFallbackMic, shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
+import {
+  shouldListenAfterBarge,
+  shouldPlayCutOffAfterBarge,
+  shouldRearmFallbackMic,
+  shouldReopenMicAfterSpeech,
+  SPEAKER_TAIL_MS,
+} from './speakerTail';
 
 describe('shouldReopenMicAfterSpeech', () => {
   it('waits out her speaker tail and stays closed while Live is listening', () => {
@@ -29,5 +35,9 @@ describe('shouldReopenMicAfterSpeech', () => {
         ending: false,
       }),
     ).toBe(true);
+    expect(shouldListenAfterBarge({ conversationOn: true, liveActive: false })).toBe(true);
+    expect(shouldListenAfterBarge({ conversationOn: true, liveActive: true })).toBe(false);
+    expect(shouldPlayCutOffAfterBarge(true)).toBe(false);
+    expect(shouldPlayCutOffAfterBarge(false)).toBe(true);
   });
 });

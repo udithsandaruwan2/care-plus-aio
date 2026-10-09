@@ -23,7 +23,12 @@ import { useSerahLiveBridge } from './useSerahLiveBridge';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
-import { shouldRearmFallbackMic, shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
+import {
+  shouldListenAfterBarge,
+  shouldRearmFallbackMic,
+  shouldReopenMicAfterSpeech,
+  SPEAKER_TAIL_MS,
+} from './speakerTail';
 import { startEndOfUtteranceWatch } from './silenceWatch';
 import {
   clearInterruptedResidual,
@@ -337,9 +342,6 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
               bargeStopRef.current?.();
               bargeStopRef.current = null;
               interruptSpeaking();
-              if (conversationOnRef.current) {
-                void resumeListeningRef.current();
-              }
             },
           });
         })();
@@ -350,6 +352,27 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
       bargeStopRef.current = null;
       if (bargedRef.current) {
         bargedRef.current = false;
+        if (
+          !shouldListenAfterBarge({
+            conversationOn: conversationOnRef.current,
+            liveActive: liveActiveRef.current,
+          })
+        ) {
+          return;
+        }
+        clearSpeakerTail();
+        speakerTailRef.current = setTimeout(() => {
+          speakerTailRef.current = null;
+          if (
+            !shouldListenAfterBarge({
+              conversationOn: conversationOnRef.current,
+              liveActive: liveActiveRef.current,
+            })
+          ) {
+            return;
+          }
+          continueListening();
+        }, SPEAKER_TAIL_MS);
         return;
       }
       // Natural end — leave the mic closed through the speaker tail.

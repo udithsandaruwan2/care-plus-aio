@@ -10,6 +10,22 @@ export function shouldReopenMicAfterSpeech(opts: {
   return opts.conversationOn && !opts.busy && !opts.liveActive;
 }
 
+/**
+ * After a barge, Web Speech waits out her ring. Live already owns the mic.
+ * `busy` does not block this: the user cut her off in order to speak.
+ */
+export function shouldListenAfterBarge(opts: {
+  conversationOn: boolean;
+  liveActive: boolean;
+}): boolean {
+  return opts.conversationOn && !opts.liveActive;
+}
+
+/** A real user utterance replaces the cut-off line. An empty barge may finish it. */
+export function shouldPlayCutOffAfterBarge(userSpoke: boolean): boolean {
+  return !userSpoke;
+}
+
 /** An empty caption may rearm Web Speech only when Live is not already listening. */
 export function shouldRearmFallbackMic(opts: {
   conversationOn: boolean;
