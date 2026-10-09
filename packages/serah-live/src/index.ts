@@ -35,6 +35,7 @@ import {
 } from './playbackHold';
 
 export { acceptCaption } from './captionGate';
+export { ECHO_TAIL_MS, fallbackListenDelayMs } from './playbackHold';
 
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 

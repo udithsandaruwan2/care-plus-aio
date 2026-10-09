@@ -89,6 +89,14 @@ export function notePlaybackPull(state: PlaybackHeard, played: number, held: boo
 /** How long her voice can still be in the room after the speakers stop. */
 export const ECHO_TAIL_MS = 450;
 
+/** Fallback Web Speech waits out her ring only when playback was just cut off. */
+export function fallbackListenDelayMs(
+  interruptedPlayback: boolean,
+  tailMs = ECHO_TAIL_MS,
+): number {
+  return interruptedPlayback ? tailMs : 0;
+}
+
 /**
  * A barge cuts her playback, but the mic stays in the echo tail.
  * Her ring is not sent; the next nearer frame still takes the floor.
