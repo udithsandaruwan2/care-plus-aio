@@ -36,6 +36,20 @@ function breath(amp) {
   return out;
 }
 
+function fricative(amp) {
+  const out = new Float32Array(N);
+  let prev = 0;
+  let seed = 3;
+  for (let i = 0; i < N; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const x = ((seed / 0x7fffffff) * 2 - 1) * amp;
+    const y = x - prev;
+    prev = x;
+    out[i] = y * 0.5;
+  }
+  return out;
+}
+
 describe('pushMicBuffer', () => {
   it('drops silence and a loud inhale', () => {
     assert.equal(pushMicBuffer(new Float32Array(N), false, createMicGateState()), 'drop');
@@ -57,8 +71,15 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(bleed, true, state), 'drop');
     assert.equal(pushMicBuffer(bleed, true, state), 'drop');
     assert.equal(pushMicBuffer(bleed, true, state), 'drop');
-    const barge = vowel(0.28);
-    assert.equal(pushMicBuffer(barge, true, state), 'barge');
+    assert.equal(pushMicBuffer(vowel(0.28), true, state), 'barge');
+  });
+
+  it('keeps the consonant after a vowel and still drops the inhale', () => {
+    const state = createMicGateState();
+    assert.equal(pushMicBuffer(fricative(0.12), false, state), 'drop');
+    assert.equal(pushMicBuffer(vowel(0.06), false, state), 'send');
+    assert.equal(pushMicBuffer(fricative(0.12), false, state), 'send');
+    assert.equal(pushMicBuffer(breath(0.35), false, state), 'drop');
   });
 });
 
@@ -70,5 +91,11 @@ describe('suppressNoise', () => {
     const voice = vowel(0.2);
     const kept = suppressNoise(voice, 0.005);
     assert.ok(frameRms(kept) > frameRms(voice) * 0.5);
+    const memory = { x: 0, y: 0 };
+    const head = suppressNoise(voice.subarray(0, 2000), 0.005, memory);
+    const tail = suppressNoise(voice.subarray(2000), 0.005, memory);
+    const whole = suppressNoise(voice, 0.005, { x: 0, y: 0 });
+    assert.ok(head.length === 2000 && tail.length === voice.length - 2000);
+    assert.ok(Math.abs((whole[2000] ?? 0) - (tail[0] ?? 0)) < 1e-4);
   });
 });

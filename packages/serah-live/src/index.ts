@@ -167,7 +167,10 @@ async function openMicPcmStream(
       return;
     }
     if (decision === 'barge') opts?.onBarge?.();
-    const cleaned = suppressNoise(input, gate.noiseFloor);
+    const memory = { x: gate.hpX, y: gate.hpY };
+    const cleaned = suppressNoise(input, gate.noiseFloor, memory);
+    gate.hpX = memory.x;
+    gate.hpY = memory.y;
     const pcm = new Int16Array(cleaned.length);
     for (let i = 0; i < cleaned.length; i++) {
       const s = Math.max(-1, Math.min(1, cleaned[i] ?? 0));
