@@ -86,6 +86,15 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(vowel(0.28), true, state), 'barge');
   });
 
+  it('keeps the consonant of a barge during the echo tail and still drops her bleed', () => {
+    const state = createMicGateState();
+    assert.equal(pushMicBuffer(vowel(0.28), 'echo-tail', state), 'send');
+    assert.equal(pushMicBuffer(fricative(0.2), 'echo-tail', state), 'send');
+    assert.equal(pushMicBuffer(vowel(0.05), 'echo-tail', state), 'drop');
+    assert.equal(pushMicBuffer(fricative(0.2), 'echo-tail', state), 'drop');
+    assert.equal(pushMicBuffer(breath(0.35), 'echo-tail', state), 'drop');
+  });
+
   it('drops the speaker tail after she stops and sends a nearer voice', () => {
     const state = createMicGateState();
     const bleed = vowel(0.05);
