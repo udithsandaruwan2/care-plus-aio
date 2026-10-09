@@ -32,6 +32,8 @@ class OutputHoldTests(SimpleTestCase):
 
     def test_a_streaming_cut_off_does_not_resume_when_the_timer_ends(self):
         self.assertFalse(hold_should_release(held_for_ms=2600, idle_for_ms=50))
-        self.assertTrue(hold_should_release(held_for_ms=2600, idle_for_ms=400))
+        self.assertFalse(hold_should_release(held_for_ms=2600, idle_for_ms=400))
+        self.assertFalse(hold_should_release(held_for_ms=2600, idle_for_ms=1200))
+        self.assertTrue(hold_should_release(held_for_ms=2600, idle_for_ms=2000))
         self.assertFalse(hold_should_release(held_for_ms=2000, idle_for_ms=2000))
         self.assertTrue(hold_should_release(held_for_ms=15000, idle_for_ms=0))

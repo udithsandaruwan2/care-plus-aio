@@ -12,7 +12,7 @@ import {
   appendPlayback,
   createPlaybackHold,
   createSpeakWatch,
-  HOLD_LIMIT_MS,
+  HOLD_MAX_MS,
   holdPlayback,
   onSourceEnd,
   onSourceStart,
@@ -473,7 +473,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     holdTimer = setTimeout(() => {
       holdTimer = null;
       releasePlayback(playback);
-    }, HOLD_LIMIT_MS);
+    }, HOLD_MAX_MS);
   };
 
   const liftHold = () => {
