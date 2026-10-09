@@ -28,6 +28,8 @@ export const MIC_GATE = {
   speechHops: 3,
   /** Buffers of quiet after a vowel before the utterance closes. */
   hangoverBuffers: 3,
+  /** Consonant frames held until a vowel confirms they started a word. */
+  onsetFrames: 2,
 } as const;
 
 export type MicGateDecision = 'drop' | 'send' | 'barge';
@@ -202,21 +204,91 @@ export function pushMicBuffer(
   return 'drop';
 }
 
+export type OnsetQueue = { frames: Float32Array[] };
+
+export function createOnsetQueue(): OnsetQueue {
+  return { frames: [] };
+}
+
+export type LiveMicEmit = {
+  /** Speech to forward, oldest first. A held consonant precedes the vowel that confirmed it. */
+  audio: Float32Array[];
+  /** Zeros to forward when a held onset was not a word, so the turn can still end. */
+  silenceSamples: number;
+  barge: boolean;
+  echoTailOpen: boolean;
+};
+
+/** A noisy frame that is not rumble. Held, not sent, until a vowel follows. */
+export function isOnsetFrame(samples: ArrayLike<number>): boolean {
+  const hop = MIC_GATE.hop;
+  let consonants = 0;
+  let rumble = 0;
+  for (let offset = 0; offset + hop <= samples.length; offset += hop) {
+    const info = analyzeHop(samples, offset, hop);
+    if (info.consonant) consonants += 1;
+    else if (info.rumble) rumble += 1;
+  }
+  return consonants >= MIC_GATE.speechHops && rumble === 0;
+}
+
+/**
+ * Same decisions as `pushMicBuffer`, plus the consonant that started the word.
+ * While she is talking, nothing is held: speaker bleed must not be replayed later.
+ */
+export function gateLiveFrame(
+  frame: Float32Array,
+  assistantSpeaking: MicListenMode,
+  state: MicGateState,
+  onset: OnsetQueue,
+): LiveMicEmit {
+  const speaking = assistantSpeaking === true || assistantSpeaking === 'echo-tail';
+  if (speaking) onset.frames.length = 0;
+
+  const decision = pushMicBuffer(frame, assistantSpeaking, state);
+  if (decision === 'drop') {
+    if (!speaking && isOnsetFrame(frame)) {
+      if (onset.frames.length >= MIC_GATE.onsetFrames) onset.frames.shift();
+      onset.frames.push(new Float32Array(frame));
+      return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
+    }
+    const held = onset.frames.length;
+    onset.frames.length = 0;
+    return {
+      audio: [],
+      silenceSamples: speaking ? 0 : (held + 1) * frame.length,
+      barge: false,
+      echoTailOpen: false,
+    };
+  }
+
+  const audio = speaking ? [frame] : onset.frames.concat(frame);
+  onset.frames.length = 0;
+  return {
+    audio,
+    silenceSamples: 0,
+    barge: decision === 'barge',
+    echoTailOpen: decision === 'send' && assistantSpeaking === 'echo-tail',
+  };
+}
+
 function analyzeHop(
   samples: ArrayLike<number>,
   offset: number,
   length: number,
-): { rms: number; voiced: boolean; consonant: boolean } {
+): { rms: number; voiced: boolean; consonant: boolean; rumble: boolean } {
   const hop = new Float32Array(length);
   for (let i = 0; i < length; i++) hop[i] = samples[offset + i] ?? 0;
   const rms = frameRms(hop);
+  const low = lowBandRatio(hop);
   const voiced = isVoicedHop(hop);
   const consonant =
     !voiced &&
     rms >= MIC_GATE.silenceRms &&
-    lowBandRatio(hop) < MIC_GATE.rumbleRatio &&
+    low < MIC_GATE.rumbleRatio &&
     zeroCrossingRate(hop) >= 0.12;
-  return { rms, voiced, consonant };
+  const rumble = !voiced && !consonant && rms >= MIC_GATE.silenceRms && low >= MIC_GATE.rumbleRatio;
+  return { rms, voiced, consonant, rumble };
 }
 
 export type FilterMemory = { x: number; y: number };

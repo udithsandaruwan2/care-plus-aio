@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   createMicGateState,
+  createOnsetQueue,
   downsampleTo16k,
   frameRms,
+  gateLiveFrame,
+  isOnsetFrame,
   isVoicedHop,
   periodicity,
   pushMicBuffer,
@@ -19,8 +22,7 @@ function vowel(amp) {
   for (let i = 0; i < N; i++) {
     const t = i / RATE;
     out[i] =
-      amp *
-      (0.65 * Math.sin(2 * Math.PI * 140 * t) + 0.35 * Math.sin(2 * Math.PI * 280 * t));
+      amp * (0.65 * Math.sin(2 * Math.PI * 140 * t) + 0.35 * Math.sin(2 * Math.PI * 280 * t));
   }
   return out;
 }
@@ -91,6 +93,61 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(vowel(0.06), false, state), 'send');
     assert.equal(pushMicBuffer(fricative(0.12), false, state), 'send');
     assert.equal(pushMicBuffer(breath(0.35), false, state), 'drop');
+  });
+});
+
+describe('gateLiveFrame', () => {
+  const wire = 2048;
+
+  it('keeps the consonant that starts a word once a vowel confirms it', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const lead = fricative(0.12).subarray(0, wire);
+    assert.equal(isOnsetFrame(lead), true);
+    const held = gateLiveFrame(lead, false, state, onset);
+    assert.deepEqual(held.audio, []);
+    assert.equal(held.silenceSamples, 0);
+    const opened = gateLiveFrame(vowel(0.06).subarray(0, wire), false, state, onset);
+    assert.equal(opened.audio.length, 2);
+    assert.equal(opened.audio[0][0], lead[0]);
+    assert.equal(opened.audio[1][0], vowel(0.06)[0]);
+    assert.equal(onset.frames.length, 0);
+  });
+
+  it('does not prepend an inhale, and drops a consonant that never becomes a word', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const inhale = breath(0.35).subarray(0, wire);
+    assert.equal(isOnsetFrame(inhale), false);
+    const dropped = gateLiveFrame(inhale, false, state, onset);
+    assert.equal(dropped.audio.length, 0);
+    assert.equal(dropped.silenceSamples, wire);
+    const voice = gateLiveFrame(vowel(0.06).subarray(0, wire), false, state, onset);
+    assert.equal(voice.audio.length, 1);
+
+    const again = createOnsetQueue();
+    const quiet = createMicGateState();
+    gateLiveFrame(fricative(0.12).subarray(0, wire), false, quiet, again);
+    const abandoned = gateLiveFrame(inhale, false, quiet, again);
+    assert.equal(abandoned.audio.length, 0);
+    assert.equal(abandoned.silenceSamples, wire * 2);
+    assert.equal(again.frames.length, 0);
+  });
+
+  it('forgets a held consonant when she starts talking, and still barges', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    gateLiveFrame(fricative(0.12).subarray(0, wire), false, state, onset);
+    assert.equal(onset.frames.length, 1);
+    const bleed = vowel(0.05).subarray(0, wire);
+    const first = gateLiveFrame(bleed, true, state, onset);
+    assert.equal(first.audio.length, 0);
+    assert.equal(first.silenceSamples, 0);
+    assert.equal(onset.frames.length, 0);
+    gateLiveFrame(bleed, true, state, onset);
+    const barge = gateLiveFrame(vowel(0.28).subarray(0, wire), true, state, onset);
+    assert.equal(barge.barge, true);
+    assert.equal(barge.audio.length, 1);
   });
 });
 
