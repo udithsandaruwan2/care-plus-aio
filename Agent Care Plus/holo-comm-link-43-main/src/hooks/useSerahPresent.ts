@@ -157,6 +157,7 @@ export function useSerahPresent() {
           pushLog(`LIVE :: unavailable — ${reason.slice(0, 80)}`);
         },
         onInputTranscript: (text, final) => {
+          if (!acceptCaption(text)) return;
           if (final && text.trim()) {
             setInterim("");
             setMessages((prev) => [...prev, { id: uid(), role: "user", text: text.trim() }]);

@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from apps.voice.output_hold import apply_output_hold
+from apps.voice.output_hold import apply_output_hold, hold_expired
 
 
 class OutputHoldTests(SimpleTestCase):
@@ -25,3 +25,7 @@ class OutputHoldTests(SimpleTestCase):
         )
         self.assertFalse(holding)
         self.assertFalse(release)
+
+    def test_a_hold_expires_when_the_model_never_closes_the_turn(self):
+        self.assertFalse(hold_expired(2000))
+        self.assertTrue(hold_expired(2500))

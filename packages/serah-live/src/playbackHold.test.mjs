@@ -4,6 +4,7 @@ import {
   createPlaybackHold,
   createSpeakWatch,
   holdPlayback,
+  holdReleaseDue,
   onSourceEnd,
   onSourceStart,
   pollSpeakingStopped,
@@ -20,6 +21,11 @@ describe('playback hold', () => {
     assert.equal(shouldPlayPcm(state), false);
     releasePlayback(state);
     assert.equal(shouldPlayPcm(state), true);
+  });
+
+  it('releases if the interrupted turn never closes', () => {
+    assert.equal(holdReleaseDue(2000), false);
+    assert.equal(holdReleaseDue(2500), true);
   });
 });
 

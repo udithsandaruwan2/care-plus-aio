@@ -8,6 +8,7 @@ import {
   type LiveMatchPayload,
   type LiveUiLanguage,
   type SerahLiveSession,
+  acceptCaption,
 } from '@care-plus/serah-live';
 import { AssistantState } from '@care-plus/core';
 import { getAccessToken, loadCachedUser } from '../auth/session';
@@ -51,6 +52,7 @@ export function useSerahLiveBridge() {
           setLiveUnavailableReason(reason);
         },
         onInputTranscript: (text, final) => {
+          if (!acceptCaption(text)) return;
           const store = useAssistant.getState();
           if (final && text.trim()) {
             store.setInterim('');

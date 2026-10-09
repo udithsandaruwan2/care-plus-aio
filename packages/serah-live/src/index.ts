@@ -4,6 +4,7 @@ import { createMicGateState, downsampleTo16k, pushMicBuffer, suppressNoise, take
 import {
   createPlaybackHold,
   createSpeakWatch,
+  HOLD_LIMIT_MS,
   holdPlayback,
   onSourceEnd,
   onSourceStart,
@@ -281,6 +282,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     h.onSpeaking?.(speaking);
   });
   const playback = createPlaybackHold();
+  let holdTimer: ReturnType<typeof setTimeout> | null = null;
 
   const sendJson = (payload: Record<string, unknown>) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -288,9 +290,25 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     }
   };
 
+  const armHold = () => {
+    holdPlayback(playback);
+    if (holdTimer != null) clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      releasePlayback(playback);
+    }, HOLD_LIMIT_MS);
+  };
+
+  const liftHold = () => {
+    if (holdTimer != null) clearTimeout(holdTimer);
+    holdTimer = null;
+    releasePlayback(playback);
+  };
+
   const stop = () => {
     micStop?.();
     micStop = null;
+    liftHold();
     player.stop();
     if (ws) {
       try {
@@ -361,11 +379,11 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             if (shouldPlayPcm(playback)) player.enqueue(decodeBase64Pcm(msg.data), 24000);
             break;
           case 'live.interrupted':
-            holdPlayback(playback);
+            armHold();
             player.stop();
             break;
           case 'live.resume':
-            releasePlayback(playback);
+            liftHold();
             break;
           case 'live.input_transcript':
             h.onInputTranscript?.(msg.text, Boolean(msg.final));
@@ -422,7 +440,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     interrupt: () => {
       userHasFloor = true;
       echoTailUntil = 0;
-      holdPlayback(playback);
+      armHold();
       player.stop();
       sendJson({ type: 'live.interrupt' });
     },
@@ -446,7 +464,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
           onBarge: () => {
             userHasFloor = true;
             echoTailUntil = 0;
-            holdPlayback(playback);
+            armHold();
             player.stop();
             sendJson({ type: 'live.interrupt' });
           },
