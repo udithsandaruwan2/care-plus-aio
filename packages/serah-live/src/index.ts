@@ -17,6 +17,7 @@ import {
   onSourceEnd,
   onSourceStart,
   PLAYBACK_PREROLL_SEC,
+  PLAYBACK_QUANTUM,
   pollSpeakingStopped,
   pullPlayback,
   releasePlayback,
@@ -116,6 +117,7 @@ class PcmPlayer {
   private pending = new Float32Array(0);
   private primed = false;
   private lastPlayed = 0;
+  private forcePartial = false;
   private primeTimer: ReturnType<typeof setTimeout> | null = null;
   private onSpeaking: ((v: boolean) => void) | undefined;
   private watch = createSpeakWatch();
@@ -134,21 +136,25 @@ class PcmPlayer {
     }
     const ctx = this.ctx;
     if (ctx.state === 'suspended') void ctx.resume();
-    const processor = ctx.createScriptProcessor(2048, 1, 1);
+    const processor = ctx.createScriptProcessor(PLAYBACK_QUANTUM, 1, 1);
     processor.onaudioprocess = (ev) => {
       const output = ev.outputBuffer.getChannelData(0);
       const edge = Math.round((this.ctx?.sampleRate ?? 24000) * 0.005);
+      const before = this.pending.length;
       const pulled = pullPlayback(
         this.pending,
         output.length,
         this.primed,
         edge,
         this.lastPlayed === 0,
+        this.lastPlayed === 0 && !this.forcePartial,
       );
       this.pending = pulled.pending;
-      this.lastPlayed = pulled.played;
+      const held = pulled.played === 0 && before > 0 && this.primed;
+      this.forcePartial = held;
+      if (!held) this.lastPlayed = pulled.played;
       output.set(pulled.output);
-      if (!this.primed) return;
+      if (!this.primed || held) return;
       if (pulled.played > 0) {
         this.watch.idleSince = null;
         if (this.idleTimer != null) {
@@ -223,6 +229,7 @@ class PcmPlayer {
     this.pending = new Float32Array(0);
     this.primed = false;
     this.lastPlayed = 0;
+    this.forcePartial = false;
     this.watch = createSpeakWatch();
     try {
       this.clock?.stop();
