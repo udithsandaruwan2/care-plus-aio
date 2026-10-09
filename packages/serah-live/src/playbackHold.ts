@@ -70,11 +70,15 @@ export function appendPlayback(pending: Float32Array, incoming: ArrayLike<number
 /**
  * One continuous pull. Separate clips per chunk click at the join.
  * Before the preroll is primed, the frame stays silent.
+ * A resume after silence fades in, and a frame that runs dry fades out,
+ * so an underrun does not click.
  */
 export function pullPlayback(
   pending: Float32Array,
   frameCount: number,
   primed: boolean,
+  edge = 0,
+  fromSilence = false,
 ): { pending: Float32Array; output: Float32Array; played: number } {
   const output = new Float32Array(Math.max(0, frameCount));
   if (!primed || frameCount <= 0 || pending.length === 0) {
@@ -82,6 +86,16 @@ export function pullPlayback(
   }
   const played = Math.min(frameCount, pending.length);
   output.set(pending.subarray(0, played));
+  if (edge > 1) {
+    if (fromSilence) {
+      const n = Math.min(edge, played);
+      for (let i = 0; i < n; i++) output[i] *= i / (n - 1);
+    }
+    if (played < frameCount) {
+      const n = Math.min(edge, played);
+      for (let i = 0; i < n; i++) output[played - 1 - i] *= i / (n - 1);
+    }
+  }
   return { pending: pending.subarray(played), output, played };
 }
 

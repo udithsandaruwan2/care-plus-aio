@@ -12,7 +12,6 @@ import {
   appendPlayback,
   createPlaybackHold,
   createSpeakWatch,
-  fadeInFromSilence,
   HOLD_LIMIT_MS,
   holdPlayback,
   onSourceEnd,
@@ -116,6 +115,7 @@ class PcmPlayer {
   private clock: OscillatorNode | null = null;
   private pending = new Float32Array(0);
   private primed = false;
+  private lastPlayed = 0;
   private primeTimer: ReturnType<typeof setTimeout> | null = null;
   private onSpeaking: ((v: boolean) => void) | undefined;
   private watch = createSpeakWatch();
@@ -137,8 +137,16 @@ class PcmPlayer {
     const processor = ctx.createScriptProcessor(2048, 1, 1);
     processor.onaudioprocess = (ev) => {
       const output = ev.outputBuffer.getChannelData(0);
-      const pulled = pullPlayback(this.pending, output.length, this.primed);
+      const edge = Math.round((this.ctx?.sampleRate ?? 24000) * 0.005);
+      const pulled = pullPlayback(
+        this.pending,
+        output.length,
+        this.primed,
+        edge,
+        this.lastPlayed === 0,
+      );
       this.pending = pulled.pending;
+      this.lastPlayed = pulled.played;
       output.set(pulled.output);
       if (!this.primed) return;
       if (pulled.played > 0) {
@@ -160,8 +168,11 @@ class PcmPlayer {
       }, 160);
     };
     const clock = ctx.createOscillator();
+    const muteClock = ctx.createGain();
+    muteClock.gain.value = 0;
     clock.frequency.value = 1;
-    clock.connect(processor);
+    clock.connect(muteClock);
+    muteClock.connect(processor);
     processor.connect(ctx.destination);
     clock.start();
     this.processor = processor;
@@ -175,7 +186,6 @@ class PcmPlayer {
     }
     if (this.primed || !this.ctx) return;
     this.primed = true;
-    fadeInFromSilence(this.pending, this.ctx.sampleRate);
   }
 
   enqueue(pcm: Int16Array, sampleRate = 24000) {
@@ -212,6 +222,7 @@ class PcmPlayer {
     }
     this.pending = new Float32Array(0);
     this.primed = false;
+    this.lastPlayed = 0;
     this.watch = createSpeakWatch();
     try {
       this.clock?.stop();

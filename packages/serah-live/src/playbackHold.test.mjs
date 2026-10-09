@@ -76,6 +76,13 @@ describe('pullPlayback', () => {
     fadeInFromSilence(edge, 200, 0.02);
     assert.equal(edge[0], 0);
     assert.equal(edge[edge.length - 1], 1);
+    const dry = pullPlayback(new Float32Array([1, 1, 1, 1]), 8, true, 2, false);
+    assert.equal(dry.played, 4);
+    assert.equal(dry.output[3], 0);
+    assert.equal(dry.output[2], 1);
+    const resumed = pullPlayback(new Float32Array([1, 1, 1, 1]), 4, true, 3, true);
+    assert.equal(resumed.output[0], 0);
+    assert.equal(resumed.output[2], 1);
   });
 });
 
