@@ -13,6 +13,8 @@ import {
   shouldPlayPcm,
 } from './playbackHold';
 
+export { acceptCaption } from './captionGate';
+
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
 export type LiveMatchPayload = {
