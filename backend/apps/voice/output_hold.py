@@ -22,3 +22,24 @@ def apply_output_hold(
 def hold_expired(held_for_ms: int, limit_ms: int = 2500) -> bool:
     """Release a barge hold if the model never closes the interrupted turn."""
     return held_for_ms >= limit_ms
+
+
+def hold_should_release(
+    *,
+    held_for_ms: int,
+    idle_for_ms: int,
+    limit_ms: int = 2500,
+    idle_ms: int = 400,
+    max_ms: int = 15000,
+) -> bool:
+    """True when the hold may lift.
+
+    Past the limit, a reply that is still streaming is the cut-off line and
+    stays dropped. The hold lifts once that stream has gone quiet, or at
+    max_ms so a later reply is not muted forever.
+    """
+    if held_for_ms >= max_ms:
+        return True
+    if held_for_ms < limit_ms:
+        return False
+    return idle_for_ms >= idle_ms
