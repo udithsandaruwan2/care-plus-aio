@@ -66,6 +66,18 @@ export const PLAYBACK_PREROLL_SEC = 0.08;
  */
 export const PLAYBACK_QUANTUM = 512;
 
+/** If no sample has played by now, the graph is stuck and must not keep the mic closed. */
+export const PLAYBACK_STALL_MS = 1000;
+
+export function playbackStalled(
+  playedSamples: number,
+  announced: boolean,
+  elapsedMs: number,
+  limitMs = PLAYBACK_STALL_MS,
+): boolean {
+  return announced && playedSamples === 0 && elapsedMs >= limitMs;
+}
+
 export function prerollCoversQuantum(
   sampleRate: number,
   quantum = PLAYBACK_QUANTUM,

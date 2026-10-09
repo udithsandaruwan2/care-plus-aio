@@ -8,6 +8,7 @@ import {
   onSourceEnd,
   onSourceStart,
   PLAYBACK_QUANTUM,
+  playbackStalled,
   pollSpeakingStopped,
   prerollCoversQuantum,
   fadeInFromSilence,
@@ -92,6 +93,15 @@ describe('pullPlayback', () => {
     assert.equal(prerollCoversQuantum(24000), true);
     assert.equal(prerollCoversQuantum(48000), true);
     assert.equal(PLAYBACK_QUANTUM <= Math.round(24000 * 0.08), true);
+  });
+});
+
+describe('playbackStalled', () => {
+  it('releases a reply that was announced but never played', () => {
+    assert.equal(playbackStalled(0, true, 999), false);
+    assert.equal(playbackStalled(0, true, 1000), true);
+    assert.equal(playbackStalled(10, true, 1000), false);
+    assert.equal(playbackStalled(0, false, 1000), false);
   });
 });
 
