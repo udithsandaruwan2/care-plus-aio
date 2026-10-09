@@ -1,0 +1,17 @@
+import { describe, expect, it } from 'vitest';
+import { shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
+
+describe('shouldReopenMicAfterSpeech', () => {
+  it('waits out her speaker tail and stays closed while Live is listening', () => {
+    expect(SPEAKER_TAIL_MS).toBeGreaterThanOrEqual(400);
+    expect(
+      shouldReopenMicAfterSpeech({ conversationOn: true, busy: false, liveActive: false }),
+    ).toBe(true);
+    expect(
+      shouldReopenMicAfterSpeech({ conversationOn: true, busy: false, liveActive: true }),
+    ).toBe(false);
+    expect(
+      shouldReopenMicAfterSpeech({ conversationOn: true, busy: true, liveActive: false }),
+    ).toBe(false);
+  });
+});

@@ -23,6 +23,7 @@ import { useSerahLiveBridge } from './useSerahLiveBridge';
 import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
+import { shouldReopenMicAfterSpeech, SPEAKER_TAIL_MS } from './speakerTail';
 import { startEndOfUtteranceWatch } from './silenceWatch';
 import {
   clearInterruptedResidual,
@@ -123,6 +124,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   const captionHeardRef = useRef(false);
   const emptyRearmCountRef = useRef(0);
   const rearmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speakerTailRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bargedRef = useRef(false);
   const resumeListeningRef = useRef<() => Promise<void>>(async () => {});
   const armSilenceWatchRef = useRef<() => void>(() => {});
@@ -134,6 +136,13 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     if (rearmTimerRef.current) {
       clearTimeout(rearmTimerRef.current);
       rearmTimerRef.current = null;
+    }
+  };
+
+  const clearSpeakerTail = () => {
+    if (speakerTailRef.current) {
+      clearTimeout(speakerTailRef.current);
+      speakerTailRef.current = null;
     }
   };
 
@@ -292,8 +301,9 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   // During Serah playback: near-field analyser (AGC off), suppress ASR echo,
   // barge-in only on near loud speech; snapshot residual for resume.
   useEffect(() => {
-    return subscribeSerahSpeaking((active) => {
+    const unsub = subscribeSerahSpeaking((active) => {
       if (active) {
+        clearSpeakerTail();
         bargedRef.current = false;
         bargeStopRef.current?.();
         bargeStopRef.current = null;
@@ -338,12 +348,36 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
         bargedRef.current = false;
         return;
       }
-      // Natural end — no barge residual to keep.
+      // Natural end — leave the mic closed through the speaker tail.
       clearInterruptedResidual();
-      if (conversationOnRef.current && !busyRef.current) {
-        continueListening();
+      if (
+        !shouldReopenMicAfterSpeech({
+          conversationOn: conversationOnRef.current,
+          busy: busyRef.current,
+          liveActive: liveActiveRef.current,
+        })
+      ) {
+        return;
       }
+      clearSpeakerTail();
+      speakerTailRef.current = setTimeout(() => {
+        speakerTailRef.current = null;
+        if (
+          !shouldReopenMicAfterSpeech({
+            conversationOn: conversationOnRef.current,
+            busy: busyRef.current,
+            liveActive: liveActiveRef.current,
+          })
+        ) {
+          return;
+        }
+        continueListening();
+      }, SPEAKER_TAIL_MS);
     });
+    return () => {
+      unsub();
+      clearSpeakerTail();
+    };
   }, [continueListening, mic, recorder, setState, speech]);
 
   const listening = mic.active || speech.listening || liveActive;
