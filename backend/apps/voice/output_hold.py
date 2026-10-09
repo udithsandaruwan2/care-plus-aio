@@ -29,14 +29,15 @@ def hold_should_release(
     held_for_ms: int,
     idle_for_ms: int,
     limit_ms: int = 2500,
-    idle_ms: int = 400,
+    idle_ms: int = 2000,
     max_ms: int = 15000,
 ) -> bool:
     """True when the hold may lift.
 
     Past the limit, a reply that is still streaming is the cut-off line and
-    stays dropped. The hold lifts once that stream has gone quiet, or at
-    max_ms so a later reply is not muted forever.
+    stays dropped. A phrase pause is not the end of that line. The hold lifts
+    after a longer quiet stretch, or at max_ms so a later reply is not muted
+    forever.
     """
     if held_for_ms >= max_ms:
         return True

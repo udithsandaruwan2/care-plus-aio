@@ -4,6 +4,8 @@ import {
   createPlaybackHold,
   createSpeakWatch,
   holdPlayback,
+  HOLD_LIMIT_MS,
+  HOLD_MAX_MS,
   holdReleaseDue,
   onSourceEnd,
   onSourceStart,
@@ -38,6 +40,7 @@ describe('playback hold', () => {
   it('releases if the interrupted turn never closes', () => {
     assert.equal(holdReleaseDue(2000), false);
     assert.equal(holdReleaseDue(2500), true);
+    assert.ok(HOLD_MAX_MS > HOLD_LIMIT_MS);
   });
 });
 

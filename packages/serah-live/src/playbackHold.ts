@@ -20,8 +20,14 @@ export function shouldPlayPcm(state: PlaybackHold): boolean {
   return !state.holding;
 }
 
-/** Let the next reply through if the model never closes the interrupted turn. */
+/** Earliest moment the server may treat a held reply as finished. */
 export const HOLD_LIMIT_MS = 2500;
+
+/**
+ * Client backup if the resume message never arrives. Must cover the server's
+ * extended hold, or a phrase pause in the cut-off line plays on this side.
+ */
+export const HOLD_MAX_MS = 15000;
 
 export function holdReleaseDue(elapsedMs: number, limitMs = HOLD_LIMIT_MS): boolean {
   return elapsedMs >= limitMs;
