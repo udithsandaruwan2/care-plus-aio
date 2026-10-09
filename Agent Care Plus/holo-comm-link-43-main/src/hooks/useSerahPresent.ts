@@ -3,6 +3,7 @@ import type { MatchResponse, VoiceTurnIntent } from "@care-plus/api-client";
 import {
   acceptCaption,
   createSerahLiveSession,
+  fallbackListenDelayMs,
   type SerahLiveSession,
 } from "@care-plus/serah-live";
 
@@ -213,14 +214,18 @@ export function useSerahPresent() {
     };
   }, [boot.status, boot.userId, pushLog]);
 
+  const listenEpoch = useRef(0);
+
   const stopPlayback = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
+    const audio = audioRef.current;
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
+    const wasPlaying = Boolean((audio && !audio.paused && !audio.ended) || synth?.speaking);
+    if (audio) {
+      audio.pause();
       audioRef.current = null;
     }
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
+    synth?.cancel();
+    return wasPlaying;
   }, []);
 
   const clearSilence = () => {
@@ -377,7 +382,8 @@ export function useSerahPresent() {
 
   const startListening = useCallback(() => {
     if (busyRef.current || boot.status !== "online") return;
-    stopPlayback();
+    const cutOff = stopPlayback();
+    const epoch = ++listenEpoch.current;
     clearSilence();
     setError(null);
 
@@ -478,6 +484,11 @@ export function useSerahPresent() {
       };
 
       recRef.current = rec;
+      const delayMs = fallbackListenDelayMs(cutOff);
+      if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+      if (epoch !== listenEpoch.current) return;
       try {
         rec.start();
       } catch {
@@ -489,6 +500,7 @@ export function useSerahPresent() {
 
   const toggleListening = useCallback(() => {
     if (mode === "listening" || liveActive) {
+      listenEpoch.current += 1;
       liveRef.current?.stopMic();
       liveRef.current?.stop();
       liveActiveRef.current = false;
@@ -511,6 +523,7 @@ export function useSerahPresent() {
   );
 
   const newRequest = useCallback(async () => {
+    listenEpoch.current += 1;
     stopMic();
     stopPlayback();
     liveRef.current?.stop();

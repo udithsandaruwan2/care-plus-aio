@@ -9,6 +9,7 @@ import {
   onSourceStart,
   PLAYBACK_QUANTUM,
   createPlaybackHeard,
+  fallbackListenDelayMs,
   micAfterBarge,
   micAfterPlaybackStop,
   notePlaybackPull,
@@ -123,6 +124,13 @@ describe('notePlaybackPull', () => {
     const held = notePlaybackPull(createPlaybackHeard(), 0, true);
     assert.equal(held.heard, 0);
     assert.equal(held.lastPlayed, 0);
+  });
+});
+
+describe('fallbackListenDelayMs', () => {
+  it('waits out her ring only when playback was just cut off', () => {
+    assert.equal(fallbackListenDelayMs(true), 450);
+    assert.equal(fallbackListenDelayMs(false), 0);
   });
 });
 
