@@ -1,17 +1,50 @@
 /**
- * Decide whether a mic frame is speech worth sending to the live model.
- * Breaths and the assistant's own speaker bleed stay off the wire.
- * A loud frame while she is talking is a barge-in.
+ * Live mic gate.
+ *
+ * A breath is noisy and not periodic, so level alone must not open a turn.
+ * While the assistant is talking, the first moments train an echo floor and
+ * only a voice well above that floor counts as barge-in.
  */
 
 export const MIC_GATE = {
-  /** RMS below this is silence or an inhale, not a turn. */
-  breathRms: 0.02,
-  /** While the assistant is speaking, only a near-mouth level interrupts her. */
-  bargeRms: 0.09,
+  sampleRate: 16000,
+  hop: 512,
+  /** Pitch search, Hz. */
+  pitchMinHz: 80,
+  pitchMaxHz: 400,
+  /** Normalized autocorrelation above this is a voiced frame. */
+  voicedPeriod: 0.42,
+  /** Energy under ~70 Hz above this is inhale rumble, not a vowel. */
+  rumbleRatio: 0.55,
+  /** Quiet room. Frames under this never open a turn. */
+  silenceRms: 0.012,
+  /** Barge must also clear this absolute level. */
+  bargeRms: 0.06,
+  /** Near speech must be this many times the learned echo floor. */
+  echoMargin: 2.4,
+  /** Buffers of playback used only to learn the echo, never to barge. */
+  echoTrainBuffers: 2,
+  /** Voiced hops inside one buffer required to send or barge. */
+  speechHops: 3,
 } as const;
 
 export type MicGateDecision = 'drop' | 'send' | 'barge';
+
+export type MicGateState = {
+  echoFloor: number;
+  noiseFloor: number;
+  speakBuffers: number;
+  wasSpeaking: boolean;
+};
+
+export function createMicGateState(): MicGateState {
+  return {
+    echoFloor: 0.02,
+    noiseFloor: 0.005,
+    speakBuffers: 0,
+    wasSpeaking: false,
+  };
+}
 
 export function frameRms(samples: ArrayLike<number>): number {
   const n = samples.length;
@@ -24,10 +57,144 @@ export function frameRms(samples: ArrayLike<number>): number {
   return Math.sqrt(sum / n);
 }
 
-export function decideMicFrame(rms: number, assistantSpeaking: boolean): MicGateDecision {
-  if (!Number.isFinite(rms) || rms < 0) return 'drop';
-  if (assistantSpeaking) {
-    return rms >= MIC_GATE.bargeRms ? 'barge' : 'drop';
+export function zeroCrossingRate(samples: ArrayLike<number>): number {
+  if (samples.length < 2) return 0;
+  let crossings = 0;
+  for (let i = 1; i < samples.length; i++) {
+    const a = samples[i - 1] ?? 0;
+    const b = samples[i] ?? 0;
+    if ((a >= 0 && b < 0) || (a < 0 && b >= 0)) crossings += 1;
   }
-  return rms >= MIC_GATE.breathRms ? 'send' : 'drop';
+  return crossings / (samples.length - 1);
+}
+
+/** Share of energy that survives a ~70 Hz one-pole low-pass. */
+export function lowBandRatio(samples: ArrayLike<number>, sampleRate = MIC_GATE.sampleRate): number {
+  const dt = 1 / sampleRate;
+  const rc = 1 / (2 * Math.PI * 70);
+  const alpha = dt / (rc + dt);
+  let y = 0;
+  let low = 0;
+  let total = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const x = samples[i] ?? 0;
+    y += alpha * (x - y);
+    low += y * y;
+    total += x * x;
+  }
+  return total < 1e-8 ? 0 : low / total;
+}
+
+/** Best normalized autocorrelation in the speech-pitch lag range. */
+export function periodicity(samples: ArrayLike<number>, sampleRate = MIC_GATE.sampleRate): number {
+  const n = samples.length;
+  if (n < 8) return 0;
+  let energy = 0;
+  for (let i = 0; i < n; i++) {
+    const s = samples[i] ?? 0;
+    energy += s * s;
+  }
+  if (energy < 1e-8) return 0;
+  const minLag = Math.max(1, Math.round(sampleRate / MIC_GATE.pitchMaxHz));
+  const maxLag = Math.min(n - 2, Math.round(sampleRate / MIC_GATE.pitchMinHz));
+  let best = 0;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let corr = 0;
+    const limit = n - lag;
+    for (let i = 0; i < limit; i++) corr += (samples[i] ?? 0) * (samples[i + lag] ?? 0);
+    const norm = corr / energy;
+    if (norm > best) best = norm;
+  }
+  return best;
+}
+
+export function isVoicedHop(samples: ArrayLike<number>): boolean {
+  const rms = frameRms(samples);
+  if (rms < MIC_GATE.silenceRms) return false;
+  if (lowBandRatio(samples) >= MIC_GATE.rumbleRatio) return false;
+  if (zeroCrossingRate(samples) > 0.2) return false;
+  return periodicity(samples) >= MIC_GATE.voicedPeriod;
+}
+
+/**
+ * One mic buffer (typically 4096 samples). Updates `state`.
+ * `drop` means do not forward the waveform.
+ */
+export function pushMicBuffer(
+  samples: ArrayLike<number>,
+  assistantSpeaking: boolean,
+  state: MicGateState,
+): MicGateDecision {
+  const hop = MIC_GATE.hop;
+  let voiced = 0;
+  let near = 0;
+  if (!assistantSpeaking) {
+    state.wasSpeaking = false;
+    state.speakBuffers = 0;
+  } else if (!state.wasSpeaking) {
+    state.wasSpeaking = true;
+    state.speakBuffers = 0;
+  }
+
+  const training = assistantSpeaking && state.speakBuffers < MIC_GATE.echoTrainBuffers;
+
+  for (let offset = 0; offset + hop <= samples.length; offset += hop) {
+    const rms = frameRmsAt(samples, offset, hop);
+    if (assistantSpeaking) {
+      const voicedHop = isVoicedSlice(samples, offset, hop);
+      const margin = Math.max(MIC_GATE.bargeRms, state.echoFloor * MIC_GATE.echoMargin);
+      const loud = rms >= margin;
+      if (!training && voicedHop && loud) {
+        near += 1;
+      } else {
+        state.echoFloor = state.echoFloor * 0.82 + rms * 0.18;
+      }
+      if (voicedHop) voiced += 1;
+    } else if (isVoicedSlice(samples, offset, hop)) {
+      voiced += 1;
+    } else {
+      state.noiseFloor = state.noiseFloor * 0.8 + rms * 0.2;
+    }
+  }
+
+  if (assistantSpeaking) {
+    state.speakBuffers += 1;
+    return !training && near >= MIC_GATE.speechHops ? 'barge' : 'drop';
+  }
+  return voiced >= MIC_GATE.speechHops ? 'send' : 'drop';
+}
+
+function frameRmsAt(samples: ArrayLike<number>, offset: number, length: number): number {
+  let sum = 0;
+  for (let i = 0; i < length; i++) {
+    const s = samples[offset + i] ?? 0;
+    sum += s * s;
+  }
+  return Math.sqrt(sum / length);
+}
+
+function isVoicedSlice(samples: ArrayLike<number>, offset: number, length: number): boolean {
+  const hop = new Float32Array(length);
+  for (let i = 0; i < length; i++) hop[i] = samples[offset + i] ?? 0;
+  return isVoicedHop(hop);
+}
+
+/** Attenuate stationary noise. A loud voiced frame keeps most of its level. */
+export function suppressNoise(samples: ArrayLike<number>, noiseRms: number): Float32Array {
+  const out = new Float32Array(samples.length);
+  const rms = frameRms(samples);
+  if (rms < 1e-8) return out;
+  const floor = Math.max(0, noiseRms);
+  const gain = rms <= floor ? 0 : Math.min(1, 1 - (floor / rms) * 0.9);
+  let prevX = 0;
+  let prevY = 0;
+  const a = 0.95;
+  for (let i = 0; i < samples.length; i++) {
+    const x = (samples[i] ?? 0) * gain;
+    const y = a * (prevY + x - prevX);
+    out[i] = Math.max(-1, Math.min(1, y));
+    prevX = x;
+    prevY = y;
+  }
+  return out;
 }

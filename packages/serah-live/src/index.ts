@@ -1,6 +1,6 @@
 /** Shared Gemini Live bridge client for apps/web + Agent present UI. */
 
-import { decideMicFrame, frameRms } from './micGate';
+import { createMicGateState, pushMicBuffer, suppressNoise } from './micGate';
 
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
@@ -155,10 +155,11 @@ async function openMicPcmStream(
   const processor = ctx.createScriptProcessor(4096, 1, 1);
   const mute = ctx.createGain();
   mute.gain.value = 0;
+  const gate = createMicGateState();
   processor.onaudioprocess = (ev) => {
     const input = ev.inputBuffer.getChannelData(0);
     const speaking = Boolean(opts?.isAssistantSpeaking?.());
-    const decision = decideMicFrame(frameRms(input), speaking);
+    const decision = pushMicBuffer(input, speaking, gate);
     if (decision === 'drop') {
       // While she talks, send nothing (speaker bleed and breath stay off the wire).
       // While she is quiet, send silence so the model still hears the end of a turn.
@@ -166,9 +167,10 @@ async function openMicPcmStream(
       return;
     }
     if (decision === 'barge') opts?.onBarge?.();
-    const pcm = new Int16Array(input.length);
-    for (let i = 0; i < input.length; i++) {
-      const s = Math.max(-1, Math.min(1, input[i] ?? 0));
+    const cleaned = suppressNoise(input, gate.noiseFloor);
+    const pcm = new Int16Array(cleaned.length);
+    for (let i = 0; i < cleaned.length; i++) {
+      const s = Math.max(-1, Math.min(1, cleaned[i] ?? 0));
       pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
     }
     onChunk(pcm);
