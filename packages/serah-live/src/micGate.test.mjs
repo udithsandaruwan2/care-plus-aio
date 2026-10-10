@@ -515,8 +515,10 @@ describe('resample', () => {
     const tail = new Float32Array([0.2, 0.2, 0.2]);
     assert.equal(pendingForMode(tail, null, false), tail);
     assert.equal(pendingForMode(tail, false, false), tail);
-    assert.equal(pendingForMode(tail, true, 'echo-tail').length, 0);
+    assert.equal(pendingForMode(tail, true, 'echo-tail'), tail);
+    assert.equal(pendingForMode(tail, true, false).length, 0);
     assert.equal(pendingForMode(tail, 'echo-tail', false).length, 0);
+    assert.equal(pendingForMode(tail, false, true).length, 0);
     assert.equal(pendingForMode(tail, true, true), tail);
   });
 
