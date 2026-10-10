@@ -16,6 +16,12 @@ class OutputHoldTests(SimpleTestCase):
         holding, release = apply_output_hold(
             holding=True, interrupted=True, turn_complete=False
         )
+        self.assertTrue(holding)
+        self.assertFalse(release)
+
+        holding, release = apply_output_hold(
+            holding=True, interrupted=True, turn_complete=True
+        )
         self.assertFalse(holding)
         self.assertTrue(release)
 
