@@ -306,6 +306,39 @@ describe('gateLiveFrame', () => {
     const asHerVoice = gateLiveFrame(fricative(0.2).subarray(0, wire), true, state, createOnsetQueue());
     assert.equal(asHerVoice.audio.length, 0);
   });
+
+  it('prepends the consonant that starts a barge and still drops an inhale', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const held = gateLiveFrame(fricative(0.2).subarray(0, wire), true, state, onset);
+    assert.equal(held.audio.length, 0);
+    assert.equal(onset.frames.length, 1);
+    const barge = gateLiveFrame(vowel(0.28).subarray(0, wire), true, state, onset);
+    assert.equal(barge.barge, true);
+    assert.equal(barge.audio.length, 2);
+    assert.ok(frameRms(barge.audio[0]) > 0.02);
+
+    const inhaled = createMicGateState();
+    const breathQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, inhaled, breathQueue);
+    gateLiveFrame(bleed, true, inhaled, breathQueue);
+    gateLiveFrame(breath(0.35).subarray(0, wire), true, inhaled, breathQueue);
+    const voice = gateLiveFrame(vowel(0.28).subarray(0, wire), true, inhaled, breathQueue);
+    assert.equal(voice.barge, true);
+    assert.equal(voice.audio.length, 1);
+  });
+
+  it('does not keep her first words as the start of a barge', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    gateLiveFrame(fricative(0.2).subarray(0, wire), true, state, onset);
+    assert.equal(onset.frames.length, 0);
+    gateLiveFrame(fricative(0.2).subarray(0, wire), true, state, onset);
+    assert.equal(onset.frames.length, 0);
+  });
 });
 
 describe('resample', () => {
