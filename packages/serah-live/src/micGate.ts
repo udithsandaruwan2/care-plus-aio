@@ -173,14 +173,16 @@ export function pushMicBuffer(
       const margin = Math.max(MIC_GATE.bargeRms, state.echoFloor * MIC_GATE.echoMargin);
       const userLevel = hopInfo.voiced && hopInfo.rms >= MIC_GATE.bargeRms;
       const nearHop = !training && hopInfo.voiced && hopInfo.rms >= margin;
+      // The consonant that starts the word is the user. Folding it into the
+      // echo floor makes the vowel that follows look too quiet to barge.
+      const userConsonant = !training && hopInfo.consonant && hopInfo.rms >= margin;
       if (nearHop) {
         state.nearRun += 1;
         if (state.nearRun >= MIC_GATE.speechHops) nearOpened = true;
       } else {
         state.nearRun = 0;
-        if (echoTail && hopInfo.consonant && hopInfo.rms >= margin) {
-          loudConsonants += 1;
-        } else if (!userLevel) {
+        if (echoTail && userConsonant) loudConsonants += 1;
+        else if (!userLevel && !userConsonant) {
           // A voice already loud enough to be the user must not become the echo
           // floor. Otherwise the training buffers swallow the barge.
           state.echoFloor = state.echoFloor * 0.82 + hopInfo.rms * 0.18;
@@ -304,7 +306,8 @@ function speechKeptFrame(
     if (voicedNear) heardVoiced = true;
     // Same floor update as pushMicBuffer. A later loud hop must not erase
     // a nearer hop that already cleared the floor it was measured against.
-    if (!voicedNear && !(echoTail && loudConsonant)) {
+    // A consonant above the margin is the user and must not raise it either.
+    if (!voicedNear && !loudConsonant) {
       const userLevel = info.voiced && info.rms >= MIC_GATE.bargeRms;
       if (!userLevel) floor = floor * 0.82 + info.rms * 0.18;
     }
@@ -321,7 +324,7 @@ function bargeOnsetFrame(
   assistantSpeaking: MicListenMode,
   echoFloor: number,
 ): Float32Array | null {
-  const echoTail = assistantSpeaking === 'echo-tail';
+  void assistantSpeaking;
   const hop = MIC_GATE.hop;
   const out = new Float32Array(frame.length);
   let kept = 0;
@@ -337,7 +340,7 @@ function bargeOnsetFrame(
       for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
       kept += 1;
     }
-    if (!voicedNear && !(echoTail && loudConsonant)) {
+    if (!voicedNear && !loudConsonant) {
       const userLevel = info.voiced && info.rms >= MIC_GATE.bargeRms;
       if (!userLevel) floor = floor * 0.82 + info.rms * 0.18;
     }
