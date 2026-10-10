@@ -1,7 +1,7 @@
 """Whether model audio may reach the speakers after a barge-in.
 
-The hold stays up until the model marks that turn interrupted or complete.
-Audio from the cut-off reply must not start her talking again.
+The hold stays up until the model marks that turn complete.
+An interrupt flag alone is not the end: more audio from the cut-off line can follow it.
 """
 
 from __future__ import annotations
@@ -14,8 +14,11 @@ def apply_output_hold(
     turn_complete: bool,
 ) -> tuple[bool, bool]:
     """Return ``(still_holding, release_playback)``."""
-    if holding and (interrupted or turn_complete):
+    if holding and turn_complete:
         return False, True
+    # Audio after the interrupt flag is still the cut-off line.
+    if holding and interrupted:
+        return True, False
     return holding, False
 
 
