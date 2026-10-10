@@ -23,6 +23,22 @@ After a tool returns, speak the reply field to the patient in their language.
 Keep spoken replies concise and caring. Do not read raw JSON aloud.
 """
 
+
+def live_reply_language(ui_language: str | None) -> str:
+    """How Serah should hear and pronounce a turn.
+
+    Native audio models pick the spoken language themselves. A language code
+    on the voice config is ignored, so the instruction has to say it.
+    """
+    lang = ui_language if ui_language in ("English", "Tamil", "Sinhala") else "English"
+    return (
+        f"Preferred language when the utterance is unclear: {lang}. "
+        "Hear English, Tamil, and Sinhala, then answer in the language the patient just spoke. "
+        "Pronounce English with English sounds, Tamil with Tamil sounds, "
+        "and Sinhala with Sinhala sounds. "
+        "Do not pronounce Tamil or Sinhala as if they were English."
+    )
+
 LIVE_TOOL_DECLARATIONS = [
     {
         "name": "serah_voice_turn",
