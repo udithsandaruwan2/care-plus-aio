@@ -13,6 +13,7 @@ from django.conf import settings
 
 from apps.common.envutil import gemini_voice_api_key, voice_live_enabled
 from apps.voice.live_activity import live_realtime_input_config
+from apps.voice.live_receive import iter_session_messages
 from apps.voice.output_hold import apply_output_hold, hold_should_release
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
@@ -177,9 +178,11 @@ class LiveSessionRunner:
         assert self._session is not None
         sender = asyncio.create_task(self._send_loop())
         try:
-            async for response in self._session.receive():
-                if self._closed:
-                    break
+            # receive() returns after turn_complete. Listen again or the
+            # reply to a barge never arrives and the client is told Live closed.
+            async for response in iter_session_messages(
+                self._session, lambda: self._closed
+            ):
                 await self._handle_response(response, types)
         except asyncio.CancelledError:
             raise
