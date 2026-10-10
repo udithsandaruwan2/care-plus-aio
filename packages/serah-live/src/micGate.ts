@@ -466,6 +466,20 @@ export function downsampleTo16k(samples: ArrayLike<number>, fromRate: number): F
   return out;
 }
 
+/**
+ * Samples waiting for a full frame were captured in one mic mode.
+ * Mixing them into the next mode sends her voice as the user, or drops
+ * the start of a barge. A mode change discards that tail.
+ */
+export function pendingForMode(
+  pending: Float32Array,
+  previous: MicListenMode | null,
+  next: MicListenMode,
+): Float32Array {
+  if (previous !== null && previous !== next) return new Float32Array(0);
+  return pending;
+}
+
 /** Pull fixed 16 kHz frames out of a rolling buffer so a short device buffer can still hold a word. */
 export function takePcmFrames(
   pending: Float32Array,
