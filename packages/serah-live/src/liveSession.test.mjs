@@ -4,6 +4,7 @@ import {
   fallbackVoiceAllowed,
   liveSessionOpen,
   setLiveSessionOpen,
+  shouldRestartLive,
 } from '../.test-out/liveSession.js';
 
 describe('live session voice', () => {
@@ -15,5 +16,12 @@ describe('live session voice', () => {
     assert.equal(fallbackVoiceAllowed(), false);
     setLiveSessionOpen(false);
     assert.equal(fallbackVoiceAllowed(), true);
+  });
+
+  it('reopens listening after an unexpected close and not after a stop', () => {
+    assert.equal(shouldRestartLive(false, 0), true);
+    assert.equal(shouldRestartLive(false, 1), true);
+    assert.equal(shouldRestartLive(false, 2), false);
+    assert.equal(shouldRestartLive(true, 0), false);
   });
 });

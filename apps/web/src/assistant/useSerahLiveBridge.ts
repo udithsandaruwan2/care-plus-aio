@@ -9,6 +9,7 @@ import {
   type LiveUiLanguage,
   type SerahLiveSession,
   acceptCaption,
+  shouldRestartLive,
 } from '@care-plus/serah-live';
 import { AssistantState } from '@care-plus/core';
 import { getAccessToken, loadCachedUser } from '../auth/session';
@@ -23,6 +24,13 @@ export function useSerahLiveBridge() {
   const [liveSpeaking, setLiveSpeaking] = useState(false);
   const [liveUnavailableReason, setLiveUnavailableReason] = useState<string | null>(null);
   const sessionRef = useRef<SerahLiveSession | null>(null);
+  const startLiveRef = useRef<
+    (opts?: { uiLanguage?: LiveUiLanguage; voice?: 'female' | 'male' }) => Promise<boolean>
+  >(async () => false);
+  const userStopRef = useRef(false);
+  const replacingRef = useRef(false);
+  const restartsRef = useRef(0);
+  const epochRef = useRef(0);
 
   const applyMatch = useCallback((payload: LiveMatchPayload, cleared?: boolean) => {
     const store = useAssistant.getState();
@@ -44,6 +52,7 @@ export function useSerahLiveBridge() {
       getUserId: () => loadCachedUser()?.id ?? null,
       handlers: {
         onReady: () => {
+          restartsRef.current = 0;
           setLiveActive(true);
           setLiveUnavailableReason(null);
         },
@@ -93,8 +102,17 @@ export function useSerahLiveBridge() {
           setLiveUnavailableReason(message);
         },
         onClosed: () => {
-          setLiveActive(false);
           setLiveSpeaking(false);
+          if (replacingRef.current) return;
+          if (!shouldRestartLive(userStopRef.current, restartsRef.current)) {
+            setLiveActive(false);
+            return;
+          }
+          restartsRef.current += 1;
+          replacingRef.current = true;
+          void startLiveRef.current().finally(() => {
+            replacingRef.current = false;
+          });
         },
       },
     });
@@ -109,14 +127,25 @@ export function useSerahLiveBridge() {
     async (opts?: { uiLanguage?: LiveUiLanguage; voice?: 'female' | 'male' }) => {
       const session = sessionRef.current;
       if (!session) return false;
+      userStopRef.current = false;
+      const epoch = ++epochRef.current;
       const store = useAssistant.getState();
       const ok = await session.start({
         uiLanguage: (opts?.uiLanguage || store.uiLanguage || 'English') as LiveUiLanguage,
         voice: opts?.voice || 'female',
       });
+      if (epoch !== epochRef.current || userStopRef.current) {
+        session.stop();
+        return false;
+      }
       setLiveActive(ok);
       if (!ok) return false;
       const micOk = await session.startMic();
+      if (epoch !== epochRef.current || userStopRef.current) {
+        session.stop();
+        setLiveActive(false);
+        return false;
+      }
       if (!micOk) {
         session.stop();
         setLiveActive(false);
@@ -128,8 +157,12 @@ export function useSerahLiveBridge() {
     },
     [],
   );
+  startLiveRef.current = startLive;
 
   const stopLive = useCallback(() => {
+    userStopRef.current = true;
+    epochRef.current += 1;
+    replacingRef.current = false;
     sessionRef.current?.stopMic();
     sessionRef.current?.stop();
     setLiveActive(false);

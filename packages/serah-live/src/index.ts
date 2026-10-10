@@ -44,7 +44,12 @@ import {
 
 export { acceptCaption } from './captionGate';
 export { ECHO_TAIL_MS, fallbackListenDelayMs } from './playbackHold';
-export { fallbackVoiceAllowed, liveSessionOpen, setLiveSessionOpen } from './liveSession';
+export {
+  fallbackVoiceAllowed,
+  liveSessionOpen,
+  setLiveSessionOpen,
+  shouldRestartLive,
+} from './liveSession';
 
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
@@ -418,6 +423,7 @@ export type CreateSerahLiveOptions = {
 export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveSession {
   let ws: WebSocket | null = null;
   let ready = false;
+  let closedNotified = false;
   let micStop: (() => void) | null = null;
   let echoTailUntil = 0;
   let userHasFloor = false;
@@ -507,6 +513,14 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     releasePlayback(playback);
   };
 
+  const notifyClosed = () => {
+    if (closedNotified) return;
+    closedNotified = true;
+    ready = false;
+    setLiveSessionOpen(false);
+    h.onClosed?.();
+  };
+
   const stop = () => {
     setLiveSessionOpen(false);
     micStop?.();
@@ -517,13 +531,19 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     player.stop();
     clearGapTimer();
     if (ws) {
+      const old = ws;
+      ws = null;
+      old.onmessage = null;
+      old.onerror = null;
+      old.onclose = null;
       try {
-        sendJson({ type: 'live.end' });
-        ws.close();
+        if (old.readyState === WebSocket.OPEN) {
+          old.send(JSON.stringify({ type: 'live.end' }));
+        }
+        old.close();
       } catch {
         /* ignore */
       }
-      ws = null;
     }
     ready = false;
   };
@@ -533,6 +553,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     voice?: 'female' | 'male';
   }): Promise<boolean> => {
     stop();
+    closedNotified = false;
     const token = opts.getAccessToken();
     const userId = opts.getUserId();
     if (!token || !userId) {
@@ -630,9 +651,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             h.onError?.(msg.message);
             break;
           case 'live.closed':
-            ready = false;
-            setLiveSessionOpen(false);
-            h.onClosed?.();
+            notifyClosed();
             break;
           default:
             break;
@@ -651,13 +670,11 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
         finish(false);
       };
       ws.onclose = () => {
-        ready = false;
-        setLiveSessionOpen(false);
         if (!settled) {
           window.clearTimeout(timer);
           finish(false);
         }
-        h.onClosed?.();
+        notifyClosed();
       };
     });
   };
