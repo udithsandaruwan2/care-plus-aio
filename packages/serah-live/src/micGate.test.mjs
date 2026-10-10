@@ -156,6 +156,13 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(vowel(0.06), false, state), 'send');
     assert.equal(pushMicBuffer(fricative(0.12), false, state), 'send');
     assert.equal(pushMicBuffer(breath(0.35), false, state), 'drop');
+
+    const coda = new Float32Array(2048);
+    coda.set(fricative(0.12).subarray(0, 1024), 0);
+    const after = createMicGateState();
+    assert.equal(pushMicBuffer(vowel(0.06), false, after), 'send');
+    assert.equal(pushMicBuffer(coda, false, after), 'send');
+    assert.equal(pushMicBuffer(breath(0.35), false, after), 'drop');
   });
 });
 

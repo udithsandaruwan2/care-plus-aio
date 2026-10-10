@@ -164,6 +164,8 @@ export function pushMicBuffer(
   const training = assistant && !echoTail && state.speakBuffers < MIC_GATE.echoTrainBuffers;
   let consonants = 0;
   let loudConsonants = 0;
+  let rumbleHops = 0;
+  let messyHops = 0;
   let voiceOpened = false;
   let nearOpened = false;
 
@@ -194,8 +196,13 @@ export function pushMicBuffer(
     } else {
       state.voicedRun = 0;
       if (hopInfo.consonant) consonants += 1;
-      else if (hopInfo.rms < MIC_GATE.silenceRms * 4) {
-        state.noiseFloor = state.noiseFloor * 0.8 + hopInfo.rms * 0.2;
+      else {
+        // An inhale is energy that is not a consonant. A short coda is not.
+        if (hopInfo.rumble) rumbleHops += 1;
+        else if (hopInfo.rms >= MIC_GATE.silenceRms) messyHops += 1;
+        if (hopInfo.rms < MIC_GATE.silenceRms * 4) {
+          state.noiseFloor = state.noiseFloor * 0.8 + hopInfo.rms * 0.2;
+        }
       }
     }
   }
@@ -221,7 +228,10 @@ export function pushMicBuffer(
     state.quietBuffers = 0;
     return 'send';
   }
-  if (state.inUtterance && consonants >= MIC_GATE.speechHops) {
+  // Three consonant hops are still speech. A shorter coda is speech only when
+  // every other hop is silence. An inhale leaves messy energy and stays dropped.
+  const cleanCoda = consonants > 0 && rumbleHops === 0 && messyHops === 0;
+  if (state.inUtterance && (consonants >= MIC_GATE.speechHops || cleanCoda)) {
     state.quietBuffers = 0;
     return 'send';
   }
