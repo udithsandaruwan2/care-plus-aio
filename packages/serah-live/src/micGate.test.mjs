@@ -46,6 +46,23 @@ function breath(amp) {
   return out;
 }
 
+function highpass(samples, fc) {
+  const dt = 1 / RATE;
+  const rc = 1 / (2 * Math.PI * fc);
+  const a = rc / (rc + dt);
+  const out = new Float32Array(samples.length);
+  let prevX = 0;
+  let prevY = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const x = samples[i] ?? 0;
+    const y = a * (prevY + x - prevX);
+    out[i] = y;
+    prevX = x;
+    prevY = y;
+  }
+  return out;
+}
+
 function fricative(amp) {
   const out = new Float32Array(N);
   let prev = 0;
@@ -511,6 +528,24 @@ describe('gateLiveFrame', () => {
       doneQueue,
     );
     assert.ok(softer.audio.length > 0);
+  });
+
+  it('drops an inhale whose rumble was already filtered out', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const stripped = highpass(breath(0.35), 80);
+    assert.equal(gateLiveFrame(stripped, false, state, onset).audio.length, 0);
+    assert.equal(onset.frames.length, 0);
+    const alone = createMicGateState();
+    const aloneQueue = createOnsetQueue();
+    gateLiveFrame(stripped, false, alone, aloneQueue);
+    gateLiveFrame(stripped, false, alone, aloneQueue);
+    const word = gateLiveFrame(vowel(0.12), false, alone, aloneQueue);
+    assert.equal(word.audio.length, 1);
+    const after = createMicGateState();
+    const afterQueue = createOnsetQueue();
+    assert.equal(gateLiveFrame(vowel(0.12), false, after, afterQueue).audio.length, 1);
+    assert.equal(gateLiveFrame(stripped, false, after, afterQueue).audio.length, 0);
   });
 });
 
