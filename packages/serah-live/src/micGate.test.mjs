@@ -458,8 +458,13 @@ describe('gateLiveFrame', () => {
     head.set(user.subarray(0, wire / 2), 0);
     const held = gateLiveFrame(tail, 'echo-tail', state, onset);
     assert.equal(held.audio.length, 0);
-    assert.equal(modeWhileHolding(false, onset, state.nearRun), 'echo-tail');
-    const continued = gateLiveFrame(head, modeWhileHolding(false, onset, state.nearRun), state, onset);
+    assert.equal(modeWhileHolding(false, 'echo-tail', onset, state.nearRun), 'echo-tail');
+    const continued = gateLiveFrame(
+      head,
+      modeWhileHolding(false, 'echo-tail', onset, state.nearRun),
+      state,
+      onset,
+    );
     assert.ok(continued.audio.length >= 2);
     assert.ok(frameRms(continued.audio[0].subarray(wire / 2)) > 0.05);
     assert.equal(continued.barge, false);
@@ -469,8 +474,20 @@ describe('gateLiveFrame', () => {
     gateLiveFrame(bleed, true, ring, ringQueue);
     gateLiveFrame(bleed, true, ring, ringQueue);
     gateLiveFrame(tail, 'echo-tail', ring, ringQueue);
-    const hers = gateLiveFrame(bleed, modeWhileHolding(false, ringQueue, ring.nearRun), ring, ringQueue);
+    const hers = gateLiveFrame(
+      bleed,
+      modeWhileHolding(false, 'echo-tail', ringQueue, ring.nearRun),
+      ring,
+      ringQueue,
+    );
     assert.equal(hers.audio.length, 0);
+
+    const open = createMicGateState();
+    const openQueue = createOnsetQueue();
+    gateLiveFrame(fricative(0.2).subarray(0, wire), false, open, openQueue);
+    assert.equal(modeWhileHolding(false, false, openQueue, open.nearRun), false);
+    const quiet = gateLiveFrame(vowel(0.04).subarray(0, wire), false, open, openQueue);
+    assert.equal(quiet.audio.length, 2);
   });
 });
 
