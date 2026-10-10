@@ -14,7 +14,7 @@ from django.conf import settings
 from apps.common.envutil import gemini_voice_api_key, voice_live_enabled
 from apps.voice.live_activity import live_realtime_input_config
 from apps.voice.live_receive import iter_session_messages
-from apps.voice.live_stream import pump_mic_audio
+from apps.voice.live_stream import END_AUDIO, pump_mic_audio
 from apps.voice.output_hold import apply_output_hold, hold_should_release
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
@@ -49,7 +49,7 @@ class LiveSessionRunner:
         self._has_prior_match = False
         self._prior_intent: dict | None = None
         self._prior_match: dict | None = None
-        self._audio_q: asyncio.Queue[bytes | None] = asyncio.Queue()
+        self._audio_q: asyncio.Queue = asyncio.Queue()
         self._hold_output = False
         self._hold_gen = 0
         self._hold_started = 0.0
@@ -120,6 +120,12 @@ class LiveSessionRunner:
         if self._closed or not pcm:
             return
         await self._audio_q.put(pcm)
+
+    async def end_audio(self) -> None:
+        """Commit the user's audio when she takes the mic. Not a timed pause."""
+        if self._closed:
+            return
+        await self._audio_q.put(END_AUDIO)
 
     async def push_text(self, text: str) -> None:
         if self._closed or not self._session or not text.strip():

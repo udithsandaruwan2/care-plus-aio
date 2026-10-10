@@ -77,6 +77,9 @@ class VoiceLiveConsumer(AsyncWebsocketConsumer):
         elif mtype == "live.text":
             if self.runner:
                 await self.runner.push_text(str(msg.get("text") or ""))
+        elif mtype == "live.audio_end":
+            if self.runner:
+                await self.runner.end_audio()
         elif mtype == "live.interrupt":
             if self.runner:
                 await self.runner.interrupt()
