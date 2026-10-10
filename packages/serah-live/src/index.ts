@@ -23,6 +23,7 @@ import {
   PLAYBACK_STALL_MS,
   createPlaybackHeard,
   ECHO_TAIL_MS,
+  echoTailShouldInterrupt,
   micAfterBarge,
   micAfterPlaybackStop,
   notePlaybackPull,
@@ -405,6 +406,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
   let echoTailUntil = 0;
   let userHasFloor = false;
   let turnOpen = false;
+  let modelBusy = false;
   let gapTimer: ReturnType<typeof setTimeout> | null = null;
   const h = opts.handlers || {};
 
@@ -422,6 +424,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
     userHasFloor = next.userHasFloor;
     turnOpen = next.turnOpen;
     echoTailUntil = next.echoTailUntil;
+    modelBusy = false;
     clearGapTimer();
   };
 
@@ -565,9 +568,13 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             finish(false);
             break;
           case 'live.audio':
-            if (shouldPlayPcm(playback)) player.enqueue(decodeBase64Pcm(msg.data), 24000);
+            if (shouldPlayPcm(playback)) {
+              modelBusy = true;
+              player.enqueue(decodeBase64Pcm(msg.data), 24000);
+            }
             break;
           case 'live.interrupted':
+            modelBusy = false;
             turnOpen = false;
             clearGapTimer();
             armHold();
@@ -575,6 +582,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             player.stop();
             break;
           case 'live.turn_complete':
+            modelBusy = false;
             turnOpen = false;
             clearGapTimer();
             if (!player.speaking && !userHasFloor) {
@@ -669,6 +677,11 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             userHasFloor = true;
             turnOpen = false;
             clearGapTimer();
+            if (!echoTailShouldInterrupt(modelBusy)) return;
+            modelBusy = false;
+            armHold();
+            player.stop();
+            sendJson({ type: 'live.interrupt' });
           },
         },
       );
