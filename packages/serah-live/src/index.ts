@@ -8,6 +8,7 @@ import {
   downsampleTo16k,
   gateLiveFrame,
   modeAfterBarge,
+  modeWhileHolding,
   pendingForMode,
   shouldFlushMicStream,
   suppressNoise,
@@ -336,7 +337,8 @@ async function openMicPcmStream(
   processor.onaudioprocess = (ev) => {
     const input = ev.inputBuffer.getChannelData(0);
     const at16k = downsampleTo16k(input, inputRate);
-    const speaking = opts?.isAssistantSpeaking?.() ?? false;
+    const requested = opts?.isAssistantSpeaking?.() ?? false;
+    const speaking = modeWhileHolding(requested, onset, gate.nearRun);
     if (shouldFlushMicStream(pendingMode, speaking)) opts?.onAssistantTakeMic?.();
     pending = pendingForMode(pending, pendingMode, speaking);
     pendingMode = speaking;

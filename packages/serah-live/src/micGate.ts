@@ -595,6 +595,21 @@ export function modeAfterBarge(barged: boolean, mode: MicListenMode): MicListenM
   return mode;
 }
 
+/**
+ * The echo-tail timer can expire while a word is still held.
+ * Opening the mic then treats her ring as the rest of that word.
+ * Stay in the tail until the hold is confirmed or cleared.
+ */
+export function modeWhileHolding(
+  mode: MicListenMode,
+  onset: OnsetQueue,
+  nearRun: number,
+): MicListenMode {
+  if (mode !== false) return mode;
+  if (onset.partial || onset.frames.length > 0 || nearRun > 0) return 'echo-tail';
+  return mode;
+}
+
 export function shouldFlushMicStream(
   previous: MicListenMode | null,
   next: MicListenMode,
