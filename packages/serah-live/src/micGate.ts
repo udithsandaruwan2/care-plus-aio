@@ -620,7 +620,10 @@ export function modeWhileHolding(
   if (mode !== false) return mode;
   const wasHers = previous === true || previous === 'echo-tail';
   if (!wasHers) return mode;
-  if (onset.partial || onset.frames.length > 0 || nearRun > 0) return 'echo-tail';
+  // A finished vowel leaves nearRun high. Holding the tail for that drops the
+  // next quiet word. Only an unfinished run still needs the tail.
+  const unfinished = nearRun > 0 && nearRun < MIC_GATE.speechHops;
+  if (onset.partial || onset.frames.length > 0 || unfinished) return 'echo-tail';
   return mode;
 }
 
