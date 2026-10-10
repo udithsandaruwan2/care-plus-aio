@@ -28,6 +28,7 @@ import {
   echoTailShouldInterrupt,
   micAfterBarge,
   micAfterPlaybackStop,
+  micAfterTurnComplete,
   notePlaybackPull,
   playbackStalled,
   pollSpeakingStopped,
@@ -588,15 +589,20 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             if (!userHasFloor) armEchoTail();
             player.stop();
             break;
-          case 'live.turn_complete':
+          case 'live.turn_complete': {
             modelBusy = false;
-            turnOpen = false;
+            const next = micAfterTurnComplete({
+              playerSpeaking: player.speaking,
+              userHasFloor,
+            });
+            turnOpen = next.turnOpen;
             clearGapTimer();
-            if (!player.speaking && !userHasFloor) {
+            if (next.armEchoTail) {
               armEchoTail();
               h.onSpeaking?.(false);
             }
             break;
+          }
           case 'live.resume':
             liftHold();
             break;
