@@ -20,6 +20,7 @@ from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
     SERAH_LIVE_SYSTEM,
     execute_live_tool,
+    live_reply_language,
 )
 from apps.voice.tts import _gemini_voice, resolve_persona
 
@@ -50,6 +51,10 @@ class LiveSessionRunner:
         self._prior_intent: dict | None = None
         self._prior_match: dict | None = None
         self._audio_q: asyncio.Queue = asyncio.Queue()
+        # connect() only keeps the socket open while this context manager lives.
+        # Dropping it closes the line while the patient is still talking.
+        self._client = None
+        self._live_cm = None
         self._hold_output = False
         self._hold_gen = 0
         self._hold_started = 0.0
@@ -82,10 +87,9 @@ class LiveSessionRunner:
 
         client = genai.Client(api_key=api_key)
         voice_name = _gemini_voice(self.voice_persona)
-        lang_line = f"Preferred language: {self.ui_language}."
         config = {
             "response_modalities": ["AUDIO"],
-            "system_instruction": f"{SERAH_LIVE_SYSTEM}\n{lang_line}",
+            "system_instruction": f"{SERAH_LIVE_SYSTEM}\n{live_reply_language(self.ui_language)}",
             "speech_config": {
                 "voice_config": {
                     "prebuilt_voice_config": {"voice_name": voice_name},
@@ -98,10 +102,15 @@ class LiveSessionRunner:
         }
 
         try:
-            self._session = await client.aio.live.connect(
-                model=self.model, config=config
-            ).__aenter__()
+            # Keep the context manager. The session object has no __aexit__,
+            # and losing the manager closes the websocket with a normal 1000.
+            self._client = client
+            self._live_cm = client.aio.live.connect(model=self.model, config=config)
+            self._session = await self._live_cm.__aenter__()
         except Exception as exc:
+            self._live_cm = None
+            self._client = None
+            self._session = None
             logger.exception("Gemini Live connect failed")
             await self.emit({"type": "live.unavailable", "reason": str(exc)[:240]})
             return
@@ -174,12 +183,15 @@ class LiveSessionRunner:
             except (asyncio.CancelledError, Exception):
                 pass
             self._task = None
-        if self._session is not None:
+        cm = self._live_cm
+        self._live_cm = None
+        self._session = None
+        self._client = None
+        if cm is not None:
             try:
-                await self._session.__aexit__(None, None, None)
+                await cm.__aexit__(None, None, None)
             except Exception:
                 logger.exception("Live session close failed")
-            self._session = None
 
     async def _pump(self, types) -> None:
         assert self._session is not None
