@@ -495,6 +495,22 @@ describe('gateLiveFrame', () => {
     assert.equal(modeWhileHolding(false, false, openQueue, open.nearRun), false);
     const quiet = gateLiveFrame(vowel(0.04).subarray(0, wire), false, open, openQueue);
     assert.equal(quiet.audio.length, 2);
+
+    const done = createMicGateState();
+    const doneQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, done, doneQueue);
+    gateLiveFrame(bleed, true, done, doneQueue);
+    const finished = gateLiveFrame(vowel(0.28).subarray(0, wire), 'echo-tail', done, doneQueue);
+    assert.ok(finished.audio.length > 0);
+    assert.equal(doneQueue.partial, null);
+    assert.equal(modeWhileHolding(false, 'echo-tail', doneQueue, done.nearRun), false);
+    const softer = gateLiveFrame(
+      vowel(0.04).subarray(0, wire),
+      modeWhileHolding(false, 'echo-tail', doneQueue, done.nearRun),
+      done,
+      doneQueue,
+    );
+    assert.ok(softer.audio.length > 0);
   });
 });
 
