@@ -18,6 +18,12 @@ export const MIC_GATE = {
   rumbleRatio: 0.55,
   /** Quiet room. Frames under this never open a turn. */
   silenceRms: 0.012,
+  /**
+   * Zero crossings at or above this are a consonant. A vowel stays under it.
+   * A breath whose rumble was already stripped still sits under it too, so it
+   * must not be stored or sent as the start or the end of a word.
+   */
+  consonantZcr: 0.2,
   /** Barge must also clear this absolute level. */
   bargeRms: 0.06,
   /** Near speech must be this many times the learned echo floor. */
@@ -131,7 +137,7 @@ export function isVoicedHop(samples: ArrayLike<number>): boolean {
   const rms = frameRms(samples);
   if (rms < MIC_GATE.silenceRms) return false;
   if (lowBandRatio(samples) >= MIC_GATE.rumbleRatio) return false;
-  if (zeroCrossingRate(samples) > 0.2) return false;
+  if (zeroCrossingRate(samples) > MIC_GATE.consonantZcr) return false;
   return periodicity(samples) >= MIC_GATE.voicedPeriod;
 }
 
@@ -514,7 +520,7 @@ function analyzeHop(
     !voiced &&
     rms >= MIC_GATE.silenceRms &&
     low < MIC_GATE.rumbleRatio &&
-    zeroCrossingRate(hop) >= 0.12;
+    zeroCrossingRate(hop) >= MIC_GATE.consonantZcr;
   const rumble = !voiced && !consonant && rms >= MIC_GATE.silenceRms && low >= MIC_GATE.rumbleRatio;
   return { rms, voiced, consonant, rumble };
 }
