@@ -359,6 +359,23 @@ export function suppressNoise(
   return out;
 }
 
+/**
+ * Samples per Live API send. 512 samples at 16 kHz is 32 ms.
+ * The model does not treat a barge as an interruption when a chunk is longer
+ * than about 40 ms. The breath gate still sees a full 2048-sample frame first.
+ */
+export const LIVE_PCM_SAMPLES = 512;
+
+export function chunkLivePcm(pcm: Int16Array, size = LIVE_PCM_SAMPLES): Int16Array[] {
+  if (pcm.length === 0 || size <= 0) return [];
+  if (pcm.length <= size) return [pcm];
+  const out: Int16Array[] = [];
+  for (let offset = 0; offset < pcm.length; offset += size) {
+    out.push(pcm.subarray(offset, Math.min(pcm.length, offset + size)));
+  }
+  return out;
+}
+
 /** Average blocks so the live model always receives 16 kHz, whatever the device rate is. */
 export function downsampleTo16k(samples: ArrayLike<number>, fromRate: number): Float32Array {
   const rate = fromRate > 0 ? fromRate : MIC_GATE.sampleRate;

@@ -11,6 +11,8 @@ import {
   periodicity,
   pushMicBuffer,
   suppressNoise,
+  chunkLivePcm,
+  LIVE_PCM_SAMPLES,
   takePcmFrames,
 } from '../.test-out/micGate.js';
 
@@ -237,5 +239,19 @@ describe('suppressNoise', () => {
     const whole = suppressNoise(voice, 0.005, { x: 0, y: 0 });
     assert.ok(head.length === 2000 && tail.length === voice.length - 2000);
     assert.ok(Math.abs((whole[2000] ?? 0) - (tail[0] ?? 0)) < 1e-4);
+  });
+});
+
+describe('chunkLivePcm', () => {
+  it('splits a gate frame into 32 ms Live chunks', () => {
+    assert.equal(LIVE_PCM_SAMPLES, 512);
+    const pcm = new Int16Array(2048);
+    for (let i = 0; i < pcm.length; i++) pcm[i] = i;
+    const chunks = chunkLivePcm(pcm);
+    assert.equal(chunks.length, 4);
+    assert.ok(chunks.every((chunk) => chunk.length === 512));
+    assert.equal(chunks[0][0], 0);
+    assert.equal(chunks[3][511], 2047);
+    assert.equal(chunkLivePcm(new Int16Array(0)).length, 0);
   });
 });
