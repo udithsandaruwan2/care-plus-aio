@@ -14,6 +14,7 @@ import {
   chunkLivePcm,
   LIVE_PCM_SAMPLES,
   modeAfterBarge,
+  modeWhileHolding,
   pendingForMode,
   shouldFlushMicStream,
   takePcmFrames,
@@ -442,6 +443,34 @@ describe('gateLiveFrame', () => {
     const opened = gateLiveFrame(vowel(0.06).subarray(0, wire), false, state, onset);
     assert.equal(opened.audio.length, 2);
     assert.ok(frameRms(opened.audio[0]) > 0.02);
+  });
+
+  it('finishes a held barge in the echo tail after the timer expires', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const user = vowel(0.28);
+    const tail = new Float32Array(wire);
+    const head = new Float32Array(wire);
+    tail.set(user.subarray(0, wire / 2), wire / 2);
+    head.set(user.subarray(0, wire / 2), 0);
+    const held = gateLiveFrame(tail, 'echo-tail', state, onset);
+    assert.equal(held.audio.length, 0);
+    assert.equal(modeWhileHolding(false, onset, state.nearRun), 'echo-tail');
+    const continued = gateLiveFrame(head, modeWhileHolding(false, onset, state.nearRun), state, onset);
+    assert.ok(continued.audio.length >= 2);
+    assert.ok(frameRms(continued.audio[0].subarray(wire / 2)) > 0.05);
+    assert.equal(continued.barge, false);
+
+    const ring = createMicGateState();
+    const ringQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, ring, ringQueue);
+    gateLiveFrame(bleed, true, ring, ringQueue);
+    gateLiveFrame(tail, 'echo-tail', ring, ringQueue);
+    const hers = gateLiveFrame(bleed, modeWhileHolding(false, ringQueue, ring.nearRun), ring, ringQueue);
+    assert.equal(hers.audio.length, 0);
   });
 });
 
