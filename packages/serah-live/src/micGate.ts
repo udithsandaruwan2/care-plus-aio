@@ -285,16 +285,21 @@ function speechKeptFrame(
   const out = new Float32Array(frame.length);
   let kept = 0;
   let floor = echoFloor;
+  let heardVoiced = false;
   for (let offset = 0; offset + hop <= frame.length; offset += hop) {
     const info = analyzeHop(frame, offset, hop);
     const margin = Math.max(MIC_GATE.bargeRms, floor * MIC_GATE.echoMargin);
     const voicedNear = info.voiced && info.rms >= margin;
     const loudConsonant = info.consonant && info.rms >= margin;
-    const take = echoTail ? voicedNear || loudConsonant : voicedNear;
+    // The consonant that starts the word shares this frame with the vowel.
+    // A loud hop after the vowel is not that consonant.
+    const opening = loudConsonant && !heardVoiced;
+    const take = voicedNear || (echoTail && loudConsonant) || (!echoTail && opening);
     if (take) {
       for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
       kept += 1;
     }
+    if (voicedNear) heardVoiced = true;
     // Same floor update as pushMicBuffer. A later loud hop must not erase
     // a nearer hop that already cleared the floor it was measured against.
     if (!voicedNear && !(echoTail && loudConsonant)) {
