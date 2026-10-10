@@ -138,11 +138,8 @@ class LiveSessionRunner:
         now = time.monotonic()
         self._hold_started = now
         self._last_held_audio = now
-        while not self._audio_q.empty():
-            try:
-                self._audio_q.get_nowait()
-            except asyncio.QueueEmpty:
-                break
+        # _audio_q is the user's microphone, not her reply. Dropping it here
+        # deletes the words that cut her off. Her audio is held in _hold_output.
         await self.emit({"type": "live.interrupted"})
         asyncio.create_task(self._expire_hold(generation))
 
