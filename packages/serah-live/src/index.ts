@@ -7,6 +7,7 @@ import {
   chunkLivePcm,
   downsampleTo16k,
   gateLiveFrame,
+  modeAfterBarge,
   pendingForMode,
   shouldFlushMicStream,
   suppressNoise,
@@ -341,10 +342,14 @@ async function openMicPcmStream(
     pendingMode = speaking;
     const taken = takePcmFrames(pending, at16k, wireFrame);
     pending = taken.pending;
+    let barged = false;
     for (const frame of taken.frames) {
-      const emit = gateLiveFrame(frame, speaking, gate, onset);
-      if (emit.barge) opts?.onBarge?.();
-      else if (emit.echoTailOpen) opts?.onEchoTailOpen?.();
+      const mode = modeAfterBarge(barged, speaking);
+      const emit = gateLiveFrame(frame, mode, gate, onset);
+      if (emit.barge) {
+        opts?.onBarge?.();
+        barged = true;
+      } else if (emit.echoTailOpen) opts?.onEchoTailOpen?.();
       // Held consonants send nothing yet. A breath, or a consonant that never
       // becomes a word, is silence so the model can still hear the end of a turn.
       // While she talks, send nothing at all.
@@ -365,6 +370,7 @@ async function openMicPcmStream(
         send(pcm);
       }
     }
+    if (barged) pendingMode = 'echo-tail';
   };
   // The gate needs energy under 70 Hz to tell an inhale from a consonant.
   // High-passing here would hide that rumble and let the breath start the next word.

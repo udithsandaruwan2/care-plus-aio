@@ -288,18 +288,19 @@ function speechKeptFrame(
   for (let offset = 0; offset + hop <= frame.length; offset += hop) {
     const info = analyzeHop(frame, offset, hop);
     const margin = Math.max(MIC_GATE.bargeRms, floor * MIC_GATE.echoMargin);
-    const take = echoTail
-      ? (info.voiced && info.rms >= margin) || (info.consonant && info.rms >= margin)
-      : info.voiced && info.rms >= margin;
+    const voicedNear = info.voiced && info.rms >= margin;
+    const loudConsonant = info.consonant && info.rms >= margin;
+    const take = echoTail ? voicedNear || loudConsonant : voicedNear;
     if (take) {
       for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
       kept += 1;
-      continue;
     }
     // Same floor update as pushMicBuffer. A later loud hop must not erase
     // a nearer hop that already cleared the floor it was measured against.
-    const userLevel = info.voiced && info.rms >= MIC_GATE.bargeRms;
-    if (!userLevel) floor = floor * 0.82 + info.rms * 0.18;
+    if (!voicedNear && !(echoTail && loudConsonant)) {
+      const userLevel = info.voiced && info.rms >= MIC_GATE.bargeRms;
+      if (!userLevel) floor = floor * 0.82 + info.rms * 0.18;
+    }
   }
   return kept > 0 ? out : null;
 }
@@ -477,6 +478,16 @@ export function downsampleTo16k(samples: ArrayLike<number>, fromRate: number): F
  * She has taken the speaker. Commit the user's audio once.
  * Do not commit when the echo tail opens: the barge words are still arriving.
  */
+/**
+ * One mic callback can hold two frames. The vowel barges on the first, and the
+ * consonant is still in the second. That second frame has to use the echo tail,
+ * or it is gated as her voice and the rest of the word is dropped.
+ */
+export function modeAfterBarge(barged: boolean, mode: MicListenMode): MicListenMode {
+  if (barged && mode === true) return 'echo-tail';
+  return mode;
+}
+
 export function shouldFlushMicStream(
   previous: MicListenMode | null,
   next: MicListenMode,

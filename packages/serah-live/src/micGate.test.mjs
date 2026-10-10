@@ -13,6 +13,7 @@ import {
   suppressNoise,
   chunkLivePcm,
   LIVE_PCM_SAMPLES,
+  modeAfterBarge,
   pendingForMode,
   shouldFlushMicStream,
   takePcmFrames,
@@ -286,6 +287,24 @@ describe('gateLiveFrame', () => {
     const kept = barge.audio[barge.audio.length - 1];
     assert.ok(frameRms(kept.subarray(0, 512 * 3)) > 0.05);
     assert.equal(frameRms(kept.subarray(512 * 3)), 0);
+  });
+
+  it('gates the next frame as the echo tail after a barge', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const opened = gateLiveFrame(vowel(0.28).subarray(0, wire), true, state, onset);
+    assert.equal(opened.barge, true);
+    assert.equal(modeAfterBarge(false, true), true);
+    const mode = modeAfterBarge(true, true);
+    assert.equal(mode, 'echo-tail');
+    const tail = gateLiveFrame(fricative(0.2).subarray(0, wire), mode, state, onset);
+    assert.ok(tail.audio.length > 0);
+    assert.ok(frameRms(tail.audio[0]) > 0.02);
+    const asHerVoice = gateLiveFrame(fricative(0.2).subarray(0, wire), true, state, createOnsetQueue());
+    assert.equal(asHerVoice.audio.length, 0);
   });
 });
 
