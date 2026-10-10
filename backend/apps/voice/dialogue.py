@@ -78,6 +78,20 @@ def _tts_lang(primary: str | None, languages: list[str] | None) -> str:
     return "en-US"
 
 
+def reply_language_for_utterance(text: str, fallback: str) -> str:
+    """Answer in the script the patient used.
+
+    The picker still chooses the reply when the words are Latin. Tamil or
+    Sinhala letters win, so those lines are not read with English sounds.
+    """
+    sample = text or ""
+    if any("\u0b80" <= ch <= "\u0bff" for ch in sample):
+        return "ta-LK"
+    if any("\u0d80" <= ch <= "\u0dff" for ch in sample):
+        return "si-LK"
+    return fallback
+
+
 def _use_server_voice(reply_lang: str, *, has_match: bool = False) -> bool:
     """Serah always speaks in a neural voice.
 
@@ -605,11 +619,13 @@ def process_turn(
         )
     route = decision.route
     situation = decision.situation
-    # UI picker locks what Serah speaks; caregiver language chips stay on intent.
+    # The picker locks Latin replies. A Tamil or Sinhala utterance speaks that language.
     if ui:
-        reply_lang = _tts_lang(ui, [ui])
+        reply_lang = reply_language_for_utterance(text, _tts_lang(ui, [ui]))
     else:
-        reply_lang = _tts_lang(base.get("language"), base.get("languages"))
+        reply_lang = reply_language_for_utterance(
+            text, _tts_lang(base.get("language"), base.get("languages"))
+        )
 
     # Early intent/route for progressive UI (chips + matching state) before VEHMF/TTS.
     intent_preview = {
