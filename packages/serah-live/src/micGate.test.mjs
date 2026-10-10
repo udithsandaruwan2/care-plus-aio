@@ -578,6 +578,16 @@ describe('suppressNoise', () => {
     const cleaned = suppressNoise(frame, 0.04);
     assert.ok(frameRms(cleaned.subarray(0, 512)) > 0.008);
   });
+
+  it('does not learn an inhale as the room noise', () => {
+    const state = createMicGateState();
+    const before = state.noiseFloor;
+    assert.equal(pushMicBuffer(breath(0.35), false, state), 'drop');
+    assert.ok(state.noiseFloor < before + 0.005);
+    const voice = vowel(0.06);
+    const cleaned = suppressNoise(voice, state.noiseFloor);
+    assert.ok(frameRms(cleaned) > frameRms(voice) * 0.5);
+  });
 });
 
 describe('chunkLivePcm', () => {
