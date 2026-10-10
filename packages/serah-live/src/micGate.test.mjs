@@ -571,6 +571,13 @@ describe('suppressNoise', () => {
     assert.ok(head.length === 2000 && tail.length === voice.length - 2000);
     assert.ok(Math.abs((whole[2000] ?? 0) - (tail[0] ?? 0)) < 1e-4);
   });
+
+  it('keeps a consonant when the rest of the frame was silenced', () => {
+    const frame = new Float32Array(2048);
+    frame.set(fricative(0.12).subarray(0, 512), 0);
+    const cleaned = suppressNoise(frame, 0.04);
+    assert.ok(frameRms(cleaned.subarray(0, 512)) > 0.008);
+  });
 });
 
 describe('chunkLivePcm', () => {

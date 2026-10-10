@@ -521,6 +521,19 @@ function analyzeHop(
 
 export type FilterMemory = { x: number; y: number };
 
+/** RMS of the samples that are actually present. Masked silence must not dilute it. */
+function activeRms(samples: ArrayLike<number>): number {
+  let sum = 0;
+  let n = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i] ?? 0;
+    if (s === 0) continue;
+    sum += s * s;
+    n += 1;
+  }
+  return n ? Math.sqrt(sum / n) : 0;
+}
+
 /** Attenuate stationary noise. A loud voiced frame keeps most of its level. */
 export function suppressNoise(
   samples: ArrayLike<number>,
@@ -528,7 +541,7 @@ export function suppressNoise(
   memory?: FilterMemory,
 ): Float32Array {
   const out = new Float32Array(samples.length);
-  const rms = frameRms(samples);
+  const rms = activeRms(samples);
   if (rms < 1e-8) return out;
   const floor = Math.max(0, noiseRms);
   const gain = rms <= floor ? 0 : Math.min(1, 1 - (floor / rms) * 0.9);
