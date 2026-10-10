@@ -14,6 +14,7 @@ from django.conf import settings
 from apps.common.envutil import gemini_voice_api_key, voice_live_enabled
 from apps.voice.live_activity import live_realtime_input_config
 from apps.voice.live_receive import iter_session_messages
+from apps.voice.live_stream import pump_mic_audio
 from apps.voice.output_hold import apply_output_hold, hold_should_release
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
@@ -199,17 +200,10 @@ class LiveSessionRunner:
 
     async def _send_loop(self) -> None:
         assert self._session is not None
-        while not self._closed:
-            chunk = await self._audio_q.get()
-            if chunk is None:
-                break
-            try:
-                await self._session.send_realtime_input(
-                    audio={"data": chunk, "mime_type": "audio/pcm;rate=16000"}
-                )
-            except Exception:
-                logger.exception("Live send audio failed")
-                break
+        try:
+            await pump_mic_audio(self._session, self._audio_q, lambda: self._closed)
+        except Exception:
+            logger.exception("Live send audio failed")
 
     async def _handle_response(self, response, types) -> None:
         # PCM audio chunks
