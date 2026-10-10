@@ -205,9 +205,9 @@ export function pushMicBuffer(
       state.inUtterance = true;
       return echoTail ? 'send' : 'barge';
     }
-    // The vowel that cut her off already opened the turn. The consonants of
-    // that word still have to reach the model; her quieter ring does not.
-    if (echoTail && state.inUtterance && loudConsonants >= MIC_GATE.speechHops) {
+    // The vowel already opened the turn. A short consonant is still part of
+    // that word. A quiet frame is not, so her ring does not keep the turn open.
+    if (echoTail && state.inUtterance && loudConsonants > 0) {
       return 'send';
     }
     state.inUtterance = false;
