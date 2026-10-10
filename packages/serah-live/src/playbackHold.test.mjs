@@ -12,6 +12,7 @@ import {
   PLAYBACK_QUANTUM,
   createPlaybackHeard,
   fallbackListenDelayMs,
+  echoTailShouldInterrupt,
   micAfterBarge,
   micAfterPlaybackStop,
   notePlaybackPull,
@@ -134,6 +135,13 @@ describe('fallbackListenDelayMs', () => {
   it('waits out her ring only when playback was just cut off', () => {
     assert.equal(fallbackListenDelayMs(true), 450);
     assert.equal(fallbackListenDelayMs(false), 0);
+  });
+});
+
+describe('echoTailShouldInterrupt', () => {
+  it('cuts a paused reply and leaves a finished one alone', () => {
+    assert.equal(echoTailShouldInterrupt(true), true);
+    assert.equal(echoTailShouldInterrupt(false), false);
   });
 });
 

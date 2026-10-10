@@ -107,6 +107,15 @@ export function fallbackListenDelayMs(
  * A barge cuts her playback, but the mic stays in the echo tail.
  * Her ring is not sent; the next nearer frame still takes the floor.
  */
+/**
+ * The echo tail sends the user's words without a second barge.
+ * If her turn never actually finished, that first word still has to cut it off,
+ * or the rest of the paused line plays over them.
+ */
+export function echoTailShouldInterrupt(modelBusy: boolean): boolean {
+  return modelBusy;
+}
+
 export function micAfterBarge(now: number): {
   userHasFloor: false;
   turnOpen: false;
