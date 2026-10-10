@@ -198,11 +198,11 @@ export function pushMicBuffer(
       if (hopInfo.consonant) consonants += 1;
       else {
         // An inhale is energy that is not a consonant. A short coda is not.
+        // Only true silence may train the noise floor. Learning the inhale
+        // turns the next quiet word down with it.
         if (hopInfo.rumble) rumbleHops += 1;
         else if (hopInfo.rms >= MIC_GATE.silenceRms) messyHops += 1;
-        if (hopInfo.rms < MIC_GATE.silenceRms * 4) {
-          state.noiseFloor = state.noiseFloor * 0.8 + hopInfo.rms * 0.2;
-        }
+        else state.noiseFloor = state.noiseFloor * 0.8 + hopInfo.rms * 0.2;
       }
     }
   }
