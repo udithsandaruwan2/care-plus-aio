@@ -264,6 +264,29 @@ describe('gateLiveFrame', () => {
     assert.ok(frameRms(barge.audio[0].subarray(wire / 2)) > 0.05);
     assert.ok(frameRms(barge.audio[1].subarray(0, wire / 2)) > 0.05);
     assert.equal(frameRms(barge.audio[1].subarray(wire / 2)), 0);
+
+    const gapped = createMicGateState();
+    const gapQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, gapped, gapQueue);
+    gateLiveFrame(bleed, true, gapped, gapQueue);
+    gateLiveFrame(tail, true, gapped, gapQueue);
+    const between = gateLiveFrame(bleed, true, gapped, gapQueue);
+    assert.equal(between.audio.length, 0);
+    assert.ok(gapQueue.partial);
+    const afterHer = gateLiveFrame(head, true, gapped, gapQueue);
+    assert.equal(afterHer.barge, true);
+    assert.equal(afterHer.audio.length, 2);
+    assert.ok(frameRms(afterHer.audio[0].subarray(wire / 2)) > 0.05);
+
+    const inhaled = createMicGateState();
+    const inhaleQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, inhaled, inhaleQueue);
+    gateLiveFrame(bleed, true, inhaled, inhaleQueue);
+    gateLiveFrame(tail, true, inhaled, inhaleQueue);
+    gateLiveFrame(breath(0.35).subarray(0, wire), true, inhaled, inhaleQueue);
+    assert.equal(inhaleQueue.partial, null);
+    const afterBreath = gateLiveFrame(head, true, inhaled, inhaleQueue);
+    assert.equal(afterBreath.barge, false);
   });
 
   it('strips her voice from the front of the barge frame', () => {
