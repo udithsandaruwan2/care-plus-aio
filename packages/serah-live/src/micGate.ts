@@ -230,10 +230,15 @@ export function pushMicBuffer(
   return 'drop';
 }
 
-export type OnsetQueue = { frames: Float32Array[]; breath: boolean };
+export type OnsetQueue = {
+  frames: Float32Array[];
+  breath: boolean;
+  /** Near hops from the previous frame. Bleed in that frame is already zeroed. */
+  partial: Float32Array | null;
+};
 
 export function createOnsetQueue(): OnsetQueue {
-  return { frames: [], breath: false };
+  return { frames: [], breath: false, partial: null };
 }
 
 export type LiveMicEmit = {
@@ -267,8 +272,35 @@ export function isOnsetFrame(samples: ArrayLike<number>): boolean {
 }
 
 /**
+ * Hops that are not the user's near voice become silence.
+ * A partial barge frame can then be sent later without replaying her.
+ */
+function speechKeptFrame(
+  frame: Float32Array,
+  assistantSpeaking: MicListenMode,
+  echoFloor: number,
+): Float32Array | null {
+  const echoTail = assistantSpeaking === 'echo-tail';
+  const hop = MIC_GATE.hop;
+  const margin = Math.max(MIC_GATE.bargeRms, echoFloor * MIC_GATE.echoMargin);
+  const out = new Float32Array(frame.length);
+  let kept = 0;
+  for (let offset = 0; offset + hop <= frame.length; offset += hop) {
+    const info = analyzeHop(frame, offset, hop);
+    const take = echoTail
+      ? (info.voiced && info.rms >= margin) || (info.consonant && info.rms >= margin)
+      : info.voiced && info.rms >= margin;
+    if (!take) continue;
+    for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
+    kept += 1;
+  }
+  return kept > 0 ? out : null;
+}
+
+/**
  * Same decisions as `pushMicBuffer`, plus the consonant that started the word.
- * While she is talking, nothing is held: speaker bleed must not be replayed later.
+ * While she is talking, only the nearer hops are held. The rest of that frame
+ * is her voice and must not be replayed when the word continues.
  */
 export function gateLiveFrame(
   frame: Float32Array,
@@ -280,11 +312,17 @@ export function gateLiveFrame(
   if (speaking) {
     onset.frames.length = 0;
     onset.breath = false;
+  } else {
+    onset.partial = null;
   }
 
+  const echoFloor = state.echoFloor;
   const decision = pushMicBuffer(frame, assistantSpeaking, state);
   if (decision === 'drop') {
-    if (!speaking && isOnsetFrame(frame)) {
+    if (speaking) {
+      onset.partial =
+        state.nearRun > 0 ? speechKeptFrame(frame, assistantSpeaking, echoFloor) : null;
+    } else if (isOnsetFrame(frame)) {
       if (onset.breath) {
         return { audio: [], silenceSamples: frame.length, barge: false, echoTailOpen: false };
       }
@@ -314,7 +352,14 @@ export function gateLiveFrame(
     };
   }
 
-  const audio = speaking || onset.breath ? [frame] : onset.frames.concat(frame);
+  let audio: Float32Array[];
+  if (speaking) {
+    const kept = speechKeptFrame(frame, assistantSpeaking, echoFloor) ?? frame;
+    audio = onset.partial ? [onset.partial, kept] : [kept];
+    onset.partial = null;
+  } else {
+    audio = onset.breath ? [frame] : onset.frames.concat(frame);
+  }
   onset.frames.length = 0;
   onset.breath = false;
   return {

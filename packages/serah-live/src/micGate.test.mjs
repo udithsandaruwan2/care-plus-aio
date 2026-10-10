@@ -230,6 +230,28 @@ describe('gateLiveFrame', () => {
     assert.equal(barge.barge, true);
     assert.equal(barge.audio.length, 1);
   });
+
+  it('sends the start of a cross-frame barge and strips her bleed from it', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const user = vowel(0.28);
+    const tail = new Float32Array(wire);
+    const head = new Float32Array(wire);
+    tail.set(user.subarray(0, wire / 2), wire / 2);
+    head.set(user.subarray(0, wire / 2), 0);
+    const held = gateLiveFrame(tail, true, state, onset);
+    assert.equal(held.audio.length, 0);
+    const barge = gateLiveFrame(head, true, state, onset);
+    assert.equal(barge.barge, true);
+    assert.equal(barge.audio.length, 2);
+    assert.equal(frameRms(barge.audio[0].subarray(0, wire / 2)), 0);
+    assert.ok(frameRms(barge.audio[0].subarray(wire / 2)) > 0.05);
+    assert.ok(frameRms(barge.audio[1].subarray(0, wire / 2)) > 0.05);
+    assert.equal(frameRms(barge.audio[1].subarray(wire / 2)), 0);
+  });
 });
 
 describe('resample', () => {
