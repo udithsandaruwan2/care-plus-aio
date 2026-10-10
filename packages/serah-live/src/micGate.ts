@@ -391,19 +391,21 @@ export function gateLiveFrame(
   }
 
   const echoFloor = state.echoFloor;
+  const nearBefore = state.nearRun;
   const decision = pushMicBuffer(frame, assistantSpeaking, state);
   if (decision === 'drop') {
     if (speaking) {
       if (state.nearRun > 0) {
         onset.partial = speechKeptFrame(frame, assistantSpeaking, echoFloor);
+        onset.gaps = 0;
         return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
       }
-      onset.partial = null;
       // The first buffers learn her level. A consonant there is still her voice.
       const training = assistantSpeaking === true && state.speakBuffers <= MIC_GATE.echoTrainBuffers;
       if (!training && !onset.breath) {
         const lead = bargeOnsetFrame(frame, assistantSpeaking, echoFloor);
         if (lead) {
+          onset.partial = null;
           if (onset.frames.length >= MIC_GATE.onsetFrames) {
             onset.frames.length = 0;
             onset.breath = true;
@@ -414,18 +416,22 @@ export function gateLiveFrame(
           onset.gaps = 0;
           return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
         }
-        // Her vowel fills the gap between the consonant and the vowel.
-        // An inhale is not periodic, so that consonant is not sent later.
-        if (onset.frames.length > 0 && frameIsHerVoice(frame)) {
+        // Her vowel fills the gap inside the word. It must not erase the hops
+        // already counted, and an inhale must not keep them.
+        if ((onset.frames.length > 0 || onset.partial) && frameIsHerVoice(frame)) {
+          if (onset.partial && nearBefore > 0) state.nearRun = nearBefore;
           onset.gaps += 1;
           if (onset.gaps > MIC_GATE.onsetFrames) {
             onset.frames.length = 0;
+            onset.partial = null;
             onset.gaps = 0;
+            state.nearRun = 0;
           }
           return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
         }
       }
       onset.frames.length = 0;
+      onset.partial = null;
       onset.gaps = 0;
       return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
     } else if (isOnsetFrame(frame)) {
