@@ -54,6 +54,19 @@ class LiveStreamTests(unittest.TestCase):
         asyncio.run(run())
         self.assertEqual(_kinds(session), ["audio"])
 
+    def test_silence_then_her_reply_does_not_flush(self) -> None:
+        session = _Session()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def run() -> None:
+            await queue.put(b"\x00\x00" * 8)
+            await queue.put(END_AUDIO)
+            await queue.put(None)
+            await pump_mic_audio(session, queue, lambda: False)
+
+        asyncio.run(run())
+        self.assertEqual(_kinds(session), ["audio"])
+
 
 if __name__ == "__main__":
     unittest.main()
