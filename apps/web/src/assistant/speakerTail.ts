@@ -26,6 +26,14 @@ export function shouldPlayCutOffAfterBarge(userSpoke: boolean): boolean {
   return !userSpoke;
 }
 
+/**
+ * The near-field barge mic listens to the room. It must not run beside Live,
+ * or it hears her and opens a second turn.
+ */
+export function shouldArmFallbackBargeMic(liveActive: boolean): boolean {
+  return !liveActive;
+}
+
 /** An empty caption may rearm Web Speech only when Live is not already listening. */
 export function shouldRearmFallbackMic(opts: {
   conversationOn: boolean;
