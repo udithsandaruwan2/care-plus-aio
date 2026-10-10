@@ -4,6 +4,7 @@ import { setLiveSessionOpen } from './liveSession';
 import {
   createMicGateState,
   createOnsetQueue,
+  chunkLivePcm,
   downsampleTo16k,
   gateLiveFrame,
   suppressNoise,
@@ -338,7 +339,10 @@ async function openMicPcmStream(
       // Held consonants send nothing yet. A breath, or a consonant that never
       // becomes a word, is silence so the model can still hear the end of a turn.
       // While she talks, send nothing at all.
-      if (emit.silenceSamples > 0) onChunk(new Int16Array(emit.silenceSamples));
+      const send = (pcm: Int16Array) => {
+        for (const piece of chunkLivePcm(pcm)) onChunk(piece);
+      };
+      if (emit.silenceSamples > 0) send(new Int16Array(emit.silenceSamples));
       for (const piece of emit.audio) {
         const memory = { x: gate.hpX, y: gate.hpY };
         const cleaned = suppressNoise(piece, gate.noiseFloor, memory);
@@ -349,7 +353,7 @@ async function openMicPcmStream(
           const s = Math.max(-1, Math.min(1, cleaned[i] ?? 0));
           pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
         }
-        onChunk(pcm);
+        send(pcm);
       }
     }
   };
