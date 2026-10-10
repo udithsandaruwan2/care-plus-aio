@@ -623,14 +623,16 @@ export function shouldFlushMicStream(
 
 /**
  * Samples waiting for a full frame were captured in one mic mode.
- * Mixing them into the next mode sends her voice as the user, or drops
- * the start of a barge. A mode change discards that tail.
+ * The open mic would send her voice in that tail, so a change onto it
+ * discards the tail. The echo tail still strips her, and dropping the
+ * samples there cuts off the start of the barge.
  */
 export function pendingForMode(
   pending: Float32Array,
   previous: MicListenMode | null,
   next: MicListenMode,
 ): Float32Array {
+  if (previous === true && next === 'echo-tail') return pending;
   if (previous !== null && previous !== next) return new Float32Array(0);
   return pending;
 }
