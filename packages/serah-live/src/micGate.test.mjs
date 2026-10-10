@@ -339,6 +339,20 @@ describe('gateLiveFrame', () => {
     gateLiveFrame(fricative(0.2).subarray(0, wire), true, state, onset);
     assert.equal(onset.frames.length, 0);
   });
+
+  it('keeps the barge consonant when the echo tail ends before the vowel', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const held = gateLiveFrame(fricative(0.2).subarray(0, wire), 'echo-tail', state, onset);
+    assert.equal(held.audio.length, 0);
+    assert.equal(onset.frames.length, 1);
+    const opened = gateLiveFrame(vowel(0.06).subarray(0, wire), false, state, onset);
+    assert.equal(opened.audio.length, 2);
+    assert.ok(frameRms(opened.audio[0]) > 0.02);
+  });
 });
 
 describe('resample', () => {

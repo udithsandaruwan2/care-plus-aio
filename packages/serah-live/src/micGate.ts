@@ -359,10 +359,9 @@ export function gateLiveFrame(
       onset.breath = false;
     }
   } else {
-    if (state.wasSpeaking) {
-      onset.frames.length = 0;
-      onset.breath = false;
-    }
+    // The consonant was already masked to the near voice. Dropping it here
+    // cuts the word off when the echo tail ends before the vowel arrives.
+    if (state.wasSpeaking) onset.breath = false;
     onset.partial = null;
   }
 
