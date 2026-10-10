@@ -252,6 +252,22 @@ describe('gateLiveFrame', () => {
     assert.ok(frameRms(barge.audio[1].subarray(0, wire / 2)) > 0.05);
     assert.equal(frameRms(barge.audio[1].subarray(wire / 2)), 0);
   });
+
+  it('strips her voice from the front of the barge frame', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const frame = new Float32Array(wire);
+    frame.set(bleed.subarray(0, 512));
+    frame.set(vowel(0.28).subarray(0, wire - 512), 512);
+    const barge = gateLiveFrame(frame, true, state, onset);
+    assert.equal(barge.barge, true);
+    assert.ok(frameRms(frame.subarray(0, 512)) > 0);
+    assert.equal(frameRms(barge.audio[0].subarray(0, 512)), 0);
+    assert.ok(frameRms(barge.audio[0].subarray(512)) > 0.05);
+  });
 });
 
 describe('resample', () => {

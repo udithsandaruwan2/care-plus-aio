@@ -354,19 +354,24 @@ export function gateLiveFrame(
 
   let audio: Float32Array[];
   if (speaking) {
-    const kept = speechKeptFrame(frame, assistantSpeaking, echoFloor) ?? frame;
-    audio = onset.partial ? [onset.partial, kept] : [kept];
+    // The floor after this frame. A hop that counted as near still passes.
+    // Never fall back to the raw frame: the rest of it is her voice.
+    const kept = speechKeptFrame(frame, assistantSpeaking, state.echoFloor);
+    audio = [];
+    if (onset.partial) audio.push(onset.partial);
+    if (kept) audio.push(kept);
     onset.partial = null;
   } else {
     audio = onset.breath ? [frame] : onset.frames.concat(frame);
   }
   onset.frames.length = 0;
   onset.breath = false;
+  const heard = audio.length > 0;
   return {
     audio,
     silenceSamples: 0,
-    barge: decision === 'barge',
-    echoTailOpen: decision === 'send' && assistantSpeaking === 'echo-tail',
+    barge: decision === 'barge' && heard,
+    echoTailOpen: decision === 'send' && assistantSpeaking === 'echo-tail' && heard,
   };
 }
 
