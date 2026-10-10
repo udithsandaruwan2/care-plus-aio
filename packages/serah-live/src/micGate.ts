@@ -41,6 +41,10 @@ export type MicGateState = {
   wasSpeaking: boolean;
   /** A vowel has opened the user's turn. Consonants may follow; a breath may not. */
   inUtterance: boolean;
+  /** Voiced hops that continue across a frame boundary. A short word often does. */
+  voicedRun: number;
+  /** Near voiced hops while she is speaking. Same carry, used for barge-in. */
+  nearRun: number;
   quietBuffers: number;
   hpX: number;
   hpY: number;
@@ -53,6 +57,8 @@ export function createMicGateState(): MicGateState {
     speakBuffers: 0,
     wasSpeaking: false,
     inUtterance: false,
+    voicedRun: 0,
+    nearRun: 0,
     quietBuffers: 0,
     hpX: 0,
     hpY: 0,
@@ -145,48 +151,57 @@ export function pushMicBuffer(
   const echoTail = assistantSpeaking === 'echo-tail';
   const assistant = assistantSpeaking === true || echoTail;
   const hop = MIC_GATE.hop;
-  let voiced = 0;
-  let near = 0;
   if (!assistant) {
+    if (state.wasSpeaking) state.nearRun = 0;
     state.wasSpeaking = false;
     state.speakBuffers = 0;
   } else if (!state.wasSpeaking) {
     state.wasSpeaking = true;
     state.speakBuffers = 0;
+    state.voicedRun = 0;
   }
 
   const training = assistant && !echoTail && state.speakBuffers < MIC_GATE.echoTrainBuffers;
   let consonants = 0;
   let loudConsonants = 0;
+  let voiceOpened = false;
+  let nearOpened = false;
 
   for (let offset = 0; offset + hop <= samples.length; offset += hop) {
     const hopInfo = analyzeHop(samples, offset, hop);
     if (assistant) {
       const margin = Math.max(MIC_GATE.bargeRms, state.echoFloor * MIC_GATE.echoMargin);
       const userLevel = hopInfo.voiced && hopInfo.rms >= MIC_GATE.bargeRms;
-      if (!training && hopInfo.voiced && hopInfo.rms >= margin) {
-        near += 1;
-      } else if (echoTail && hopInfo.consonant && hopInfo.rms >= margin) {
-        loudConsonants += 1;
-      } else if (!userLevel) {
-        // A voice already loud enough to be the user must not become the echo
-        // floor. Otherwise the training buffers swallow the barge.
-        state.echoFloor = state.echoFloor * 0.82 + hopInfo.rms * 0.18;
+      const nearHop = !training && hopInfo.voiced && hopInfo.rms >= margin;
+      if (nearHop) {
+        state.nearRun += 1;
+        if (state.nearRun >= MIC_GATE.speechHops) nearOpened = true;
+      } else {
+        state.nearRun = 0;
+        if (echoTail && hopInfo.consonant && hopInfo.rms >= margin) {
+          loudConsonants += 1;
+        } else if (!userLevel) {
+          // A voice already loud enough to be the user must not become the echo
+          // floor. Otherwise the training buffers swallow the barge.
+          state.echoFloor = state.echoFloor * 0.82 + hopInfo.rms * 0.18;
+        }
       }
-      if (hopInfo.voiced) voiced += 1;
     } else if (hopInfo.voiced) {
-      voiced += 1;
-    } else if (hopInfo.consonant) {
-      consonants += 1;
-    } else if (hopInfo.rms < MIC_GATE.silenceRms * 4) {
-      state.noiseFloor = state.noiseFloor * 0.8 + hopInfo.rms * 0.2;
+      state.voicedRun += 1;
+      if (state.voicedRun >= MIC_GATE.speechHops) voiceOpened = true;
+    } else {
+      state.voicedRun = 0;
+      if (hopInfo.consonant) consonants += 1;
+      else if (hopInfo.rms < MIC_GATE.silenceRms * 4) {
+        state.noiseFloor = state.noiseFloor * 0.8 + hopInfo.rms * 0.2;
+      }
     }
   }
 
   if (assistant) {
     if (!echoTail) state.speakBuffers += 1;
     state.quietBuffers = 0;
-    if (!training && near >= MIC_GATE.speechHops) {
+    if (nearOpened) {
       state.inUtterance = true;
       return echoTail ? 'send' : 'barge';
     }
@@ -199,7 +214,7 @@ export function pushMicBuffer(
     return 'drop';
   }
 
-  if (voiced >= MIC_GATE.speechHops) {
+  if (voiceOpened) {
     state.inUtterance = true;
     state.quietBuffers = 0;
     return 'send';
