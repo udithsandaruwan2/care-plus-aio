@@ -17,3 +17,15 @@ export function liveSessionOpen(): boolean {
 export function fallbackVoiceAllowed(): boolean {
   return !open;
 }
+
+/**
+ * The line dropped on its own. Open it again so listening does not go out.
+ * A stop the patient asked for, or too many failures in a row, stays closed.
+ */
+export function shouldRestartLive(
+  userStopped: boolean,
+  attempts: number,
+  limit = 2,
+): boolean {
+  return !userStopped && attempts < limit;
+}
