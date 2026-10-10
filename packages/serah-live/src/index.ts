@@ -8,6 +8,7 @@ import {
   downsampleTo16k,
   gateLiveFrame,
   pendingForMode,
+  shouldFlushMicStream,
   suppressNoise,
   takePcmFrames,
 } from './micGate';
@@ -300,6 +301,7 @@ async function openMicPcmStream(
     isAssistantSpeaking?: () => boolean | 'echo-tail';
     onBarge?: () => void;
     onEchoTailOpen?: () => void;
+    onAssistantTakeMic?: () => void;
   },
 ): Promise<{ stop: () => void } | null> {
   if (!navigator.mediaDevices?.getUserMedia) return null;
@@ -333,6 +335,7 @@ async function openMicPcmStream(
     const input = ev.inputBuffer.getChannelData(0);
     const at16k = downsampleTo16k(input, inputRate);
     const speaking = opts?.isAssistantSpeaking?.() ?? false;
+    if (shouldFlushMicStream(pendingMode, speaking)) opts?.onAssistantTakeMic?.();
     pending = pendingForMode(pending, pendingMode, speaking);
     pendingMode = speaking;
     const taken = takePcmFrames(pending, at16k, wireFrame);
@@ -676,6 +679,9 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             armHold();
             player.stop();
             sendJson({ type: 'live.interrupt' });
+          },
+          onAssistantTakeMic: () => {
+            sendJson({ type: 'live.audio_end' });
           },
           onEchoTailOpen: () => {
             userHasFloor = true;

@@ -14,6 +14,7 @@ import {
   chunkLivePcm,
   LIVE_PCM_SAMPLES,
   pendingForMode,
+  shouldFlushMicStream,
   takePcmFrames,
 } from '../.test-out/micGate.js';
 
@@ -281,6 +282,14 @@ describe('resample', () => {
     const slow = downsampleTo16k(fast, 48000);
     assert.equal(slow.length, 1600);
     assert.ok(Math.abs(slow[0] - 0.4) < 1e-6);
+  });
+
+  it('commits the mic only when she takes it, not when the echo tail opens', () => {
+    assert.equal(shouldFlushMicStream(null, true), false);
+    assert.equal(shouldFlushMicStream(false, true), true);
+    assert.equal(shouldFlushMicStream('echo-tail', true), true);
+    assert.equal(shouldFlushMicStream(false, 'echo-tail'), false);
+    assert.equal(shouldFlushMicStream(true, true), false);
   });
 
   it('drops a partial frame when she starts or stops', () => {

@@ -467,6 +467,17 @@ export function downsampleTo16k(samples: ArrayLike<number>, fromRate: number): F
 }
 
 /**
+ * She has taken the speaker. Commit the user's audio once.
+ * Do not commit when the echo tail opens: the barge words are still arriving.
+ */
+export function shouldFlushMicStream(
+  previous: MicListenMode | null,
+  next: MicListenMode,
+): boolean {
+  return previous !== null && previous !== true && next === true;
+}
+
+/**
  * Samples waiting for a full frame were captured in one mic mode.
  * Mixing them into the next mode sends her voice as the user, or drops
  * the start of a barge. A mode change discards that tail.
