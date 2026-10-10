@@ -13,6 +13,7 @@ import {
   suppressNoise,
   chunkLivePcm,
   LIVE_PCM_SAMPLES,
+  pendingForMode,
   takePcmFrames,
 } from '../.test-out/micGate.js';
 
@@ -280,6 +281,15 @@ describe('resample', () => {
     const slow = downsampleTo16k(fast, 48000);
     assert.equal(slow.length, 1600);
     assert.ok(Math.abs(slow[0] - 0.4) < 1e-6);
+  });
+
+  it('drops a partial frame when she starts or stops', () => {
+    const tail = new Float32Array([0.2, 0.2, 0.2]);
+    assert.equal(pendingForMode(tail, null, false), tail);
+    assert.equal(pendingForMode(tail, false, false), tail);
+    assert.equal(pendingForMode(tail, true, 'echo-tail').length, 0);
+    assert.equal(pendingForMode(tail, 'echo-tail', false).length, 0);
+    assert.equal(pendingForMode(tail, true, true), tail);
   });
 
   it('assembles a full frame across short buffers', () => {

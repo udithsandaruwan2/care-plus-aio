@@ -7,6 +7,7 @@ import {
   chunkLivePcm,
   downsampleTo16k,
   gateLiveFrame,
+  pendingForMode,
   suppressNoise,
   takePcmFrames,
 } from './micGate';
@@ -325,14 +326,17 @@ async function openMicPcmStream(
   const gate = createMicGateState();
   const onset = createOnsetQueue();
   let pending = new Float32Array(0);
+  let pendingMode: boolean | 'echo-tail' | null = null;
   const inputRate = ctx.sampleRate || 16000;
   const wireFrame = 2048;
   processor.onaudioprocess = (ev) => {
     const input = ev.inputBuffer.getChannelData(0);
     const at16k = downsampleTo16k(input, inputRate);
+    const speaking = opts?.isAssistantSpeaking?.() ?? false;
+    pending = pendingForMode(pending, pendingMode, speaking);
+    pendingMode = speaking;
     const taken = takePcmFrames(pending, at16k, wireFrame);
     pending = taken.pending;
-    const speaking = opts?.isAssistantSpeaking?.() ?? false;
     for (const frame of taken.frames) {
       const emit = gateLiveFrame(frame, speaking, gate, onset);
       if (emit.barge) opts?.onBarge?.();
