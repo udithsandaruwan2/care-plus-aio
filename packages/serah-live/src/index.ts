@@ -1,5 +1,6 @@
 /** Shared Gemini Live bridge client for apps/web + Agent present UI. */
 
+import { setLiveSessionOpen } from './liveSession';
 import {
   createMicGateState,
   createOnsetQueue,
@@ -36,6 +37,7 @@ import {
 
 export { acceptCaption } from './captionGate';
 export { ECHO_TAIL_MS, fallbackListenDelayMs } from './playbackHold';
+export { fallbackVoiceAllowed, liveSessionOpen, setLiveSessionOpen } from './liveSession';
 
 export type LiveUiLanguage = 'English' | 'Tamil' | 'Sinhala';
 
@@ -483,6 +485,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
   };
 
   const stop = () => {
+    setLiveSessionOpen(false);
     micStop?.();
     micStop = null;
     turnOpen = false;
@@ -546,11 +549,13 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
         switch (msg.type) {
           case 'live.ready':
             ready = true;
+            setLiveSessionOpen(true);
             window.clearTimeout(timer);
             h.onReady?.({ model: msg.model, voice: msg.voice });
             finish(true);
             break;
           case 'live.unavailable':
+            setLiveSessionOpen(false);
             window.clearTimeout(timer);
             h.onUnavailable?.(msg.reason);
             finish(false);
@@ -593,6 +598,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             break;
           case 'live.closed':
             ready = false;
+            setLiveSessionOpen(false);
             h.onClosed?.();
             break;
           default:
@@ -613,6 +619,7 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
       };
       ws.onclose = () => {
         ready = false;
+        setLiveSessionOpen(false);
         if (!settled) {
           window.clearTimeout(timer);
           finish(false);

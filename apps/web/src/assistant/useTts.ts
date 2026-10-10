@@ -7,6 +7,7 @@
  * may finish that line. A real user utterance replaces it.
  */
 
+import { fallbackVoiceAllowed } from '@care-plus/serah-live';
 import { shouldPlayCutOffAfterBarge } from './speakerTail';
 
 export type SpeakOpts = {
@@ -288,6 +289,8 @@ function playServerAudio(
 }
 
 export function speakSerah(text: string, lang: string, opts?: SpeakOpts): Promise<void> {
+  // Live is already her voice. A second clip would play into the open mic.
+  if (!fallbackVoiceAllowed()) return Promise.resolve();
   // Replace playback without emitting a false→true flicker (keeps barge watch alive).
   clearPlaybackHard();
   resolveSpeak();
