@@ -46,6 +46,16 @@ function breath(amp) {
   return out;
 }
 
+function whiteNoise(amp, n = N) {
+  const out = new Float32Array(n);
+  let seed = 99;
+  for (let i = 0; i < n; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    out[i] = ((seed / 0x7fffffff) * 2 - 1) * amp;
+  }
+  return out;
+}
+
 function highpass(samples, fc) {
   const dt = 1 / RATE;
   const rc = 1 / (2 * Math.PI * fc);
@@ -528,6 +538,30 @@ describe('gateLiveFrame', () => {
       doneQueue,
     );
     assert.ok(softer.audio.length > 0);
+  });
+
+  it('stops a hiss after the vowel and still sends the next word', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const noise = whiteNoise(0.08, wire);
+    assert.equal(gateLiveFrame(vowel(0.12).subarray(0, wire), false, state, onset).audio.length, 1);
+    assert.ok(gateLiveFrame(noise, false, state, onset).audio.length > 0);
+    assert.ok(gateLiveFrame(noise, false, state, onset).audio.length > 0);
+    assert.equal(gateLiveFrame(noise, false, state, onset).audio.length, 0);
+    assert.equal(gateLiveFrame(noise, false, state, onset).audio.length, 0);
+    const next = gateLiveFrame(vowel(0.12).subarray(0, wire), false, state, onset);
+    assert.equal(next.audio.length, 1);
+    assert.ok(frameRms(next.audio[0]) > 0.04);
+
+    const echo = createMicGateState();
+    const echoQueue = createOnsetQueue();
+    const hiss = fricative(0.2).subarray(0, wire);
+    assert.ok(gateLiveFrame(vowel(0.28).subarray(0, wire), 'echo-tail', echo, echoQueue).audio.length > 0);
+    assert.ok(gateLiveFrame(hiss, 'echo-tail', echo, echoQueue).audio.length > 0);
+    assert.ok(gateLiveFrame(hiss, 'echo-tail', echo, echoQueue).audio.length > 0);
+    assert.equal(gateLiveFrame(hiss, 'echo-tail', echo, echoQueue).audio.length, 0);
+    const again = gateLiveFrame(vowel(0.28).subarray(0, wire), 'echo-tail', echo, echoQueue);
+    assert.ok(again.audio.length > 0);
   });
 
   it('strips an inhale that shares the vowel frame', () => {

@@ -52,6 +52,10 @@ export type MicGateState = {
   /** Near voiced hops while she is speaking. Same carry, used for barge-in. */
   nearRun: number;
   quietBuffers: number;
+  /** Consonant-only frames in a row after a vowel. A longer run is noise. */
+  codaBuffers: number;
+  /** This frame was noise, not a new word, and must not be held as one. */
+  noiseRun: boolean;
   hpX: number;
   hpY: number;
 };
@@ -66,6 +70,8 @@ export function createMicGateState(): MicGateState {
     voicedRun: 0,
     nearRun: 0,
     quietBuffers: 0,
+    codaBuffers: 0,
+    noiseRun: false,
     hpX: 0,
     hpY: 0,
   };
@@ -167,6 +173,7 @@ export function pushMicBuffer(
     state.voicedRun = 0;
   }
 
+  state.noiseRun = false;
   const training = assistant && !echoTail && state.speakBuffers < MIC_GATE.echoTrainBuffers;
   let consonants = 0;
   let loudConsonants = 0;
@@ -218,20 +225,24 @@ export function pushMicBuffer(
     state.quietBuffers = 0;
     if (nearOpened) {
       state.inUtterance = true;
+      state.codaBuffers = 0;
       return echoTail ? 'send' : 'barge';
     }
     // The vowel already opened the turn. A short consonant is still part of
     // that word. A quiet frame is not, so her ring does not keep the turn open.
+    // A hiss keeps crossing zero, so a run longer than the held onset is noise.
     if (echoTail && state.inUtterance && loudConsonants > 0) {
-      return 'send';
+      return consonantRun(state);
     }
     state.inUtterance = false;
+    state.codaBuffers = 0;
     return 'drop';
   }
 
   if (voiceOpened) {
     state.inUtterance = true;
     state.quietBuffers = 0;
+    state.codaBuffers = 0;
     return 'send';
   }
   // Three consonant hops are still speech. A shorter coda is speech only when
@@ -239,12 +250,23 @@ export function pushMicBuffer(
   const cleanCoda = consonants > 0 && rumbleHops === 0 && messyHops === 0;
   if (state.inUtterance && (consonants >= MIC_GATE.speechHops || cleanCoda)) {
     state.quietBuffers = 0;
-    return 'send';
+    return consonantRun(state);
   }
   if (state.inUtterance) {
+    state.codaBuffers = 0;
     state.quietBuffers += 1;
     if (state.quietBuffers > MIC_GATE.hangoverBuffers) state.inUtterance = false;
   }
+  return 'drop';
+}
+
+/** A short coda is speech. The same sound running on is hiss, not the word. */
+function consonantRun(state: MicGateState): MicGateDecision {
+  state.codaBuffers += 1;
+  if (state.codaBuffers <= MIC_GATE.onsetFrames) return 'send';
+  state.codaBuffers = 0;
+  state.inUtterance = false;
+  state.noiseRun = true;
   return 'drop';
 }
 
@@ -409,6 +431,20 @@ export function gateLiveFrame(
   const echoFloor = state.echoFloor;
   const nearBefore = state.nearRun;
   const decision = pushMicBuffer(frame, assistantSpeaking, state);
+  if (state.noiseRun) {
+    state.noiseRun = false;
+    onset.frames.length = 0;
+    onset.partial = null;
+    onset.breath = true;
+    onset.gaps = 0;
+    if (speaking) state.nearRun = 0;
+    return {
+      audio: [],
+      silenceSamples: speaking ? 0 : frame.length,
+      barge: false,
+      echoTailOpen: false,
+    };
+  }
   if (decision === 'drop') {
     if (speaking) {
       if (state.nearRun > 0) {
