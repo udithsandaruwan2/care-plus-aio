@@ -235,10 +235,12 @@ export type OnsetQueue = {
   breath: boolean;
   /** Near hops from the previous frame. Bleed in that frame is already zeroed. */
   partial: Float32Array | null;
+  /** Frames of her voice since the held consonant. Her voice is not the end of the word. */
+  gaps: number;
 };
 
 export function createOnsetQueue(): OnsetQueue {
-  return { frames: [], breath: false, partial: null };
+  return { frames: [], breath: false, partial: null, gaps: 0 };
 }
 
 export type LiveMicEmit = {
@@ -344,6 +346,20 @@ function bargeOnsetFrame(
   return out;
 }
 
+/** Her vowel in the gap. A breath is mostly not periodic, so it does not qualify. */
+function frameIsHerVoice(frame: Float32Array): boolean {
+  const hop = MIC_GATE.hop;
+  let hops = 0;
+  let voiced = 0;
+  for (let offset = 0; offset + hop <= frame.length; offset += hop) {
+    hops += 1;
+    const info = analyzeHop(frame, offset, hop);
+    if (info.rumble) return false;
+    if (info.voiced) voiced += 1;
+  }
+  return hops > 0 && voiced * 2 > hops;
+}
+
 /**
  * Same decisions as `pushMicBuffer`, plus the consonant that started the word.
  * While she is talking, only the nearer hops are held. The rest of that frame
@@ -362,6 +378,7 @@ export function gateLiveFrame(
     if (!state.wasSpeaking) {
       onset.frames.length = 0;
       onset.breath = false;
+      onset.gaps = 0;
     }
   } else {
     // The consonant was already masked to the near voice. Dropping it here
@@ -387,13 +404,26 @@ export function gateLiveFrame(
           if (onset.frames.length >= MIC_GATE.onsetFrames) {
             onset.frames.length = 0;
             onset.breath = true;
+            onset.gaps = 0;
             return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
           }
           onset.frames.push(lead);
+          onset.gaps = 0;
+          return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
+        }
+        // Her vowel fills the gap between the consonant and the vowel.
+        // An inhale is not periodic, so that consonant is not sent later.
+        if (onset.frames.length > 0 && frameIsHerVoice(frame)) {
+          onset.gaps += 1;
+          if (onset.gaps > MIC_GATE.onsetFrames) {
+            onset.frames.length = 0;
+            onset.gaps = 0;
+          }
           return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
         }
       }
       onset.frames.length = 0;
+      onset.gaps = 0;
       return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
     } else if (isOnsetFrame(frame)) {
       if (onset.breath) {
