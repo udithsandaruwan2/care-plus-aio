@@ -306,6 +306,40 @@ function speechKeptFrame(
 }
 
 /**
+ * Loud consonant hops above the echo floor, before a vowel confirms the barge.
+ * Rumble is an inhale and is not stored. Hops under the floor are her voice.
+ */
+function bargeOnsetFrame(
+  frame: Float32Array,
+  assistantSpeaking: MicListenMode,
+  echoFloor: number,
+): Float32Array | null {
+  const echoTail = assistantSpeaking === 'echo-tail';
+  const hop = MIC_GATE.hop;
+  const out = new Float32Array(frame.length);
+  let kept = 0;
+  let rumble = 0;
+  let floor = echoFloor;
+  for (let offset = 0; offset + hop <= frame.length; offset += hop) {
+    const info = analyzeHop(frame, offset, hop);
+    if (info.rumble) rumble += 1;
+    const margin = Math.max(MIC_GATE.bargeRms, floor * MIC_GATE.echoMargin);
+    const voicedNear = info.voiced && info.rms >= margin;
+    const loudConsonant = info.consonant && info.rms >= margin;
+    if (loudConsonant) {
+      for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
+      kept += 1;
+    }
+    if (!voicedNear && !(echoTail && loudConsonant)) {
+      const userLevel = info.voiced && info.rms >= MIC_GATE.bargeRms;
+      if (!userLevel) floor = floor * 0.82 + info.rms * 0.18;
+    }
+  }
+  if (rumble > 0 || kept === 0) return null;
+  return out;
+}
+
+/**
  * Same decisions as `pushMicBuffer`, plus the consonant that started the word.
  * While she is talking, only the nearer hops are held. The rest of that frame
  * is her voice and must not be replayed when the word continues.
@@ -318,9 +352,17 @@ export function gateLiveFrame(
 ): LiveMicEmit {
   const speaking = assistantSpeaking === true || assistantSpeaking === 'echo-tail';
   if (speaking) {
-    onset.frames.length = 0;
-    onset.breath = false;
+    // The first frame of her turn drops a consonant the user had not finished.
+    // Later frames keep a loud consonant until the vowel that barges.
+    if (!state.wasSpeaking) {
+      onset.frames.length = 0;
+      onset.breath = false;
+    }
   } else {
+    if (state.wasSpeaking) {
+      onset.frames.length = 0;
+      onset.breath = false;
+    }
     onset.partial = null;
   }
 
@@ -328,8 +370,27 @@ export function gateLiveFrame(
   const decision = pushMicBuffer(frame, assistantSpeaking, state);
   if (decision === 'drop') {
     if (speaking) {
-      onset.partial =
-        state.nearRun > 0 ? speechKeptFrame(frame, assistantSpeaking, echoFloor) : null;
+      if (state.nearRun > 0) {
+        onset.partial = speechKeptFrame(frame, assistantSpeaking, echoFloor);
+        return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
+      }
+      onset.partial = null;
+      // The first buffers learn her level. A consonant there is still her voice.
+      const training = assistantSpeaking === true && state.speakBuffers <= MIC_GATE.echoTrainBuffers;
+      if (!training && !onset.breath) {
+        const lead = bargeOnsetFrame(frame, assistantSpeaking, echoFloor);
+        if (lead) {
+          if (onset.frames.length >= MIC_GATE.onsetFrames) {
+            onset.frames.length = 0;
+            onset.breath = true;
+            return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
+          }
+          onset.frames.push(lead);
+          return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
+        }
+      }
+      onset.frames.length = 0;
+      return { audio: [], silenceSamples: 0, barge: false, echoTailOpen: false };
     } else if (isOnsetFrame(frame)) {
       if (onset.breath) {
         return { audio: [], silenceSamples: frame.length, barge: false, echoTailOpen: false };
@@ -366,6 +427,9 @@ export function gateLiveFrame(
     // Never fall back to the raw frame: the rest of it is her voice.
     const kept = speechKeptFrame(frame, assistantSpeaking, echoFloor);
     audio = [];
+    if (!onset.breath) {
+      for (const lead of onset.frames) audio.push(lead);
+    }
     if (onset.partial) audio.push(onset.partial);
     if (kept) audio.push(kept);
     onset.partial = null;
