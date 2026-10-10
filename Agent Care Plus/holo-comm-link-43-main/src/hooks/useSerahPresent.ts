@@ -4,6 +4,7 @@ import {
   acceptCaption,
   createSerahLiveSession,
   fallbackListenDelayMs,
+  fallbackVoiceAllowed,
   type SerahLiveSession,
 } from "@care-plus/serah-live";
 
@@ -246,8 +247,8 @@ export function useSerahPresent() {
 
   const playReply = useCallback(
     async (reply: string, result: Awaited<ReturnType<typeof api.voiceTurn>>) => {
-      if (!reply.trim() || result.silent) {
-        setMode("idle");
+      if (!reply.trim() || result.silent || !fallbackVoiceAllowed()) {
+        setMode(liveActiveRef.current ? "listening" : "idle");
         return;
       }
       setMode("speaking");

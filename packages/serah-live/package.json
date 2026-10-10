@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "tsc --module nodenext --moduleResolution nodenext --target es2022 --outDir .test-out --skipLibCheck src/micGate.ts src/playbackHold.ts src/captionGate.ts && node --test src/micGate.test.mjs src/playbackHold.test.mjs src/captionGate.test.mjs",
+    "test": "tsc --module nodenext --moduleResolution nodenext --target es2022 --outDir .test-out --skipLibCheck src/micGate.ts src/playbackHold.ts src/captionGate.ts src/liveSession.ts && node --test src/micGate.test.mjs src/playbackHold.test.mjs src/captionGate.test.mjs src/liveSession.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'serah-live: ok'"
   },
