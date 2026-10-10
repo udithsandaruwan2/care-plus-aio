@@ -282,6 +282,22 @@ describe('gateLiveFrame', () => {
     assert.ok(frameRms(barge.audio[0].subarray(512)) > 0.05);
   });
 
+  it('keeps the consonant that shares the barge frame with the vowel', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const frame = new Float32Array(wire);
+    frame.set(fricative(0.2).subarray(0, 512));
+    frame.set(vowel(0.28).subarray(0, wire - 512), 512);
+    const barge = gateLiveFrame(frame, true, state, onset);
+    assert.equal(barge.barge, true);
+    const kept = barge.audio[barge.audio.length - 1];
+    assert.ok(frameRms(kept.subarray(0, 512)) > 0.02);
+    assert.ok(frameRms(kept.subarray(512)) > 0.05);
+  });
+
   it('still barges when a later hop in the same frame raises the echo floor', () => {
     const state = createMicGateState();
     const onset = createOnsetQueue();
