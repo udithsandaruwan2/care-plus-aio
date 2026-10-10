@@ -106,6 +106,36 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(vowel(0.28), 'echo-tail', state), 'send');
   });
 
+  it('keeps a vowel that starts in one frame and ends in the next', () => {
+    const tail = new Float32Array(2048);
+    const head = new Float32Array(2048);
+    const voice = vowel(0.06);
+    tail.set(voice.subarray(0, 1024), 1024);
+    head.set(voice.subarray(0, 1024), 0);
+    const state = createMicGateState();
+    assert.equal(pushMicBuffer(tail, false, state), 'drop');
+    assert.equal(pushMicBuffer(head, false, state), 'send');
+
+    const broken = createMicGateState();
+    assert.equal(pushMicBuffer(tail, false, broken), 'drop');
+    assert.equal(pushMicBuffer(breath(0.35).subarray(0, 2048), false, broken), 'drop');
+    assert.equal(pushMicBuffer(head, false, broken), 'drop');
+  });
+
+  it('barges when the nearer voice crosses a frame', () => {
+    const state = createMicGateState();
+    const bleed = vowel(0.05);
+    assert.equal(pushMicBuffer(bleed, true, state), 'drop');
+    assert.equal(pushMicBuffer(bleed, true, state), 'drop');
+    const tail = new Float32Array(2048);
+    const head = new Float32Array(2048);
+    const user = vowel(0.28);
+    tail.set(user.subarray(0, 1024), 1024);
+    head.set(user.subarray(0, 1024), 0);
+    assert.equal(pushMicBuffer(tail, true, state), 'drop');
+    assert.equal(pushMicBuffer(head, true, state), 'barge');
+  });
+
   it('keeps the consonant after a vowel and still drops the inhale', () => {
     const state = createMicGateState();
     assert.equal(pushMicBuffer(fricative(0.12), false, state), 'drop');
