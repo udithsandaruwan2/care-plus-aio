@@ -347,6 +347,38 @@ describe('gateLiveFrame', () => {
     assert.equal(barge.audio.length, 2);
     assert.ok(frameRms(barge.audio[0]) > 0.02);
 
+    const gapped = createMicGateState();
+    const gapQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, gapped, gapQueue);
+    gateLiveFrame(bleed, true, gapped, gapQueue);
+    gateLiveFrame(fricative(0.2).subarray(0, wire), true, gapped, gapQueue);
+    const between = gateLiveFrame(bleed, true, gapped, gapQueue);
+    assert.equal(between.audio.length, 0);
+    assert.equal(gapQueue.frames.length, 1);
+    const afterGap = gateLiveFrame(vowel(0.28).subarray(0, wire), true, gapped, gapQueue);
+    assert.equal(afterGap.barge, true);
+    assert.equal(afterGap.audio.length, 2);
+
+    const inhaledGap = createMicGateState();
+    const inhaleQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, inhaledGap, inhaleQueue);
+    gateLiveFrame(bleed, true, inhaledGap, inhaleQueue);
+    gateLiveFrame(fricative(0.2).subarray(0, wire), true, inhaledGap, inhaleQueue);
+    gateLiveFrame(breath(0.35).subarray(0, wire), true, inhaledGap, inhaleQueue);
+    assert.equal(inhaleQueue.frames.length, 0);
+    const afterInhale = gateLiveFrame(vowel(0.28).subarray(0, wire), true, inhaledGap, inhaleQueue);
+    assert.equal(afterInhale.audio.length, 1);
+
+    const stale = createMicGateState();
+    const staleQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, stale, staleQueue);
+    gateLiveFrame(bleed, true, stale, staleQueue);
+    gateLiveFrame(fricative(0.2).subarray(0, wire), true, stale, staleQueue);
+    gateLiveFrame(bleed, true, stale, staleQueue);
+    gateLiveFrame(bleed, true, stale, staleQueue);
+    gateLiveFrame(bleed, true, stale, staleQueue);
+    assert.equal(staleQueue.frames.length, 0);
+
     const inhaled = createMicGateState();
     const breathQueue = createOnsetQueue();
     gateLiveFrame(bleed, true, inhaled, breathQueue);
