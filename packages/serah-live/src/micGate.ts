@@ -282,17 +282,24 @@ function speechKeptFrame(
 ): Float32Array | null {
   const echoTail = assistantSpeaking === 'echo-tail';
   const hop = MIC_GATE.hop;
-  const margin = Math.max(MIC_GATE.bargeRms, echoFloor * MIC_GATE.echoMargin);
   const out = new Float32Array(frame.length);
   let kept = 0;
+  let floor = echoFloor;
   for (let offset = 0; offset + hop <= frame.length; offset += hop) {
     const info = analyzeHop(frame, offset, hop);
+    const margin = Math.max(MIC_GATE.bargeRms, floor * MIC_GATE.echoMargin);
     const take = echoTail
       ? (info.voiced && info.rms >= margin) || (info.consonant && info.rms >= margin)
       : info.voiced && info.rms >= margin;
-    if (!take) continue;
-    for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
-    kept += 1;
+    if (take) {
+      for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
+      kept += 1;
+      continue;
+    }
+    // Same floor update as pushMicBuffer. A later loud hop must not erase
+    // a nearer hop that already cleared the floor it was measured against.
+    const userLevel = info.voiced && info.rms >= MIC_GATE.bargeRms;
+    if (!userLevel) floor = floor * 0.82 + info.rms * 0.18;
   }
   return kept > 0 ? out : null;
 }
@@ -354,9 +361,9 @@ export function gateLiveFrame(
 
   let audio: Float32Array[];
   if (speaking) {
-    // The floor after this frame. A hop that counted as near still passes.
+    // Floor at the start of the frame. Each hop is judged as it was heard.
     // Never fall back to the raw frame: the rest of it is her voice.
-    const kept = speechKeptFrame(frame, assistantSpeaking, state.echoFloor);
+    const kept = speechKeptFrame(frame, assistantSpeaking, echoFloor);
     audio = [];
     if (onset.partial) audio.push(onset.partial);
     if (kept) audio.push(kept);

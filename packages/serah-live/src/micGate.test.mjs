@@ -270,6 +270,23 @@ describe('gateLiveFrame', () => {
     assert.equal(frameRms(barge.audio[0].subarray(0, 512)), 0);
     assert.ok(frameRms(barge.audio[0].subarray(512)) > 0.05);
   });
+
+  it('still barges when a later hop in the same frame raises the echo floor', () => {
+    const state = createMicGateState();
+    const onset = createOnsetQueue();
+    const bleed = vowel(0.05).subarray(0, wire);
+    gateLiveFrame(bleed, true, state, onset);
+    gateLiveFrame(bleed, true, state, onset);
+    const frame = new Float32Array(wire);
+    frame.set(vowel(0.14).subarray(0, 512 * 3));
+    frame.set(fricative(1.4).subarray(0, 512), 512 * 3);
+    const barge = gateLiveFrame(frame, true, state, onset);
+    assert.equal(barge.barge, true);
+    assert.ok(barge.audio.length > 0);
+    const kept = barge.audio[barge.audio.length - 1];
+    assert.ok(frameRms(kept.subarray(0, 512 * 3)) > 0.05);
+    assert.equal(frameRms(kept.subarray(512 * 3)), 0);
+  });
 });
 
 describe('resample', () => {
