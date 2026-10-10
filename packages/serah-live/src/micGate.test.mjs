@@ -91,6 +91,16 @@ describe('pushMicBuffer', () => {
     assert.equal(pushMicBuffer(vowel(0.28), true, state), 'barge');
   });
 
+  it('sends a short consonant once the barge vowel has opened', () => {
+    const state = createMicGateState();
+    assert.equal(pushMicBuffer(vowel(0.28), 'echo-tail', state), 'send');
+    const frame = new Float32Array(N);
+    frame.set(fricative(0.2).subarray(0, 1024));
+    assert.equal(pushMicBuffer(frame, 'echo-tail', state), 'send');
+    assert.equal(pushMicBuffer(new Float32Array(N), 'echo-tail', state), 'drop');
+    assert.equal(pushMicBuffer(fricative(0.2), 'echo-tail', state), 'drop');
+  });
+
   it('keeps the consonant of a barge during the echo tail and still drops her bleed', () => {
     const state = createMicGateState();
     assert.equal(pushMicBuffer(vowel(0.28), 'echo-tail', state), 'send');
