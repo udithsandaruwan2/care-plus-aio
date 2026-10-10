@@ -379,6 +379,15 @@ describe('gateLiveFrame', () => {
     gateLiveFrame(bleed, true, stale, staleQueue);
     assert.equal(staleQueue.frames.length, 0);
 
+    const loudLead = createMicGateState();
+    const loudQueue = createOnsetQueue();
+    gateLiveFrame(bleed, true, loudLead, loudQueue);
+    gateLiveFrame(bleed, true, loudLead, loudQueue);
+    gateLiveFrame(fricative(0.35).subarray(0, wire), true, loudLead, loudQueue);
+    const afterLoud = gateLiveFrame(vowel(0.28).subarray(0, wire), true, loudLead, loudQueue);
+    assert.equal(afterLoud.barge, true);
+    assert.equal(afterLoud.audio.length, 2);
+
     const inhaled = createMicGateState();
     const breathQueue = createOnsetQueue();
     gateLiveFrame(bleed, true, inhaled, breathQueue);
