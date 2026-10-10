@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  shouldArmFallbackBargeMic,
   shouldListenAfterBarge,
   shouldPlayCutOffAfterBarge,
   shouldRearmFallbackMic,
@@ -37,6 +38,8 @@ describe('shouldReopenMicAfterSpeech', () => {
     ).toBe(true);
     expect(shouldListenAfterBarge({ conversationOn: true, liveActive: false })).toBe(true);
     expect(shouldListenAfterBarge({ conversationOn: true, liveActive: true })).toBe(false);
+    expect(shouldArmFallbackBargeMic(false)).toBe(true);
+    expect(shouldArmFallbackBargeMic(true)).toBe(false);
     expect(shouldPlayCutOffAfterBarge(true)).toBe(false);
     expect(shouldPlayCutOffAfterBarge(false)).toBe(true);
   });

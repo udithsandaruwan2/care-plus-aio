@@ -24,6 +24,7 @@ import { uiLanguageToRecognition } from './uiVoiceLanguage';
 import { orbVisualState, type OrbVisualState } from './NeuralOrb';
 import { startBargeInWatch } from './bargeIn';
 import {
+  shouldArmFallbackBargeMic,
   shouldListenAfterBarge,
   shouldRearmFallbackMic,
   shouldReopenMicAfterSpeech,
@@ -312,6 +313,7 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = subscribeSerahSpeaking((active) => {
       if (active) {
+        if (!shouldArmFallbackBargeMic(liveActiveRef.current)) return;
         clearSpeakerTail();
         bargedRef.current = false;
         bargeStopRef.current?.();
@@ -325,6 +327,10 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
           }
           void recorder.stop();
           await mic.start({ nearField: true });
+          if (!shouldArmFallbackBargeMic(liveActiveRef.current)) {
+            mic.stop();
+            return;
+          }
           const s = useAssistant.getState().state;
           if (
             s !== AssistantState.RESULTS &&
@@ -491,13 +497,26 @@ export function SerahEngineProvider({ children }: { children: ReactNode }) {
     silenceStopRef.current = null;
 
     // Prefer Gemini Live; fall back to Web Speech + HTTP turn.
+    // Hold the fallback mic during connect. Live often takes longer than the
+    // speaker tail, and that tail would otherwise open a second mic onto her.
+    liveActiveRef.current = true;
     const liveOk = await startLive({
       uiLanguage: store.uiLanguage as 'English' | 'Tamil' | 'Sinhala',
     });
     if (liveOk) {
+      clearRearmTimer();
+      clearSpeakerTail();
+      bargeStopRef.current?.();
+      bargeStopRef.current = null;
+      silenceStopRef.current?.();
+      silenceStopRef.current = null;
+      speech.stop();
+      mic.stop();
+      void recorder.stop();
       setState(AssistantState.LISTENING, { force: true });
       return;
     }
+    liveActiveRef.current = false;
 
     await mic.start();
     await recorder.start();
