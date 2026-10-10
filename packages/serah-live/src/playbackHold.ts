@@ -124,6 +124,21 @@ export function micAfterBarge(now: number): {
   return { userHasFloor: false, turnOpen: false, echoTailUntil: now + ECHO_TAIL_MS };
 }
 
+/**
+ * The model can mark the turn complete while the speakers are still playing.
+ * Clearing the lock here makes the next chunk gap open the mic onto her voice.
+ * Keep it until playback itself stops. If she is already quiet, the echo tail
+ * may open, unless the user already has the floor.
+ */
+export function micAfterTurnComplete(opts: {
+  playerSpeaking: boolean;
+  userHasFloor: boolean;
+}): { turnOpen: boolean; armEchoTail: boolean } {
+  if (opts.playerSpeaking) return { turnOpen: true, armEchoTail: false };
+  if (!opts.userHasFloor) return { turnOpen: false, armEchoTail: true };
+  return { turnOpen: false, armEchoTail: false };
+}
+
 /** What the mic should do when playback reports that she stopped. */
 export function micAfterPlaybackStop(opts: {
   userHasFloor: boolean;

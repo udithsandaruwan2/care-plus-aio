@@ -15,6 +15,7 @@ import {
   echoTailShouldInterrupt,
   micAfterBarge,
   micAfterPlaybackStop,
+  micAfterTurnComplete,
   notePlaybackPull,
   playbackStalled,
   pollSpeakingStopped,
@@ -56,6 +57,27 @@ describe('resamplePlayback', () => {
     assert.ok(stretched[stretched.length - 1] > 0.9);
     const flat = resamplePlayback([0.4, 0.4, 0.4, 0.4], 24000, 48000);
     assert.ok(flat.every((sample) => Math.abs(sample - 0.4) < 1e-6));
+  });
+});
+
+describe('micAfterTurnComplete', () => {
+  it('keeps the mic closed while her audio is still playing', () => {
+    const still = micAfterTurnComplete({ playerSpeaking: true, userHasFloor: false });
+    assert.equal(still.turnOpen, true);
+    assert.equal(still.armEchoTail, false);
+    assert.equal(replyMicMode(false, false, still.turnOpen, 1000, 0), true);
+    assert.equal(
+      micAfterPlaybackStop({ userHasFloor: false, turnOpen: still.turnOpen, audible: true }),
+      'gap',
+    );
+
+    const done = micAfterTurnComplete({ playerSpeaking: false, userHasFloor: false });
+    assert.equal(done.turnOpen, false);
+    assert.equal(done.armEchoTail, true);
+
+    const floor = micAfterTurnComplete({ playerSpeaking: false, userHasFloor: true });
+    assert.equal(floor.turnOpen, false);
+    assert.equal(floor.armEchoTail, false);
   });
 });
 
