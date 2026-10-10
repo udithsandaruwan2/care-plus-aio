@@ -530,6 +530,23 @@ describe('gateLiveFrame', () => {
     assert.ok(softer.audio.length > 0);
   });
 
+  it('strips an inhale that shares the vowel frame', () => {
+    const frame = new Float32Array(wire);
+    frame.set(highpass(breath(0.35), 80).subarray(0, 512), 0);
+    frame.set(vowel(0.12).subarray(512, wire), 512);
+    const emit = gateLiveFrame(frame, false, createMicGateState(), createOnsetQueue());
+    assert.equal(emit.audio.length, 1);
+    assert.equal(frameRms(emit.audio[0].subarray(0, 512)), 0);
+    assert.ok(frameRms(emit.audio[0].subarray(512, 1024)) > 0.04);
+    const raw = new Float32Array(wire);
+    raw.set(breath(0.35).subarray(0, 512), 0);
+    raw.set(vowel(0.12).subarray(512, wire), 512);
+    const withRumble = gateLiveFrame(raw, false, createMicGateState(), createOnsetQueue());
+    assert.equal(withRumble.audio.length, 1);
+    assert.equal(frameRms(withRumble.audio[0].subarray(0, 512)), 0);
+    assert.ok(frameRms(withRumble.audio[0].subarray(512, 1024)) > 0.04);
+  });
+
   it('drops an inhale whose rumble was already filtered out', () => {
     const state = createMicGateState();
     const onset = createOnsetQueue();

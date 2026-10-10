@@ -493,7 +493,10 @@ export function gateLiveFrame(
     if (kept) audio.push(kept);
     onset.partial = null;
   } else {
-    audio = onset.breath ? [frame] : onset.frames.concat(frame);
+    // The vowel opened the turn. Hops that are not speech are the inhale
+    // sharing this frame, and the raw frame would send them with the word.
+    const kept = keepSpeechHops(frame);
+    audio = onset.breath ? [kept] : onset.frames.map((lead) => keepSpeechHops(lead)).concat(kept);
   }
   onset.frames.length = 0;
   onset.breath = false;
@@ -504,6 +507,18 @@ export function gateLiveFrame(
     barge: decision === 'barge' && heard,
     echoTailOpen: decision === 'send' && assistantSpeaking === 'echo-tail' && heard,
   };
+}
+
+/** Voiced and consonant hops only. A breath in the same frame stays silent. */
+function keepSpeechHops(frame: Float32Array): Float32Array {
+  const hop = MIC_GATE.hop;
+  const out = new Float32Array(frame.length);
+  for (let offset = 0; offset + hop <= frame.length; offset += hop) {
+    const info = analyzeHop(frame, offset, hop);
+    if (!info.voiced && !info.consonant) continue;
+    for (let i = 0; i < hop; i++) out[offset + i] = frame[offset + i] ?? 0;
+  }
+  return out;
 }
 
 function analyzeHop(
