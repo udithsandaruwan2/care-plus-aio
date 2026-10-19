@@ -79,11 +79,19 @@ export function useSerahLiveBridge() {
             store.setState(AssistantState.CHAT_REPLY, { force: true });
           }
         },
-        onTool: (_name, status) => {
+        onTool: (name, status) => {
           const store = useAssistant.getState();
           if (status === 'running') {
             store.setState(AssistantState.THINKING, { force: true });
-            store.setMatching(true);
+            // Only the match tool should open the VEHMF rail. The bar caps at 90%
+            // until matching clears; leaving it up after a clarify/chat turn looks stuck.
+            if (name === 'serah_voice_turn') {
+              store.setMatching(true);
+            }
+            return;
+          }
+          if (status === 'done' && store.matching && !store.match?.results?.length) {
+            store.setMatching(false);
           }
         },
         onMatch: applyMatch,
