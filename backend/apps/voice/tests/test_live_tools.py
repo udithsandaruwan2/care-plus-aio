@@ -5,7 +5,11 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 
-from apps.voice.live_tools import run_clear_session_sync, run_serah_voice_turn_sync
+from apps.voice.live_tools import (
+    _json_safe_match,
+    run_clear_session_sync,
+    run_serah_voice_turn_sync,
+)
 
 User = get_user_model()
 
@@ -45,3 +49,33 @@ class LiveToolsTests(TestCase):
         out = run_clear_session_sync(user=self.user)
         self.assertTrue(out["ok"])
         self.assertTrue(out["cleared"])
+
+    def test_match_payload_keeps_factor_breakdown(self):
+        packed = _json_safe_match(
+            {
+                "request_id": 9,
+                "latency_ms": 12,
+                "query": "diabetes care",
+                "emergency": False,
+                "weights": {"cbf": 0.3, "cf": 0.2, "geo": 0.3, "trust": 0.2},
+                "results": [
+                    {
+                        "caregiver_id": 1,
+                        "rank": 1,
+                        "score": 0.91,
+                        "breakdown": {"cbf": 0.9, "cf": 0.4, "geo": 0.5, "trust": 0.7},
+                        "display_name": "Nimal",
+                        "specialties": ["Diabetes"],
+                        "languages": ["Sinhala"],
+                        "care_levels": ["home"],
+                        "explanation": "Strong skills match",
+                    }
+                ],
+            }
+        )
+        self.assertIsNotNone(packed)
+        assert packed is not None
+        self.assertEqual(packed["weights"]["cbf"], 0.3)
+        hit = packed["results"][0]
+        self.assertEqual(hit["breakdown"]["cbf"], 0.9)
+        self.assertEqual(hit["languages"], ["Sinhala"])

@@ -58,15 +58,26 @@ export type LiveMatchPayload = {
   latency_ms?: number;
   query?: string;
   emergency?: boolean;
+  weights?: { cbf?: number; cf?: number; geo?: number; trust?: number };
+  refined?: boolean;
   results?: Array<{
     caregiver_id?: number;
     rank?: number;
     score?: number;
+    breakdown?: { cbf?: number; cf?: number; geo?: number; trust?: number };
     display_name?: string;
     specialties?: string[];
+    languages?: string[];
+    care_levels?: string[];
     distance_m?: number | null;
     explanation?: string;
     trust_score?: number | null;
+    is_available?: boolean;
+    photo_url?: string | null;
+    age?: number | null;
+    previous_rank?: number | null;
+    rank_delta?: number | null;
+    was_exploratory?: boolean;
   }>;
 } | null;
 

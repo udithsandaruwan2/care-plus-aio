@@ -189,7 +189,7 @@ function MatchCard({
         </div>
         <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-full border-2 border-cyan/40 bg-cyan/10">
           <p className="font-display text-base font-bold leading-none text-cyan">
-            {(hit.score * 100).toFixed(0)}
+            {Number.isFinite(hit.score) ? (hit.score * 100).toFixed(0) : '—'}
           </p>
           <p className="mt-0.5 text-[8px] uppercase tracking-wide text-muted">{ui.score}</p>
         </div>
@@ -207,7 +207,7 @@ function MatchCard({
         >
           {openFactors ? 'Hide VEHMF factors' : 'Show VEHMF factors'}
         </button>
-        {openFactors ? (
+        {openFactors && hit.breakdown ? (
           <div
             className="absolute left-0 right-0 top-full z-20 mt-1 space-y-1.5 rounded-xl border border-hair bg-panel p-3 shadow-lg"
             role="region"

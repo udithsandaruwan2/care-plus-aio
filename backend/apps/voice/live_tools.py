@@ -74,6 +74,17 @@ LIVE_TOOL_DECLARATIONS = [
 ]
 
 
+def _factor_breakdown(raw: object | None) -> dict[str, float]:
+    src = raw if isinstance(raw, dict) else {}
+    out: dict[str, float] = {}
+    for key in ("cbf", "cf", "geo", "trust"):
+        try:
+            out[key] = float(src.get(key) or 0.0)
+        except (TypeError, ValueError):
+            out[key] = 0.0
+    return out
+
+
 def _json_safe_match(match: dict | None) -> dict | None:
     if not match:
         return None
@@ -86,18 +97,29 @@ def _json_safe_match(match: dict | None) -> dict | None:
                 "caregiver_id": row.get("caregiver_id"),
                 "rank": row.get("rank"),
                 "score": row.get("score"),
-                "display_name": row.get("display_name"),
+                "breakdown": _factor_breakdown(row.get("breakdown")),
+                "display_name": row.get("display_name") or "",
                 "specialties": row.get("specialties") or [],
+                "languages": row.get("languages") or [],
+                "care_levels": row.get("care_levels") or [],
                 "distance_m": row.get("distance_m"),
                 "explanation": (row.get("explanation") or "")[:240],
                 "trust_score": row.get("trust_score"),
+                "is_available": bool(row.get("is_available", True)),
+                "photo_url": row.get("photo_url"),
+                "age": row.get("age"),
+                "previous_rank": row.get("previous_rank"),
+                "rank_delta": row.get("rank_delta"),
+                "was_exploratory": bool(row.get("was_exploratory", False)),
             }
         )
     return {
         "request_id": match.get("request_id"),
-        "latency_ms": match.get("latency_ms"),
+        "latency_ms": match.get("latency_ms") or 0,
         "query": match.get("query") or "",
         "emergency": bool(match.get("emergency")),
+        "weights": _factor_breakdown(match.get("weights")),
+        "refined": bool(match.get("refined")),
         "results": results,
     }
 

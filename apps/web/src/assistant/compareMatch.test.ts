@@ -25,6 +25,25 @@ describe('comparativeMatchLine', () => {
     ).toBeNull();
   });
 
+  it('stays quiet when Live omitted the factor breakdown', () => {
+    expect(
+      comparativeMatchLine(
+        hit({
+          display_name: 'Nimal',
+          score: 0.91,
+          breakdown: undefined as unknown as MatchHit['breakdown'],
+        }),
+        hit({
+          display_name: 'Kamal',
+          score: 0.8,
+          rank: 2,
+          caregiver_id: 2,
+          breakdown: { cbf: 0.5, cf: 0.4, geo: 0.5, trust: 0.7 },
+        }),
+      ),
+    ).toBeNull();
+  });
+
   it('names the strongest factor advantage', () => {
     const line = comparativeMatchLine(
       hit({

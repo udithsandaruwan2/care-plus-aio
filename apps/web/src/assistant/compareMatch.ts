@@ -12,11 +12,14 @@ const FACTOR_LABELS: Record<keyof MatchBreakdown, string> = {
  */
 export function comparativeMatchLine(top: MatchHit, second: MatchHit | undefined): string | null {
   if (!second) return null;
+  const topBreakdown = top.breakdown;
+  const secondBreakdown = second.breakdown;
+  if (!topBreakdown || !secondBreakdown) return null;
   const keys = Object.keys(FACTOR_LABELS) as (keyof MatchBreakdown)[];
   let bestKey: keyof MatchBreakdown | null = null;
   let bestDelta = 0;
   for (const key of keys) {
-    const delta = (top.breakdown[key] ?? 0) - (second.breakdown[key] ?? 0);
+    const delta = (topBreakdown[key] ?? 0) - (secondBreakdown[key] ?? 0);
     if (delta > bestDelta) {
       bestDelta = delta;
       bestKey = key;
