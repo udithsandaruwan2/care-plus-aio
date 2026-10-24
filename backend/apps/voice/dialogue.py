@@ -143,6 +143,8 @@ _NO_MATCH_SALVAGE = {
     "describe_caregiver",
     "select_package",
     "confirm_checkout",
+    "book_shift",
+    "submit_request",
     "empty",
     "emergency",
 }

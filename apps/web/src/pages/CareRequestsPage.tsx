@@ -53,6 +53,16 @@ export function CareRequestsPage() {
     }
   }, [user?.role, load]);
 
+  const pendingOutboxIds = pendingRequests
+    .filter((i) => i.status === 'pending' || i.status === 'sending')
+    .map((i) => i.id)
+    .join(',');
+
+  useEffect(() => {
+    if (!pendingOutboxIds || typeof navigator === 'undefined' || !navigator.onLine) return;
+    void flushOutbox().then(() => load());
+  }, [pendingOutboxIds, load]);
+
   async function onAccept(id: number) {
     setBusyId(id);
     try {

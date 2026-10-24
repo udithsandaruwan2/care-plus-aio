@@ -104,6 +104,21 @@ class RouterActionFixtureTests(SimpleTestCase):
         d = classify_turn("send the request", COMPLETE, has_prior_match=True)
         self.assertEqual(d.route, "ACTION")
         self.assertEqual(d.situation, "request")
+        for phrase in ("book the caregiver", "booking", "book them", "request this caregiver"):
+            got = classify_turn(phrase, COMPLETE, has_prior_match=True)
+            self.assertEqual(got.situation, "request", phrase)
+
+    def test_view_profile_plain_phrase(self):
+        d = classify_turn("view profile", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "view_profile")
+
+    def test_schedule_phrase(self):
+        d = classify_turn("show the schedule", COMPLETE, has_prior_match=True)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "book_shift")
+        d2 = classify_turn("book a visit", COMPLETE, has_prior_match=True)
+        self.assertEqual(d2.situation, "book_shift")
 
     def test_tell_me_more_is_describe(self):
         d = classify_turn("tell me more about them", COMPLETE, has_prior_match=True)

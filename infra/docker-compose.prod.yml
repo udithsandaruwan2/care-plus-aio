@@ -44,10 +44,11 @@ services:
     logging: *default-logging
 
   backend:
-    image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
+    image: ${CAREPLUS_IMAGE:-care-plus-backend:latest}
+    build: ../backend
     restart: unless-stopped
     command:
-      ['uvicorn', 'careplus.asgi:application', '--host', '0.0.0.0', '--port', '8000', '--workers', '2']
+      ['uvicorn', 'careplus.asgi:application', '--host', '0.0.0.0', '--port', '8000', '--workers', '1']
     env_file:
       - ../.env
     environment:
@@ -59,6 +60,7 @@ services:
     volumes:
       - ml_data:/ml
       - ../config:/config:ro
+      - ../backend/careplus/settings/prod.py:/app/careplus/settings/prod.py:ro
     ports:
       - '127.0.0.1:8000:8000'
     depends_on:
@@ -75,9 +77,10 @@ services:
     logging: *default-logging
 
   worker:
-    image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
+    image: ${CAREPLUS_IMAGE:-care-plus-backend:latest}
+    build: ../backend
     restart: unless-stopped
-    command: ['celery', '-A', 'careplus', 'worker', '-l', 'info']
+    command: ['celery', '-A', 'careplus', 'worker', '-l', 'info', '--concurrency', '1']
     env_file:
       - ../.env
     environment:
@@ -96,7 +99,8 @@ services:
     logging: *default-logging
 
   beat:
-    image: ${CAREPLUS_IMAGE:-ghcr.io/udithsandaruwan2/care-plus-backend:latest}
+    image: ${CAREPLUS_IMAGE:-care-plus-backend:latest}
+    build: ../backend
     restart: unless-stopped
     command: ['celery', '-A', 'careplus', 'beat', '-l', 'info']
     env_file:
@@ -128,6 +132,7 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:-ops@localhost}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../apps/web/dist:/srv/web:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

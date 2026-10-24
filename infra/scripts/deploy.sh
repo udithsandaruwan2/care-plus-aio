@@ -15,8 +15,10 @@ if [[ -n "${GHCR_TOKEN:-}" && -n "${GHCR_USER:-}" ]]; then
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 fi
 
-"${COMPOSE[@]}" pull
-"${COMPOSE[@]}" up -d --remove-orphans
+if [[ "${SKIP_PULL:-0}" != "1" ]]; then
+  "${COMPOSE[@]}" pull
+fi
+"${COMPOSE[@]}" up -d --remove-orphans --no-build
 "${COMPOSE[@]}" run --rm --no-deps backend python manage.py migrate --noinput
 
 echo "waiting for health…"

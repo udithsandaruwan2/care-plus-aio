@@ -14,14 +14,22 @@ export type ChatMessage = {
   route?: string;
 };
 
-/** Booking funnel stage: idle → profile → requested|awaiting_accept → packages → pay. */
+/** Booking funnel: idle → profile → compose → requested|awaiting_accept → schedule → packages → pay. */
 export type BookingStage =
   | 'idle'
   | 'profile'
+  | 'compose'
   | 'requested'
   | 'awaiting_accept'
+  | 'schedule'
   | 'packages'
   | 'pay';
+
+export type ComposeDraft = {
+  caregiverId: number | null;
+  fullText: string;
+  autoSubmit: boolean;
+};
 
 /** TTS depth when the Serah profile drawer opens. */
 export type ProfileNarrateMode = 'brief' | 'detail';
@@ -81,6 +89,8 @@ type AssistantStore = {
   profileNarrateMode: ProfileNarrateMode | null;
   /** Package / days / add-ons chosen by voice before pay. */
   checkoutDraft: CheckoutDraft;
+  /** Care-request note Serah types on the side card. */
+  composeDraft: ComposeDraft;
 
   setState: (next: AssistantState, opts?: { force?: boolean }) => void;
   setIntentField: (field: GoalField | 'urgency', value: string) => void;
@@ -104,6 +114,8 @@ type AssistantStore = {
   clearProfileNarrate: () => void;
   setCheckoutDraft: (partial: Partial<CheckoutDraft>) => void;
   resetCheckoutDraft: () => void;
+  setComposeDraft: (partial: Partial<ComposeDraft>) => void;
+  resetComposeDraft: () => void;
   reset: () => void;
 };
 
@@ -127,6 +139,7 @@ const initial = {
   bookingStage: 'idle' as BookingStage,
   profileNarrateMode: null as ProfileNarrateMode | null,
   checkoutDraft: emptyCheckoutDraft(),
+  composeDraft: { caregiverId: null, fullText: '', autoSubmit: false } as ComposeDraft,
 };
 
 export const useAssistant = create<AssistantStore>((set, get) => ({
@@ -181,6 +194,10 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
   setCheckoutDraft: (partial) =>
     set((s) => ({ checkoutDraft: { ...s.checkoutDraft, ...partial } })),
   resetCheckoutDraft: () => set({ checkoutDraft: emptyCheckoutDraft() }),
+  setComposeDraft: (partial) =>
+    set((s) => ({ composeDraft: { ...s.composeDraft, ...partial } })),
+  resetComposeDraft: () =>
+    set({ composeDraft: { caregiverId: null, fullText: '', autoSubmit: false } }),
 
   reset: () =>
     set({
@@ -188,6 +205,7 @@ export const useAssistant = create<AssistantStore>((set, get) => ({
       uiLanguage: get().uiLanguage,
       sessionLive: get().sessionLive,
       checkoutDraft: emptyCheckoutDraft(),
+      composeDraft: { caregiverId: null, fullText: '', autoSubmit: false },
     }),
 }));
 

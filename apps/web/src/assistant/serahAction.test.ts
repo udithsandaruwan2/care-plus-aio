@@ -139,13 +139,19 @@ describe('executeSerahAction request', () => {
     });
 
     expect(result?.ok).toBe(true);
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(useAssistant.getState().bookingStage).toBe('compose');
+    expect(useAssistant.getState().focusedCaregiverId).toBe(42);
+    expect(useAssistant.getState().composeDraft.fullText).toMatch(/Mohamed Rizwan/);
+
+    const submitted = await executeSerahAction({ type: 'submit_request' });
+    expect(submitted?.ok).toBe(true);
     expect(enqueue).toHaveBeenCalledOnce();
     expect(enqueue.mock.calls[0]?.[0]).toMatchObject({
       caregiver_id: 42,
       match_run_id: 99,
     });
     expect(useAssistant.getState().bookingStage).toBe('awaiting_accept');
-    expect(useAssistant.getState().focusedCaregiverId).toBe(42);
     expect(useAssistant.getState().careRequestId).toBe(501);
   });
 

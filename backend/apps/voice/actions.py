@@ -21,6 +21,8 @@ ACTION_SITUATIONS = frozenset(
         "select_package",
         "confirm_checkout",
         "cancel_flow",
+        "book_shift",
+        "submit_request",
     }
 )
 

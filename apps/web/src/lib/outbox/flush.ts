@@ -19,6 +19,30 @@ export function isPermanentFailure(err: unknown): boolean {
   return err instanceof ApiError && PERMANENT_HTTP.has(err.status);
 }
 
+function firstDetail(body: unknown): string | null {
+  if (typeof body === 'string' && body.trim()) return body;
+  if (Array.isArray(body) && body.length) return firstDetail(body[0]);
+  if (body && typeof body === 'object' && 'detail' in body) {
+    return firstDetail((body as { detail: unknown }).detail);
+  }
+  return null;
+}
+
+export function outboxErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    return firstDetail(err.body) || err.message;
+  }
+  if (err instanceof Error) return err.message;
+  return 'Request failed.';
+}
+
+/** Duplicate hire — already on the server, so the outbox item is done. */
+export function isAlreadyAppliedOutboxError(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return false;
+  if (err.status !== 400 && err.status !== 409) return false;
+  return /already exists|already (have|has) an active/i.test(outboxErrorMessage(err));
+}
+
 export function newIdempotencyKey(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -27,14 +51,7 @@ export function newIdempotencyKey(): string {
 }
 
 function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.body && typeof err.body === 'object' && err.body !== null && 'detail' in err.body) {
-      return String((err.body as { detail: unknown }).detail);
-    }
-    return err.message;
-  }
-  if (err instanceof Error) return err.message;
-  return 'Request failed.';
+  return outboxErrorMessage(err);
 }
 
 async function refreshStore(): Promise<void> {
@@ -95,6 +112,11 @@ export async function flushOne(item: OutboxItem): Promise<void> {
       promoteQueuedCareRequest(result as import('@care-plus/api-client').CareRequest);
     }
   } catch (err) {
+    if (isAlreadyAppliedOutboxError(err)) {
+      await outboxDelete(item.id);
+      await refreshStore();
+      return;
+    }
     if (isPermanentFailure(err)) {
       await outboxPut({
         ...item,
@@ -141,9 +163,11 @@ export async function flushOne(item: OutboxItem): Promise<void> {
 }
 
 let flushInFlight: Promise<void> | null = null;
+let flushStartedAt = 0;
 
 export async function flushOutbox(): Promise<void> {
-  if (flushInFlight) return flushInFlight;
+  if (flushInFlight && Date.now() - flushStartedAt < 20_000) return flushInFlight;
+  flushStartedAt = Date.now();
   flushInFlight = (async () => {
     const items = await outboxList();
     for (const item of items) {
@@ -184,9 +208,6 @@ async function enqueueAndMaybeSend(
     createdAt: now,
     updatedAt: now,
   };
-  await outboxPut(item);
-  await refreshStore();
-
   if (typeof navigator !== 'undefined' && navigator.onLine) {
     try {
       const result = await sendNow(id);
@@ -194,6 +215,11 @@ async function enqueueAndMaybeSend(
       await refreshStore();
       return { queued: false, result };
     } catch (err) {
+      if (isAlreadyAppliedOutboxError(err)) {
+        await outboxDelete(id);
+        await refreshStore();
+        return { queued: false, result: { already_applied: true } };
+      }
       if (isPermanentFailure(err)) {
         await outboxPut({
           ...item,
@@ -206,22 +232,18 @@ async function enqueueAndMaybeSend(
         throw err;
       }
       if (isNetworkError(err) || isTimeoutError(err)) {
+        await outboxPut(item);
+        await refreshStore();
         await registerOutboxSync();
         return { queued: true, item };
       }
-      // 5xx etc. — leave pending
-      await outboxPut({
-        ...item,
-        status: 'pending',
-        error: errorMessage(err),
-        updatedAt: Date.now(),
-      });
-      await refreshStore();
-      await registerOutboxSync();
-      return { queued: true, item };
+      // Unknown / parse errors after an online POST — do not leave a ghost queue row.
+      throw err;
     }
   }
 
+  await outboxPut(item);
+  await refreshStore();
   await registerOutboxSync();
   return { queued: true, item };
 }

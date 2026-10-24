@@ -143,7 +143,11 @@ export function HomePage() {
         </div>
       )}
 
-      <div className={`serah-stage${showMatchPanel ? ' is-searching' : ''}`}>
+      <div
+        className={`serah-stage${showMatchPanel ? ' is-searching' : ''}${
+          profileDrawerOpen ? ' has-profile-card' : ''
+        }`}
+      >
         <div className="serah-core-wrapper">
             <div className="serah-neural-field">
               <NeuralOrb
@@ -271,6 +275,7 @@ export function HomePage() {
             />
           </div>
         ) : null}
+        <CaregiverProfileDrawer />
       </div>
 
       <div className="serah-hud-bottom">
@@ -387,7 +392,6 @@ export function HomePage() {
       </div>
 
       {import.meta.env.DEV && !showMatchPanel && <StateStepper />}
-      <CaregiverProfileDrawer />
     </div>
   );
 }
