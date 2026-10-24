@@ -82,12 +82,21 @@ describe('resolveCaregiverFromMatch', () => {
     expect(resolveCaregiverFromMatch(results, { rank: 2 })?.caregiver_id).toBe(20);
     expect(resolveCaregiverFromMatch(results, { caregiverId: 10 })?.rank).toBe(1);
     expect(resolveCaregiverFromMatch(results, { nameQuery: 'rizwan' })?.caregiver_id).toBe(10);
+    expect(resolveCaregiverFromMatch(results, { nameQuery: 'rizwann' })?.caregiver_id).toBe(10);
     expect(
       resolveCaregiverFromAction(results, {
         type: 'request',
         caregiver_id: null,
         rank: null,
         name_query: '',
+      })?.rank,
+    ).toBe(1);
+    expect(
+      resolveCaregiverFromAction(results, {
+        type: 'view_profile',
+        caregiver_id: null,
+        rank: null,
+        name_query: 'i to of arun',
       })?.rank,
     ).toBe(1);
   });

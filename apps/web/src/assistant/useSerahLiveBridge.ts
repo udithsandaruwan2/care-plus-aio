@@ -36,6 +36,17 @@ export function useSerahLiveBridge() {
   const epochRef = useRef(0);
   const lastLiveActionAtRef = useRef(0);
 
+  const maybeRunInferredAction = useCallback((text: string) => {
+    const store = useAssistant.getState();
+    if (!store.match?.results?.length) return;
+    const guessed = inferPostMatchAction(text);
+    if (!guessed) return;
+    window.setTimeout(() => {
+      if (Date.now() - lastLiveActionAtRef.current < 1400) return;
+      void executeSerahAction(guessed);
+    }, 250);
+  }, []);
+
   const applyMatch = useCallback((payload: LiveMatchPayload, cleared?: boolean) => {
     const store = useAssistant.getState();
     if (cleared || !payload) {
@@ -71,15 +82,7 @@ export function useSerahLiveBridge() {
             store.setInterim('');
             store.appendChat({ role: 'user', text: text.trim() });
             store.setTranscript(text.trim());
-            if (store.match?.results?.length) {
-              const guessed = inferPostMatchAction(text.trim());
-              if (guessed) {
-                window.setTimeout(() => {
-                  if (Date.now() - lastLiveActionAtRef.current < 1400) return;
-                  void executeSerahAction(guessed);
-                }, 700);
-              }
-            }
+            maybeRunInferredAction(text.trim());
           } else {
             store.setInterim(text);
           }
@@ -90,21 +93,28 @@ export function useSerahLiveBridge() {
           if (final) {
             store.appendChat({ role: 'assistant', text: text.trim() });
             store.setState(AssistantState.CHAT_REPLY, { force: true });
+            // Gemini sometimes says "Opening X's profile" without a tool call.
+            maybeRunInferredAction(text.trim());
           }
         },
-        onTool: (name, status) => {
+        onTool: (name, status, route) => {
           const store = useAssistant.getState();
           if (status === 'running') {
             store.setState(AssistantState.THINKING, { force: true });
-            // Only the match tool should open the VEHMF rail. The bar caps at 90%
-            // until matching clears; leaving it up after a clarify/chat turn looks stuck.
-            if (name === 'serah_voice_turn') {
+            // Only a real search should raise the ranking bar. View/request/chat
+            // used to flip matching back on and hide the side card at 99%.
+            if (name === 'serah_voice_turn' && !store.match?.results?.length) {
               store.setMatching(true);
             }
             return;
           }
-          if (status === 'done' && store.matching && !store.match?.results?.length) {
-            store.setMatching(false);
+          if (status === 'done') {
+            const keepSearching =
+              (route === 'MATCH' || route === 'REFINE' || route === 'CLARIFY') &&
+              !store.match?.results?.length;
+            if (!keepSearching) {
+              store.setMatching(false);
+            }
           }
         },
         onMatch: applyMatch,
@@ -146,7 +156,7 @@ export function useSerahLiveBridge() {
       session.stop();
       sessionRef.current = null;
     };
-  }, [applyMatch]);
+  }, [applyMatch, maybeRunInferredAction]);
 
   const startLive = useCallback(
     async (opts?: { uiLanguage?: LiveUiLanguage; voice?: 'female' | 'male' }) => {

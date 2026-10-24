@@ -57,10 +57,12 @@ _RANK_NUM = re.compile(
 _STRIP_FOR_NAME = re.compile(
     r"\b("
     r"please|thanks|thank\s*you|"
-    r"review|check|open|show|see|look\s*at|read|"
+    r"review|check|open|show|see|view|look\s*at|read|"
+    r"i|i'?m|i'?d|to|of|for|from|with|and|or|can|you|me|my|"
+    r"want|would|like|assist|"
     r"his|her|their|the|a|an|this|that|"
     r"profile|details?|bio|caregiver|nurse|carer|"
-    r"request|book|hire|send|choose|select|want|"
+    r"request|book|hire|send|choose|select|"
     r"tell\s*me\s*more|describe|about|"
     r"number|rank|first|second|third|fourth|fifth|top|1st|2nd|3rd|4th|5th"
     r")\b|[^\w\s'-]",
@@ -235,6 +237,12 @@ def resolve_hit(
             if name == q or q in name or name in q:
                 return row
             name_tokens = {t for t in name.split() if len(t) > 1}
+            # ASR often garbles "Arun" → "Arunur"; accept a long prefix on a token.
+            if any(
+                (len(qt) >= 3 and any(nt.startswith(qt) or qt.startswith(nt) for nt in name_tokens))
+                for qt in q_tokens
+            ):
+                return row
             if not q_tokens or not name_tokens:
                 continue
             overlap = len(q_tokens & name_tokens) / len(q_tokens)
@@ -288,8 +296,9 @@ def build_voice_action(
         return action
 
     hit = resolve_hit(results, rank=rank, name_query=name_query)
-    # Default to top match when the user did not specify who.
-    if hit is None and results and not name_query and rank is None:
+    # Default to top match when the user did not specify who, or when ASR
+    # left leftover words that did not map to anyone on the current list.
+    if hit is None and results and rank is None:
         hit = results[0]
 
     if hit is not None:

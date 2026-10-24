@@ -47,6 +47,10 @@ class ActionResolverTests(SimpleTestCase):
     def test_parse_name_query_strips_verbs(self):
         self.assertIn("rizwan", parse_name_query("review Mohamed Rizwan").lower())
         self.assertEqual(parse_name_query("yes"), "")
+        self.assertEqual(
+            parse_name_query("I want to view the profile of Arun").lower(),
+            "arun",
+        )
 
     def test_parse_days_and_package_addons(self):
         self.assertEqual(parse_days("Basic for 7 days"), 7)
@@ -112,6 +116,18 @@ class RouterActionFixtureTests(SimpleTestCase):
         d = classify_turn("view profile", COMPLETE, has_prior_match=True)
         self.assertEqual(d.route, "ACTION")
         self.assertEqual(d.situation, "view_profile")
+
+    def test_view_profile_without_prior_match(self):
+        d = classify_turn("view profile", COMPLETE, has_prior_match=False)
+        self.assertEqual(d.route, "ACTION")
+        self.assertEqual(d.situation, "view_profile")
+        d2 = classify_turn(
+            "I want to view the profile of Arun",
+            COMPLETE,
+            has_prior_match=False,
+        )
+        self.assertEqual(d2.route, "ACTION")
+        self.assertEqual(d2.situation, "view_profile")
 
     def test_schedule_phrase(self):
         d = classify_turn("show the schedule", COMPLETE, has_prior_match=True)

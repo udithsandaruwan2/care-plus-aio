@@ -378,6 +378,17 @@ def classify_turn(
     if has_history_match and _ABOUT_MATCH.search(raw):
         return RouteDecision("CHAT", "about_match")
 
+    # Explicit profile / schedule even if Live forgot card visibility.
+    # "view profile" must not fall through to CHAT/CLARIFY and start asking questions.
+    if _SCHEDULE.search(raw):
+        return RouteDecision("ACTION", "book_shift")
+    if _VIEW_PROFILE.search(raw) and re.search(
+        r"\b(profile|details?)\b|පැතිකඩ|சுயவிவரம்", raw, re.I
+    ):
+        return RouteDecision("ACTION", "view_profile")
+    if (has_prior_match or has_history_match) and _ACTION.search(raw):
+        return RouteDecision("ACTION", "request")
+
     # 5) Post-match conversation while caregiver cards are visible on screen
     if has_prior_match:
         if _SCHEDULE.search(raw):

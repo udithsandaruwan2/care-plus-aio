@@ -6,6 +6,15 @@ describe('inferPostMatchAction', () => {
   it('opens a profile from spoken view/show phrases', () => {
     expect(inferPostMatchAction('view profile')?.type).toBe('view_profile');
     expect(inferPostMatchAction('show me the profile')?.type).toBe('view_profile');
+    expect(inferPostMatchAction('I want to view the profile of Arun')?.type).toBe(
+      'view_profile',
+    );
+    expect(inferPostMatchAction('I want to view the profile of Arun')?.name_query).toMatch(
+      /arun/i,
+    );
+    expect(inferPostMatchAction("Opening Arun Balasubramaniam's profile for you")?.type).toBe(
+      'view_profile',
+    );
   });
 
   it('opens schedule from spoken schedule phrases', () => {

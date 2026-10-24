@@ -592,7 +592,9 @@ def process_turn(
     visible_match = None
     if _match_has_results(prior_match if isinstance(prior_match, dict) else None):
         visible_match = prior_match
-    elif has_prior_match and _match_has_results(session_match):
+    elif _match_has_results(session_match):
+        # Session still has the last VEHMF list. Live may have restarted and
+        # forgotten has_prior_match, but the client cards are still on screen.
         visible_match = session_match
 
     history_match = visible_match

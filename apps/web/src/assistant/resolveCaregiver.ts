@@ -43,7 +43,19 @@ export function resolveCaregiverFromMatch(
       const nameTokens = new Set(name.split(' ').filter((t) => t.length > 1));
       if (!qTokens.size || !nameTokens.size) continue;
       let overlap = 0;
-      for (const t of qTokens) if (nameTokens.has(t)) overlap += 1;
+      for (const t of qTokens) {
+        if (nameTokens.has(t)) {
+          overlap += 1;
+          continue;
+        }
+        // ASR often garbles "Arun" → "Arunur"; accept a long prefix on a token.
+        for (const nt of nameTokens) {
+          if (t.length >= 3 && (nt.startsWith(t) || t.startsWith(nt))) {
+            overlap += 1;
+            break;
+          }
+        }
+      }
       const score = overlap / qTokens.size;
       if (score > bestScore && score >= 0.5) {
         bestScore = score;
@@ -67,9 +79,10 @@ export function resolveCaregiverFromAction(
     nameQuery: action.name_query,
   });
   if (hit) return hit;
-  // Default to top match when the action did not name anyone.
+  // Default to top match when nobody was named, or when leftover ASR words
+  // ("I to of Arun") did not map to a row.
   const rows = results || [];
-  if (!action.name_query && action.rank == null && action.caregiver_id == null && rows.length) {
+  if (action.rank == null && action.caregiver_id == null && rows.length) {
     return rows[0] ?? null;
   }
   return null;
