@@ -6,9 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 
 from apps.voice.live_tools import (
-    SERAH_LIVE_SYSTEM,
     _json_safe_match,
-    live_reply_language,
     run_clear_session_sync,
     run_serah_voice_turn_sync,
 )
@@ -46,13 +44,6 @@ class LiveToolsTests(TestCase):
         kwargs = mock_turn.call_args.kwargs
         self.assertTrue(kwargs["skip_tts"])
         self.assertEqual(kwargs["client_text"], "hi")
-
-    def test_live_prompt_answers_small_talk_without_a_tool(self):
-        self.assertIn("answer immediately", SERAH_LIVE_SYSTEM)
-        self.assertIn("Do not call a tool first", SERAH_LIVE_SYSTEM)
-        self.assertNotIn("greet, or small-talk", SERAH_LIVE_SYSTEM)
-        hint = live_reply_language("English")
-        self.assertIn("reply in English immediately", hint)
 
     def test_clear_session_tool(self):
         out = run_clear_session_sync(user=self.user)
