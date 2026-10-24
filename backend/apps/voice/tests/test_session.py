@@ -107,6 +107,22 @@ class DialogueSessionMemoryTests(TestCase):
         session.refresh_from_db()
         self.assertEqual(session.last_match_run_id, run.pk)
 
+    def test_view_profile_uses_session_match_without_client_flag(self):
+        run = self._seed_match_run()
+        session = get_or_create_active_session(self.user, lang="English")
+        session.last_match_run = run
+        session.save()
+
+        out = process_turn(
+            user=self.user,
+            client_text="I want to view the profile of Arun",
+            ui_language="English",
+            has_prior_match=False,
+        )
+        self.assertEqual(out["route"], "ACTION")
+        self.assertEqual(out["situation"], "view_profile")
+        self.assertEqual((out.get("action") or {}).get("type"), "view_profile")
+
     def test_clear_session_drops_memory(self):
         process_turn(user=self.user, client_text="hello secret phrase", ui_language="English")
         self.assertEqual(DialogueSession.objects.filter(user=self.user, active=True).count(), 1)
