@@ -38,7 +38,7 @@ export function AccountPage() {
         />
       </div>
 
-      <section className="mt-6 rounded-2xl border border-hair bg-panel p-5 shadow-[var(--cp-shadow-soft)] lg:hidden">
+      <section className="mt-4 rounded-2xl border border-hair bg-panel p-4 shadow-[var(--cp-shadow-soft)] lg:hidden">
         <p className="font-display text-lg text-mist">Look and language</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <LanguageSwitcher />

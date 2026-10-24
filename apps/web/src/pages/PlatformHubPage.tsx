@@ -125,6 +125,7 @@ export function PlatformHubPage() {
             </span>
             <span className="mt-1 block text-sm text-muted">Sinhala · Tamil · English</span>
           </span>
+          <span className="home-serah-go">Open</span>
         </Link>
       ) : null}
 
@@ -204,7 +205,7 @@ export function PlatformHubPage() {
           <p className="mt-1 text-sm text-muted">
             {user?.role === 'patient' ? t('hub.noLinkPatient') : t('hub.noLinkCaregiver')}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 hidden flex-wrap gap-2 lg:flex">
             {user?.role === 'patient' && (
               <>
                 <Link to="/caregivers">
@@ -265,7 +266,7 @@ export function PlatformHubPage() {
         </Card>
       )}
 
-      <section className="mt-8">
+      <section className="mt-8 hidden lg:block">
         <h2 className="font-display text-lg font-semibold text-mist">{t('hub.quickActions')}</h2>
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <Shortcut to="/messages" title={t('hub.messagesTitle')} desc={t('hub.messagesDesc')} />
