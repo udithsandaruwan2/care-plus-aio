@@ -86,7 +86,7 @@ export function AppShell() {
 
   return (
     <SerahEngineProvider>
-      <div className={`flex min-h-dvh bg-void ${serahCore ? 'is-serah-core' : ''}`}>
+      <div className={`flex h-dvh max-h-dvh overflow-hidden bg-void ${serahCore ? 'is-serah-core' : ''}`}>
         <SkipLink />
         <HubSidebar />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -108,7 +108,7 @@ export function AppShell() {
             className={
               serahCore
                 ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 outline-none lg:px-4 lg:pb-4'
-                : 'flex-1 overflow-y-auto px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] outline-none lg:px-8 lg:pb-8'
+                : 'min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] outline-none lg:px-8 lg:pb-8'
             }
           >
             <Outlet />

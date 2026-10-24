@@ -139,7 +139,7 @@ function MatchCard({
         </div>
       </div>
 
-      <p className="mt-2 text-xs leading-snug text-mist">{explanation}</p>
+      <p className="mt-2 line-clamp-2 text-xs leading-snug text-mist">{explanation}</p>
       {compare ? <p className="mt-1 text-[11px] text-cyan/90">{compare}</p> : null}
 
       <div className="relative mt-2">
@@ -165,10 +165,10 @@ function MatchCard({
         ) : null}
       </div>
 
-      <div className="mt-3 flex flex-col gap-2">
+      <div className="mt-3 flex gap-2">
         <button
           type="button"
-          className="block w-full rounded-xl border border-hair px-3 py-2 text-center text-xs font-semibold text-muted transition hover:border-cyan hover:text-cyan"
+          className="block min-w-0 flex-1 rounded-xl border border-hair px-3 py-2 text-center text-xs font-semibold text-muted transition hover:border-cyan hover:text-cyan"
           onClick={() => {
             const store = useAssistant.getState();
             store.setFocusedCaregiverId(hit.caregiver_id);
@@ -180,7 +180,7 @@ function MatchCard({
         <button
           type="button"
           disabled={!canRequestCare || busy || sent || hit.is_available === false}
-          className="w-full rounded-xl bg-cyan px-3 py-2 text-xs font-semibold text-inverse transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted"
+          className="min-w-0 flex-1 rounded-xl bg-cyan px-3 py-2 text-xs font-semibold text-inverse transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted"
           onClick={startRequest}
         >
           {sent

@@ -280,6 +280,7 @@ export function HomePage() {
             />
           </div>
         ) : null}
+        {profileDrawerOpen ? <div className="serah-profile-scrim" aria-hidden /> : null}
         <CaregiverProfileDrawer />
       </div>
 

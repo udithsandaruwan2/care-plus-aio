@@ -11,13 +11,13 @@ export function HubTopbar({ compact = false }: { compact?: boolean }) {
     <header
       className={
         compact
-          ? 'flex items-center justify-between gap-3 px-4 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))] lg:hidden'
+          ? 'flex items-center justify-between gap-3 px-4 pb-0 pt-[max(0.35rem,env(safe-area-inset-top))] lg:hidden'
           : 'hidden items-center justify-between gap-4 px-8 py-5 lg:flex'
       }
     >
       {compact ? (
         <div className="min-w-0">
-          <p className="truncate font-display text-xl leading-tight text-mist">Hi, {name}</p>
+          <p className="truncate text-sm font-medium text-muted">Hi, {name}</p>
         </div>
       ) : (
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-hair bg-panel px-3 py-2 shadow-sm">
@@ -37,7 +37,7 @@ export function HubTopbar({ compact = false }: { compact?: boolean }) {
             <ThemeToggle />
           </>
         )}
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan/15 text-sm font-semibold text-cyan">
+        <div className={`flex items-center justify-center rounded-full bg-cyan/15 font-semibold text-cyan ${compact ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm'}`}>
           {name.slice(0, 1).toUpperCase()}
         </div>
       </div>

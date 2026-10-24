@@ -95,27 +95,42 @@ body {
   overflow: hidden;
   align-items: center;
   gap: 16px;
-  margin-top: 8px;
-  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 35%, var(--cp-border-hair));
-  border-radius: 1.5rem;
+  min-height: 7.25rem;
+  margin-top: 4px;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 38%, var(--cp-border-hair));
+  border-radius: 1.65rem;
   background:
-    radial-gradient(circle at 18% 40%, color-mix(in srgb, var(--cp-accent-cyan) 28%, transparent), transparent 52%),
+    radial-gradient(circle at 14% 30%, color-mix(in srgb, var(--cp-accent-cyan) 34%, transparent), transparent 48%),
+    radial-gradient(circle at 88% 80%, color-mix(in srgb, var(--cp-accent-violet) 16%, transparent), transparent 42%),
     var(--cp-bg-panel);
-  padding: 18px 16px;
+  padding: 20px 16px;
   text-decoration: none;
   box-shadow: var(--cp-shadow-soft);
 }
 
 .home-serah-orb {
   display: grid;
-  height: 4.25rem;
-  width: 4.25rem;
+  height: 4.5rem;
+  width: 4.5rem;
   flex-shrink: 0;
   place-items: center;
   border-radius: 999px;
   background: color-mix(in srgb, var(--cp-accent-cyan) 88%, white);
   color: var(--cp-text-inverse);
   box-shadow: 0 0 0 8px color-mix(in srgb, var(--cp-accent-cyan) 16%, transparent);
+}
+
+.home-serah-go {
+  margin-left: auto;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 40%, var(--cp-border-hair));
+  background: color-mix(in srgb, var(--cp-accent-cyan) 14%, transparent);
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--cp-accent-cyan);
 }
 
 @media (prefers-reduced-motion: reduce) {

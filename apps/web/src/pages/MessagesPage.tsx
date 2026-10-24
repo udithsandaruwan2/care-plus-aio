@@ -191,7 +191,10 @@ export function MessagesPage() {
         <BackLink to="/hub">Back to hub</BackLink>
         <BackLink to="/app">Back to Serah</BackLink>
       </div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <h1 className="font-display text-xl text-mist lg:hidden">
+        {thread?.partner_label ?? 'Chats'}
+      </h1>
+      <div className="hidden flex-wrap items-start justify-between gap-3 lg:flex">
         <PageHeader
           eyebrow="Messaging"
           title={thread?.partner_label ?? 'Care chat'}

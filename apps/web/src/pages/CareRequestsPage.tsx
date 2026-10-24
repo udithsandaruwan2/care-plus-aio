@@ -229,7 +229,7 @@ export function CareRequestsPage() {
         {rows.map((row) => (
           <li
             key={row.id}
-            className="rounded-2xl border border-hair bg-panel/70 p-5 backdrop-blur-md"
+            className="rounded-2xl border border-hair bg-panel/70 p-4 backdrop-blur-md sm:p-5"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
