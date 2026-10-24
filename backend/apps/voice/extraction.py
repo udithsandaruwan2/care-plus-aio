@@ -31,6 +31,35 @@ from .models import CareLevel, Language, Urgency
 _SINHALA_RE = re.compile(r"[\u0D80-\u0DFF]")
 _TAMIL_RE = re.compile(r"[\u0B80-\u0BFF]")
 _LATIN_WORD_RE = re.compile(r"[A-Za-z]{2,}")
+# Live captions often romanize Sinhala/Tamil. These tokens are not English.
+_ROMAN_SINHALA_RE = re.compile(
+    r"\b("
+    r"ayubowan|aayubowan|kohomada|koheda|oyata|"
+    r"kiyanna|karanna|balanna|"
+    r"sthuthi|stuti|bohoma|"
+    r"kawuda|mokakda|"
+    r"thiyenawa|thiyenava|innawa|innava|"
+    r"kenek|keneku|paricharak|"
+    r"rakabala|udesanak|"
+    r"mata|onee|oney|oonae"
+    r")\b",
+    re.I,
+)
+_ROMAN_TAMIL_RE = re.compile(
+    r"\b("
+    r"vanakkam|eppadi|enakku|ungalukku|vendum|"
+    r"irukken|nandri|nanri|"
+    r"sollunga|theriyum|thevai|"
+    r"parumaripalar|yaarunga"
+    r")\b",
+    re.I,
+)
+_CLEAR_ENGLISH_RE = re.compile(
+    r"^(hi|hello|hey|good\s*(morning|afternoon|evening)|"
+    r"thanks|thank\s*you|yes|yeah|yep|ok|okay|"
+    r"please|sorry)[\s!.]*$",
+    re.I,
+)
 
 _LEVEL_MAP: list[tuple[re.Pattern[str], str]] = [
     (
@@ -57,9 +86,9 @@ def detect_languages(text: str) -> list[str]:
     Order is stable: Sinhala → Tamil → English. Empty text → ``[English]``.
     """
     found: set[str] = set()
-    if _SINHALA_RE.search(text):
+    if _SINHALA_RE.search(text) or _ROMAN_SINHALA_RE.search(text):
         found.add(Language.SINHALA)
-    if _TAMIL_RE.search(text):
+    if _TAMIL_RE.search(text) or _ROMAN_TAMIL_RE.search(text):
         found.add(Language.TAMIL)
     if _LATIN_WORD_RE.search(text):
         found.add(Language.ENGLISH)
@@ -99,6 +128,44 @@ def detect_language(text: str, hint: str | None = None) -> str:
     if hint in Language.values:
         return hint
     return Language.ENGLISH
+
+
+def spoken_reply_bcp47(text: str) -> str | None:
+    """Language Serah should speak for this utterance, or None if unclear."""
+    sample = text or ""
+    if _TAMIL_RE.search(sample) or _ROMAN_TAMIL_RE.search(sample):
+        return "ta-LK"
+    if _SINHALA_RE.search(sample) or _ROMAN_SINHALA_RE.search(sample):
+        return "si-LK"
+    if _is_clearly_english(sample):
+        return "en-US"
+    return None
+
+
+def _is_clearly_english(text: str) -> bool:
+    raw = (text or "").strip()
+    if not raw:
+        return False
+    if _SINHALA_RE.search(raw) or _TAMIL_RE.search(raw):
+        return False
+    if _ROMAN_SINHALA_RE.search(raw) or _ROMAN_TAMIL_RE.search(raw):
+        return False
+    if _CLEAR_ENGLISH_RE.match(raw):
+        return True
+    return len(_LATIN_WORD_RE.findall(raw)) >= 2
+
+
+def bcp47_to_ui(lang: str | None) -> str | None:
+    raw = (lang or "").strip()
+    if raw.startswith("si"):
+        return Language.SINHALA
+    if raw.startswith("ta"):
+        return Language.TAMIL
+    if raw.startswith("en"):
+        return Language.ENGLISH
+    if raw in (Language.SINHALA, Language.TAMIL, Language.ENGLISH):
+        return raw
+    return None
 
 
 def _first_match(text: str, table: list[tuple[re.Pattern[str], str]], default: str = "") -> str:
