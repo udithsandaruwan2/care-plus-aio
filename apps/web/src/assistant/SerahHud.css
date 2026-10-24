@@ -340,10 +340,16 @@
 }
 
 @media (max-width: 1023px) {
-  .serah-stage.is-searching {
+  .serah-stage.is-searching,
+  .serah-stage.has-profile-card.is-searching,
+  .serah-stage.has-profile-card:not(.is-searching) {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
     padding: 6px 10px 0;
+  }
+
+  .serah-profile-drawer.is-open {
+    max-height: min(70vh, 36rem);
   }
 
   .serah-stage.is-searching .serah-core-wrapper {
@@ -389,6 +395,10 @@
     grid-template-rows: minmax(0, 1fr);
     justify-items: stretch;
     gap: 16px;
+  }
+
+  .serah-stage.has-profile-card.is-searching {
+    grid-template-columns: minmax(14rem, 0.8fr) minmax(0, 1.05fr) minmax(18rem, 22.5rem);
   }
 
   .serah-stage.is-searching .serah-core-wrapper {
@@ -763,38 +773,43 @@
   }
 }
 
-/* —— Serah caregiver profile drawer (voice booking slice 2) —— */
+/* —— Serah caregiver card (sits beside VEHMF match cards) —— */
 .serah-profile-drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  display: flex;
-  width: min(22.5rem, 92vw);
-  flex-direction: column;
-  overflow: hidden;
-  border-left: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 28%, var(--cp-border-hair));
-  background: color-mix(in srgb, var(--cp-bg-panel) 97%, white);
-  box-shadow: -12px 0 40px color-mix(in srgb, black 28%, transparent);
-  transform: translateX(100%);
-  pointer-events: none;
+  display: none;
 }
 
 .serah-profile-drawer.is-open {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  flex-direction: column;
+  overflow: hidden;
   pointer-events: auto;
-  animation: serah-drawer-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 22%, var(--cp-border-hair));
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--cp-bg-panel) 96%, white);
+  box-shadow: var(--cp-shadow-soft);
+  animation: serah-panel-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes serah-drawer-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0.6;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+.serah-stage.has-profile-card.is-searching {
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.05fr) minmax(18rem, 22.5rem);
+}
+
+.serah-stage.has-profile-card:not(.is-searching) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 22.5rem);
+  align-items: stretch;
+}
+
+.serah-stage.has-profile-card:not(.is-searching) .serah-profile-drawer.is-open {
+  justify-self: stretch;
+  align-self: stretch;
 }
 
 .serah-profile-drawer-head {
@@ -895,22 +910,129 @@
   color: var(--cp-text-muted);
 }
 
-.serah-profile-drawer-full {
-  display: block;
-  margin-top: auto;
-  border-radius: 0.75rem;
+.serah-profile-drawer-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+}
+
+.serah-profile-drawer-tabs button {
+  flex: 1;
+  border-radius: 999px;
   border: 1px solid var(--cp-border-hair);
+  background: transparent;
+  padding: 6px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--cp-text-muted);
+}
+
+.serah-profile-drawer-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--cp-accent-cyan) 45%, var(--cp-border-hair));
+  background: color-mix(in srgb, var(--cp-accent-cyan) 12%, transparent);
+  color: var(--cp-accent-cyan);
+}
+
+.serah-profile-drawer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.serah-profile-drawer-cta,
+.serah-profile-drawer-full {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 0.75rem;
   padding: 10px 12px;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.serah-profile-drawer-cta {
+  border: 0;
+  background: var(--cp-accent-cyan);
+  color: var(--cp-text-inverse);
+}
+
+.serah-profile-drawer-cta:disabled {
+  opacity: 0.55;
+}
+
+.serah-profile-drawer-full {
+  border: 1px solid var(--cp-border-hair);
   color: var(--cp-text-muted);
+  background: transparent;
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 .serah-profile-drawer-full:hover {
   border-color: var(--cp-accent-cyan);
   color: var(--cp-accent-cyan);
+}
+
+.serah-compose-input {
+  width: 100%;
+  resize: vertical;
+  border-radius: 0.9rem;
+  border: 1px solid var(--cp-border-hair);
+  background: var(--cp-bg-elevated);
+  padding: 10px 12px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--cp-text-primary);
+  outline: none;
+}
+
+.serah-compose-input:focus {
+  border-color: var(--cp-accent-cyan);
+}
+
+.serah-schedule-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.serah-schedule-slot {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 0.85rem;
+  border: 1px solid var(--cp-border-hair);
+  background: var(--cp-bg-elevated);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.75rem;
+  color: var(--cp-text-primary);
+}
+
+.serah-schedule-slot span:last-child {
+  color: var(--cp-accent-cyan);
+  font-weight: 600;
+}
+
+.serah-stage-enter {
+  animation: serah-stage-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes serah-stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .serah-immersive-container.has-profile-drawer {
@@ -988,8 +1110,6 @@
 
   .serah-profile-drawer.is-open {
     animation: none;
-    transform: translateX(0);
-    opacity: 1;
   }
 }
 

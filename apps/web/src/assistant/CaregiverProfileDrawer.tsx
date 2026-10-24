@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { X } from 'lucide-react';
-import type { CaregiverDetail } from '@care-plus/api-client';
+import { Calendar, Send, X } from 'lucide-react';
+import type { CaregiverAvailabilitySlot, CaregiverDetail } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { Avatar } from '../components/ui/Avatar';
+import { nextSlotOccurrences, type SlotOccurrence } from '../lib/colomboSchedule';
 import { caregiverSpokenSummary } from './caregiverSpokenSummary';
+import { executeSerahAction } from './executeSerahAction';
 import { useAssistant } from './store';
 import {
   isSerahSpeaking,
@@ -24,10 +25,17 @@ function waitForSerahIdle(): Promise<void> {
   });
 }
 
+type Pane = 'profile' | 'compose' | 'schedule';
+
+function paneFromStage(stage: string): Pane {
+  if (stage === 'compose' || stage === 'requested' || stage === 'awaiting_accept') return 'compose';
+  if (stage === 'schedule') return 'schedule';
+  return 'profile';
+}
+
 /**
- * Right-side caregiver detail drawer on the Serah screen.
- * Opens from voice ``view_profile`` / ``describe_caregiver`` (store focus);
- * keeps mic + conversation alive — no navigation away.
+ * Right-side caregiver card on the Serah screen.
+ * Profile, typed request note, and schedule stay here — no navigation away.
  */
 export function CaregiverProfileDrawer() {
   const titleId = useId();
@@ -35,9 +43,11 @@ export function CaregiverProfileDrawer() {
   const bookingStage = useAssistant((s) => s.bookingStage);
   const profileNarrateMode = useAssistant((s) => s.profileNarrateMode);
   const uiLanguage = useAssistant((s) => s.uiLanguage);
+  const composeDraft = useAssistant((s) => s.composeDraft);
   const setFocusedCaregiverId = useAssistant((s) => s.setFocusedCaregiverId);
   const setBookingStage = useAssistant((s) => s.setBookingStage);
   const clearProfileNarrate = useAssistant((s) => s.clearProfileNarrate);
+  const resetComposeDraft = useAssistant((s) => s.resetComposeDraft);
   const matchHit = useAssistant((s) =>
     focusedCaregiverId
       ? s.match?.results?.find((h) => h.caregiver_id === focusedCaregiverId)
@@ -45,17 +55,32 @@ export function CaregiverProfileDrawer() {
   );
 
   const open = focusedCaregiverId != null && focusedCaregiverId > 0;
+  const [pane, setPane] = useState<Pane>('profile');
   const [profile, setProfile] = useState<CaregiverDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visibleNote, setVisibleNote] = useState('');
+  const [sending, setSending] = useState(false);
+  const [slots, setSlots] = useState<CaregiverAvailabilitySlot[]>([]);
+  const [slotError, setSlotError] = useState<string | null>(null);
+  const [booking, setBooking] = useState(false);
+  const [bookedLabel, setBookedLabel] = useState<string | null>(null);
   const spokenKeyRef = useRef<string | null>(null);
   const fetchGenRef = useRef(0);
+  const submitLockRef = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setPane(paneFromStage(bookingStage));
+  }, [open, bookingStage]);
 
   useEffect(() => {
     if (!open || focusedCaregiverId == null) {
       setProfile(null);
       setError(null);
       setLoading(false);
+      setSlots([]);
+      setBookedLabel(null);
       spokenKeyRef.current = null;
       return;
     }
@@ -83,6 +108,50 @@ export function CaregiverProfileDrawer() {
       cancelled = true;
     };
   }, [open, focusedCaregiverId]);
+
+  useEffect(() => {
+    if (!open || focusedCaregiverId == null || pane !== 'schedule') return;
+    let cancelled = false;
+    setSlotError(null);
+    void api
+      .listCaregiverAvailabilitySlots(focusedCaregiverId)
+      .then((rows) => {
+        if (!cancelled) setSlots(rows.filter((s) => s.is_active !== false));
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setSlots([]);
+          setSlotError(err instanceof Error ? err.message : 'Could not load availability.');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, focusedCaregiverId, pane]);
+
+  useEffect(() => {
+    if (!open || pane !== 'compose' || !composeDraft.fullText) {
+      setVisibleNote('');
+      return;
+    }
+    const text = composeDraft.fullText;
+    let i = 0;
+    setVisibleNote('');
+    submitLockRef.current = false;
+    const id = window.setInterval(() => {
+      i += 2;
+      setVisibleNote(text.slice(0, i));
+      if (i >= text.length) {
+        window.clearInterval(id);
+        if (composeDraft.autoSubmit && !submitLockRef.current) {
+          submitLockRef.current = true;
+          setSending(true);
+          void executeSerahAction({ type: 'submit_request' }).finally(() => setSending(false));
+        }
+      }
+    }, 18);
+    return () => window.clearInterval(id);
+  }, [open, pane, composeDraft.fullText, composeDraft.autoSubmit]);
 
   useEffect(() => {
     if (!open || !profile || !profileNarrateMode) return;
@@ -115,7 +184,12 @@ export function CaregiverProfileDrawer() {
   function closeDrawer() {
     setFocusedCaregiverId(null);
     clearProfileNarrate();
-    if (bookingStage === 'profile') {
+    resetComposeDraft();
+    if (
+      bookingStage === 'profile' ||
+      bookingStage === 'compose' ||
+      bookingStage === 'schedule'
+    ) {
       setBookingStage('idle');
     }
   }
@@ -124,6 +198,37 @@ export function CaregiverProfileDrawer() {
 
   const name = profile?.display_name || matchHit?.display_name || 'Caregiver';
   const photoUrl = profile?.photo_url ?? matchHit?.photo_url ?? null;
+  const occurrences = slots.flatMap((slot) =>
+    nextSlotOccurrences(slot.weekday, slot.start_time, slot.end_time, 2).map((occ) => ({
+      slot,
+      occ,
+    })),
+  );
+
+  async function bookOccurrence(occ: SlotOccurrence, slotId: number) {
+    if (!focusedCaregiverId || booking) return;
+    setBooking(true);
+    setSlotError(null);
+    try {
+      await api.createShift({
+        caregiver_id: focusedCaregiverId,
+        starts_at: occ.starts_at,
+        ends_at: occ.ends_at,
+        availability_slot_id: slotId,
+        notes: composeDraft.fullText || undefined,
+        timezone: 'Asia/Colombo',
+      });
+      setBookedLabel(occ.label);
+      const line = `Booked ${occ.label} with ${name}.`;
+      const store = useAssistant.getState();
+      store.appendChat({ role: 'serah', text: line, route: 'ACTION' });
+      void speakSerah(line, uiLanguage);
+    } catch (err) {
+      setSlotError(err instanceof Error ? err.message : 'Could not book that time.');
+    } finally {
+      setBooking(false);
+    }
+  }
 
   return (
     <aside
@@ -134,14 +239,59 @@ export function CaregiverProfileDrawer() {
       data-testid="serah-profile-drawer"
     >
       <div className="serah-profile-drawer-head">
-        <p className="serah-profile-drawer-eyebrow">Caregiver profile</p>
+        <p className="serah-profile-drawer-eyebrow">
+          {pane === 'compose'
+            ? 'Care request'
+            : pane === 'schedule'
+              ? 'Schedule'
+              : 'Caregiver profile'}
+        </p>
         <button
           type="button"
           className="serah-profile-drawer-close"
           onClick={closeDrawer}
-          aria-label="Close caregiver profile"
+          aria-label="Close caregiver card"
         >
           <X size={18} />
+        </button>
+      </div>
+
+      <div className="serah-profile-drawer-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={pane === 'profile'}
+          className={pane === 'profile' ? 'is-active' : ''}
+          onClick={() => {
+            setPane('profile');
+            setBookingStage('profile');
+          }}
+        >
+          Profile
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={pane === 'compose'}
+          className={pane === 'compose' ? 'is-active' : ''}
+          onClick={() => {
+            setPane('compose');
+            void executeSerahAction({ type: 'request' });
+          }}
+        >
+          Request
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={pane === 'schedule'}
+          className={pane === 'schedule' ? 'is-active' : ''}
+          onClick={() => {
+            setPane('schedule');
+            void executeSerahAction({ type: 'book_shift' });
+          }}
+        >
+          Schedule
         </button>
       </div>
 
@@ -156,8 +306,8 @@ export function CaregiverProfileDrawer() {
         </p>
       ) : null}
 
-      {(profile || matchHit) && (
-        <div className="serah-profile-drawer-body">
+      {(profile || matchHit) && pane === 'profile' ? (
+        <div className="serah-profile-drawer-body serah-stage-enter">
           <div className="serah-profile-drawer-hero">
             <Avatar name={name} photoUrl={photoUrl} size="lg" className="rounded-2xl" />
             <div className="min-w-0">
@@ -168,9 +318,7 @@ export function CaregiverProfileDrawer() {
                 {[
                   profile?.age ? `${profile.age} yrs` : matchHit?.age ? `${matchHit.age} yrs` : null,
                   profile?.approximate_area || profile?.city || null,
-                  profile?.years_experience
-                    ? `${profile.years_experience} yrs exp`
-                    : null,
+                  profile?.years_experience ? `${profile.years_experience} yrs exp` : null,
                 ]
                   .filter(Boolean)
                   .join(' · ') || 'Sri Lanka'}
@@ -212,21 +360,16 @@ export function CaregiverProfileDrawer() {
           <dl className="serah-profile-drawer-meta">
             <div>
               <dt>Languages</dt>
-              <dd>
-                {(profile?.languages || matchHit?.languages || []).join(' · ') || '—'}
-              </dd>
+              <dd>{(profile?.languages || matchHit?.languages || []).join(' · ') || '—'}</dd>
             </div>
             <div>
               <dt>Care levels</dt>
-              <dd>
-                {(profile?.care_levels || matchHit?.care_levels || []).join(' · ') || '—'}
-              </dd>
+              <dd>{(profile?.care_levels || matchHit?.care_levels || []).join(' · ') || '—'}</dd>
             </div>
             <div>
               <dt>Specialties</dt>
               <dd>
-                {(profile?.specialties || matchHit?.specialties || []).join(' · ') ||
-                  'General care'}
+                {(profile?.specialties || matchHit?.specialties || []).join(' · ') || 'General care'}
               </dd>
             </div>
             <div>
@@ -242,17 +385,119 @@ export function CaregiverProfileDrawer() {
           </dl>
 
           <p className="serah-profile-drawer-hint">
-            Stay on this screen and keep talking — say “send the request” when ready.
+            Stay here and keep talking — say “send the request” or “show the schedule”.
           </p>
 
-          <Link
-            to={`/caregivers/${focusedCaregiverId}`}
-            className="serah-profile-drawer-full"
-          >
-            Open full profile page
-          </Link>
+          <div className="serah-profile-drawer-actions">
+            <button
+              type="button"
+              className="serah-profile-drawer-cta"
+              onClick={() => void executeSerahAction({ type: 'request' })}
+            >
+              <Send size={14} />
+              Write & send request
+            </button>
+            <button
+              type="button"
+              className="serah-profile-drawer-full"
+              onClick={() => void executeSerahAction({ type: 'book_shift' })}
+            >
+              <Calendar size={14} />
+              Show schedule
+            </button>
+          </div>
         </div>
-      )}
+      ) : null}
+
+      {pane === 'compose' ? (
+        <div className="serah-profile-drawer-body serah-stage-enter" data-testid="serah-compose-pane">
+          <p className="serah-profile-drawer-hint">
+            Serah is writing a request to {name}. You can edit before it sends.
+          </p>
+          <textarea
+            className="serah-compose-input"
+            rows={7}
+            value={visibleNote || composeDraft.fullText}
+            onChange={(e) =>
+              useAssistant.getState().setComposeDraft({
+                fullText: e.target.value,
+                autoSubmit: false,
+              })
+            }
+            aria-label="Care request message"
+          />
+          <div className="serah-profile-drawer-actions">
+            <button
+              type="button"
+              className="serah-profile-drawer-cta"
+              disabled={sending || !(visibleNote || composeDraft.fullText).trim()}
+              onClick={() => {
+                submitLockRef.current = true;
+                setSending(true);
+                void executeSerahAction({ type: 'submit_request' }).finally(() => setSending(false));
+              }}
+            >
+              <Send size={14} />
+              {sending
+                ? 'Sending…'
+                : bookingStage === 'awaiting_accept' || bookingStage === 'requested'
+                  ? 'Request sent'
+                  : 'Send request'}
+            </button>
+            <button
+              type="button"
+              className="serah-profile-drawer-full"
+              onClick={() => setPane('profile')}
+            >
+              Back to profile
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {pane === 'schedule' ? (
+        <div className="serah-profile-drawer-body serah-stage-enter" data-testid="serah-schedule-pane">
+          <p className="serah-profile-drawer-hint">
+            Upcoming times for {name} (Asia/Colombo). Book one here — you stay with Serah.
+          </p>
+          {slotError ? (
+            <p className="serah-profile-drawer-error" role="alert">
+              {slotError}
+            </p>
+          ) : null}
+          {bookedLabel ? (
+            <p className="serah-profile-drawer-status" role="status">
+              Booked {bookedLabel}
+            </p>
+          ) : null}
+          {occurrences.length === 0 && !slotError ? (
+            <p className="serah-profile-drawer-status">No published slots yet.</p>
+          ) : (
+            <ul className="serah-schedule-list">
+              {occurrences.map(({ slot, occ }) => (
+                <li key={`${slot.id}-${occ.starts_at}`}>
+                  <button
+                    type="button"
+                    className="serah-schedule-slot"
+                    disabled={booking}
+                    onClick={() => void bookOccurrence(occ, slot.id)}
+                  >
+                    <span>{occ.label}</span>
+                    <span>{booking ? 'Booking…' : 'Book'}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="serah-profile-drawer-full"
+            onClick={() => setPane('profile')}
+          >
+            Back to profile
+          </button>
+        </div>
+      ) : null}
     </aside>
   );
 }

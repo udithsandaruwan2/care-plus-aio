@@ -74,9 +74,7 @@ describe('CaregiverProfileDrawer', () => {
       expect(screen.getByRole('heading', { name: 'Asha Perera' })).toBeTruthy();
     });
     expect(screen.getByText(/Warm caregiver for fever recovery/)).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Open full profile page/i })).toHaveAttribute(
-      'href',
-      '/caregivers/7',
-    );
+    expect(screen.getByRole('button', { name: /Write & send request/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Show schedule/i })).toBeTruthy();
   });
 });

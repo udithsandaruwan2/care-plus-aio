@@ -13,7 +13,10 @@ import {
 } from '@care-plus/serah-live';
 import { AssistantState } from '@care-plus/core';
 import { getAccessToken, loadCachedUser } from '../auth/session';
+import { executeSerahAction } from './executeSerahAction';
+import { inferPostMatchAction } from './postMatchVoiceCommand';
 import { useAssistant } from './store';
+import type { SerahAction } from '@care-plus/api-client';
 
 const apiBase =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
@@ -31,6 +34,7 @@ export function useSerahLiveBridge() {
   const replacingRef = useRef(false);
   const restartsRef = useRef(0);
   const epochRef = useRef(0);
+  const lastLiveActionAtRef = useRef(0);
 
   const applyMatch = useCallback((payload: LiveMatchPayload, cleared?: boolean) => {
     const store = useAssistant.getState();
@@ -67,6 +71,15 @@ export function useSerahLiveBridge() {
             store.setInterim('');
             store.appendChat({ role: 'user', text: text.trim() });
             store.setTranscript(text.trim());
+            if (store.match?.results?.length) {
+              const guessed = inferPostMatchAction(text.trim());
+              if (guessed) {
+                window.setTimeout(() => {
+                  if (Date.now() - lastLiveActionAtRef.current < 1400) return;
+                  void executeSerahAction(guessed);
+                }, 700);
+              }
+            }
           } else {
             store.setInterim(text);
           }
@@ -95,6 +108,10 @@ export function useSerahLiveBridge() {
           }
         },
         onMatch: applyMatch,
+        onAction: (action) => {
+          lastLiveActionAtRef.current = Date.now();
+          void executeSerahAction(action as SerahAction);
+        },
         onSpeaking: (speaking) => {
           setLiveSpeaking(speaking);
           const store = useAssistant.getState();

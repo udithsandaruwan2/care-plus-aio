@@ -306,6 +306,8 @@ class LiveSessionRunner:
                 self._has_prior_match = False
                 self._prior_match = None
                 await self.emit({"type": "live.match", "payload": None, "cleared": True})
+            if result.get("action"):
+                await self.emit({"type": "live.action", "action": result["action"]})
             if result.get("reply"):
                 await self.emit(
                     {

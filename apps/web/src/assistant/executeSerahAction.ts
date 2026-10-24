@@ -4,6 +4,7 @@ import { resolveCaregiverFromAction } from './resolveCaregiver';
 import { checkCareRequestStatus } from './careRequestStatus';
 import { confirmCheckoutFromVoice, selectPackageFromAction } from './voiceCheckout';
 import { applyCareRequestBookingState } from './bookingFromCareRequest';
+import { composeRequestMessage } from './composeRequestMessage';
 
 const PROFILE_GATE_MSG =
   'Complete your patient profile (at least 80%) before requesting care. Open Account or go to onboarding.';
@@ -59,6 +60,17 @@ export async function executeSerahAction(
     return { ok: false, type: action.type, error: 'No matching caregiver in the current list.' };
   }
 
+  if (action.type === 'book_shift') {
+    if (!hit) {
+      const error = 'I need a caregiver from the list before I can open a schedule.';
+      store.appendChat({ role: 'serah', text: error, route: 'ACTION' });
+      return { ok: false, type: 'book_shift', error };
+    }
+    store.setFocusedCaregiverId(hit.caregiver_id);
+    store.setBookingStage('schedule');
+    return { ok: true, type: 'book_shift', caregiverId: hit.caregiver_id };
+  }
+
   if (action.type === 'request') {
     if (!hit) {
       const error = 'I couldn’t tell which caregiver to request. Say a name or number from the list.';
@@ -69,58 +81,32 @@ export async function executeSerahAction(
       store.appendChat({ role: 'serah', text: PROFILE_GATE_MSG, route: 'ACTION' });
       return { ok: false, type: 'request', error: PROFILE_GATE_MSG };
     }
-    try {
-      const { enqueueCareRequest } = await import('../lib/outbox/flush');
-      const outcome = await enqueueCareRequest(
-        {
-          caregiver_id: hit.caregiver_id,
-          match_run_id: store.match?.request_id,
-          match_snapshot: {
-            rank: hit.rank,
-            score: hit.score,
-            breakdown: hit.breakdown,
-            explanation: hit.explanation,
-            distance_m: hit.distance_m ?? null,
-          },
-        },
-        `Request to ${hit.display_name || 'caregiver'}`,
-      );
-      const createdId =
-        !outcome.queued && outcome.result && typeof outcome.result.id === 'number'
-          ? outcome.result.id
-          : undefined;
-      applyCareRequestBookingState({
-        caregiverId: hit.caregiver_id,
-        careRequestId: createdId,
-        queued: outcome.queued,
-      });
-      if (outcome.queued) {
-        const queued =
-          `Request to ${hit.display_name || 'this caregiver'} is queued and will send when you reconnect.`;
-        const last = [...store.chat].reverse().find((m) => m.role === 'serah');
-        if (last?.text !== queued) {
-          store.appendChat({ role: 'serah', text: queued, route: 'ACTION' });
-        }
-        return {
-          ok: true,
-          type: 'request',
-          caregiverId: hit.caregiver_id,
-          queued: true,
-        };
-      }
-      return {
-        ok: true,
-        type: 'request',
-        caregiverId: hit.caregiver_id,
-        queued: false,
-        careRequestId: createdId,
-      };
-    } catch (err) {
-      const error =
-        err instanceof Error ? err.message : 'Could not send the care request. Try again.';
-      store.appendChat({ role: 'serah', text: error, route: 'ACTION' });
-      return { ok: false, type: 'request', error };
+    const alreadyOpen =
+      store.bookingStage === 'compose' && store.focusedCaregiverId === hit.caregiver_id;
+    if (alreadyOpen && store.composeDraft.fullText.trim()) {
+      return submitComposedRequest(hit.caregiver_id);
     }
+    const note = composeRequestMessage({
+      caregiverName: hit.display_name || 'there',
+      hit,
+      intent: store.intent,
+    });
+    store.setFocusedCaregiverId(hit.caregiver_id);
+    store.setBookingStage('compose');
+    store.setComposeDraft({
+      caregiverId: hit.caregiver_id,
+      fullText: note,
+      autoSubmit: true,
+    });
+    return { ok: true, type: 'request', caregiverId: hit.caregiver_id };
+  }
+
+  if (action.type === 'submit_request') {
+    const caregiverId = hit?.caregiver_id ?? store.focusedCaregiverId ?? store.composeDraft.caregiverId;
+    if (caregiverId == null) {
+      return { ok: false, type: 'submit_request', error: 'No caregiver selected for the request.' };
+    }
+    return submitComposedRequest(caregiverId);
   }
 
   if (action.type === 'request_status') {
@@ -188,6 +174,7 @@ async function cancelBookingFlow(): Promise<ExecuteSerahActionResult> {
   store.setCareRequestId(null);
   store.setBookingStage('idle');
   store.resetCheckoutDraft();
+  store.resetComposeDraft();
   store.clearProfileNarrate();
 
   const line = cancelledRequest
@@ -203,4 +190,69 @@ async function cancelBookingFlow(): Promise<ExecuteSerahActionResult> {
     type: 'cancel_flow',
     careRequestId: cancelledRequest ? careRequestId ?? undefined : undefined,
   };
+}
+
+async function submitComposedRequest(caregiverId: number): Promise<ExecuteSerahActionResult> {
+  const store = useAssistant.getState();
+  const hit =
+    store.match?.results?.find((h) => h.caregiver_id === caregiverId) ??
+    store.match?.results?.[0] ??
+    null;
+  const message =
+    store.composeDraft.fullText.trim() ||
+    composeRequestMessage({
+      caregiverName: hit?.display_name || 'there',
+      hit,
+      intent: store.intent,
+    });
+  try {
+    const { enqueueCareRequest } = await import('../lib/outbox/flush');
+    const outcome = await enqueueCareRequest(
+      {
+        caregiver_id: caregiverId,
+        message,
+        match_run_id: store.match?.request_id,
+        match_snapshot: hit
+          ? {
+              rank: hit.rank,
+              score: hit.score,
+              breakdown: hit.breakdown,
+              explanation: hit.explanation,
+              distance_m: hit.distance_m ?? null,
+            }
+          : undefined,
+      },
+      `Request to ${hit?.display_name || 'caregiver'}`,
+    );
+    const createdId =
+      !outcome.queued && outcome.result && typeof outcome.result.id === 'number'
+        ? outcome.result.id
+        : undefined;
+    applyCareRequestBookingState({
+      caregiverId,
+      careRequestId: createdId,
+      queued: outcome.queued,
+    });
+    store.setComposeDraft({ autoSubmit: false });
+    const name = hit?.display_name || 'this caregiver';
+    const line = outcome.queued
+      ? `Request to ${name} is queued and will send when you reconnect.`
+      : `Request sent to ${name}. I’ll watch for their reply.`;
+    const last = [...store.chat].reverse().find((m) => m.role === 'serah');
+    if (last?.text !== line) {
+      store.appendChat({ role: 'serah', text: line, route: 'ACTION' });
+    }
+    return {
+      ok: true,
+      type: 'submit_request',
+      caregiverId,
+      queued: outcome.queued,
+      careRequestId: createdId,
+    };
+  } catch (err) {
+    const { outboxErrorMessage } = await import('../lib/outbox/flush');
+    const error = outboxErrorMessage(err) || 'Could not send the care request. Try again.';
+    store.appendChat({ role: 'serah', text: error, route: 'ACTION' });
+    return { ok: false, type: 'submit_request', error };
+  }
 }

@@ -32,6 +32,8 @@ _FAST_STUB_SITUATIONS = frozenset(
         "request_status",
         "select_package",
         "confirm_checkout",
+        "book_shift",
+        "submit_request",
     }
 )
 
@@ -197,9 +199,22 @@ def stub_for_situation(
                 "பதில் வரும் வரை சிறிது காத்திருங்கள்."
             )
         return (
-            f"Sending your care request to {name or 'this caregiver'} now. "
-            "I’ll let you know when they respond."
+            f"I’m writing your request to {name or 'this caregiver'} on the side card, "
+            "then I’ll send it."
         )
+
+    if situation == "book_shift":
+        if not has_results:
+            if _si(lang):
+                return "කාලසටහනක් පෙන්වන්න match එකක් ඕනේ — මුලින් caregiver හොයමු."
+            if _ta(lang):
+                return "அட்டவணை காட்ட match வேண்டும் — முதலில் ஒரு பராமரிப்பாளரைத் தேடுவோம்."
+            return "I need a match first — then I can open their schedule on the side card."
+        if _si(lang):
+            return f"{name or 'මේ පරිචාරක'}ගේ ලබාගත හැකි වේලාවන් පැත්තේ card එකේ පෙන්වනවා."
+        if _ta(lang):
+            return f"{name or 'இந்த பராமரிப்பாளர்'} கிடைக்கும் நேரங்களை பக்க அட்டையில் காட்டுகிறேன்."
+        return f"Opening {name or 'this caregiver'}’s available times on the side card."
 
     if situation == "view_profile":
         if not has_results:
@@ -424,9 +439,13 @@ def gemini_chat_reply(
             "They cancelled the booking step (request, drawer, or checkout draft). "
             "Confirm briefly. Do NOT clear or invent match rankings. Invite picking another caregiver."
         ),
-        "view_profile": "Confirm you are opening the caregiver profile drawer. Keep it short.",
+        "view_profile": "Confirm you are opening the caregiver profile on the side card. Keep it short.",
         "describe_caregiver": "Summarize the grounded caregiver briefly; invite a care request if ready.",
-        "request": "Confirm you are sending the care request; say you will wait for their response.",
+        "request": (
+            "Confirm you are writing the care-request message on the side card and sending it. "
+            "Do not invent caregiver facts."
+        ),
+        "book_shift": "Confirm you are opening the caregiver schedule on the side card.",
         "request_status": "Say you are checking the care request status now.",
         "select_package": "Confirm updating their package / days / add-ons choice.",
         "confirm_checkout": (

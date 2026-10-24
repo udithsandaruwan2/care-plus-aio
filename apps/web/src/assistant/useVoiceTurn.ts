@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SerahAction } from '@care-plus/api-client';
-import {
-  ApiError,
-  AI_CONSENT_SCOPE,
-  isNetworkError,
-  isTimeoutError,
-  type VoiceLanguage,
-} from '@care-plus/api-client';
+import { AI_CONSENT_SCOPE, type VoiceLanguage } from '@care-plus/api-client';
 import {
   AssistantState,
   looksLikeCareSeek,
@@ -401,13 +395,6 @@ export function useVoiceTurn() {
           setConsentNeeded(true);
         }
         autoReplayRef.current = classified.autoReplay;
-        if (isNetworkError(err) || isTimeoutError(err)) {
-          useConnectionStore.getState().noteRequestOutcome(
-            isTimeoutError(err) ? 'timeout' : 'network',
-          );
-        } else if (err instanceof ApiError) {
-          useConnectionStore.getState().noteRequestOutcome('http');
-        }
         store.setState(AssistantState.IDLE, { force: true });
       } finally {
         setBusy(false);

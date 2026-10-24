@@ -23,6 +23,8 @@ venv/
 .env
 .env.*
 !.env.example
+*.pem
+careplus.pem
 
 # ── ML artifacts ───────────────────────────────────────────
 ml/artifacts/

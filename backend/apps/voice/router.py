@@ -135,29 +135,46 @@ _NEW_SEARCH = re.compile(
 )
 
 _ACTION = re.compile(
-    r"\b(request\s*(the\s*)?(first|top|#?\s*\d+|this|her|him|them)|"
+    r"\b("
+    r"request(\s*(the\s*)?(first|top|#?\s*\d+|this|that|her|him|them|caregiver|carer|nurse))?|"
     r"send\s*(the\s*)?(care\s*)?request|"
-    r"book\s*(the\s*)?(first|top|#?\s*\d+|them|him|her)|"
-    r"hire(\s*(the\s*)?(first|top|#?\s*\d+|them|him|her))?|"
+    r"send\s+it|"
+    r"book(ing)?(\s*(the\s*|this\s*|that\s*|a\s*)?"
+    r"(caregiver|carer|nurse|them|him|her|this(\s+one)?|first|top|#?\s*\d+))?|"
+    r"hire(\s*(the\s*)?(first|top|#?\s*\d+|them|him|her|caregiver|carer|nurse))?|"
     r"choose\s*(the\s*)?(first|top|#?\s*\d+)|"
     r"i\s*want\s*(the\s*)?(first|top|#?\s*\d+|this\s*one)|"
     r"select\s*(#?\s*)?\d+|"
     r"yes[,.]?\s*(send|request|hire|book)|"
-    r"go\s+ahead\s+(and\s+)?(send|request|hire|book))\b|"
+    r"go\s+ahead\s+(and\s+)?(send|request|hire|book)"
+    r")\b|"
     r"ඉල්ලීම|තෝර|முதல்\s*நபர்|முன்பதிவு",
     re.I,
 )
 
 _VIEW_PROFILE = re.compile(
     r"\b("
-    r"(review|check|open|show|see|look\s*at)\s+"
-    r"((his|her|their|the|a)\s+)?(profile|details?)|"
-    r"(review|check|open|show)\s+(#?\s*\d+|number\s*\d+|"
+    r"(review|check|open|show|see|view|look\s*at)\s+"
+    r"((his|her|their|the|a|me\s+the|me\s+a)\s+)?(profile|details?)|"
+    r"(review|check|open|show|view)\s+(#?\s*\d+|number\s*\d+|"
     r"the\s*(first|second|third|top)|[\w'-]{2,})|"
-    r"go\s+ahead\s+(and\s+)?(check|open|review|show)|"
-    r"yes[,.]?\s*(check|open|review|show)\s*(his|her|their|the)?\s*(profile)?"
+    r"go\s+ahead\s+(and\s+)?(check|open|review|show|view)|"
+    r"yes[,.]?\s*(check|open|review|show|view)\s*(his|her|their|the)?\s*(profile)?"
     r")\b|"
     r"පැතිකඩ|சுயவிவரம்",
+    re.I,
+)
+
+_SCHEDULE = re.compile(
+    r"\b("
+    r"(open|show|see|view|check)\s+(the\s+)?(schedule|calendar|availability|slots?)|"
+    r"(schedule|book)\s+(a\s+)?(visit|shift|slot|time|appointment)|"
+    r"book\s+(a\s+)?(visit|shift|slot)|"
+    r"set\s+(a\s+)?(time|schedule)|"
+    r"when\s+(are\s+they|is\s+(he|she|this)\s+)available|"
+    r"available\s+(times?|slots?)"
+    r")\b|"
+    r"කාලසටහන|நேரத்தை\s*முன்பதிவு|அட்டவணை",
     re.I,
 )
 
@@ -363,6 +380,8 @@ def classify_turn(
 
     # 5) Post-match conversation while caregiver cards are visible on screen
     if has_prior_match:
+        if _SCHEDULE.search(raw):
+            return RouteDecision("ACTION", "book_shift")
         if _VIEW_PROFILE.search(raw):
             return RouteDecision("ACTION", "view_profile")
         if _DESCRIBE.search(raw):

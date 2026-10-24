@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { dismissFailedOutbox, flushOutbox, retryOutboxItem } from '../lib/outbox/flush';
 import { pendingOutboxCount, useOutboxStore } from '../lib/outbox/outboxStore';
@@ -7,13 +8,27 @@ export function OutboxBanner() {
   const items = useOutboxStore((s) => s.items);
   const pending = pendingOutboxCount(items);
   const failed = items.filter((i) => i.status === 'failed');
+  const flushKey = items
+    .filter((i) => i.status === 'pending' || i.status === 'sending')
+    .map((i) => i.id)
+    .join(',');
+  const flushingRef = useRef(false);
+
+  useEffect(() => {
+    if (!flushKey || typeof navigator === 'undefined' || !navigator.onLine) return;
+    if (flushingRef.current) return;
+    flushingRef.current = true;
+    void flushOutbox().finally(() => {
+      flushingRef.current = false;
+    });
+  }, [flushKey]);
 
   if (pending === 0 && failed.length === 0) return null;
 
   return (
     <div
       role="status"
-      className="border-b border-teal-700/25 bg-teal-950/70 px-4 py-2 text-center text-sm text-teal-50"
+      className="border-b border-amber/40 bg-amber/10 px-4 py-2 text-center text-xs text-mist"
     >
       {pending > 0 && (
         <span>

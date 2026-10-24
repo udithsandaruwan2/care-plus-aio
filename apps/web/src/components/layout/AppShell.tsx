@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SkipLink } from '../../a11y/SkipLink';
 import { SerahEngineProvider } from '../../assistant/SerahEngine';
 import { bindAppNavigate } from '../../assistant/appNavigate';
+import { api } from '../../auth/api';
 import { useAuth } from '../../auth/AuthContext';
 import { useConnectionStore } from '../../auth/connectionStore';
 import { bindEdgeRankingLifecycle } from '../../assistant/useMatch';
@@ -15,6 +16,23 @@ import { HubTopbar } from './HubTopbar';
 function ConnectionBanner() {
   const kind = useConnectionStore((s) => s.kind);
   const sessionStale = useAuth().sessionStale;
+
+  useEffect(() => {
+    if (kind !== 'degraded' && !sessionStale) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void api
+        .health()
+        .then(() => {
+          if (!cancelled) useConnectionStore.getState().noteRequestOutcome('ok');
+        })
+        .catch(() => undefined);
+    }, 600);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [kind, sessionStale]);
 
   if (kind === 'online' && !sessionStale) return null;
 

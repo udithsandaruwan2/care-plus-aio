@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import type { MatchHit, MatchResponse } from '@care-plus/api-client';
-import { ApiError } from '@care-plus/api-client';
 import { Avatar } from '../components/ui/Avatar';
 import { localizeExplanation, matchUi } from './locale';
 import type { UiVoiceLanguage } from './uiVoiceLanguage';
 import { useAssistant } from './store';
 import { speakSerah } from './useTts';
 import { comparativeMatchLine } from './compareMatch';
-import { applyCareRequestBookingState } from './bookingFromCareRequest';
+import { executeSerahAction } from './executeSerahAction';
 
 function FactorBar({
   label,
@@ -61,7 +60,7 @@ function MatchCard({
   hit,
   runnerUp,
   canRequestCare,
-  matchRunId,
+  matchRunId: _matchRunId,
   uiLanguage,
 }: {
   hit: MatchHit;
@@ -74,10 +73,8 @@ function MatchCard({
   const explanation = localizeExplanation(hit.explanation, uiLanguage);
   const compare =
     hit.rank === 1 ? comparativeMatchLine(hit, runnerUp) : null;
-  const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [message, setMessage] = useState('');
+  const [busy] = useState(false);
+  const [sent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [openFactors, setOpenFactors] = useState(false);
   const km =
@@ -101,67 +98,14 @@ function MatchCard({
     }
     if (sent || busy) return;
     setFormError(null);
-    setShowForm(true);
-  }
-
-  async function onRequest() {
-    if (!canRequestCare || sent || busy) return;
-    setBusy(true);
-    setFormError(null);
-    try {
-      const { enqueueCareRequest } = await import('../lib/outbox/flush');
-      const outcome = await enqueueCareRequest({
-        caregiver_id: hit.caregiver_id,
-        message: message.trim() || undefined,
-        match_run_id: matchRunId,
-        match_snapshot: {
-          rank: hit.rank,
-          score: hit.score,
-          breakdown: hit.breakdown,
-          explanation: hit.explanation,
-          distance_m: hit.distance_m ?? null,
-        },
-      }, `Request to ${hit.display_name || 'caregiver'}`);
-      setSent(true);
-      setShowForm(false);
-      const createdId =
-        !outcome.queued && outcome.result && typeof outcome.result.id === 'number'
-          ? outcome.result.id
-          : undefined;
-      applyCareRequestBookingState({
-        caregiverId: hit.caregiver_id,
-        careRequestId: createdId,
-        queued: outcome.queued,
-      });
-      const confirmation = outcome.queued
-        ? uiLanguage === 'Sinhala'
-          ? `${hit.display_name || 'මෙම caregiver'} වෙත ඉල්ලීම පෝලිමේ. ඔබ නැවත online වූ විට යැවේ.`
-          : uiLanguage === 'Tamil'
-            ? `${hit.display_name || 'இந்த பராமரிப்பாளர்'}-க்கு கோரிக்கை வரிசையில். மீண்டும் ஆன்லைனில் வரும்போது அனுப்பப்படும்.`
-            : `Request to ${hit.display_name || 'this caregiver'} is queued and will send when you reconnect.`
-        : uiLanguage === 'Sinhala'
-          ? `${hit.display_name || 'මෙම caregiver'} වෙත ඉල්ලීම යැව්වා. ඔහු/ඇය පිළිතුරු දෙන තෙක් ඔබේ තත්ත්වය ගැන කෙටි update එකක් මට කියන්න.`
-          : uiLanguage === 'Tamil'
-            ? `${hit.display_name || 'இந்த பராமரிப்பாளர்'}-க்கு கோரிக்கை அனுப்பப்பட்டது. பதில் வரும் வரை உங்கள் நிலையைச் சுருக்கமாகச் சொல்லுங்கள்.`
-            : `Request sent to ${hit.display_name || 'this caregiver'}. While they respond, tell me a quick update on how you feel.`;
-      const store = useAssistant.getState();
-      store.appendChat({ role: 'serah', text: confirmation, route: 'ACTION' });
-      void speakSerah(confirmation, uiLanguage);
-    } catch (err) {
-      const msg =
-        err instanceof ApiError && typeof err.body === 'object' && err.body
-          ? String(
-              (err.body as Record<string, unknown>).detail ||
-                (err.body as Record<string, unknown>)[0] ||
-                'Request failed.',
-            )
-          : err instanceof Error
-            ? err.message
-            : 'Request failed.';
-      setFormError(msg);
-    } finally {
-      setBusy(false);
-    }
+    void executeSerahAction({
+      type: 'request',
+      caregiver_id: hit.caregiver_id,
+      rank: hit.rank,
+      name_query: '',
+    }).then((outcome) => {
+      if (outcome && !outcome.ok) setFormError(outcome.error);
+    });
   }
 
   return (
@@ -225,67 +169,40 @@ function MatchCard({
         <button
           type="button"
           className="block w-full rounded-xl border border-hair px-3 py-2 text-center text-xs font-semibold text-muted transition hover:border-cyan hover:text-cyan"
-          onClick={() => useAssistant.getState().setFocusedCaregiverId(hit.caregiver_id)}
+          onClick={() => {
+            const store = useAssistant.getState();
+            store.setFocusedCaregiverId(hit.caregiver_id);
+            store.setBookingStage('profile');
+          }}
         >
           {ui.viewProfile}
         </button>
-        {!showForm && (
-          <button
-            type="button"
-            disabled={!canRequestCare || busy || sent || hit.is_available === false}
-            className="w-full rounded-xl bg-cyan px-3 py-2 text-xs font-semibold text-inverse transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted"
-            onClick={startRequest}
-          >
-            {sent
+        <button
+          type="button"
+          disabled={!canRequestCare || busy || sent || hit.is_available === false}
+          className="w-full rounded-xl bg-cyan px-3 py-2 text-xs font-semibold text-inverse transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted"
+          onClick={startRequest}
+        >
+          {sent
+            ? uiLanguage === 'Sinhala'
+              ? 'ඉල්ලීම යැවිණි'
+              : uiLanguage === 'Tamil'
+                ? 'கோரிக்கை அனுப்பப்பட்டது'
+                : 'Request sent'
+            : busy
               ? uiLanguage === 'Sinhala'
-                ? 'ඉල්ලීම යැවිණි'
+                ? 'යවමින්…'
                 : uiLanguage === 'Tamil'
-                  ? 'கோரிக்கை அனுப்பப்பட்டது'
-                  : 'Request sent'
-              : busy
-                ? uiLanguage === 'Sinhala'
-                  ? 'යවමින්…'
+                  ? 'அனுப்புகிறது…'
+                  : 'Sending…'
+              : canRequestCare
+                ? ui.request
+                : uiLanguage === 'Sinhala'
+                  ? 'ඉල්ලීමට පැතිකඩ සම්පූර්ණ කරන්න'
                   : uiLanguage === 'Tamil'
-                    ? 'அனுப்புகிறது…'
-                    : 'Sending…'
-                : canRequestCare
-                  ? ui.request
-                  : uiLanguage === 'Sinhala'
-                    ? 'ඉල්ලීමට පැතිකඩ සම්පූර්ණ කරන්න'
-                    : uiLanguage === 'Tamil'
-                      ? 'கோரிக்கைக்கு சுயவிவரம் நிரம்பவும்'
-                      : 'Complete profile to request'}
-          </button>
-        )}
-        {showForm && !sent && (
-          <div className="space-y-2 rounded-xl border border-hair bg-soft p-3">
-            <label className="block space-y-1">
-              <span className="text-[11px] text-muted">Optional message for the caregiver</span>
-              <input
-                className="w-full rounded-lg border border-hair bg-elevated px-3 py-2 text-xs text-mist outline-none focus-visible:ring-2 focus-visible:ring-cyan"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void onRequest()}
-                className="rounded-full border border-cyan/40 px-3 py-1.5 text-xs text-cyan"
-              >
-                {busy ? 'Sending…' : 'Send request'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="rounded-full border border-hair px-3 py-1.5 text-xs text-muted"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
+                    ? 'கோரிக்கைக்கு சுயவிவரம் நிரம்பவும்'
+                    : 'Complete profile to request'}
+        </button>
         {formError && (
           <p className="text-[11px] text-rose" role="alert">
             {formError}

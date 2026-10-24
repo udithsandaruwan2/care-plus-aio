@@ -6,6 +6,7 @@ describe('connectionStore', () => {
     useConnectionStore.setState({
       browserOnline: true,
       requestDegraded: false,
+      failures: 0,
       kind: 'online',
     });
   });
@@ -15,7 +16,9 @@ describe('connectionStore', () => {
     expect(useConnectionStore.getState().kind).toBe('offline');
   });
 
-  it('marks degraded on network/timeout outcomes', () => {
+  it('marks degraded only after consecutive transport failures', () => {
+    useConnectionStore.getState().noteRequestOutcome('timeout');
+    expect(useConnectionStore.getState().kind).toBe('online');
     useConnectionStore.getState().noteRequestOutcome('timeout');
     expect(useConnectionStore.getState().kind).toBe('degraded');
     useConnectionStore.getState().noteRequestOutcome('ok');

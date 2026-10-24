@@ -16,6 +16,7 @@
   --cp-accent-amber: #f59e0b;
   --cp-accent-rose: #ef4444;
   --cp-text-primary: #0f172a;
+  --cp-text-mist: #0f172a;
   --cp-text-muted: #475569;
   --cp-text-inverse: #ffffff;
   --cp-shadow-soft: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
@@ -34,6 +35,7 @@
   --cp-accent-amber: #fbbf24;
   --cp-accent-rose: #fb7185;
   --cp-text-primary: #f8fafc;
+  --cp-text-mist: #f8fafc;
   --cp-text-muted: #94a3b8;
   --cp-text-inverse: #0f172a;
   --cp-shadow-soft: 0 20px 45px -25px rgba(2, 8, 23, 0.75);

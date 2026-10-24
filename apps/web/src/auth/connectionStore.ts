@@ -5,6 +5,8 @@ export type ConnectionKind = 'online' | 'offline' | 'degraded';
 type ConnectionState = {
   browserOnline: boolean;
   requestDegraded: boolean;
+  /** Consecutive transport failures. Banner only after 2 — a slow voice turn is not offline. */
+  failures: number;
   kind: ConnectionKind;
   setBrowserOnline: (online: boolean) => void;
   noteRequestOutcome: (outcome: 'ok' | 'network' | 'timeout' | 'http') => void;
@@ -19,23 +21,27 @@ function derive(browserOnline: boolean, requestDegraded: boolean): ConnectionKin
 export const useConnectionStore = create<ConnectionState>((set, get) => ({
   browserOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
   requestDegraded: false,
+  failures: 0,
   kind: typeof navigator === 'undefined' || navigator.onLine ? 'online' : 'offline',
   setBrowserOnline: (online) => {
-    const requestDegraded = get().requestDegraded;
+    const requestDegraded = online ? get().requestDegraded : false;
     set({
       browserOnline: online,
-      requestDegraded: online ? requestDegraded : false,
-      kind: derive(online, online ? requestDegraded : false),
+      requestDegraded,
+      failures: online ? get().failures : 0,
+      kind: derive(online, requestDegraded),
     });
   },
   noteRequestOutcome: (outcome) => {
     const browserOnline = get().browserOnline;
-    if (outcome === 'ok') {
-      set({ requestDegraded: false, kind: derive(browserOnline, false) });
+    if (outcome === 'ok' || outcome === 'http') {
+      set({ failures: 0, requestDegraded: false, kind: derive(browserOnline, false) });
       return;
     }
     if (outcome === 'network' || outcome === 'timeout') {
-      set({ requestDegraded: true, kind: derive(browserOnline, true) });
+      const failures = get().failures + 1;
+      const requestDegraded = failures >= 2;
+      set({ failures, requestDegraded, kind: derive(browserOnline, requestDegraded) });
     }
   },
 }));

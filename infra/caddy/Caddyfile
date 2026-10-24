@@ -16,10 +16,20 @@
 		X-Frame-Options DENY
 	}
 
-	reverse_proxy backend:8000 {
-		header_up Host {host}
-		header_up X-Forwarded-Proto {scheme}
-		header_up X-Forwarded-For {remote_host}
-		header_up X-Request-ID {http.request.header.X-Request-ID}
+	# API, admin, media, and Gemini Live / Channels WebSockets.
+	@backend path /api/* /ws/* /admin* /static/* /media*
+	handle @backend {
+		reverse_proxy backend:8000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Request-ID {http.request.header.X-Request-ID}
+		}
+	}
+
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
 	}
 }

@@ -89,6 +89,7 @@ export type LiveServerMessage =
   | { type: 'live.output_transcript'; text: string; final?: boolean; from_tool?: boolean }
   | { type: 'live.tool'; name: string; status: 'running' | 'done'; route?: string }
   | { type: 'live.match'; payload: LiveMatchPayload; cleared?: boolean }
+  | { type: 'live.action'; action?: { type: string; [key: string]: unknown } | null }
   | { type: 'live.error'; message: string }
   | { type: 'live.interrupted' }
   | { type: 'live.turn_complete' }
@@ -102,6 +103,7 @@ export type LiveClientHandlers = {
   onOutputTranscript?: (text: string, final: boolean) => void;
   onTool?: (name: string, status: 'running' | 'done', route?: string) => void;
   onMatch?: (payload: LiveMatchPayload, cleared?: boolean) => void;
+  onAction?: (action: { type: string; [key: string]: unknown }) => void;
   onSpeaking?: (speaking: boolean) => void;
   onError?: (message: string) => void;
   onClosed?: () => void;
@@ -657,6 +659,11 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
             break;
           case 'live.match':
             h.onMatch?.(msg.payload ?? null, msg.cleared);
+            break;
+          case 'live.action':
+            if (msg.action && typeof msg.action.type === 'string') {
+              h.onAction?.(msg.action);
+            }
             break;
           case 'live.error':
             h.onError?.(msg.message);

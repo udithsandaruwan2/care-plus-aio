@@ -14,6 +14,7 @@ describe('useCachedQuery', () => {
     useConnectionStore.setState({
       browserOnline: true,
       requestDegraded: false,
+      failures: 0,
       kind: 'online',
     });
   });

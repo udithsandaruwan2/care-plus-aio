@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useMessageSocket } from '../messaging/useMessageSocket';
 import { Link, Navigate } from 'react-router-dom';
 import { PageHeader } from '../components/ui/PageHeader';
+import { BackLink } from '../components/ui/BackLink';
 import { Button } from '../components/ui/Button';
 import { CacheSourceBadge } from '../lib/query/CacheSourceBadge';
 import { queryKeys, STALE_MS } from '../lib/query/keys';
@@ -33,12 +34,11 @@ export function MessagesPage() {
   const isPatient = user?.role === 'patient';
   const isCaregiver = user?.role === 'caregiver';
   const enabled = Boolean(user?.id && (isPatient || isCaregiver));
-  const pendingMessages = useOutboxStore((s) =>
-    s.items.filter(
-      (i) =>
-        i.kind === 'message' &&
-        (i.status === 'pending' || i.status === 'sending' || i.status === 'failed'),
-    ),
+  const outboxItems = useOutboxStore((s) => s.items);
+  const pendingMessages = outboxItems.filter(
+    (i) =>
+      i.kind === 'message' &&
+      (i.status === 'pending' || i.status === 'sending' || i.status === 'failed'),
   );
 
   useEffect(() => {
@@ -186,7 +186,11 @@ export function MessagesPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col">
+    <div className="mx-auto flex w-full max-w-3xl flex-col text-mist">
+      <div className="mb-3 flex flex-wrap gap-2">
+        <BackLink to="/hub">Back to hub</BackLink>
+        <BackLink to="/app">Back to Serah</BackLink>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           eyebrow="Messaging"
@@ -253,7 +257,7 @@ export function MessagesPage() {
 
       {thread && (
         <>
-          <div className="mt-6 flex min-h-[320px] flex-1 flex-col rounded-2xl border border-hair bg-panel/70 p-4 backdrop-blur-md">
+          <div className="mt-6 flex min-h-[320px] flex-1 flex-col rounded-2xl border border-hair bg-panel p-4 shadow-[var(--cp-shadow-soft)]">
             <ul className="flex-1 space-y-3 overflow-y-auto pr-1">
               {messages.length === 0 && (
                 <li className="text-center text-sm text-muted">
@@ -267,7 +271,9 @@ export function MessagesPage() {
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
-                      msg.is_mine ? 'bg-cyan/20 text-mist' : 'border border-hair bg-soft text-mist'
+                      msg.is_mine
+                        ? 'bg-cyan/15 text-mist'
+                        : 'border border-hair bg-soft text-mist'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.body}</p>
@@ -304,7 +310,7 @@ export function MessagesPage() {
               className="mt-4 flex gap-2 border-t border-hair pt-4"
             >
               <input
-                className="flex-1 rounded-lg border border-hair bg-panel px-3 py-2 text-sm text-mist outline-none ring-cyan focus:ring-1"
+                className="flex-1 rounded-lg border border-hair bg-elevated px-3 py-2 text-sm text-mist outline-none ring-cyan focus:ring-1"
                 placeholder="Type a message…"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
