@@ -13,6 +13,7 @@ import {
 } from '@care-plus/serah-live';
 import { AssistantState } from '@care-plus/core';
 import { getAccessToken, loadCachedUser } from '../auth/session';
+import { wsOrigin } from '../lib/wsOrigin';
 import { executeSerahAction } from './executeSerahAction';
 import { inferPostMatchAction } from './postMatchVoiceCommand';
 import { useAssistant } from './store';
@@ -20,7 +21,7 @@ import type { SerahAction } from '@care-plus/api-client';
 
 const apiBase =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8000/api/v1';
-const wsBase = import.meta.env.VITE_WS_BASE_URL as string | undefined;
+const wsBase = wsOrigin(import.meta.env.VITE_WS_BASE_URL as string | undefined);
 
 export function useSerahLiveBridge() {
   const [liveActive, setLiveActive] = useState(false);

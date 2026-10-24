@@ -4,6 +4,7 @@ import { AssistantState, type IntentDraft } from '@care-plus/core';
 import { api } from '../auth/api';
 import { getAccessToken, loadCachedUser } from '../auth/session';
 import { persistLastMatch } from '../lib/query/matchCache';
+import { wsOrigin } from '../lib/wsOrigin';
 import { useAuth } from '../auth/AuthContext';
 import { useAssistant } from './store';
 import { matchVoiceCopy } from './locale';
@@ -223,11 +224,7 @@ function handleTurnMessage(type: string, payload: TurnPayload) {
 }
 
 function wsBase(): string {
-  const fromEnv = import.meta.env.VITE_WS_BASE_URL as string | undefined;
-  if (fromEnv) return fromEnv.replace(/\/$/, '');
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  // Dev: Vite proxies /ws → backend :8000
-  return `${proto}://${window.location.host}`;
+  return wsOrigin(import.meta.env.VITE_WS_BASE_URL as string | undefined);
 }
 
 /**
