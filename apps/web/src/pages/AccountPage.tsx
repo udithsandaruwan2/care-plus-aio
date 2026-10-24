@@ -6,6 +6,8 @@ import { usePatientProfile } from '../auth/usePatientProfile';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
 import { ProfileMediaCard } from '../components/ProfileMediaCard';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
+import { ThemeToggle } from '../theme/ThemeToggle';
 
 function SettingsLink({ to, title, desc }: { to: string; title: string; desc: string }) {
   return (
@@ -27,11 +29,22 @@ export function AccountPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader
-        eyebrow="Account"
-        title="Profile and settings"
-        subtitle="Manage your Care Plus profile, completion, and alerts."
-      />
+      <h1 className="font-display text-xl text-mist lg:hidden">You</h1>
+      <div className="hidden lg:block">
+        <PageHeader
+          eyebrow="Account"
+          title="Profile and settings"
+          subtitle="Manage your Care Plus profile, completion, and alerts."
+        />
+      </div>
+
+      <section className="mt-6 rounded-2xl border border-hair bg-panel p-5 shadow-[var(--cp-shadow-soft)] lg:hidden">
+        <p className="font-display text-lg text-mist">Look and language</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
+      </section>
 
       <section className="mt-6 rounded-2xl border border-hair bg-panel shadow-[var(--cp-shadow-soft)] p-5">
         <p className="font-display text-lg text-mist">Identity</p>

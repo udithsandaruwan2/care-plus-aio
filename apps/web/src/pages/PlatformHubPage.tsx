@@ -21,7 +21,7 @@ function Shortcut({ to, title, desc }: { to: string; title: string; desc: string
       className="block rounded-2xl border border-hair bg-panel p-4 shadow-[var(--cp-shadow-soft)] transition hover:border-cyan/40"
     >
       <p className="font-display text-base font-semibold text-mist">{title}</p>
-      <p className="mt-1 text-sm text-muted">{desc}</p>
+      <p className="mt-1 hidden text-sm text-muted lg:block">{desc}</p>
     </Link>
   );
 }
@@ -103,25 +103,27 @@ export function PlatformHubPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow={t('hub.eyebrow')}
-        title={t('hub.welcome', { name: firstName })}
-        subtitle={t('hub.subtitle')}
-      />
+      <div className="hidden lg:block">
+        <PageHeader
+          eyebrow={t('hub.eyebrow')}
+          title={t('hub.welcome', { name: firstName })}
+          subtitle={t('hub.subtitle')}
+        />
+      </div>
 
       {user?.role !== 'caregiver' ? (
-        <Link
-          to="/app"
-          className="mt-5 flex items-center gap-4 rounded-3xl border border-cyan/30 bg-cyan/10 px-4 py-4 no-underline shadow-[var(--cp-shadow-soft)] lg:hidden"
-        >
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-cyan text-inverse">
-            <Activity size={26} />
+        <Link to="/app" className="home-serah-hero lg:hidden">
+          <span className="home-serah-orb" aria-hidden>
+            <Activity size={28} />
           </span>
           <span className="min-w-0">
-            <span className="block font-display text-lg font-semibold text-mist">Open Serah</span>
-            <span className="mt-0.5 block text-sm text-muted">
-              Full-screen voice matching — Sinhala, Tamil, or English.
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan">
+              Serah Core
             </span>
+            <span className="mt-1 block font-display text-2xl font-semibold leading-tight text-mist">
+              Talk to find care
+            </span>
+            <span className="mt-1 block text-sm text-muted">Sinhala · Tamil · English</span>
           </span>
         </Link>
       ) : null}
@@ -276,8 +278,10 @@ export function PlatformHubPage() {
             <Shortcut to="/schedule" title={t('hub.scheduleTitle')} desc={t('hub.scheduleDesc')} />
           )}
           <Shortcut to="/records" title={t('hub.recordsTitle')} desc={t('hub.recordsDesc')} />
-          <Shortcut to="/account" title={t('hub.accountTitle')} desc={t('hub.accountDesc')} />
-          <Shortcut to="/app" title={t('hub.serahTitle')} desc={t('hub.serahDesc')} />
+          <span className="hidden lg:contents">
+            <Shortcut to="/account" title={t('hub.accountTitle')} desc={t('hub.accountDesc')} />
+            <Shortcut to="/app" title={t('hub.serahTitle')} desc={t('hub.serahDesc')} />
+          </span>
           {(user?.role === 'admin' || user?.role === 'auditor') && (
             <Shortcut
               to="/users"

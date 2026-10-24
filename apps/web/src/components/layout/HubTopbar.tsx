@@ -11,14 +11,13 @@ export function HubTopbar({ compact = false }: { compact?: boolean }) {
     <header
       className={
         compact
-          ? 'flex items-center justify-between gap-3 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] lg:hidden'
+          ? 'flex items-center justify-between gap-3 px-4 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))] lg:hidden'
           : 'hidden items-center justify-between gap-4 px-8 py-5 lg:flex'
       }
     >
       {compact ? (
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan">Care Plus</p>
-          <p className="truncate font-display text-lg text-mist">Hi, {name}</p>
+          <p className="truncate font-display text-xl leading-tight text-mist">Hi, {name}</p>
         </div>
       ) : (
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-hair bg-panel px-3 py-2 shadow-sm">
@@ -31,10 +30,14 @@ export function HubTopbar({ compact = false }: { compact?: boolean }) {
           />
         </label>
       )}
-      <div className="flex items-center gap-2">
-        <LanguageSwitcher />
-        <ThemeToggle />
-        <div className="ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-cyan/15 text-sm font-semibold text-cyan">
+      <div className={`flex items-center gap-2 ${compact ? '' : ''}`}>
+        {compact ? null : (
+          <>
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </>
+        )}
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan/15 text-sm font-semibold text-cyan">
           {name.slice(0, 1).toUpperCase()}
         </div>
       </div>

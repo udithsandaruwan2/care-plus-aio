@@ -359,14 +359,17 @@
     border-radius: 0;
     border: 0;
     box-shadow: none;
+    overflow: hidden;
   }
 
   .serah-hud-top {
+    flex-wrap: nowrap;
     gap: 8px;
-    padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+    padding: max(8px, env(safe-area-inset-top)) 10px 8px;
   }
 
   .hud-status {
+    flex-shrink: 0;
     gap: 6px;
   }
 
@@ -375,7 +378,7 @@
   }
 
   .serah-hud-bottom {
-    padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
   }
 
   .serah-mic-btn {
@@ -388,43 +391,79 @@
     height: 148px;
   }
 
+  .serah-stage,
   .serah-stage.is-searching,
   .serah-stage.has-profile-card.is-searching,
   .serah-stage.has-profile-card:not(.is-searching) {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
-    padding: 6px 10px 0;
-  }
-
-  .serah-profile-drawer.is-open {
-    max-height: min(62dvh, 34rem);
-    border-radius: 1.15rem 1.15rem 0 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    grid-template-rows: none;
+    align-items: stretch;
+    justify-items: stretch;
+    gap: 8px;
+    overflow: hidden;
+    padding: 4px 10px 0;
   }
 
   .serah-stage.is-searching .serah-core-wrapper {
+    flex: 0 0 auto;
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
     width: 100%;
     max-width: none;
     height: auto;
-    max-height: 9.5rem;
+    max-height: 5.75rem;
     padding: 0;
-    gap: 10px;
+    gap: 8px;
+    overflow: hidden;
   }
 
   .serah-stage.is-searching .serah-neural-field,
   .serah-stage.is-searching .serah-neural-field > [aria-hidden],
   .serah-stage.is-searching .neural-dock {
-    width: 8.5rem;
-    height: 8.5rem;
-    max-width: 8.5rem;
-    max-height: 8.5rem;
+    width: 4.75rem;
+    height: 4.75rem;
+    max-width: 4.75rem;
+    max-height: 4.75rem;
+  }
+
+  .serah-stage.is-searching .serah-orb-hit {
+    width: 72px;
+    height: 72px;
+  }
+
+  .serah-stage.is-searching .serah-orb-hit-ring {
+    width: 52px;
+    height: 52px;
   }
 
   .serah-stage.is-searching .serah-field-chat {
     flex: 1 1 auto;
-    max-height: 9rem;
+    max-height: 5.5rem;
+    overflow: hidden;
+  }
+
+  .serah-stage.is-searching .serah-match-projection,
+  .serah-stage.is-searching .serah-match-projection.is-open {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .serah-profile-drawer.is-open {
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    left: 8px;
+    z-index: 30;
+    width: auto;
+    height: min(78dvh, 36rem);
+    max-height: min(78dvh, 36rem);
+    border-radius: 1.25rem 1.25rem 0 0;
   }
 }
 
@@ -1127,10 +1166,14 @@
 
 .serah-live-caption-text {
   margin: 0;
+  overflow: hidden;
   font-size: 0.95rem;
   line-height: 1.45;
   color: var(--cp-text-mist);
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
 }
 
 .serah-live-caption-text .is-interim {

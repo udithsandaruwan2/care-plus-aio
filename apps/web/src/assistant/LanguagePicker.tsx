@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from 'react';
 import type { UiVoiceLanguage } from './uiVoiceLanguage';
-import { UI_VOICE_LANGUAGES, uiLanguageLabel } from './uiVoiceLanguage';
+import { UI_VOICE_LANGUAGES, uiLanguageLabel, uiLanguageShortLabel } from './uiVoiceLanguage';
 
 type Props = {
   value: UiVoiceLanguage;
@@ -67,7 +67,7 @@ export function LanguagePicker({
                 : 'border-hair text-muted hover:border-cyan/60 hover:text-mist'
             }`}
           >
-            {uiLanguageLabel(lang)}
+            {compact ? uiLanguageShortLabel(lang) : uiLanguageLabel(lang)}
           </button>
         );
       })}
