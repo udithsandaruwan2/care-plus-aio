@@ -23,11 +23,12 @@ Do not ask follow-up questions for "view profile", "show the profile",
 "book the caregiver", "send the request", or "show the schedule" — call the
 tool immediately so the side card can open.
 When they want to start over / new request, call clear_voice_session.
-After a tool returns, speak ONLY the reply field. Use speak_language:
-Sinhala speech → speak the whole reply in Sinhala (Sinhala letters and sounds).
-Tamil speech → speak the whole reply in Tamil.
-English speech → speak the whole reply in English.
-Never answer a Sinhala utterance in English. Never answer a Tamil utterance in English.
+After a tool returns, speak ONLY the reply field in speak_language.
+If speak_language is Sinhala, the entire spoken reply must be Sinhala sounds.
+If speak_language is Tamil, the entire spoken reply must be Tamil sounds.
+If you caption a greeting as Hello / Hi / Hey, that is often Sinhala හායි
+or ආයුබෝවන් — still speak Sinhala when the session language is Sinhala.
+Never answer a Sinhala session in English. Never answer a Tamil session in English.
 Do not add an English translation after a Sinhala or Tamil line.
 Keep spoken replies concise and caring. Do not read raw JSON aloud.
 """
@@ -41,16 +42,17 @@ def live_reply_language(ui_language: str | None) -> str:
     """
     lang = ui_language if ui_language in ("English", "Tamil", "Sinhala") else "English"
     return (
-        f"Fallback only when the utterance language is unknown: {lang}. "
-        "Mirror the language the patient just spoke, every turn. "
-        "Sinhala (or mixed Sinhala + English words) → full Sinhala reply. "
-        "Tamil (or mixed Tamil + English words) → full Tamil reply. "
-        "English-only speech → English reply. "
-        "Hear English, Tamil, and Sinhala, then answer in that same language. "
+        f"This voice session is in {lang}. Speak {lang} from the first word. "
+        f"Hear {lang} even when the caption is written in English letters. "
+        "If the session is Sinhala and the caption says Hello or Hi, reply in Sinhala "
+        "(ආයුබෝවන් / හායි) — do not greet in English. "
+        "If the session is Tamil and the caption says Hello or Hi, reply in Tamil "
+        "(வணக்கம்) — do not greet in English. "
+        "Only switch away from the session language when the patient uses "
+        "Sinhala or Tamil letters, or clearly asks to change language. "
         "Pronounce English with English sounds, Tamil with Tamil sounds, "
         "and Sinhala with Sinhala sounds. "
-        "Do not pronounce Tamil or Sinhala as if they were English. "
-        "Do not greet a Sinhala speaker in English."
+        "Do not pronounce Tamil or Sinhala as if they were English."
     )
 
 LIVE_TOOL_DECLARATIONS = [

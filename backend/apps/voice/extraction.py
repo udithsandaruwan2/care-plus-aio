@@ -54,8 +54,10 @@ _ROMAN_TAMIL_RE = re.compile(
     r")\b",
     re.I,
 )
-_CLEAR_ENGLISH_RE = re.compile(
-    r"^(hi|hello|hey|good\s*(morning|afternoon|evening)|"
+# Live often writes Sinhala හායි / ආයුබෝවන් as Hello. These are not a language switch.
+_SHORT_LATIN_ACK_RE = re.compile(
+    r"^(hi|hii+|hello|hallo|hey|hellolo|"
+    r"good\s*(morning|afternoon|evening)|"
     r"thanks|thank\s*you|yes|yeah|yep|ok|okay|"
     r"please|sorry)[\s!.]*$",
     re.I,
@@ -131,28 +133,32 @@ def detect_language(text: str, hint: str | None = None) -> str:
 
 
 def spoken_reply_bcp47(text: str) -> str | None:
-    """Language Serah should speak for this utterance, or None if unclear."""
+    """Language Serah should speak for this utterance, or None if unclear.
+
+    Short Latin greetings return None. Gemini Live captions Sinhala හායි as
+    Hello; those must not flip a Sinhala session to English.
+    """
     sample = text or ""
     if _TAMIL_RE.search(sample) or _ROMAN_TAMIL_RE.search(sample):
         return "ta-LK"
     if _SINHALA_RE.search(sample) or _ROMAN_SINHALA_RE.search(sample):
         return "si-LK"
-    if _is_clearly_english(sample):
-        return "en-US"
     return None
 
 
-def _is_clearly_english(text: str) -> bool:
-    raw = (text or "").strip()
-    if not raw:
-        return False
-    if _SINHALA_RE.search(raw) or _TAMIL_RE.search(raw):
-        return False
-    if _ROMAN_SINHALA_RE.search(raw) or _ROMAN_TAMIL_RE.search(raw):
-        return False
-    if _CLEAR_ENGLISH_RE.match(raw):
-        return True
-    return len(_LATIN_WORD_RE.findall(raw)) >= 2
+def is_short_latin_ack(text: str) -> bool:
+    return bool(_SHORT_LATIN_ACK_RE.match((text or "").strip()))
+
+
+def should_adopt_session_language(current: str | None, incoming: str | None) -> str | None:
+    """Keep Sinhala/Tamil once chosen; only adopt English when already English."""
+    nxt = (incoming or "").strip() or None
+    cur = (current or "").strip() or None
+    if nxt in (Language.SINHALA, Language.TAMIL):
+        return nxt
+    if nxt == Language.ENGLISH and cur in (Language.SINHALA, Language.TAMIL):
+        return cur
+    return nxt or cur
 
 
 def bcp47_to_ui(lang: str | None) -> str | None:
