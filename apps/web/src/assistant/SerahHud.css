@@ -33,6 +33,17 @@
   background: radial-gradient(circle at 50% 42%, rgba(13, 148, 136, 0.06) 0%, transparent 55%);
 }
 
+.serah-app-back {
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 2px;
+  border-radius: 999px;
+  color: var(--cp-text-mist);
+  text-decoration: none;
+}
+
 .serah-hud-top {
   position: relative;
   z-index: 10;
@@ -340,6 +351,43 @@
 }
 
 @media (max-width: 1023px) {
+  .serah-app-back {
+    display: grid;
+  }
+
+  .serah-immersive-container {
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .serah-hud-top {
+    gap: 8px;
+    padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+  }
+
+  .hud-status {
+    gap: 6px;
+  }
+
+  .hud-status span {
+    display: none;
+  }
+
+  .serah-hud-bottom {
+    padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .serah-mic-btn {
+    width: 56px;
+    height: 56px;
+  }
+
+  .serah-orb-hit {
+    width: 148px;
+    height: 148px;
+  }
+
   .serah-stage.is-searching,
   .serah-stage.has-profile-card.is-searching,
   .serah-stage.has-profile-card:not(.is-searching) {
@@ -349,7 +397,8 @@
   }
 
   .serah-profile-drawer.is-open {
-    max-height: min(70vh, 36rem);
+    max-height: min(62dvh, 34rem);
+    border-radius: 1.15rem 1.15rem 0 0;
   }
 
   .serah-stage.is-searching .serah-core-wrapper {

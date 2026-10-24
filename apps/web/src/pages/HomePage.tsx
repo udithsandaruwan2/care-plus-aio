@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Activity, Mic, Send } from 'lucide-react';
+import { Activity, ChevronLeft, Mic, Send } from 'lucide-react';
 import { AssistantState, goalRingProgress, nextMissingField } from '@care-plus/core';
 import { useAuth } from '../auth/AuthContext';
 import { useCaregiverProfile } from '../auth/useCaregiverProfile';
@@ -87,8 +87,12 @@ export function HomePage() {
 
       <div className="serah-hud-top">
         <div className="hud-brand">
+          <Link to="/hub" className="serah-app-back" aria-label="Back to dashboard">
+            <ChevronLeft size={22} />
+          </Link>
           <Activity color="var(--cp-accent-cyan)" size={20} />
-          <span>SERAH NEURAL CORE v2.0</span>
+          <span className="hidden sm:inline">SERAH NEURAL CORE v2.0</span>
+          <span className="sm:hidden">SERAH</span>
         </div>
         <div className="hud-status">
           <div className="status-indicator" />
@@ -104,6 +108,7 @@ export function HomePage() {
           value={uiLanguage}
           onChange={setUiLanguage}
           disabled={listening || busy}
+          compact
           className="justify-end"
         />
       </div>

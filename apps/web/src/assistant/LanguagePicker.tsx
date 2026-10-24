@@ -7,12 +7,19 @@ type Props = {
   onChange: (lang: UiVoiceLanguage) => void;
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
 };
 
 /**
  * Session language lock for captions + server ASR + Serah replies.
  */
-export function LanguagePicker({ value, onChange, disabled, className = '' }: Props) {
+export function LanguagePicker({
+  value,
+  onChange,
+  disabled,
+  className = '',
+  compact = false,
+}: Props) {
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (disabled) return;
     const idx = UI_VOICE_LANGUAGES.indexOf(value);
@@ -36,7 +43,7 @@ export function LanguagePicker({ value, onChange, disabled, className = '' }: Pr
 
   return (
     <div
-      className={`flex flex-wrap items-center justify-center gap-2 ${className}`}
+      className={`flex flex-nowrap items-center justify-end gap-1 ${className}`}
       role="radiogroup"
       aria-label="Conversation language"
       onKeyDown={onKeyDown}
@@ -52,7 +59,9 @@ export function LanguagePicker({ value, onChange, disabled, className = '' }: Pr
             tabIndex={selected ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(lang)}
-            className={`rounded-lg border px-3 py-1.5 text-sm transition focus-visible:ring-2 focus-visible:ring-cyan disabled:opacity-50 ${
+            className={`rounded-lg border transition focus-visible:ring-2 focus-visible:ring-cyan disabled:opacity-50 ${
+              compact ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-sm'
+            } ${
               selected
                 ? 'border-cyan bg-cyan/15 text-cyan'
                 : 'border-hair text-muted hover:border-cyan/60 hover:text-mist'

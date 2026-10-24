@@ -19,6 +19,7 @@ export function AIAssistantDock() {
   const [line, setLine] = useState('');
 
   if (!sessionLive || location.pathname === '/app') return null;
+  // Phone app shell already has a Serah tab — keep the companion off the Pixel canvas.
 
   const last = chat.at(-1);
   const status = asleep
@@ -41,7 +42,7 @@ export function AIAssistantDock() {
     return (
       <button
         type="button"
-        className="serah-dock-fab"
+        className="serah-dock-fab hidden lg:flex"
         onClick={() => setOpen(true)}
         aria-label="Open Serah companion"
       >
@@ -52,7 +53,7 @@ export function AIAssistantDock() {
   }
 
   return (
-    <aside className="serah-dock" aria-label="Serah companion">
+    <aside className="serah-dock hidden lg:block" aria-label="Serah companion">
       <header className="serah-dock-head">
         <span className={`serah-dock-orb-mini ${engine.listening ? 'live' : ''} ${asleep ? 'sleep' : ''}`} />
         <div className="min-w-0 flex-1">

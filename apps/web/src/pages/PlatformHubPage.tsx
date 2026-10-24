@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Inbox, Package, Stethoscope, Users } from 'lucide-react';
+import { Activity, Calendar, Inbox, Package, Stethoscope, Users } from 'lucide-react';
 import type { CareRequest } from '@care-plus/api-client';
 import { api } from '../auth/api';
 import { useAuth } from '../auth/AuthContext';
@@ -109,7 +109,24 @@ export function PlatformHubPage() {
         subtitle={t('hub.subtitle')}
       />
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {user?.role !== 'caregiver' ? (
+        <Link
+          to="/app"
+          className="mt-5 flex items-center gap-4 rounded-3xl border border-cyan/30 bg-cyan/10 px-4 py-4 no-underline shadow-[var(--cp-shadow-soft)] lg:hidden"
+        >
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-cyan text-inverse">
+            <Activity size={26} />
+          </span>
+          <span className="min-w-0">
+            <span className="block font-display text-lg font-semibold text-mist">Open Serah</span>
+            <span className="mt-0.5 block text-sm text-muted">
+              Full-screen voice matching — Sinhala, Tamil, or English.
+            </span>
+          </span>
+        </Link>
+      ) : null}
+
+      <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard
           icon={<Stethoscope size={20} />}
           title="Caregivers"
@@ -213,7 +230,17 @@ export function PlatformHubPage() {
               View all
             </Link>
           </div>
-          <table className="w-full min-w-[32rem] text-left text-sm">
+          <ul className="divide-y divide-hair lg:hidden">
+            {requests.map((row) => (
+              <li key={row.id} className="px-4 py-3">
+                <p className="font-medium text-mist">{row.caregiver_name}</p>
+                <p className="mt-0.5 text-xs text-muted">
+                  #{row.id} · <span className="capitalize text-cyan">{row.status}</span>
+                </p>
+              </li>
+            ))}
+          </ul>
+          <table className="hidden w-full min-w-[32rem] text-left text-sm lg:table">
             <thead className="text-xs uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-5 py-3 font-semibold">ID</th>
@@ -238,7 +265,7 @@ export function PlatformHubPage() {
 
       <section className="mt-8">
         <h2 className="font-display text-lg font-semibold text-mist">{t('hub.quickActions')}</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <Shortcut to="/messages" title={t('hub.messagesTitle')} desc={t('hub.messagesDesc')} />
           <Shortcut
             to="/requests"
