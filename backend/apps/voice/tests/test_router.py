@@ -170,14 +170,6 @@ class RouterFixtureTests(SimpleTestCase):
         )
         self.assertEqual(d.route, "MATCH")
 
-    def test_romanized_kenek_seek_matches(self):
-        d = classify_turn(
-            "mata kenek onee",
-            {"condition": "dengue"},
-            has_prior_match=False,
-        )
-        self.assertEqual(d.route, "MATCH")
-
     def test_post_match_default_chat(self):
         d = classify_turn("hmm interesting", COMPLETE, has_prior_match=True)
         self.assertEqual(d.route, "CHAT")

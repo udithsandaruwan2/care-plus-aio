@@ -487,9 +487,7 @@ def gemini_chat_reply(
         f"Guidance: {guidance}\n"
         f"{match_block}\n"
         f"Recent conversation:\n{history_block or '(none yet)'}\n"
-        f"Reply ONLY in {_display_lang(lang)} using that language's own letters. "
-        "If the language is Sinhala, write Sinhala. If Tamil, write Tamil. "
-        "Do not answer Sinhala or Tamil with an English sentence. "
+        f"Reply ONLY in {_display_lang(lang)} — never mix English if the user chose Sinhala or Tamil. "
         f"Patient just said: {text}"
     )
 

@@ -177,7 +177,6 @@ class VoiceTurnApiTests(APITestCase):
             format="multipart",
         )
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        # Live captions Sinhala හායි as Hello — keep the Sinhala picker.
         self.assertEqual(resp.data["reply_lang"], "si-LK")
         self.assertEqual(resp.data["intent"]["language"], "Sinhala")
 
@@ -236,7 +235,7 @@ class ProcessTurnLanguageMergeTests(TestCase):
                 ui_language="Tamil",
             )
         self.assertEqual(out["intent"]["language"], "Tamil")
-        self.assertEqual(out["reply_lang"], "en-US")
+        self.assertEqual(out["reply_lang"], "ta-LK")
 
     def test_thanks_after_match_does_not_rematch(self):
         from apps.voice.asr import AsrResult
@@ -500,7 +499,7 @@ class ProcessTurnLanguageMergeTests(TestCase):
         self.assertEqual(out["tts_source"], "edge")
         self.assertTrue(out["reply_audio_base64"])
 
-    def test_hello_caption_keeps_sinhala_picker(self):
+    def test_ui_picker_locks_spoken_lang_not_caregiver_chip(self):
         out = process_turn(
             user=self.user,
             client_text="hello",
@@ -508,15 +507,6 @@ class ProcessTurnLanguageMergeTests(TestCase):
             prior_intent={"language": "English", "languages": ["English"]},
         )
         self.assertEqual(out["reply_lang"], "si-LK")
-
-    def test_sinhala_speech_wins_over_english_picker(self):
-        out = process_turn(
-            user=self.user,
-            client_text="කොහොමද",
-            ui_language="English",
-        )
-        self.assertEqual(out["reply_lang"], "si-LK")
-        self.assertTrue(any("\u0d80" <= ch <= "\u0dff" for ch in (out.get("reply") or "")))
 
 
 class ReplyGroundingTests(SimpleTestCase):

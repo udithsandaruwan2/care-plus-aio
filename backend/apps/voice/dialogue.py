@@ -15,7 +15,7 @@ from apps.matching.push import push_match_results, push_turn_stage
 from .actions import build_voice_action, last_serah_text
 from .asr import resolve_transcript
 from .backends import extract_intent
-from .extraction import extract_stub, spoken_reply_bcp47
+from .extraction import extract_stub
 from .models import create_voice_intent
 from .policy import resolve_chat_backend
 from .refine import apply_deltas_to_intent, parse_refine_deltas
@@ -78,26 +78,18 @@ def _tts_lang(primary: str | None, languages: list[str] | None) -> str:
     return "en-US"
 
 
-def reply_language_for_utterance(
-    text: str,
-    fallback: str,
-    *,
-    prior_reply_lang: str | None = None,
-) -> str:
-    """Speak Sinhala / Tamil / English to match the session.
+def reply_language_for_utterance(text: str, fallback: str) -> str:
+    """Answer in the script the patient used.
 
-    Sinhala or Tamil letters (and romanized captions) always win. Short
-    Latin greetings like Hello keep the picker — Live often writes හායි
-    as Hello. A real English sentence ("Hi, how are you?") switches to
-    English. The picker is the session language otherwise.
+    The picker still chooses the reply when the words are Latin. Tamil or
+    Sinhala letters win, so those lines are not read with English sounds.
     """
-    detected = spoken_reply_bcp47(text)
-    if detected:
-        return detected
-    prior = (prior_reply_lang or "").strip()
-    if prior.startswith("si") or prior.startswith("ta"):
-        return prior
-    return fallback or "en-US"
+    sample = text or ""
+    if any("\u0b80" <= ch <= "\u0bff" for ch in sample):
+        return "ta-LK"
+    if any("\u0d80" <= ch <= "\u0dff" for ch in sample):
+        return "si-LK"
+    return fallback
 
 
 def _use_server_voice(reply_lang: str, *, has_match: bool = False) -> bool:
@@ -631,15 +623,13 @@ def process_turn(
         )
     route = decision.route
     situation = decision.situation
-    # Picker holds the session. Sinhala/Tamil letters or romanized speech can
-    # switch it; Hello / Hi captions must not (Live writes those for හායි).
-    prior_spoken = spoken_reply_bcp47(prior_serah)
-    fallback_lang = _tts_lang(ui, [ui]) if ui else _tts_lang(base.get("language"), base.get("languages"))
-    reply_lang = reply_language_for_utterance(
-        text,
-        fallback_lang,
-        prior_reply_lang=prior_spoken,
-    )
+    # The picker locks Latin replies. A Tamil or Sinhala utterance speaks that language.
+    if ui:
+        reply_lang = reply_language_for_utterance(text, _tts_lang(ui, [ui]))
+    else:
+        reply_lang = reply_language_for_utterance(
+            text, _tts_lang(base.get("language"), base.get("languages"))
+        )
 
     # Early intent/route for progressive UI (chips + matching state) before VEHMF/TTS.
     intent_preview = {
