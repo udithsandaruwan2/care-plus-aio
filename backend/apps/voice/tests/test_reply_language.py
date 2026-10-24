@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 
 from apps.voice.dialogue import reply_language_for_utterance
-from apps.voice.extraction import detect_languages, spoken_reply_bcp47
+from apps.voice.extraction import detect_languages, should_adopt_session_language, spoken_reply_bcp47
 
 
 class ReplyLanguageTests(unittest.TestCase):
@@ -33,11 +33,12 @@ class ReplyLanguageTests(unittest.TestCase):
         self.assertEqual(spoken_reply_bcp47("mata caregiver kenek onee"), "si-LK")
         self.assertEqual(spoken_reply_bcp47("vanakkam enakku vendum"), "ta-LK")
 
-    def test_clear_english_is_english_even_if_picker_is_sinhala(self) -> None:
-        self.assertEqual(reply_language_for_utterance("hello", "si-LK"), "en-US")
+    def test_hello_caption_keeps_sinhala_picker(self) -> None:
+        self.assertEqual(reply_language_for_utterance("hello", "si-LK"), "si-LK")
+        self.assertEqual(reply_language_for_utterance("Hellolo", "si-LK"), "si-LK")
         self.assertEqual(
             reply_language_for_utterance("I need a caregiver", "si-LK"),
-            "en-US",
+            "si-LK",
         )
 
     def test_short_followup_keeps_prior_sinhala(self) -> None:
@@ -52,3 +53,8 @@ class ReplyLanguageTests(unittest.TestCase):
     def test_detect_languages_includes_romanized_sinhala(self) -> None:
         langs = detect_languages("mata diabetes kenek onee")
         self.assertIn("Sinhala", langs)
+
+    def test_session_does_not_flip_sinhala_to_english_on_hello(self) -> None:
+        self.assertEqual(should_adopt_session_language("Sinhala", "English"), "Sinhala")
+        self.assertEqual(should_adopt_session_language("Sinhala", "Tamil"), "Tamil")
+        self.assertIsNone(spoken_reply_bcp47("Hello"))

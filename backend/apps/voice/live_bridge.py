@@ -16,7 +16,7 @@ from apps.voice.live_activity import live_realtime_input_config
 from apps.voice.live_receive import iter_session_messages
 from apps.voice.live_stream import END_AUDIO, pump_mic_audio
 from apps.voice.output_hold import apply_output_hold, hold_should_release
-from apps.voice.extraction import bcp47_to_ui, spoken_reply_bcp47
+from apps.voice.extraction import bcp47_to_ui, should_adopt_session_language, spoken_reply_bcp47
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
     SERAH_LIVE_SYSTEM,
@@ -38,12 +38,12 @@ class LiveSessionRunner:
         *,
         user,
         emit: EmitFn,
-        ui_language: str | None = "English",
+        ui_language: str | None = "Sinhala",
         voice_persona: str | None = "female",
     ) -> None:
         self.user = user
         self.emit = emit
-        self.ui_language = ui_language if ui_language in ("English", "Tamil", "Sinhala") else "English"
+        self.ui_language = ui_language if ui_language in ("English", "Tamil", "Sinhala") else "Sinhala"
         self.voice_persona = resolve_persona(voice_persona)
         self._session = None
         self._task: asyncio.Task | None = None
@@ -261,8 +261,9 @@ class LiveSessionRunner:
             if in_t and getattr(in_t, "text", None):
                 heard = spoken_reply_bcp47(in_t.text)
                 spoken = bcp47_to_ui(heard)
-                if spoken:
-                    self.ui_language = spoken
+                adopted = should_adopt_session_language(self.ui_language, spoken)
+                if adopted:
+                    self.ui_language = adopted
                 await self.emit(
                     {
                         "type": "live.input_transcript",
@@ -312,8 +313,9 @@ class LiveSessionRunner:
                 self._prior_match = None
                 await self.emit({"type": "live.match", "payload": None, "cleared": True})
             spoken = bcp47_to_ui(result.get("reply_lang") or result.get("speak_language"))
-            if spoken:
-                self.ui_language = spoken
+            adopted = should_adopt_session_language(self.ui_language, spoken)
+            if adopted:
+                self.ui_language = adopted
             if result.get("action"):
                 await self.emit({"type": "live.action", "action": result["action"]})
             if result.get("reply"):

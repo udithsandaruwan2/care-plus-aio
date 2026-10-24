@@ -105,7 +105,7 @@ class VoiceLiveConsumer(AsyncWebsocketConsumer):
         self.runner = LiveSessionRunner(
             user=self.user,
             emit=self._emit,
-            ui_language=msg.get("ui_language") or "English",
+            ui_language=msg.get("ui_language") or "Sinhala",
             voice_persona=msg.get("voice") or "female",
         )
         await self.runner.start()

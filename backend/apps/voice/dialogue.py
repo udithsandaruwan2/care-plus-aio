@@ -84,11 +84,11 @@ def reply_language_for_utterance(
     *,
     prior_reply_lang: str | None = None,
 ) -> str:
-    """Speak the language the patient just used.
+    """Speak Sinhala / Tamil / English to match the session.
 
-    Sinhala or Tamil script (and common romanized captions) win over the
-    picker. Clear English speech is answered in English. Short follow-ups
-    like "hari" stay in the last spoken language.
+    Sinhala or Tamil letters (and romanized captions) always win. Short
+    Latin greetings like Hello keep the picker — Live often writes හායි
+    as Hello. The picker is the session language otherwise.
     """
     detected = spoken_reply_bcp47(text)
     if detected:
@@ -630,7 +630,8 @@ def process_turn(
         )
     route = decision.route
     situation = decision.situation
-    # Speak the patient's language. The picker is only a fallback.
+    # Picker holds the session. Sinhala/Tamil letters or romanized speech can
+    # switch it; Hello / Hi captions must not (Live writes those for හායි).
     prior_spoken = spoken_reply_bcp47(prior_serah)
     fallback_lang = _tts_lang(ui, [ui]) if ui else _tts_lang(base.get("language"), base.get("languages"))
     reply_lang = reply_language_for_utterance(

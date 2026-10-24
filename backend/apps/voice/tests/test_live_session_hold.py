@@ -39,7 +39,7 @@ class LiveSessionHoldTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Tamil", line)
         self.assertIn("English", line)
         self.assertIn("Sinhala", line)
-        self.assertIn("unknown: Tamil", line)
+        self.assertIn("session is in Tamil", line)
         self.assertIn("Tamil sounds", line)
         self.assertIn("English sounds", line)
         self.assertIn("Sinhala sounds", line)
