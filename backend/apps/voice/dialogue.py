@@ -88,7 +88,8 @@ def reply_language_for_utterance(
 
     Sinhala or Tamil letters (and romanized captions) always win. Short
     Latin greetings like Hello keep the picker — Live often writes හායි
-    as Hello. The picker is the session language otherwise.
+    as Hello. A real English sentence ("Hi, how are you?") switches to
+    English. The picker is the session language otherwise.
     """
     detected = spoken_reply_bcp47(text)
     if detected:

@@ -236,7 +236,7 @@ class ProcessTurnLanguageMergeTests(TestCase):
                 ui_language="Tamil",
             )
         self.assertEqual(out["intent"]["language"], "Tamil")
-        self.assertEqual(out["reply_lang"], "ta-LK")
+        self.assertEqual(out["reply_lang"], "en-US")
 
     def test_thanks_after_match_does_not_rematch(self):
         from apps.voice.asr import AsrResult

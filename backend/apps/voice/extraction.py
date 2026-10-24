@@ -35,13 +35,13 @@ _LATIN_WORD_RE = re.compile(r"[A-Za-z]{2,}")
 _ROMAN_SINHALA_RE = re.compile(
     r"\b("
     r"ayubowan|aayubowan|kohomada|koheda|oyata|"
-    r"kiyanna|karanna|balanna|"
-    r"sthuthi|stuti|bohoma|"
-    r"kawuda|mokakda|"
-    r"thiyenawa|thiyenava|innawa|innava|"
-    r"kenek|keneku|paricharak|"
-    r"rakabala|udesanak|"
-    r"mata|onee|oney|oonae"
+        r"kiyanna|karanna|karan|balanna|"
+        r"sthuthi|stuti|bohoma|"
+        r"kawuda|mokakda|"
+        r"thiyenawa|thiyenava|innawa|innava|"
+        r"kenek|keneku|kenekva|kenekwa|kenava|paricharak|"
+        r"rakabala|udesanak|"
+        r"mata|onee|oney|oonae"
     r")\b",
     re.I,
 )
@@ -60,6 +60,20 @@ _SHORT_LATIN_ACK_RE = re.compile(
     r"good\s*(morning|afternoon|evening)|"
     r"thanks|thank\s*you|yes|yeah|yep|ok|okay|"
     r"please|sorry)[\s!.]*$",
+    re.I,
+)
+# Real English — not a lone Hello caption.
+_ENGLISH_CONTENT_RE = re.compile(
+    r"\b("
+    r"how are you|how're you|how is it going|"
+    r"i(?:'m| am| need| want| have| would| will| can)|"
+    r"my name is|"
+    r"(?:can|could|would|will) you|"
+    r"please (?:find|send|book|help|show)|"
+    r"find me|"
+    r"looking for|"
+    r"thank you so"
+    r")\b",
     re.I,
 )
 
@@ -136,13 +150,16 @@ def spoken_reply_bcp47(text: str) -> str | None:
     """Language Serah should speak for this utterance, or None if unclear.
 
     Short Latin greetings return None. Gemini Live captions Sinhala හායි as
-    Hello; those must not flip a Sinhala session to English.
+    Hello; those must not flip a Sinhala session to English. A real English
+    sentence such as "Hi, how are you?" does switch.
     """
     sample = text or ""
     if _TAMIL_RE.search(sample) or _ROMAN_TAMIL_RE.search(sample):
         return "ta-LK"
     if _SINHALA_RE.search(sample) or _ROMAN_SINHALA_RE.search(sample):
         return "si-LK"
+    if _is_clear_english(sample):
+        return "en-US"
     return None
 
 
@@ -150,14 +167,25 @@ def is_short_latin_ack(text: str) -> bool:
     return bool(_SHORT_LATIN_ACK_RE.match((text or "").strip()))
 
 
+def _is_clear_english(text: str) -> bool:
+    sample = (text or "").strip()
+    if not sample or is_short_latin_ack(sample):
+        return False
+    if _SINHALA_RE.search(sample) or _TAMIL_RE.search(sample):
+        return False
+    if _ROMAN_SINHALA_RE.search(sample) or _ROMAN_TAMIL_RE.search(sample):
+        return False
+    if _ENGLISH_CONTENT_RE.search(sample):
+        return True
+    return len(_LATIN_WORD_RE.findall(sample)) >= 3
+
+
 def should_adopt_session_language(current: str | None, incoming: str | None) -> str | None:
-    """Keep Sinhala/Tamil once chosen; only adopt English when already English."""
+    """Adopt a detected language. Incoming None keeps the current session."""
     nxt = (incoming or "").strip() or None
     cur = (current or "").strip() or None
-    if nxt in (Language.SINHALA, Language.TAMIL):
+    if nxt in (Language.SINHALA, Language.TAMIL, Language.ENGLISH):
         return nxt
-    if nxt == Language.ENGLISH and cur in (Language.SINHALA, Language.TAMIL):
-        return cur
     return nxt or cur
 
 

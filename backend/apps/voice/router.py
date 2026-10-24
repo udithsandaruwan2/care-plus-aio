@@ -121,6 +121,9 @@ _MATCH_SEEK = re.compile(
     r"(කෙනෙක්|කෙනෙකු).{0,24}(හොය|සොය)|"
     r"(caregiver|nurse|පරිචාරක).{0,16}(ඕන[ේෙ]?|ඕන)|"
     r"(ඕන[ේෙ]?|ඕන).{0,16}(caregiver|nurse|පරිචාරක)|"
+    r"(hoya|hoyanna|soya|soyanna).{0,24}(kenek|caregiver|nurse)|"
+    r"(kenek|keneku|kenekva|kenekwa|kenava).{0,20}(onee?|oney|oonae|onan)|"
+    r"mata.{0,20}(kenek|caregiver|paricharak)|"
     r"பராமரிப்பாளர்|"
     r"(தேடு|தேவை|வேண்டும்).{0,20}(பராமரிப்பாளர்|nurse|caregiver)|"
     r"(பராமரிப்பாளர்|nurse|caregiver).{0,16}(தேடு|தேவை|வேண்டும்)",
@@ -148,7 +151,21 @@ _ACTION = re.compile(
     r"yes[,.]?\s*(send|request|hire|book)|"
     r"go\s+ahead\s+(and\s+)?(send|request|hire|book)"
     r")\b|"
-    r"ඉල්ලීම|තෝර|முதல்\s*நபர்|முன்பதிவு",
+    r"ඉල්ලීම|තෝර|முதல்\s*நபர்|முன்பதிவு|"
+    r"request\s*karan+a?|"
+    r"karan+a?\s*(the\s*)?(request|ekak)",
+    re.I,
+)
+
+# Send/request even when Live forgot that cards are on screen.
+_EXPLICIT_SEND = re.compile(
+    r"\b("
+    r"send\s*(the\s*)?(care\s*)?request|"
+    r"request\s*karan+a?|"
+    r"karan+a?\s*(the\s*)?(request|ekak)"
+    r")\b|"
+    r"ඉල්ලීම\s*කර|"
+    r"கோரிக்கை\s*(அனுப்பு|பண்ணு)",
     re.I,
 )
 
@@ -386,7 +403,9 @@ def classify_turn(
         r"\b(profile|details?)\b|පැතිකඩ|சுயவிவரம்", raw, re.I
     ):
         return RouteDecision("ACTION", "view_profile")
-    if (has_prior_match or has_history_match) and _ACTION.search(raw):
+    if _EXPLICIT_SEND.search(raw) or (
+        (has_prior_match or has_history_match) and _ACTION.search(raw)
+    ):
         return RouteDecision("ACTION", "request")
 
     # 5) Post-match conversation while caregiver cards are visible on screen

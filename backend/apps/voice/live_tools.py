@@ -26,9 +26,12 @@ When they want to start over / new request, call clear_voice_session.
 After a tool returns, speak ONLY the reply field in speak_language.
 If speak_language is Sinhala, the entire spoken reply must be Sinhala sounds.
 If speak_language is Tamil, the entire spoken reply must be Tamil sounds.
-If you caption a greeting as Hello / Hi / Hey, that is often Sinhala හායි
+If you caption a greeting as Hello / Hi / Hey alone, that is often Sinhala හායි
 or ආයුබෝවන් — still speak Sinhala when the session language is Sinhala.
-Never answer a Sinhala session in English. Never answer a Tamil session in English.
+If they say a real English sentence ("Hi, how are you?", "I need a caregiver"),
+speak English and call the tool. Mixed Singlish such as "request karan",
+"kenek onee", or "my name is Kenava request karan" is a care request —
+call serah_voice_turn immediately; do not ignore it.
 Do not add an English translation after a Sinhala or Tamil line.
 Keep spoken replies concise and caring. Do not read raw JSON aloud.
 """
@@ -44,12 +47,13 @@ def live_reply_language(ui_language: str | None) -> str:
     return (
         f"This voice session is in {lang}. Speak {lang} from the first word. "
         f"Hear {lang} even when the caption is written in English letters. "
-        "If the session is Sinhala and the caption says Hello or Hi, reply in Sinhala "
+        "If the session is Sinhala and the caption is only Hello or Hi, reply in Sinhala "
         "(ආයුබෝවන් / හායි) — do not greet in English. "
-        "If the session is Tamil and the caption says Hello or Hi, reply in Tamil "
+        "If the session is Tamil and the caption is only Hello or Hi, reply in Tamil "
         "(வணக்கம்) — do not greet in English. "
-        "Only switch away from the session language when the patient uses "
-        "Sinhala or Tamil letters, or clearly asks to change language. "
+        "If they say a real English sentence such as Hi, how are you? — reply in English. "
+        "Switch to Sinhala or Tamil when they use those letters or romanized words "
+        "(request karan, kenek, ayubowan, vanakkam). "
         "Pronounce English with English sounds, Tamil with Tamil sounds, "
         "and Sinhala with Sinhala sounds. "
         "Do not pronounce Tamil or Sinhala as if they were English."

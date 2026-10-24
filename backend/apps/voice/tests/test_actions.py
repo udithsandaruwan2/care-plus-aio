@@ -68,6 +68,15 @@ class ActionResolverTests(SimpleTestCase):
         self.assertEqual(action["caregiver_id"], 10)
         self.assertEqual(action["rank"], 1)
 
+    def test_singlish_request_defaults_to_top(self):
+        action = build_voice_action(
+            "request",
+            "My name is Kenava, request Karan",
+            {"results": RESULTS},
+        )
+        self.assertEqual(action["type"], "request")
+        self.assertEqual(action["caregiver_id"], 10)
+
     def test_build_view_profile_by_rank(self):
         action = build_voice_action("view_profile", "review number two", {"results": RESULTS})
         self.assertEqual(action["type"], "view_profile")
@@ -110,6 +119,16 @@ class RouterActionFixtureTests(SimpleTestCase):
         self.assertEqual(d.situation, "request")
         for phrase in ("book the caregiver", "booking", "book them", "request this caregiver"):
             got = classify_turn(phrase, COMPLETE, has_prior_match=True)
+            self.assertEqual(got.situation, "request", phrase)
+
+    def test_singlish_request_karan_is_request(self):
+        for phrase in (
+            "request karan",
+            "My name is Kenava, request Karan",
+            "mata kenekva request karanna",
+        ):
+            got = classify_turn(phrase, COMPLETE, has_prior_match=False)
+            self.assertEqual(got.route, "ACTION", phrase)
             self.assertEqual(got.situation, "request", phrase)
 
     def test_view_profile_plain_phrase(self):
