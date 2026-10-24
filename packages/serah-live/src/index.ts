@@ -573,8 +573,10 @@ export function createSerahLiveSession(opts: CreateSerahLiveOptions): SerahLiveS
       h.onUnavailable?.('Not authenticated');
       return false;
     }
-    const base = opts.wsBaseUrl || wsBaseFromApi(opts.apiBaseUrl);
-    const url = `${base.replace(/\/$/, '')}/ws/voice/live/${userId}/?token=${encodeURIComponent(token)}`;
+    const base = (opts.wsBaseUrl || wsBaseFromApi(opts.apiBaseUrl))
+      .replace(/\/$/, '')
+      .replace(/\/ws$/i, '');
+    const url = `${base}/ws/voice/live/${userId}/?token=${encodeURIComponent(token)}`;
 
     return await new Promise<boolean>((resolve) => {
       let settled = false;

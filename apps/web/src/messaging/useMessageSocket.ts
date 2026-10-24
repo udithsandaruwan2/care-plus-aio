@@ -1,12 +1,10 @@
 import { useEffect, useRef } from 'react';
 import type { Message } from '@care-plus/api-client';
 import { getAccessToken } from '../auth/session';
+import { wsOrigin } from '../lib/wsOrigin';
 
 function wsBase(): string {
-  const fromEnv = import.meta.env.VITE_WS_BASE_URL as string | undefined;
-  if (fromEnv) return fromEnv.replace(/\/$/, '');
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${window.location.host}`;
+  return wsOrigin(import.meta.env.VITE_WS_BASE_URL as string | undefined);
 }
 
 type Handlers = {
