@@ -8,22 +8,27 @@ from typing import Any
 from asgiref.sync import sync_to_async
 
 from apps.voice.dialogue import process_turn
+from apps.voice.extraction import bcp47_to_ui
 from apps.voice.session import clear_active_sessions
 from apps.voice.tts import resolve_persona
 
 logger = logging.getLogger(__name__)
 
 SERAH_LIVE_SYSTEM = """You are Serah, the warm Care Plus voice assistant for Sri Lanka.
-You speak naturally in English, Tamil, or Sinhala to match the patient.
 Never invent caregiver names, ranks, scores, or match results.
 When the user asks to find a caregiver, search, rematch, refine, clarify care needs,
-view a profile, send a care request, schedule a visit, or book — call the
-serah_voice_turn tool with their utterance text.
+view a profile, send a care request, schedule a visit, book, greet, or small-talk —
+call the serah_voice_turn tool with their utterance text.
 Do not ask follow-up questions for "view profile", "show the profile",
 "book the caregiver", "send the request", or "show the schedule" — call the
 tool immediately so the side card can open.
 When they want to start over / new request, call clear_voice_session.
-After a tool returns, speak the reply field to the patient in their language.
+After a tool returns, speak ONLY the reply field. Use speak_language:
+Sinhala speech → speak the whole reply in Sinhala (Sinhala letters and sounds).
+Tamil speech → speak the whole reply in Tamil.
+English speech → speak the whole reply in English.
+Never answer a Sinhala utterance in English. Never answer a Tamil utterance in English.
+Do not add an English translation after a Sinhala or Tamil line.
 Keep spoken replies concise and caring. Do not read raw JSON aloud.
 """
 
@@ -36,11 +41,16 @@ def live_reply_language(ui_language: str | None) -> str:
     """
     lang = ui_language if ui_language in ("English", "Tamil", "Sinhala") else "English"
     return (
-        f"Preferred language when the utterance is unclear: {lang}. "
-        "Hear English, Tamil, and Sinhala, then answer in the language the patient just spoke. "
+        f"Fallback only when the utterance language is unknown: {lang}. "
+        "Mirror the language the patient just spoke, every turn. "
+        "Sinhala (or mixed Sinhala + English words) → full Sinhala reply. "
+        "Tamil (or mixed Tamil + English words) → full Tamil reply. "
+        "English-only speech → English reply. "
+        "Hear English, Tamil, and Sinhala, then answer in that same language. "
         "Pronounce English with English sounds, Tamil with Tamil sounds, "
         "and Sinhala with Sinhala sounds. "
-        "Do not pronounce Tamil or Sinhala as if they were English."
+        "Do not pronounce Tamil or Sinhala as if they were English. "
+        "Do not greet a Sinhala speaker in English."
     )
 
 LIVE_TOOL_DECLARATIONS = [
@@ -152,12 +162,19 @@ def run_serah_voice_turn_sync(
         voice_persona=resolve_persona(voice_persona),
         skip_tts=True,
     )
+    reply_lang = result.get("reply_lang") or ""
+    speak = bcp47_to_ui(reply_lang) or lang or "English"
     return {
         "ok": True,
         "route": result.get("route"),
         "situation": result.get("situation"),
         "reply": result.get("reply") or "",
-        "reply_lang": result.get("reply_lang") or "",
+        "reply_lang": reply_lang,
+        "speak_language": speak,
+        "speak_instruction": (
+            f"Speak the reply field verbatim in {speak}. "
+            "Do not translate it into another language."
+        ),
         "transcript": result.get("transcript") or text,
         "intent": result.get("intent"),
         "match": _json_safe_match(result.get("match") if isinstance(result.get("match"), dict) else None),
@@ -168,12 +185,21 @@ def run_serah_voice_turn_sync(
     }
 
 
-def run_clear_session_sync(*, user) -> dict[str, Any]:
+def run_clear_session_sync(*, user, ui_language: str | None = None) -> dict[str, Any]:
     clear_active_sessions(user)
+    lang = ui_language if ui_language in ("English", "Tamil", "Sinhala") else "English"
+    if lang == "Sinhala":
+        reply = "හරි, අලුත් request එකකට සූදානම්. කොහොමද උදව් කරන්නේ?"
+    elif lang == "Tamil":
+        reply = "சரி, புதிய கோரிக்கைக்கு தயார். எப்படி உதவட்டும்?"
+    else:
+        reply = "Ready for a fresh request. How can I help?"
     return {
         "ok": True,
         "cleared": True,
-        "reply": "Ready for a fresh request. How can I help?",
+        "reply": reply,
+        "reply_lang": {"Sinhala": "si-LK", "Tamil": "ta-LK"}.get(lang, "en-US"),
+        "speak_language": lang,
     }
 
 
@@ -190,7 +216,7 @@ async def execute_live_tool(
 ) -> dict[str, Any]:
     args = args or {}
     if name == "clear_voice_session":
-        return await sync_to_async(run_clear_session_sync)(user=user)
+        return await sync_to_async(run_clear_session_sync)(user=user, ui_language=ui_language)
     if name == "serah_voice_turn":
         text = str(args.get("text") or "").strip()
         tool_lang = args.get("ui_language") or ui_language

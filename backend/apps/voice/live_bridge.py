@@ -16,6 +16,7 @@ from apps.voice.live_activity import live_realtime_input_config
 from apps.voice.live_receive import iter_session_messages
 from apps.voice.live_stream import END_AUDIO, pump_mic_audio
 from apps.voice.output_hold import apply_output_hold, hold_should_release
+from apps.voice.extraction import bcp47_to_ui, spoken_reply_bcp47
 from apps.voice.live_tools import (
     LIVE_TOOL_DECLARATIONS,
     SERAH_LIVE_SYSTEM,
@@ -258,6 +259,10 @@ class LiveSessionRunner:
         if sc is not None:
             in_t = getattr(sc, "input_transcription", None)
             if in_t and getattr(in_t, "text", None):
+                heard = spoken_reply_bcp47(in_t.text)
+                spoken = bcp47_to_ui(heard)
+                if spoken:
+                    self.ui_language = spoken
                 await self.emit(
                     {
                         "type": "live.input_transcript",
@@ -306,6 +311,9 @@ class LiveSessionRunner:
                 self._has_prior_match = False
                 self._prior_match = None
                 await self.emit({"type": "live.match", "payload": None, "cleared": True})
+            spoken = bcp47_to_ui(result.get("reply_lang") or result.get("speak_language"))
+            if spoken:
+                self.ui_language = spoken
             if result.get("action"):
                 await self.emit({"type": "live.action", "action": result["action"]})
             if result.get("reply"):
