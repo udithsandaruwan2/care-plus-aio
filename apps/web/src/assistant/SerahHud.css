@@ -1237,3 +1237,37 @@
   }
 }
 
+@media (max-width: 1023px) {
+  .serah-profile-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    background: color-mix(in srgb, black 42%, transparent);
+  }
+
+  .serah-stage.has-profile-card.is-searching,
+  .serah-stage.has-profile-card:not(.is-searching) {
+    display: flex;
+    grid-template-columns: none;
+  }
+
+  .serah-stage.is-searching .serah-match-projection,
+  .serah-stage.is-searching .serah-match-projection.is-open {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .serah-profile-drawer.is-open {
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    left: 8px;
+    z-index: 30;
+    width: auto;
+    height: min(68dvh, 32rem);
+    max-height: min(68dvh, 32rem);
+    border-radius: 1.25rem 1.25rem 0 0;
+  }
+}
+
