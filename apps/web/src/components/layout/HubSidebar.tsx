@@ -1,64 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  Activity,
-  LayoutDashboard,
-  Users,
-  MessageSquare,
-  Calendar,
-  FileText,
-  UserCircle,
-  Inbox,
-  ShieldAlert,
-  BarChart3,
-  Package,
-  ClipboardList,
-  LogOut,
-  MapPin,
-  UserPlus,
-  History,
-} from 'lucide-react';
+import { Activity, LogOut } from 'lucide-react';
 import { brand } from '@care-plus/ui-tokens';
 import { useAuth } from '../../auth/AuthContext';
-
-type NavItem = { path: string; label: string; icon: typeof LayoutDashboard };
-
-function itemsForRole(role: string | undefined): NavItem[] {
-  if (role === 'caregiver') {
-    return [
-      { path: '/hub', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/requests', label: 'Inbox', icon: Inbox },
-      { path: '/presence', label: 'Presence', icon: MapPin },
-      { path: '/schedule', label: 'Schedule', icon: Calendar },
-      { path: '/messages', label: 'Messages', icon: MessageSquare },
-      { path: '/caregiver-onboarding', label: 'Profile', icon: UserPlus },
-      { path: '/account', label: 'Account', icon: UserCircle },
-    ];
-  }
-  if (role === 'admin' || role === 'auditor') {
-    return [
-      { path: '/hub', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/app', label: 'Serah Core', icon: Activity },
-      { path: '/users', label: 'Users', icon: Users },
-      { path: '/admin/catalog', label: 'Catalog', icon: Package },
-      { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-      { path: '/admin/audit', label: 'Audit Logs', icon: ShieldAlert },
-      ...(role === 'admin' ? [{ path: '/leads', label: 'Leads', icon: ClipboardList }] : []),
-      { path: '/account', label: 'Account', icon: UserCircle },
-    ];
-  }
-  return [
-    { path: '/hub', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/app', label: 'Serah Core', icon: Activity },
-    { path: '/caregivers', label: 'Caregivers', icon: Users },
-    { path: '/requests', label: 'Requests', icon: Inbox },
-    { path: '/orders', label: 'Orders', icon: Package },
-    { path: '/history', label: 'History', icon: History },
-    { path: '/messages', label: 'Messages', icon: MessageSquare },
-    { path: '/schedule', label: 'Schedule', icon: Calendar },
-    { path: '/records', label: 'Records', icon: FileText },
-    { path: '/account', label: 'Account', icon: UserCircle },
-  ];
-}
+import { itemsForRole } from './hubNav';
 
 export function HubSidebar() {
   const { user, logout } = useAuth();
@@ -66,7 +10,7 @@ export function HubSidebar() {
   const items = itemsForRole(user?.role);
 
   return (
-    <aside className="sticky top-4 m-4 flex h-[calc(100vh-2rem)] w-[260px] shrink-0 flex-col rounded-[20px] border border-hair bg-panel shadow-[var(--cp-shadow-soft)]">
+    <aside className="sticky top-4 m-4 hidden h-[calc(100vh-2rem)] w-[260px] shrink-0 flex-col rounded-[20px] border border-hair bg-panel shadow-[var(--cp-shadow-soft)] lg:flex">
       <div className="border-b border-hair px-6 py-6">
         <NavLink to="/hub" className="flex items-center gap-3 no-underline">
           <Activity color="var(--cp-accent-cyan)" size={28} />

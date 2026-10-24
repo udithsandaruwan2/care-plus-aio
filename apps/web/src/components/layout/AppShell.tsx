@@ -10,6 +10,7 @@ import { bindEdgeRankingLifecycle } from '../../assistant/useMatch';
 import { bindOutboxLifecycle } from '../../lib/outbox/flush';
 import { OutboxBanner } from '../OutboxBanner';
 import { AIAssistantDock } from './AIAssistantDock';
+import { HubBottomNav } from './HubBottomNav';
 import { HubSidebar } from './HubSidebar';
 import { HubTopbar } from './HubTopbar';
 
@@ -85,24 +86,34 @@ export function AppShell() {
 
   return (
     <SerahEngineProvider>
-      <div className="flex min-h-screen bg-void">
+      <div className={`flex min-h-dvh bg-void ${serahCore ? 'is-serah-core' : ''}`}>
         <SkipLink />
         <HubSidebar />
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <ConnectionBanner />
           <OutboxBanner />
-          <HubTopbar />
+          {serahCore ? (
+            <div className="hidden lg:block">
+              <HubTopbar />
+            </div>
+          ) : (
+            <>
+              <HubTopbar compact />
+              <HubTopbar />
+            </>
+          )}
           <main
             id="main-content"
             tabIndex={-1}
             className={
               serahCore
-                ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 outline-none'
-                : 'flex-1 overflow-y-auto px-8 pb-8 outline-none'
+                ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 outline-none lg:px-4 lg:pb-4'
+                : 'flex-1 overflow-y-auto px-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] outline-none lg:px-8 lg:pb-8'
             }
           >
             <Outlet />
           </main>
+          {serahCore ? null : <HubBottomNav />}
         </div>
         <AIAssistantDock />
       </div>

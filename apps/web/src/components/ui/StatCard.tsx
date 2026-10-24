@@ -23,7 +23,7 @@ export function StatCard({
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">{title}</p>
           <p className="mt-1 font-display text-2xl font-bold text-mist">{value}</p>
-          {subtitle && <p className="mt-1 text-xs text-muted">{subtitle}</p>}
+          {subtitle && <p className="mt-1 hidden text-xs text-muted sm:block">{subtitle}</p>}
         </div>
       </div>
     </Card>
