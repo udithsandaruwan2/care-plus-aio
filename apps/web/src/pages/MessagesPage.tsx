@@ -187,7 +187,7 @@ export function MessagesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col text-mist">
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="mb-3 hidden flex-wrap gap-2 lg:flex">
         <BackLink to="/hub">Back to hub</BackLink>
         <BackLink to="/app">Back to Serah</BackLink>
       </div>

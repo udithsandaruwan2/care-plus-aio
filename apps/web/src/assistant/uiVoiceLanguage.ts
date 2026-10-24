@@ -49,4 +49,15 @@ export function uiLanguageLabel(lang: UiVoiceLanguage): string {
   }
 }
 
+export function uiLanguageShortLabel(lang: UiVoiceLanguage): string {
+  switch (lang) {
+    case 'Sinhala':
+      return 'සිං';
+    case 'Tamil':
+      return 'தமி';
+    default:
+      return 'EN';
+  }
+}
+
 export const UI_VOICE_LANGUAGES: UiVoiceLanguage[] = ['Sinhala', 'Tamil', 'English'];

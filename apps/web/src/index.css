@@ -89,6 +89,35 @@ body {
   }
 }
 
+.home-serah-hero {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+  border: 1px solid color-mix(in srgb, var(--cp-accent-cyan) 35%, var(--cp-border-hair));
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 18% 40%, color-mix(in srgb, var(--cp-accent-cyan) 28%, transparent), transparent 52%),
+    var(--cp-bg-panel);
+  padding: 18px 16px;
+  text-decoration: none;
+  box-shadow: var(--cp-shadow-soft);
+}
+
+.home-serah-orb {
+  display: grid;
+  height: 4.25rem;
+  width: 4.25rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cp-accent-cyan) 88%, white);
+  color: var(--cp-text-inverse);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--cp-accent-cyan) 16%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
