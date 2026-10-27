@@ -15,7 +15,7 @@ describe('DocsPage', () => {
     expect(screen.getByRole('heading', { name: /care plus documentation/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /ieee conference paper/i })).toHaveAttribute(
       'href',
-      '/research/conference-paper.pdf',
+      '/research/conference-paper.pdf?v=20261027',
     );
     expect(screen.getByRole('link', { name: /layered architecture/i })).toHaveAttribute(
       'href',

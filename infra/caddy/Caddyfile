@@ -27,6 +27,23 @@
 		}
 	}
 
+	# Research files must not fall through to the SPA. Otherwise a missing PDF
+	# is served as index.html and CDNs cache that HTML on the PDF URL.
+	@research path /research/*
+	handle @research {
+		root * /srv/web
+		header Cache-Control "public, max-age=3600, must-revalidate"
+		file_server
+	}
+
+	# Service worker and HTML must revalidate so deploys are not stuck on a CDN HIT.
+	@nocache path /sw.js /index.html /offline.html
+	handle @nocache {
+		root * /srv/web
+		header Cache-Control "no-cache, no-store, must-revalidate"
+		file_server
+	}
+
 	handle {
 		root * /srv/web
 		try_files {path} /index.html
