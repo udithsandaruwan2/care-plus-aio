@@ -38,13 +38,9 @@ export function PublicHeader() {
       >
         Packages
       </NavLink>
-      <NavLink
-        to="/docs"
-        className={({ isActive }) => linkClass(isActive)}
-        onClick={() => setOpen(false)}
-      >
+      <a href="/api/public-docs" className={linkClass(false)} onClick={() => setOpen(false)}>
         Docs
-      </NavLink>
+      </a>
       <NavLink
         to="/contact"
         className={({ isActive }) => linkClass(isActive)}

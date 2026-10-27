@@ -3,10 +3,11 @@ import { PublicPage } from '../components/layout/PublicPage';
 import { BackLink } from '../components/ui/BackLink';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
+import { publicDocsUrl } from '../lib/publicDocs';
 
-const PAPER = '/research/conference-paper.pdf?v=20261027';
-const ARCHITECTURE = '/research/architecture.png';
-const VEHMF = '/research/vehmf.png';
+const PAPER = publicDocsUrl('conference-paper.pdf');
+const ARCHITECTURE = publicDocsUrl('architecture.png');
+const VEHMF = publicDocsUrl('vehmf.png');
 const GITHUB = 'https://github.com/udithsandaruwan2/care-plus-aio';
 
 const downloads = [

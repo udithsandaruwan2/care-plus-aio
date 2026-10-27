@@ -76,6 +76,7 @@ const AdminAnalyticsPage = lazyNamed(
 const AdminAuditPage = lazyNamed(() => import('./pages/AdminAuditPage'), 'AdminAuditPage');
 const LeadsPage = lazyNamed(() => import('./pages/LeadsPage'), 'LeadsPage');
 const OfflinePage = lazyNamed(() => import('./pages/OfflinePage'), 'OfflinePage');
+const ResearchFileGate = lazyNamed(() => import('./pages/ResearchFileGate'), 'ResearchFileGate');
 
 function RouteFallback() {
   return (
@@ -98,6 +99,7 @@ export function App() {
             <Route path="/privacy" element={<PrivacyNoticePage />} />
             <Route path="/docs" element={<DocsPage />} />
             <Route path="/offline" element={<OfflinePage />} />
+            <Route path="/research/*" element={<ResearchFileGate />} />
           </Route>
 
           {/* Public browsing that keeps the hub sidebar once signed in. */}

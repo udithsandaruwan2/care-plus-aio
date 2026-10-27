@@ -16,6 +16,30 @@
 		X-Frame-Options DENY
 	}
 
+	# Public research docs. /api/* is denylisted by the existing service worker,
+	# so these URLs reach origin even when /docs and /research/* are captured as SPA.
+	@pubDocsPage path /api/public-docs /api/public-docs/
+	handle @pubDocsPage {
+		rewrite * /docs.html
+		root * /srv/web
+		header Cache-Control "no-cache, no-store, must-revalidate"
+		file_server
+	}
+
+	handle_path /api/public-docs/* {
+		root * /srv/web/research
+		header Cache-Control "public, max-age=300, must-revalidate"
+		file_server
+	}
+
+	@docsPage path /docs /docs/
+	handle @docsPage {
+		rewrite * /docs.html
+		root * /srv/web
+		header Cache-Control "no-cache, no-store, must-revalidate"
+		file_server
+	}
+
 	# API, admin, media, and Gemini Live / Channels WebSockets.
 	@backend path /api/* /ws/* /admin* /static/* /media*
 	handle @backend {
@@ -37,7 +61,7 @@
 	}
 
 	# Service worker and HTML must revalidate so deploys are not stuck on a CDN HIT.
-	@nocache path /sw.js /index.html /offline.html
+	@nocache path /sw.js /cp-sw.js /index.html /offline.html /docs.html
 	handle @nocache {
 		root * /srv/web
 		header Cache-Control "no-cache, no-store, must-revalidate"
