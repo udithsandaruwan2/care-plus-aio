@@ -20,6 +20,7 @@ const LoginPage = lazyNamed(() => import('./pages/LoginPage'), 'LoginPage');
 const RegisterPage = lazyNamed(() => import('./pages/RegisterPage'), 'RegisterPage');
 const ContactPage = lazyNamed(() => import('./pages/ContactPage'), 'ContactPage');
 const PrivacyNoticePage = lazyNamed(() => import('./pages/PrivacyNoticePage'), 'PrivacyNoticePage');
+const DocsPage = lazyNamed(() => import('./pages/DocsPage'), 'DocsPage');
 const CatalogPage = lazyNamed(() => import('./pages/CatalogPage'), 'CatalogPage');
 const BrowseCaregiversPage = lazyNamed(
   () => import('./pages/BrowseCaregiversPage'),
@@ -95,6 +96,7 @@ export function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyNoticePage />} />
+            <Route path="/docs" element={<DocsPage />} />
             <Route path="/offline" element={<OfflinePage />} />
           </Route>
 

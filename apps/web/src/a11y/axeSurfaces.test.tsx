@@ -7,6 +7,7 @@ import type { MatchResponse } from '@care-plus/api-client';
 import { MatchResultCards } from '../assistant/MatchResultCards';
 import { LocaleProvider } from '../i18n/LocaleProvider';
 import { LoginPage } from '../pages/LoginPage';
+import { DocsPage } from '../pages/DocsPage';
 import { PrivacyNoticePage } from '../pages/PrivacyNoticePage';
 import { PublicHomePage } from '../pages/PublicHomePage';
 import { RegisterPage } from '../pages/RegisterPage';
@@ -118,6 +119,14 @@ describe('axe: auth + home + results', () => {
 
   it('PrivacyNoticePage has no serious axe violations', async () => {
     const { container } = wrap(<PrivacyNoticePage />);
+    const results = await axe(container, {
+      rules: { region: { enabled: false } },
+    });
+    expect(results).toHaveNoViolations();
+  });
+
+  it('DocsPage has no serious axe violations', async () => {
+    const { container } = wrap(<DocsPage />);
     const results = await axe(container, {
       rules: { region: { enabled: false } },
     });

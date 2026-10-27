@@ -10,6 +10,9 @@ export function PublicFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
         <p>© {new Date().getFullYear()} Care Plus Sri Lanka. All rights reserved.</p>
         <div className="flex flex-wrap gap-6">
+          <Link to="/docs" className="hover:text-cyan">
+            Research docs
+          </Link>
           <Link to="/privacy" className="hover:text-cyan">
             PDPA Privacy Policy
           </Link>
