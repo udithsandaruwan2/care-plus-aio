@@ -6,6 +6,14 @@ export async function registerCarePlusSW(): Promise<void> {
   if (!import.meta.env.PROD) {
     return;
   }
-  const { registerSW } = await import('virtual:pwa-register');
-  registerSW({ immediate: true });
+  const stale = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(
+    stale
+      .filter((reg) => !reg.active?.scriptURL.includes('/cp-sw.js'))
+      .map((reg) => reg.unregister()),
+  );
+  await navigator.serviceWorker.register('/cp-sw.js', {
+    scope: '/',
+    updateViaCache: 'none',
+  });
 }

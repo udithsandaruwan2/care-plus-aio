@@ -15,6 +15,19 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        var p = location.pathname || '';
+        if (p === '/docs' || p === '/docs/') {
+          location.replace('/api/public-docs');
+          return;
+        }
+        var m = p.match(/^\/research\/(.+)$/);
+        if (m) {
+          location.replace('/api/public-docs/' + m[1] + location.search);
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

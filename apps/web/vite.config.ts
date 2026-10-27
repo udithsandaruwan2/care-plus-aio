@@ -2,7 +2,21 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import fs from 'node:fs';
 import path from 'node:path';
+
+const STALE_SW_KILL_SWITCH = `/* Retire stale app-shell service workers. */
+self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (event) {
+  event.waitUntil((async function () {
+    var keys = await caches.keys();
+    await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+    await self.registration.unregister();
+    var clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    await Promise.all(clients.map(function (c) { return c.navigate ? c.navigate(c.url) : undefined; }));
+  })());
+});
+`;
 
 export default defineConfig({
   plugins: [
@@ -52,6 +66,22 @@ export default defineConfig({
         type: 'module',
       },
     }),
+    {
+      name: 'careplus-sw-alias',
+      apply: 'build',
+      enforce: 'post',
+      closeBundle: {
+        sequential: true,
+        order: 'post',
+        handler() {
+          const dist = path.resolve(__dirname, 'dist');
+          const sw = path.join(dist, 'sw.js');
+          if (!fs.existsSync(sw)) return;
+          fs.copyFileSync(sw, path.join(dist, 'cp-sw.js'));
+          fs.writeFileSync(sw, STALE_SW_KILL_SWITCH, 'utf8');
+        },
+      },
+    },
   ],
   resolve: {
     alias: {

@@ -15,11 +15,11 @@ describe('DocsPage', () => {
     expect(screen.getByRole('heading', { name: /care plus documentation/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /ieee conference paper/i })).toHaveAttribute(
       'href',
-      '/research/conference-paper.pdf?v=20261027',
+      '/api/public-docs/conference-paper.pdf',
     );
     expect(screen.getByRole('link', { name: /layered architecture/i })).toHaveAttribute(
       'href',
-      '/research/architecture.png',
+      '/api/public-docs/architecture.png',
     );
   });
 });

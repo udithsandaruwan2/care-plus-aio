@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Care Plus documentation</title>
+    <meta name="description" content="Public papers, architecture, and privacy notes for Care Plus." />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #061820;
+        --panel: #0b3d4a;
+        --mist: #e8f4f6;
+        --muted: #9bb8bf;
+        --cyan: #3ee0c3;
+        --hair: rgba(255, 255, 255, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--mist);
+        line-height: 1.55;
+      }
+      header,
+      main {
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: 1.5rem;
+      }
+      a {
+        color: var(--cyan);
+      }
+      .card,
+      .link-card {
+        display: block;
+        border: 1px solid var(--hair);
+        border-radius: 1rem;
+        background: var(--panel);
+        padding: 1rem 1.15rem;
+        text-decoration: none;
+        color: inherit;
+      }
+      .link-card:hover {
+        border-color: var(--cyan);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      h1 {
+        font-size: 1.75rem;
+        margin: 0.35rem 0 0.5rem;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin: 2rem 0 0.75rem;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .meta {
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--cyan);
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          return Promise.all(regs.map(function (r) { return r.unregister(); }));
+        });
+      }
+      if (window.caches) {
+        caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        });
+      }
+    </script>
+    <header>
+      <p class="meta">Research</p>
+      <h1>Care Plus documentation</h1>
+      <p class="muted">
+        Public papers, architecture, and privacy notes for the NIBM research platform hosted at
+        careplus.udithsandaruwan.com.
+      </p>
+    </header>
+    <main>
+      <div class="card muted">
+        <p>
+          Care Plus is an AI-enhanced, voice-enabled personal healthcare assistant with integrated
+          caregiver matching for chronic disease management in Sri Lanka. A large language model
+          supports dialogue only; it does not decide caregiver rank.
+        </p>
+      </div>
+      <h2>Downloads and reports</h2>
+      <ul>
+        <li>
+          <a class="link-card" href="/api/public-docs/conference-paper.pdf">
+            <strong>IEEE conference paper (PDF)</strong>
+            <p class="muted">Six-page research paper: voice-enabled hybrid caregiver matching.</p>
+            <p class="meta">PDF · 6 pages</p>
+          </a>
+        </li>
+        <li>
+          <a class="link-card" href="/api/public-docs/architecture.png">
+            <strong>Layered architecture</strong>
+            <p class="muted">Presentation, API, cognitive, decision, and data layers.</p>
+            <p class="meta">PNG</p>
+          </a>
+        </li>
+        <li>
+          <a class="link-card" href="/api/public-docs/vehmf.png">
+            <strong>VEHMF four-factor fusion</strong>
+            <p class="muted">AHP weights 0.287 / 0.231 / 0.280 / 0.202.</p>
+            <p class="meta">PNG</p>
+          </a>
+        </li>
+        <li>
+          <a class="link-card" href="/privacy">
+            <strong>PDPA privacy notice</strong>
+            <p class="muted">Consent, retention, and how voice data is handled.</p>
+            <p class="meta">Web page</p>
+          </a>
+        </li>
+      </ul>
+      <p class="muted" style="margin-top: 2rem">
+        <a href="/">← Home</a>
+        ·
+        <a href="https://github.com/udithsandaruwan2/care-plus-aio">Source repository</a>
+      </p>
+    </main>
+  </body>
+</html>
