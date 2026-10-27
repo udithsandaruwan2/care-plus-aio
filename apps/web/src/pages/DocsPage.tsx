@@ -4,7 +4,7 @@ import { BackLink } from '../components/ui/BackLink';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
 
-const PAPER = '/research/conference-paper.pdf';
+const PAPER = '/research/conference-paper.pdf?v=20261027';
 const ARCHITECTURE = '/research/architecture.png';
 const VEHMF = '/research/vehmf.png';
 const GITHUB = 'https://github.com/udithsandaruwan2/care-plus-aio';
@@ -46,7 +46,7 @@ export function DocsPage() {
         <PageHeader
           eyebrow="Research"
           title="Care Plus documentation"
-          subtitle="Public papers, architecture, and privacy notes for the NIBM research platform hosted at app.careplus.lk."
+          subtitle="Public papers, architecture, and privacy notes for the NIBM research platform hosted at careplus.udithsandaruwan.com."
         />
       </div>
 
@@ -71,7 +71,7 @@ export function DocsPage() {
             <a
               href={item.href}
               className="block rounded-2xl border border-hair bg-panel p-4 no-underline shadow-[var(--cp-shadow-soft)] transition hover:border-cyan"
-              {...(item.href.endsWith('.pdf') || item.href.endsWith('.png')
+              {...(/\.(?:pdf|png)(?:\?|$)/i.test(item.href)
                 ? { target: '_blank', rel: 'noreferrer' }
                 : {})}
             >

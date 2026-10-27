@@ -21,7 +21,14 @@ cleanupOutdatedCaches();
 // App-shell navigations: serve index.html when offline (SPA).
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
-    denylist: [/^\/api\//, /^\/ws\//, /^\/offline\.html$/],
+    denylist: [
+      /^\/api\//,
+      /^\/ws\//,
+      /^\/admin/,
+      /^\/offline\.html$/,
+      /^\/research\//,
+      /\.(?:pdf|png|jpe?g|webp|svg)$/i,
+    ],
   }),
 );
 
